@@ -1,0 +1,41 @@
+import { NextResponse } from "next/server";
+import { createServerClient } from "@supabase/ssr";
+
+export async function GET(request: Request) {
+  const { searchParams, origin } = new URL(request.url);
+  const code = searchParams.get("code");
+  const next = searchParams.get("next") ?? "/onboarding";
+
+  if (code) {
+    const cookieHeader = request.headers.get("cookie") ?? "";
+    const response = NextResponse.redirect(`${origin}${next}`);
+
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieHeader
+              .split("; ")
+              .filter(Boolean)
+              .map((c) => {
+                const [name, ...rest] = c.split("=");
+                return { name, value: rest.join("=") };
+              });
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              response.cookies.set(name, value, options),
+            );
+          },
+        },
+      },
+    );
+
+    await supabase.auth.exchangeCodeForSession(code);
+    return response;
+  }
+
+  return NextResponse.redirect(`${origin}${next}`);
+}
