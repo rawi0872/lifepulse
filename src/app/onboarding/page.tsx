@@ -1,138 +1,356 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+
+// ─── Constants ────────────────────────────────────────────────────────────────
 
 const DEFAULT_REALMS = [
-  { name: "Mind", color: "#8b5cf6", icon: "🧠", description: "Learning, thinking, creativity" },
-  { name: "Body", color: "#10b981", icon: "💪", description: "Health, fitness, nutrition" },
-  { name: "Career", color: "#3b82f6", icon: "💼", description: "Work, skills, growth" },
-  { name: "Relationships", color: "#f43f5e", icon: "❤️", description: "Family, friends, community" },
-  { name: "Finance", color: "#f59e0b", icon: "💰", description: "Money, budgeting, investing" },
-  { name: "Faith", color: "#a855f7", icon: "🙏", description: "Spirituality, purpose, faith" },
-];
+  { name: "Mind", color: "#8b5cf6", icon: "🧠", description: "Learning, focus, mental clarity" },
+  { name: "Body", color: "#10b981", icon: "💪", description: "Health, training, sleep" },
+  { name: "Career", color: "#3b82f6", icon: "💼", description: "School, work, skills, ambition" },
+  { name: "Relationships", color: "#f43f5e", icon: "❤️", description: "Family, friends, social life" },
+  { name: "Finance", color: "#f59e0b", icon: "💰", description: "Money, spending, stability" },
+  { name: "Faith", color: "#a855f7", icon: "🙏", description: "Values, discipline, spiritual growth" },
+] as const;
 
-type Step = "welcome" | "habits" | "tasks" | "done";
+const FEATURES = [
+  { icon: "⊙", name: "Today", desc: "Daily command center" },
+  { icon: "◇", name: "Habits", desc: "Track daily practices" },
+  { icon: "⊞", name: "Projects", desc: "Manage goals and work" },
+  { icon: "▲", name: "Finance", desc: "Monitor spending" },
+  { icon: "◆", name: "Journal", desc: "End-of-day reflection" },
+  { icon: "⬡", name: "Insights", desc: "See your patterns" },
+] as const;
+
+const DAILY_LOOP = [
+  { step: "01", title: "Plan", desc: "Choose your priorities for today" },
+  { step: "02", title: "Capture", desc: "Add tasks, ideas, and notes" },
+  { step: "03", title: "Act", desc: "Complete habits and track actions" },
+  { step: "04", title: "Reflect", desc: "Close the day with a journal entry" },
+] as const;
+
+const STEP_LABELS = ["Welcome", "Life Areas", "Daily Loop", "Start"];
+
+const STEP_LEFT = [
+  {
+    title: "Build your personal operating system",
+    subtitle:
+      "Life Pulse turns your habits, tasks, projects, reflection, and money tracking into one daily command center.",
+  },
+  {
+    title: "Choose your life areas",
+    subtitle:
+      "Life areas organize everything you track. Habits, tasks, and projects connect back to these areas so you can see where your energy is going.",
+  },
+  {
+    title: "Your daily rhythm",
+    subtitle:
+      "After setup, your Today dashboard becomes the place you plan, act, and close the day. Here is how the daily loop works.",
+  },
+  {
+    title: "You are all set",
+    subtitle:
+      "Your data stays tied to your account. You can edit your life areas and preferences later in Settings.",
+  },
+] as const;
+
+// ─── Sub-components ──────────────────────────────────────────────────────────
+
+function StepIndicator({ current }: { current: number }) {
+  return (
+    <nav aria-label="Setup progress" className="flex flex-col gap-0">
+      {STEP_LABELS.map((label, i) => {
+        const isCompleted = i < current;
+        const isCurrent = i === current;
+        return (
+          <div key={label} className="flex items-start gap-3">
+            <div className="flex flex-col items-center">
+              <div
+                className={cn(
+                  "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-medium transition-all duration-200",
+                  isCompleted && "bg-[var(--accent-soft)] text-[var(--accent)]",
+                  isCurrent && "bg-[var(--accent)] text-[var(--bg)]",
+                  !isCompleted && !isCurrent && "bg-[var(--surface)] text-[var(--text-muted)] ring-1 ring-[var(--border)]",
+                )}
+                aria-current={isCurrent ? "step" : undefined}
+              >
+                {isCompleted ? "✓" : i + 1}
+              </div>
+              {i < STEP_LABELS.length - 1 && (
+                <div
+                  className={cn(
+                    "mt-1 h-8 w-px transition-colors duration-200",
+                    i < current ? "bg-[var(--accent)]/40" : "bg-[var(--border)]",
+                  )}
+                />
+              )}
+            </div>
+            <div className="flex flex-col pt-1">
+              <span
+                className={cn(
+                  "text-sm transition-colors duration-200",
+                  isCurrent && "font-medium text-[var(--text)]",
+                  isCompleted && "text-[var(--text-muted)]",
+                  !isCompleted && !isCurrent && "text-[var(--text-muted)]",
+                )}
+              >
+                {label}
+              </span>
+            </div>
+          </div>
+        );
+      })}
+    </nav>
+  );
+}
+
+function FeatureGrid() {
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      {FEATURES.map((f) => (
+        <div
+          key={f.name}
+          className="flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 transition-all duration-150 hover:border-[var(--border-strong)]"
+        >
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--accent-ghost)] text-base text-[var(--accent)]">
+            {f.icon}
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-[var(--text)]">{f.name}</p>
+            <p className="text-xs text-[var(--text-muted)] truncate">{f.desc}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function RealmCards({
+  selectedRealms,
+  onToggle,
+}: {
+  selectedRealms: Set<string>;
+  onToggle: (name: string) => void;
+}) {
+  return (
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      {DEFAULT_REALMS.map((r) => {
+        const selected = selectedRealms.has(r.name);
+        return (
+          <button
+            key={r.name}
+            type="button"
+            role="checkbox"
+            aria-checked={selected}
+            onClick={() => onToggle(r.name)}
+            className={cn(
+              "group relative flex items-start gap-3 rounded-xl border p-4 text-left transition-all duration-150 focus:outline-none",
+              selected
+                ? "border-[var(--accent)]/40 bg-[var(--surface)]"
+                : "border-[var(--border)] bg-[var(--surface)] hover:border-[var(--border-strong)]",
+            )}
+            style={selected ? { borderColor: `${r.color}66` } : undefined}
+          >
+            <div
+              className={cn(
+                "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-lg transition-all duration-150",
+                selected ? "shadow-sm" : "",
+              )}
+              style={{
+                backgroundColor: selected ? `${r.color}20` : undefined,
+                color: selected ? r.color : undefined,
+              }}
+            >
+              {r.icon}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between gap-2">
+                <p
+                  className={cn(
+                    "text-sm font-medium transition-colors duration-150",
+                    selected ? "text-[var(--text)]" : "text-[var(--text-secondary)]",
+                  )}
+                >
+                  {r.name}
+                </p>
+                <div
+                  className={cn(
+                    "flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition-all duration-150",
+                    selected
+                      ? "border-[var(--accent)] bg-[var(--accent)] text-[var(--bg)]"
+                      : "border-[var(--border-strong)] bg-transparent",
+                  )}
+                >
+                  {selected && <span className="text-[10px] font-bold">✓</span>}
+                </div>
+              </div>
+              <p
+                className={cn(
+                  "mt-0.5 text-xs leading-relaxed transition-colors duration-150",
+                  selected ? "text-[var(--text-secondary)]" : "text-[var(--text-muted)]",
+                )}
+              >
+                {r.description}
+              </p>
+            </div>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function DailyLoopVisual() {
+  return (
+    <div className="flex flex-col gap-4">
+      {DAILY_LOOP.map((item, i) => (
+        <div key={item.step} className="flex items-start gap-4">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--surface)] text-xs font-medium text-[var(--accent)] ring-1 ring-[var(--border)]">
+            {item.step}
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-[var(--text)]">{item.title}</p>
+            <p className="text-xs text-[var(--text-secondary)]">{item.desc}</p>
+          </div>
+          {i < DAILY_LOOP.length - 1 && (
+            <div className="hidden sm:ml-auto sm:flex sm:items-center sm:text-[var(--text-muted)]">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="rotate-90 sm:rotate-0">
+                <path d="M7 4l6 6-6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── Main component ──────────────────────────────────────────────────────────
 
 export default function OnboardingPage() {
-  const [step, setStep] = useState<Step>("welcome");
-  const [loading, setLoading] = useState(false);
-  const [habitInput, setHabitInput] = useState("");
-  const [taskInput, setTaskInput] = useState("");
-  const [starterHabits, setStarterHabits] = useState<string[]>([]);
-  const [starterTasks, setStarterTasks] = useState<string[]>([]);
-  const [realmMap, setRealmMap] = useState<Record<string, string>>({});
+  const [step, setStep] = useState(0);
+  const [selectedRealms, setSelectedRealms] = useState<Set<string>>(
+    () => new Set(DEFAULT_REALMS.map((r) => r.name)),
+  );
+  const [checking, setChecking] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const supabase = createClient();
+  const contentRef = useRef<HTMLDivElement>(null);
 
-  async function handleStart() {
-    setLoading(true);
-    setError(null);
+  useEffect(() => {
+    let cancelled = false;
 
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+    async function check() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        router.push("/login");
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("onboarding_completed")
+        .eq("user_id", user.id)
+        .single();
+
+      if (cancelled) return;
+
+      if (profile?.onboarding_completed) {
+        router.push("/today");
+        return;
+      }
+
+      setChecking(false);
 
       const { data: existing } = await supabase
         .from("realms")
-        .select("id, name")
+        .select("name")
         .eq("user_id", user.id);
 
       if (existing && existing.length > 0) {
-        const map: Record<string, string> = {};
-        existing.forEach((r) => { map[r.name.toLowerCase()] = r.id; });
-        setRealmMap(map);
-        setStep("habits");
-        setLoading(false);
-        return;
+        const existingNames = new Set(existing.map((r) => r.name));
+        setSelectedRealms(existingNames);
       }
-
-      const realmsToInsert = DEFAULT_REALMS.map((r, i) => ({
-        user_id: user.id,
-        name: r.name,
-        color: r.color,
-        icon: r.icon,
-        sort_order: i,
-      }));
-
-      const { data, error: err } = await supabase
-        .from("realms")
-        .insert(realmsToInsert)
-        .select();
-
-      if (err) {
-        setError("Failed to create realms. Please try again.");
-        setLoading(false);
-        return;
-      }
-
-      const map: Record<string, string> = {};
-      data?.forEach((r) => { map[r.name.toLowerCase()] = r.id; });
-      setRealmMap(map);
-      setStep("habits");
-    } catch {
-      setError("Connection error. Please try again.");
     }
-    setLoading(false);
+
+    check();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [router, supabase]);
+
+  useEffect(() => {
+    contentRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+  }, [step]);
+
+  function toggleRealm(name: string) {
+    setSelectedRealms((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) {
+        if (next.size <= 1) return prev;
+        next.delete(name);
+      } else {
+        next.add(name);
+      }
+      return next;
+    });
   }
 
-  function addHabit() {
-    const habit = habitInput.trim();
-    if (!habit || starterHabits.length >= 3) return;
-    setStarterHabits([...starterHabits, habit]);
-    setHabitInput("");
+  async function handleNext() {
+    setStep((s) => s + 1);
+    setError(null);
   }
 
-  function addTask() {
-    const task = taskInput.trim();
-    if (!task || starterTasks.length >= 3) return;
-    setStarterTasks([...starterTasks, task]);
-    setTaskInput("");
+  function handleBack() {
+    setStep((s) => Math.max(s - 1, 0));
+    setError(null);
   }
 
-  async function finish() {
-    setLoading(true);
+  async function handleComplete() {
+    setSaving(true);
     setError(null);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const errors: string[] = [];
-
-      if (starterHabits.length > 0) {
-        const habits = starterHabits.map((title) => ({
-          user_id: user.id,
-          realm_id: realmMap[title.toLowerCase()] || realmMap["mind"],
-          title,
-          frequency: "daily" as const,
-        }));
-
-        const { error: hErr } = await supabase.from("habits").insert(habits);
-        if (hErr) errors.push("habits");
-      }
-
-      if (starterTasks.length > 0) {
-        const tasks = starterTasks.map((title) => ({
-          user_id: user.id,
-          realm_id: realmMap["career"],
-          title,
-          priority: "medium" as const,
-          status: "todo" as const,
-        }));
-
-        const { error: tErr } = await supabase.from("tasks").insert(tasks);
-        if (tErr) errors.push("tasks");
-      }
-
-      if (errors.length > 0) {
-        setError(`Failed to save: ${errors.join(", ")}. You can add them later.`);
-        setLoading(false);
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        setError("Session expired. Please sign in again.");
+        setSaving(false);
         return;
+      }
+
+      const { data: existing } = await supabase
+        .from("realms")
+        .select("name")
+        .eq("user_id", user.id);
+
+      if (!existing || existing.length === 0) {
+        const realmsToInsert = DEFAULT_REALMS.filter((r) => selectedRealms.has(r.name)).map((r, i) => ({
+          user_id: user.id,
+          name: r.name,
+          color: r.color,
+          icon: r.icon,
+          sort_order: i,
+        }));
+
+        if (realmsToInsert.length > 0) {
+          const { error: rErr } = await supabase.from("realms").insert(realmsToInsert);
+          if (rErr) {
+            setError("Failed to create life areas. Please try again.");
+            setSaving(false);
+            return;
+          }
+        }
       }
 
       const { error: pErr } = await supabase
@@ -141,179 +359,189 @@ export default function OnboardingPage() {
         .eq("user_id", user.id);
 
       if (pErr) {
-        setError("Failed to complete onboarding. Please try again.");
-        setLoading(false);
+        setError("Failed to save progress. Please try again.");
+        setSaving(false);
         return;
       }
 
-      router.refresh();
+      router.push("/today");
     } catch {
       setError("Connection error. Please try again.");
-      setLoading(false);
+      setSaving(false);
     }
   }
 
-  if (step === "welcome") {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center px-4">
-        <div className="w-full max-w-md text-center">
-          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-2xl font-bold text-[var(--accent)] ring-1 ring-[var(--accent-soft)]">
-            LP
-          </div>
-          <h1 className="mb-2 text-3xl font-bold text-[var(--text)]">Welcome to Life Pulse</h1>
-          <p className="mb-2 text-[var(--text-muted)]">
-            Your personal command center. Let&apos;s set up your life areas.
-          </p>
-          <p className="mb-8 text-xs text-[var(--text-muted)]">
-            Life areas (called realms) organize everything you track. Each habit and task belongs to a realm
-            so you can see where you are spending your energy.
-          </p>
+  // ── Loading state ──────────────────────────────────────────────────────────
 
-          <Card className="mb-6 text-left">
-            <h3 className="mb-3 font-semibold text-[var(--text)]">Your default life areas</h3>
-            <div className="flex flex-wrap gap-2">
-              {DEFAULT_REALMS.map((r) => (
-                <span
-                  key={r.name}
-                  className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm"
-                  style={{ backgroundColor: r.color + "20", color: r.color }}
-                  title={r.description}
+  if (checking) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[var(--bg)]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--surface)] ring-1 ring-[var(--border)]">
+            <span className="text-lg font-bold text-[var(--accent)]">LP</span>
+          </div>
+          <p className="text-sm text-[var(--text-muted)]">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Render ──────────────────────────────────────────────────────────────────
+
+  const isLastStep = step === 3;
+
+  return (
+    <div className="flex min-h-screen flex-col bg-[var(--bg)] lg:flex-row">
+      {/* Left panel */}
+      <aside className="flex flex-col justify-between border-b border-[var(--border)] px-6 py-8 lg:sticky lg:top-0 lg:h-screen lg:w-[360px] lg:shrink-0 lg:border-b-0 lg:border-r lg:px-10 lg:py-12">
+        <div>
+          {/* Logo */}
+          <div className="mb-10 flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--accent-soft)] text-sm font-bold text-[var(--accent)] ring-1 ring-[var(--accent-soft)]">
+              LP
+            </div>
+            <span className="text-sm font-medium text-[var(--text-secondary)]">Life Pulse</span>
+          </div>
+
+          {/* Step content */}
+          <div className="mb-8">
+            <h1 className="mb-3 text-xl font-bold leading-tight text-[var(--text)] lg:text-2xl">
+              {STEP_LEFT[step].title}
+            </h1>
+            <p className="text-sm leading-relaxed text-[var(--text-secondary)]">{STEP_LEFT[step].subtitle}</p>
+          </div>
+
+          {/* Step indicator - desktop */}
+          <div className="hidden lg:block">
+            <StepIndicator current={step} />
+          </div>
+        </div>
+
+        {/* Privacy note - desktop */}
+        <p className="hidden text-xs leading-relaxed text-[var(--text-muted)] lg:block">
+          Your data stays tied to your account. You can change your setup later in Settings.
+        </p>
+      </aside>
+
+      {/* Right panel */}
+      <main
+        ref={contentRef}
+        className="flex flex-1 flex-col overflow-y-auto px-6 py-8 lg:px-12 lg:py-12"
+      >
+        {/* Mobile step indicator */}
+        <div className="mb-8 lg:hidden">
+          <div className="mb-3 flex items-center justify-between">
+            {STEP_LABELS.map((label, i) => (
+              <div key={label} className="flex flex-1 items-center">
+                <div
+                  className={cn(
+                    "flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-medium transition-all duration-200",
+                    i < step && "bg-[var(--accent-soft)] text-[var(--accent)]",
+                    i === step && "bg-[var(--accent)] text-[var(--bg)]",
+                    i > step && "bg-[var(--surface)] text-[var(--text-muted)] ring-1 ring-[var(--border)]",
+                  )}
                 >
-                  {r.icon} {r.name}
-                </span>
-              ))}
-            </div>
-            <p className="mt-3 text-xs text-[var(--text-muted)]">
-              You can customize these later in Settings.
-            </p>
-          </Card>
-
-          <Card className="mb-6 border-dashed border-[var(--border-strong)] bg-[var(--surface-soft)] text-left">
-            <p className="text-xs text-[var(--text-muted)]">
-              After setup, you will land on your <span className="text-[var(--text-secondary)]">Today</span> dashboard —
-              your command center for planning, tracking, and reflecting every day.
-            </p>
-          </Card>
-
-          {error && <p className="mb-4 text-sm text-[var(--danger)]">{error}</p>}
-
-          <Button className="w-full" size="lg" onClick={handleStart} disabled={loading}>
-            {loading ? "Setting up..." : "Continue"}
-          </Button>
+                  {i < step ? "✓" : i + 1}
+                </div>
+                {i < STEP_LABELS.length - 1 && (
+                  <div
+                    className={cn(
+                      "mx-1 h-px flex-1 transition-colors duration-200",
+                      i < step ? "bg-[var(--accent)]/40" : "bg-[var(--border)]",
+                    )}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+          <p className="text-center text-xs text-[var(--text-muted)]">{STEP_LABELS[step]}</p>
         </div>
-      </div>
-    );
-  }
 
-  if (step === "habits") {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center px-4">
-        <div className="w-full max-w-md">
-          <h1 className="mb-2 text-2xl font-bold text-[var(--text)]">Add starter habits</h1>
-          <p className="mb-1 text-sm text-[var(--text-muted)]">
-            Optional: add up to 3 daily habits you want to track.
-          </p>
-          <p className="mb-6 text-xs text-[var(--text-muted)]">
-            These will appear on your Today dashboard. You can always add more later.
-          </p>
-
-          <div className="mb-4 flex gap-2">
-            <input
-              value={habitInput}
-              onChange={(e) => setHabitInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && addHabit()}
-              placeholder="e.g. Morning meditation"
-              maxLength={100}
-              className="flex-1 rounded-lg border border-[var(--border-strong)] bg-[var(--surface-soft)] px-3 py-2 text-sm text-[var(--text)] placeholder-[var(--text-muted)] transition-colors focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]/30 focus:outline-none"
-            />
-            <Button onClick={addHabit} disabled={starterHabits.length >= 3}>
-              Add
-            </Button>
-          </div>
-
-          {starterHabits.map((h, i) => (
-            <div
-              key={i}
-              className="mb-2 flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)]"
-            >
-              <span>{h}</span>
-              <button
-                onClick={() => setStarterHabits(starterHabits.filter((_, j) => j !== i))}
-                className="text-[var(--text-muted)] hover:text-[var(--danger)] transition-colors"
-              >
-                ✕
-              </button>
+        {/* Step content */}
+        <div className="flex-1">
+          {step === 0 && (
+            <div className="animate-fade-in max-w-lg">
+              <p className="mb-6 text-sm leading-relaxed text-[var(--text-secondary)]">
+                A complete view of what matters most — habits, tasks, projects, finance, and reflection — in one place.
+              </p>
+              <FeatureGrid />
             </div>
-          ))}
+          )}
 
-          <div className="mt-6 flex gap-3">
-            <Button variant="secondary" onClick={() => setStep("tasks")} className="flex-1">
-              Skip
-            </Button>
-            <Button onClick={() => setStep("tasks")} className="flex-1">
-              Next
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (step === "tasks") {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center px-4">
-        <div className="w-full max-w-md">
-          <h1 className="mb-2 text-2xl font-bold text-[var(--text)]">Add starter tasks</h1>
-          <p className="mb-1 text-sm text-[var(--text-muted)]">
-            Optional: add up to 3 tasks to get started.
-          </p>
-          <p className="mb-6 text-xs text-[var(--text-muted)]">
-            You can manage all your tasks from the Tasks page later.
-          </p>
-
-          <div className="mb-4 flex gap-2">
-            <input
-              value={taskInput}
-              onChange={(e) => setTaskInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && addTask()}
-              placeholder="e.g. Finish project report"
-              maxLength={200}
-              className="flex-1 rounded-lg border border-[var(--border-strong)] bg-[var(--surface-soft)] px-3 py-2 text-sm text-[var(--text)] placeholder-[var(--text-muted)] transition-colors focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]/30 focus:outline-none"
-            />
-            <Button onClick={addTask} disabled={starterTasks.length >= 3}>
-              Add
-            </Button>
-          </div>
-
-          {starterTasks.map((t, i) => (
-            <div
-              key={i}
-              className="mb-2 flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)]"
-            >
-              <span>{t}</span>
-              <button
-                onClick={() => setStarterTasks(starterTasks.filter((_, j) => j !== i))}
-                className="text-[var(--text-muted)] hover:text-[var(--danger)] transition-colors"
-              >
-                ✕
-              </button>
+          {step === 1 && (
+            <div className="animate-fade-in max-w-xl">
+              <p className="mb-6 text-sm leading-relaxed text-[var(--text-secondary)]">
+                These are the areas your progress will be organized around. You can change them later, or create new ones.
+              </p>
+              <RealmCards selectedRealms={selectedRealms} onToggle={toggleRealm} />
+              <p className="mt-4 text-xs text-[var(--text-muted)]">
+                {selectedRealms.size === 0
+                  ? "Select at least one life area to continue."
+                  : `${selectedRealms.size} of ${DEFAULT_REALMS.length} selected`}
+              </p>
             </div>
-          ))}
+          )}
 
-          {error && <p className="mt-2 text-sm text-[var(--danger)]">{error}</p>}
+          {step === 2 && (
+            <div className="animate-fade-in max-w-lg">
+              <p className="mb-6 text-sm leading-relaxed text-[var(--text-secondary)]">
+                Each day, Life Pulse guides you through a simple rhythm — plan, capture, act, and reflect.
+              </p>
+              <DailyLoopVisual />
+            </div>
+          )}
 
-          <div className="mt-6 flex gap-3">
-            <Button variant="secondary" onClick={finish} className="flex-1" disabled={loading}>
-              {loading ? "Finishing..." : "Skip for now"}
-            </Button>
-            <Button onClick={finish} className="flex-1" disabled={loading}>
-              {loading ? "Finishing..." : "Finish setup"}
+          {step === 3 && (
+            <div className="animate-fade-in flex max-w-lg flex-col items-start">
+              <p className="mb-8 text-sm leading-relaxed text-[var(--text-secondary)]">
+                Your life areas are ready. Your dashboard is waiting. Start with one priority and build from there.
+              </p>
+              <div className="flex w-full flex-col gap-4">
+                {error && (
+                  <div
+                    className="rounded-lg border border-[var(--danger-soft)] bg-[var(--danger-soft)] px-4 py-3 text-sm text-[var(--danger)]"
+                    role="alert"
+                  >
+                    {error}
+                  </div>
+                )}
+                <Button
+                  size="lg"
+                  className="w-full sm:w-auto"
+                  onClick={handleComplete}
+                  disabled={saving}
+                >
+                  {saving ? "Setting up..." : "Enter my dashboard"}
+                </Button>
+                <p className="text-xs text-[var(--text-muted)]">
+                  You can customize your setup later in Settings.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Navigation buttons */}
+        {!isLastStep && (
+          <div className="mt-10 flex items-center justify-between border-t border-[var(--border)] pt-6">
+            <div>
+              {step > 0 && (
+                <Button variant="ghost" onClick={handleBack} disabled={saving}>
+                  Back
+                </Button>
+              )}
+            </div>
+            <Button onClick={handleNext} disabled={saving || (step === 1 && selectedRealms.size === 0)}>
+              {step === 1 && selectedRealms.size === 0 ? "Select an area" : "Continue"}
             </Button>
           </div>
-        </div>
-      </div>
-    );
-  }
+        )}
 
-  return null;
+        {/* Privacy note - mobile */}
+        <p className="mt-8 text-center text-xs text-[var(--text-muted)] lg:hidden">
+          Your data stays tied to your account. You can change your setup later in Settings.
+        </p>
+      </main>
+    </div>
+  );
 }

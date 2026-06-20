@@ -19,7 +19,6 @@ import { HabitCard } from "@/components/HabitCard";
 import { TaskCard } from "@/components/TaskCard";
 import { JournalSection } from "@/components/JournalSection";
 import { XpDisplay } from "@/components/XpDisplay";
-import { InfoTip } from "@/components/InfoTip";
 import { HelpPopover } from "@/components/HelpPopover";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -841,9 +840,28 @@ function TodayContent() {
       </div>
 
       {habits.length === 0 && tasks.length === 0 && (
-        <InfoTip id="today" title="Your daily operating loop" className="mb-6">
-          <p>Set priorities, capture your next action, complete habits and tasks, then reflect in the evening.</p>
-        </InfoTip>
+        <Card variant="elevated" className="mb-6 overflow-hidden">
+          <div className="border-b border-[var(--border)] px-5 py-4">
+            <h2 className="text-base font-semibold text-[var(--text)]">Welcome to your dashboard</h2>
+            <p className="mt-1 text-sm text-[var(--text-secondary)]">
+              This is your daily command center. Add a habit or task to get started.
+            </p>
+          </div>
+          <div className="flex items-center gap-4 px-5 py-3">
+            <Link
+              href="/habits"
+              className="text-sm font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors"
+            >
+              Add a habit &rarr;
+            </Link>
+            <Link
+              href="/tasks"
+              className="text-sm font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors"
+            >
+              Create a task &rarr;
+            </Link>
+          </div>
+        </Card>
       )}
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
