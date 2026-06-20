@@ -102,7 +102,16 @@ async function main() {
   console.log("--- Signing in ---");
   await signIn(supabaseA, EMAIL_A, PASSWORD_A);
   await signIn(supabaseB, EMAIL_B, PASSWORD_B);
-  console.log("  Both users signed in.");
+
+  // Get authenticated user IDs
+  const { data: userAData } = await supabaseA.auth.getUser();
+  const { data: userBData } = await supabaseB.auth.getUser();
+  const userAId = userAData.user.id;
+  const userBId = userBData.user.id;
+
+  // Safe debug: print last 6 chars of user IDs only
+  console.log(`  User A signed in (id: ...${userAId.slice(-6)})`);
+  console.log(`  User B signed in (id: ...${userBId.slice(-6)})`);
   console.log("");
 
   // ── 2. Create test data as User A ──────────────────────────────────────────
@@ -112,11 +121,11 @@ async function main() {
   // 2a. Realm
   const { data: realmA, error: realmAErr } = await supabaseA
     .from("realms")
-    .insert({ name: `${PREFIX}_Realm`, color: "#6366f1", icon: "\u{1F31F}" })
+    .insert({ name: `${PREFIX}_Realm`, color: "#6366f1", icon: "\u{1F31F}", user_id: userAId })
     .select()
     .single();
   if (realmAErr) {
-    console.error(`  Failed to create realm: ${realmAErr.message}`);
+    console.error(`  Failed to create realm (user ...${userAId.slice(-6)}): ${realmAErr.message}`);
     process.exit(1);
   }
   console.log(`  Realm created: ${realmA.id}`);
@@ -124,7 +133,7 @@ async function main() {
   // 2b. Project
   const { data: projectA, error: projAErr } = await supabaseA
     .from("projects")
-    .insert({ title: `${PREFIX}_Project`, realm_id: realmA.id, status: "active" })
+    .insert({ title: `${PREFIX}_Project`, realm_id: realmA.id, status: "active", user_id: userAId })
     .select()
     .single();
   if (projAErr) {
@@ -141,6 +150,7 @@ async function main() {
       realm_id: realmA.id,
       project_id: projectA.id,
       status: "todo",
+      user_id: userAId,
     })
     .select()
     .single();
@@ -157,6 +167,7 @@ async function main() {
       title: `${PREFIX}_Habit`,
       realm_id: realmA.id,
       frequency: "daily",
+      user_id: userAId,
     })
     .select()
     .single();
@@ -169,7 +180,7 @@ async function main() {
   // 2e. Habit log
   const { data: habitLogA, error: hlAErr } = await supabaseA
     .from("habit_logs")
-    .insert({ habit_id: habitA.id, completed_date: "2099-01-01" })
+    .insert({ habit_id: habitA.id, completed_date: "2099-01-01", user_id: userAId })
     .select()
     .single();
   if (hlAErr) {
@@ -181,7 +192,7 @@ async function main() {
   // 2f. XP event (task)
   const { data: xpTaskA, error: xpTaskAErr } = await supabaseA
     .from("xp_events")
-    .insert({ source_type: "task", source_id: taskA.id, amount: 10 })
+    .insert({ source_type: "task", source_id: taskA.id, amount: 10, user_id: userAId })
     .select()
     .single();
   if (xpTaskAErr) {
@@ -193,7 +204,7 @@ async function main() {
   // 2g. XP event (habit log)
   const { data: xpHabitA, error: xpHabitAErr } = await supabaseA
     .from("xp_events")
-    .insert({ source_type: "habit", source_id: habitLogA.id, amount: 5 })
+    .insert({ source_type: "habit", source_id: habitLogA.id, amount: 5, user_id: userAId })
     .select()
     .single();
   if (xpHabitAErr) {
@@ -210,6 +221,7 @@ async function main() {
       content: `${PREFIX}_Journal entry content.`,
       mood: 3,
       energy: 3,
+      user_id: userAId,
     })
     .select()
     .single();
@@ -222,7 +234,7 @@ async function main() {
   // 2i. Finance account
   const { data: finAccountA, error: finAcctAErr } = await supabaseA
     .from("finance_accounts")
-    .insert({ name: `${PREFIX}_Account`, type: "cash", starting_balance: 0, currency: "ILS" })
+    .insert({ name: `${PREFIX}_Account`, type: "cash", starting_balance: 0, currency: "ILS", user_id: userAId })
     .select()
     .single();
   if (finAcctAErr) {
@@ -234,7 +246,7 @@ async function main() {
   // 2j. Finance category (expense)
   const { data: finCatExpenseA, error: finCatExpErr } = await supabaseA
     .from("finance_categories")
-    .insert({ name: `${PREFIX}_CatExpense`, type: "expense" })
+    .insert({ name: `${PREFIX}_CatExpense`, type: "expense", user_id: userAId })
     .select()
     .single();
   if (finCatExpErr) {
@@ -246,7 +258,7 @@ async function main() {
   // 2k. Finance category (income)
   const { data: finCatIncomeA, error: finCatIncErr } = await supabaseA
     .from("finance_categories")
-    .insert({ name: `${PREFIX}_CatIncome`, type: "income" })
+    .insert({ name: `${PREFIX}_CatIncome`, type: "income", user_id: userAId })
     .select()
     .single();
   if (finCatIncErr) {
@@ -265,6 +277,7 @@ async function main() {
       category_id: finCatExpenseA.id,
       account_id: finAccountA.id,
       transaction_date: "2099-01-15",
+      user_id: userAId,
     })
     .select()
     .single();
@@ -281,6 +294,7 @@ async function main() {
       category_id: finCatExpenseA.id,
       month: "2099-02-01",
       amount: 500,
+      user_id: userAId,
     })
     .select()
     .single();
@@ -321,8 +335,6 @@ async function main() {
   }
 
   // Profiles - special case (auto-created on signup, try reading User A's profile)
-  const { data: userAData } = await supabaseA.auth.getUser();
-  const userAId = userAData.user.id;
   const { data: profileRead, error: profileReadErr } = await supabaseB
     .from("profiles")
     .select("*")
@@ -419,6 +431,7 @@ async function main() {
     title: `${PREFIX}_FkTaskRealm`,
     realm_id: realmA.id,
     status: "todo",
+    user_id: userBId,
   });
   if (fkTaskRealm) {
     pass("User B cannot link task to User A realm");
@@ -433,6 +446,7 @@ async function main() {
     title: `${PREFIX}_FkTaskProj`,
     project_id: projectA.id,
     status: "todo",
+    user_id: userBId,
   });
   if (fkTaskProj) {
     pass("User B cannot link task to User A project");
@@ -446,6 +460,7 @@ async function main() {
     title: `${PREFIX}_FkProjRealm`,
     realm_id: realmA.id,
     status: "active",
+    user_id: userBId,
   });
   if (fkProjRealm) {
     pass("User B cannot link project to User A realm");
@@ -459,6 +474,7 @@ async function main() {
     title: `${PREFIX}_FkHabitRealm`,
     realm_id: realmA.id,
     frequency: "daily",
+    user_id: userBId,
   });
   if (fkHabitRealm) {
     pass("User B cannot link habit to User A realm");
@@ -471,6 +487,7 @@ async function main() {
   const { error: fkHlHabit } = await supabaseB.from("habit_logs").insert({
     habit_id: habitA.id,
     completed_date: "2099-01-03",
+    user_id: userBId,
   });
   if (fkHlHabit) {
     pass("User B cannot link habit_log to User A habit");
@@ -484,6 +501,7 @@ async function main() {
     source_type: "task",
     source_id: taskA.id,
     amount: 10,
+    user_id: userBId,
   });
   if (fkXpTask) {
     pass("User B cannot link xp_event to User A task");
@@ -497,6 +515,7 @@ async function main() {
     source_type: "habit",
     source_id: habitLogA.id,
     amount: 5,
+    user_id: userBId,
   });
   if (fkXpHl) {
     pass("User B cannot link xp_event to User A habit_log");
@@ -512,6 +531,7 @@ async function main() {
     type: "expense",
     account_id: finAccountA.id,
     transaction_date: "2099-01-16",
+    user_id: userBId,
   });
   if (fkFinTxAcct) {
     pass("User B cannot link finance transaction to User A account");
@@ -527,6 +547,7 @@ async function main() {
     type: "expense",
     category_id: finCatExpenseA.id,
     transaction_date: "2099-01-17",
+    user_id: userBId,
   });
   if (fkFinTxCat) {
     pass("User B cannot link finance transaction to User A category");
@@ -540,6 +561,7 @@ async function main() {
     category_id: finCatExpenseA.id,
     month: "2099-03-01",
     amount: 300,
+    user_id: userBId,
   });
   if (fkFinBudCat) {
     pass("User B cannot link finance budget to User A category");
@@ -556,7 +578,7 @@ async function main() {
 
   const { data: realmB, error: realmBErr } = await supabaseB
     .from("realms")
-    .insert({ name: `${PREFIX}_Realm_B`, color: "#10b981", icon: "\u{1F3AF}" })
+    .insert({ name: `${PREFIX}_Realm_B`, color: "#10b981", icon: "\u{1F3AF}", user_id: userBId })
     .select()
     .single();
   if (realmBErr) {
@@ -567,7 +589,7 @@ async function main() {
 
   const { data: taskB, error: taskBErr } = await supabaseB
     .from("tasks")
-    .insert({ title: `${PREFIX}_Task_B`, realm_id: realmB.id, status: "todo" })
+    .insert({ title: `${PREFIX}_Task_B`, realm_id: realmB.id, status: "todo", user_id: userBId })
     .select()
     .single();
   if (taskBErr) {
@@ -578,7 +600,7 @@ async function main() {
 
   const { data: journalB, error: journalBErr } = await supabaseB
     .from("journal_entries")
-    .insert({ entry_date: "2099-01-10", content: `${PREFIX}_Journal_B`, mood: 4, energy: 4 })
+    .insert({ entry_date: "2099-01-10", content: `${PREFIX}_Journal_B`, mood: 4, energy: 4, user_id: userBId })
     .select()
     .single();
   if (journalBErr) {
@@ -589,7 +611,7 @@ async function main() {
 
   const { data: finCatB, error: finCatBErr } = await supabaseB
     .from("finance_categories")
-    .insert({ name: `${PREFIX}_Cat_B`, type: "expense" })
+    .insert({ name: `${PREFIX}_Cat_B`, type: "expense", user_id: userBId })
     .select()
     .single();
   if (finCatBErr) {
@@ -606,6 +628,7 @@ async function main() {
       type: "expense",
       category_id: finCatB.id,
       transaction_date: "2099-01-20",
+      user_id: userBId,
     })
     .select()
     .single();
