@@ -233,3 +233,46 @@ Life Pulse has a **strong security foundation**: RLS on all tables, proper Supab
 - **Several low/defer findings** — input maxLength, a11y improvements — all applied
 
 The app is **ready for production** once the deployment checklist items are completed. No critical blockers remain.
+
+---
+
+## 11. RLS Smoke Test
+
+### How to run the RLS smoke test
+
+The RLS smoke test verifies that User A and User B data are fully isolated. It uses the Supabase anon key only — never the service role key.
+
+### Required env vars
+
+| Variable | Purpose |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon (public) key |
+| `RLS_TEST_USER_A_EMAIL` | Email of test User A |
+| `RLS_TEST_USER_A_PASSWORD` | Password of test User A |
+| `RLS_TEST_USER_B_EMAIL` | Email of test User B |
+| `RLS_TEST_USER_B_PASSWORD` | Password of test User B |
+
+### Before running
+
+1. Create two test users in Supabase Auth (via sign-up or Supabase dashboard).
+2. Set the six env vars above in your shell or `.env.local`.
+3. Ensure `SUPABASE_SERVICE_ROLE_KEY` is **not** set — the script refuses to run if it detects it.
+
+### Run
+
+```
+npm run test:rls
+```
+
+### What a pass means
+
+All isolation checks succeed:
+- User B cannot **read**, **update**, or **delete** any of User A's 11+ table rows
+- User B cannot **link foreign keys** (realm, project, habit, category, account) to User A's data
+- User B can **create their own** data normally
+- User A can still **read their own** data after all attempts
+
+### What a failure means
+
+A failure means RLS is not properly isolating users — this is a **critical security issue**. Investigate the failed test case and check the RLS policies on the affected table.

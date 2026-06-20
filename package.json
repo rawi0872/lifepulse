@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test:rls": "node scripts/rls-smoke-test.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",
