@@ -387,7 +387,7 @@ function TodayContent() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const [tasksRes, habitsRes, projectTasksRes] = await Promise.all([
+    const [tasksRes, habitsRes, projectTasksRes, allLogsRes, xpRes, totalXpRes] = await Promise.all([
       supabase
         .from("tasks")
         .select("*, realms(name, color, icon)")
@@ -406,11 +406,61 @@ function TodayContent() {
         .eq("status", "todo")
         .order("due_date", { ascending: true })
         .limit(5),
+      supabase
+        .from("habit_logs")
+        .select("habit_id, completed_date")
+        .eq("user_id", user.id),
+      supabase
+        .from("xp_events")
+        .select("amount")
+        .eq("user_id", user.id)
+        .gte("created_at", getTodayStartISO()),
+      supabase
+        .from("xp_events")
+        .select("amount")
+        .eq("user_id", user.id),
     ]);
 
     if (tasksRes.data) setTasks(tasksRes.data as Task[]);
-    if (habitsRes.data) setHabits(habitsRes.data as Habit[]);
     if (projectTasksRes.data) setProjectTasks(projectTasksRes.data as ProjectTask[]);
+
+    if (habitsRes.data) {
+      const habits = habitsRes.data as Habit[];
+      setHabits(habits);
+
+      const logsByHabit: Record<string, string[]> = {};
+      allLogsRes.data?.forEach((l: { habit_id: string; completed_date: string }) => {
+        if (!logsByHabit[l.habit_id]) logsByHabit[l.habit_id] = [];
+        logsByHabit[l.habit_id].push(l.completed_date);
+      });
+
+      const todayLogs = allLogsRes.data?.filter((l: { completed_date: string }) => l.completed_date === today) ?? [];
+      const weekLogs = allLogsRes.data?.filter((l: { completed_date: string }) => l.completed_date >= weekStart) ?? [];
+
+      setCompletedHabitIds(new Set(todayLogs.map((l: { habit_id: string }) => l.habit_id)));
+
+      const counts: Record<string, number> = {};
+      weekLogs.forEach((l: { habit_id: string }) => { counts[l.habit_id] = (counts[l.habit_id] ?? 0) + 1; });
+      setTpwCounts(counts);
+
+      const sMap: Record<string, number> = {};
+      const wMap: Record<string, { completed: number; target: number } | null> = {};
+      habits.forEach((h) => {
+        const dates = logsByHabit[h.id] ?? [];
+        sMap[h.id] = getCurrentStreak(dates, h.frequency, h.days_of_week);
+        wMap[h.id] = getWeeklyProgress(dates, h.frequency, h.times_per_week, weekStart);
+      });
+      setStreakMap(sMap);
+      setWeeklyProgressMap(wMap);
+    }
+
+    if (xpRes.data) {
+      setTodayXp(xpRes.data.reduce((sum: number, e: { amount: number }) => sum + e.amount, 0));
+    }
+    if (totalXpRes.data) {
+      setTotalXp(totalXpRes.data.reduce((sum: number, e: { amount: number }) => sum + e.amount, 0));
+    }
+
     setSuggestedHidden(false);
   }
 
@@ -420,6 +470,14 @@ function TodayContent() {
 
     try {
       if (isCompleted) {
+        const { data: existing } = await supabase
+          .from("habit_logs")
+          .select("id")
+          .eq("habit_id", habitId)
+          .eq("completed_date", today)
+          .maybeSingle();
+        if (existing) return;
+
         const { data: log, error: logErr } = await supabase
           .from("habit_logs")
           .insert({
@@ -468,7 +526,7 @@ function TodayContent() {
         setTotalXp((prev) => Math.max(0, prev - 10));
       }
     } catch {
-      // revert silently
+      setError("Failed to update habit.");
     }
   }
 
@@ -813,7 +871,7 @@ function TodayContent() {
         </Card>
       )}
 
-      <div className="mb-4 flex items-center gap-4 text-xs">
+      <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
         <span className="flex items-center gap-1.5">
           <span className={`h-1.5 w-1.5 rounded-full ${completedHabitCount === dueHabits.length && dueHabits.length > 0 ? "bg-[var(--success)]" : "bg-[var(--text-muted)]"}`} />
           Habits <strong className={completedHabitCount === dueHabits.length && dueHabits.length > 0 ? "text-[var(--success)]" : "text-[var(--text-secondary)]"}>{completedHabitCount}/{dueHabits.length}</strong>

@@ -49,10 +49,11 @@ export async function toggleTaskCompletion(
 
       if (tErr) return { success: false, error: tErr.message };
 
-      await supabase
+      const { error: xpDelErr } = await supabase
         .from("xp_events")
         .delete()
         .match({ user_id: userId, source_type: "task", source_id: taskId });
+      if (xpDelErr) return { success: false, error: xpDelErr.message };
     }
 
     return { success: true };

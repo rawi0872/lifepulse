@@ -179,13 +179,13 @@ export default function JournalPage() {
                       {formatEntryDate(entry.entry_date)}
                     </span>
                     <div className="flex items-center gap-2">
-                      {entry.mood && (
+                      {entry.mood != null && (
                         <span className="flex items-center gap-1 rounded-full bg-[var(--surface-soft)] px-2.5 py-0.5 text-xs text-[var(--text-secondary)]">
                           <span>{MOOD_EMOJIS[entry.mood - 1]}</span>
                           <span>{MOOD_LABELS[entry.mood - 1]}</span>
                         </span>
                       )}
-                      {entry.energy && (
+                      {entry.energy != null && (
                         <span className="flex items-center gap-1 rounded-full bg-[var(--surface-soft)] px-2.5 py-0.5 text-xs text-[var(--text-secondary)]">
                           <span>⚡</span>
                           <span>{entry.energy}/5</span>

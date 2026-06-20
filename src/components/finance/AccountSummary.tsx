@@ -65,14 +65,14 @@ export function AccountSummary({ accountBalances, hasMixedCurrencies, onDelete, 
           const isNegative = a.currentBalance < 0;
 
           return (
-            <Card key={a.accountId} className="flex items-center gap-3 px-4 py-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--surface-raised)]">
+            <Card key={a.accountId} className="flex items-center gap-2 px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--surface-raised)]">
                 <span className="text-[10px] font-medium text-[var(--text-secondary)]">
                   {accountTypeIcons[a.accountType] || a.accountType.slice(0, 3)}
                 </span>
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
                   <p className="text-sm font-medium text-[var(--text)] truncate">{a.accountName}</p>
                   <span className="text-[10px] text-[var(--text-muted)] capitalize">{a.accountType}</span>
                   {a.transactionCount > 0 && (
@@ -88,16 +88,16 @@ export function AccountSummary({ accountBalances, hasMixedCurrencies, onDelete, 
                   <p className="text-xs text-[var(--text-muted)]">{share}% of total</p>
                 )}
               </div>
-              <p className={`text-sm font-semibold tabular-nums ${
+              <p className={`text-sm font-semibold tabular-nums whitespace-nowrap ${
                 isNegative ? "text-[var(--danger)]" : "text-[var(--text)]"
               }`}>
                 {formatCurrency(a.currentBalance, a.currency)}
               </p>
-              <span className="text-xs text-[var(--text-muted)]">{a.currency}</span>
+              <span className="hidden sm:inline text-xs text-[var(--text-muted)]">{a.currency}</span>
               <button
                 type="button"
                 onClick={() => onDelete(a.accountId)}
-                className="shrink-0 rounded-md px-2 py-1 text-xs text-[var(--text-muted)] hover:text-[var(--danger)] hover:bg-[var(--danger-soft)] transition-colors"
+                className="shrink-0 rounded-md px-1.5 py-1 text-xs text-[var(--text-muted)] hover:text-[var(--danger)] hover:bg-[var(--danger-soft)] transition-colors sm:px-2"
               >
                 Delete
               </button>

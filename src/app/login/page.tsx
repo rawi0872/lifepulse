@@ -20,7 +20,7 @@ export default function LoginPage() {
 
     try {
       const { error } = await supabase.auth.signInWithPassword({
-        email,
+        email: email.trim(),
         password,
       });
 
@@ -30,6 +30,7 @@ export default function LoginPage() {
         return;
       }
 
+      setLoading(false);
       router.refresh();
     } catch {
       setError("Could not connect to Supabase. Check your environment variables and internet connection.");

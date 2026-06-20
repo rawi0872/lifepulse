@@ -44,7 +44,7 @@ export default function SettingsPage() {
 
     async function load() {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) { router.push("/login"); return; }
 
       setEmail(user.email ?? "");
 
@@ -98,7 +98,7 @@ export default function SettingsPage() {
     setSaving(false);
 
     if (updateError) {
-      setError(updateError.message);
+      setError("Failed to save profile. Please try again.");
       return;
     }
 
@@ -107,7 +107,9 @@ export default function SettingsPage() {
   }
 
   async function handleLogout() {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch {}
     router.push("/login");
   }
 
@@ -140,7 +142,7 @@ export default function SettingsPage() {
       .single();
 
     if (error) {
-      setRealmError(error.message);
+      setRealmError("Failed to add life area. Name may already exist.");
       setSavingRealm(false);
       return;
     }
@@ -174,7 +176,7 @@ export default function SettingsPage() {
       .eq("id", realmId);
 
     if (error) {
-      setEditError(error.message);
+      setEditError("Failed to save life area. Name may already exist.");
       setSavingEdit(false);
       return;
     }
@@ -274,7 +276,7 @@ export default function SettingsPage() {
             </div>
 
             <div className="flex flex-col gap-4">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
                   <label className="mb-1.5 block text-xs font-medium text-[var(--text-muted)]">First name</label>
                     <input

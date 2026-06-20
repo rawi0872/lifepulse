@@ -49,7 +49,7 @@ export async function proxy(request: NextRequest) {
     .from("profiles")
     .select("onboarding_completed")
     .eq("user_id", user.id)
-    .single();
+    .maybeSingle();
 
   const onboardingDone = profile?.onboarding_completed ?? false;
 

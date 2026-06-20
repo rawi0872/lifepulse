@@ -40,7 +40,7 @@ export function HelpPopover({ title, children, className = "" }: HelpPopoverProp
         ?
       </button>
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-2 w-64 rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] shadow-xl p-4">
+        <div className="absolute left-1/2 top-full z-50 mt-2 w-64 -translate-x-1/2 rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] shadow-xl p-4 sm:left-auto sm:right-0 sm:translate-x-0">
           <div className="flex items-start justify-between gap-2">
             <p className="text-sm font-semibold text-[var(--text)]">{title}</p>
             <button

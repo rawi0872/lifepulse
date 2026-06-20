@@ -197,7 +197,7 @@ export default function FinancePage() {
         setBudgets(budgetsRes.data ?? []);
 
         if ((categoriesRes.data ?? []).length === 0) {
-          seedDefaultCategories(user.id);
+          await seedDefaultCategories(user.id);
         }
       }
     } catch {
@@ -367,6 +367,7 @@ export default function FinancePage() {
   }
 
   async function deleteBudget(id: string) {
+    if (!confirm("Delete this budget? This cannot be undone.")) return;
     try {
       await supabase.from("finance_budgets").delete().eq("id", id);
       loadData();
@@ -413,6 +414,7 @@ export default function FinancePage() {
   }
 
   async function deleteAccount(id: string) {
+    if (!confirm("Delete this account? Transactions linked to this account will remain but the account will be removed.")) return;
     try {
       await supabase.from("finance_accounts").delete().eq("id", id);
       loadData();
@@ -431,7 +433,7 @@ export default function FinancePage() {
   function getKpiDelta(value: number, delta: number | null): { value: string; isPositive: boolean } | null {
     if (delta === null) return null;
     return {
-      value: `${delta >= 0 ? "+" : ""}${delta}%`,
+      value: `${delta}%`,
       isPositive: delta >= 0,
     };
   }
@@ -749,8 +751,8 @@ export default function FinancePage() {
           </div>
           {showBudgetForm && (
             <Card className="mb-3 p-4">
-              <div className="flex flex-wrap items-end gap-3">
-                <div className="flex-1 min-w-[150px]">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:flex-wrap">
+                <div className="w-full sm:flex-1 sm:min-w-[150px]">
                   <SimpleSelect
                     label="Category"
                     options={budgetCatOptions}
@@ -759,7 +761,7 @@ export default function FinancePage() {
                     placeholder="Select category"
                   />
                 </div>
-                <div className="w-32">
+                <div className="w-full sm:w-32">
                   <label className="mb-1.5 block text-xs font-medium text-[var(--text-secondary)]">Monthly amount</label>
                   <input
                     type="number"
@@ -771,7 +773,7 @@ export default function FinancePage() {
                     className="w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)] placeholder-[var(--text-muted)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none"
                   />
                 </div>
-                <div className="flex gap-2 pb-px">
+                <div className="flex gap-2">
                   <Button size="sm" onClick={handleAddBudget} disabled={saving || !budgetCategoryId || !budgetAmount}>
                     Save
                   </Button>
@@ -866,8 +868,8 @@ export default function FinancePage() {
           </div>
           {showAccountForm && (
             <Card className="mb-3 p-4">
-              <div className="flex flex-wrap items-end gap-3">
-                <div className="flex-1 min-w-[150px]">
+              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+                <div className="w-full sm:flex-1 sm:min-w-[150px]">
                   <label className="mb-1.5 block text-xs font-medium text-[var(--text-secondary)]">Name</label>
                   <input
                     value={acctName}
@@ -877,7 +879,7 @@ export default function FinancePage() {
                     className="w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)] placeholder-[var(--text-muted)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none"
                   />
                 </div>
-                <div className="w-36">
+                <div className="w-full sm:w-36">
                   <SimpleSelect
                     label="Type"
                     options={ACCOUNT_TYPES}
@@ -885,7 +887,7 @@ export default function FinancePage() {
                     onChange={setAcctType}
                   />
                 </div>
-                <div className="w-32">
+                <div className="w-full sm:w-32">
                   <label className="mb-1.5 block text-xs font-medium text-[var(--text-secondary)]">Starting balance</label>
                   <input
                     type="number"
@@ -895,7 +897,7 @@ export default function FinancePage() {
                     className="w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)] placeholder-[var(--text-muted)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none"
                   />
                 </div>
-                <div className="w-20">
+                <div className="w-full sm:w-20">
                   <label className="mb-1.5 block text-xs font-medium text-[var(--text-secondary)]">Currency</label>
                   <input
                     value={acctCurrency}
@@ -905,7 +907,7 @@ export default function FinancePage() {
                     className="w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)] placeholder-[var(--text-muted)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none"
                   />
                 </div>
-                <div className="flex gap-2 pb-px">
+                <div className="flex gap-2">
                   <Button size="sm" onClick={handleAddAccount} disabled={saving || !acctName.trim()}>
                     Save
                   </Button>

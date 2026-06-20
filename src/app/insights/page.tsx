@@ -189,7 +189,7 @@ export default function InsightsPage() {
             name: r.name,
             color: r.color,
             icon: r.icon,
-            xp: realmMap[r.id] || 0,
+            xp: realmMap[r.id] ?? 0,
           })).sort((a: RealmXp, b: RealmXp) => b.xp - a.xp);
 
           setRealmXp(list);
@@ -361,7 +361,7 @@ export default function InsightsPage() {
         <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <Card variant="default" className="flex flex-col p-4 min-h-[100px]">
             <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">XP today</p>
-            <p className={`mt-2 text-2xl font-bold ${todayXp > 0 ? 'text-[var(--accent)]' : 'text-[var(--accent)]'}`}>+{todayXp}</p>
+            <p className="mt-2 text-2xl font-bold text-[var(--accent)]">+{todayXp}</p>
             <p className="mt-auto pt-2 text-[10px] text-[var(--text-muted)]">{today}</p>
           </Card>
           <Card variant="default" className="flex flex-col p-4 min-h-[100px]">

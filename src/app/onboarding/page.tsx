@@ -259,7 +259,7 @@ export default function OnboardingPage() {
         .from("profiles")
         .select("onboarding_completed")
         .eq("user_id", user.id)
-        .single();
+        .maybeSingle();
 
       if (cancelled) return;
 
@@ -305,7 +305,7 @@ export default function OnboardingPage() {
     });
   }
 
-  async function handleNext() {
+  function handleNext() {
     setStep((s) => s + 1);
     setError(null);
   }
@@ -359,9 +359,14 @@ export default function OnboardingPage() {
         .eq("user_id", user.id);
 
       if (pErr) {
-        setError("Failed to save progress. Please try again.");
-        setSaving(false);
-        return;
+        const { error: insErr } = await supabase
+          .from("profiles")
+          .upsert({ user_id: user.id, onboarding_completed: true }, { onConflict: "user_id" });
+        if (insErr) {
+          setError("Failed to save progress. Please try again.");
+          setSaving(false);
+          return;
+        }
       }
 
       router.push("/today");

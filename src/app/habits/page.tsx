@@ -164,7 +164,7 @@ export default function HabitsPage() {
 
     const payload = {
       user_id: user.id,
-      realm_id: realmId,
+      realm_id: realmId || null,
       title: title.trim(),
       frequency,
       days_of_week: frequency === "weekdays" ? daysOfWeek : null,
@@ -193,19 +193,24 @@ export default function HabitsPage() {
     setShowForm(false);
     setSaving(false);
     setFeedback({ type: "success", message: editingId ? "Habit updated." : "Habit created." });
-    load();
+    await load();
     setTimeout(() => setFeedback(null), 3000);
   }
 
   async function remove(id: string) {
     if (!confirm("Delete this habit? This cannot be undone.")) return;
+    const { error: logErr } = await supabase.from("habit_logs").delete().eq("habit_id", id);
+    if (logErr) {
+      setFeedback({ type: "error", message: "Failed to remove habit data." });
+      return;
+    }
     const { error } = await supabase.from("habits").delete().eq("id", id);
     if (error) {
       setFeedback({ type: "error", message: error.message });
       return;
     }
     setFeedback({ type: "success", message: "Habit deleted." });
-    load();
+    await load();
     setTimeout(() => setFeedback(null), 3000);
   }
 
@@ -344,12 +349,12 @@ export default function HabitsPage() {
               {frequency === "weekdays" && (
                 <div>
                   <label className="mb-1.5 block text-xs font-medium text-[var(--text-muted)]">Days of week</label>
-                  <div className="flex gap-1">
+                  <div className="flex flex-wrap gap-1">
                     {DAY_LABELS.map((label, i) => (
                       <button
                         key={i}
                         onClick={() => toggleDay(i)}
-                        className={`h-8 w-10 rounded-lg text-xs font-medium transition-all duration-150 ${
+                        className={`h-8 w-9 rounded-lg text-xs font-medium transition-all duration-150 sm:w-10 ${
                           daysOfWeek.includes(i)
                             ? "bg-[var(--accent-soft)] text-[var(--accent)] ring-1 ring-[var(--accent)]/30"
                             : "bg-[var(--surface-soft)] text-[var(--text-muted)] hover:bg-[var(--surface-raised)]"

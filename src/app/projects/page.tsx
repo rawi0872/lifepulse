@@ -255,7 +255,7 @@ export default function ProjectsPage() {
     setShowForm(false);
     setSaving(false);
     setFeedback({ type: "success", message: editingId ? "Project updated." : "Project created." });
-    reloadAll();
+    await reloadAll();
     setTimeout(() => setFeedback(null), 3000);
   }
 
@@ -274,10 +274,12 @@ export default function ProjectsPage() {
 
   async function remove(id: string) {
     if (!confirm("Delete this project? Linked tasks will be unlinked but not deleted.")) return;
+    const { error: unlinkErr } = await supabase.from("tasks").update({ project_id: null }).eq("project_id", id);
+    if (unlinkErr) { setFeedback({ type: "error", message: "Failed to unlink tasks." }); return; }
     const { error } = await supabase.from("projects").delete().eq("id", id);
     if (error) { setFeedback({ type: "error", message: error.message }); return; }
     setFeedback({ type: "success", message: "Project deleted." });
-    reloadAll();
+    await reloadAll();
     setTimeout(() => setFeedback(null), 3000);
   }
 
@@ -291,7 +293,7 @@ export default function ProjectsPage() {
       return;
     }
 
-    reloadAll();
+    await reloadAll();
   }
 
   async function addInlineTask(projectId: string, realmId: string | null) {
@@ -314,7 +316,7 @@ export default function ProjectsPage() {
     setNewTaskDue("");
     setNewTaskPriority("medium");
     setAddingTaskTo(null);
-    reloadAll();
+    await reloadAll();
   }
 
   function handleQuickDraft() {
@@ -365,14 +367,19 @@ export default function ProjectsPage() {
         status: "todo" as const,
         priority: "medium" as const,
       }));
-      await supabase.from("tasks").insert(inserts);
+      const { error: tErr } = await supabase.from("tasks").insert(inserts);
+      if (tErr) {
+        setFeedback({ type: "error", message: "Project created but some tasks failed to save." });
+        setSaving(false);
+        return;
+      }
     }
 
     setQuickDraft(null);
     setQuickInput("");
     setSaving(false);
     setFeedback({ type: "success", message: "Quick plan created with tasks!" });
-    reloadAll();
+    await reloadAll();
     setTimeout(() => setFeedback(null), 3000);
   }
 
@@ -570,7 +577,7 @@ export default function ProjectsPage() {
                 />
               </div>
 
-              <div className="flex gap-3">
+              <div className="flex flex-col gap-3 sm:flex-row">
                 <div className="flex-1">
                   <label className="mb-1.5 block text-xs font-medium text-[var(--text-muted)]">Life area</label>
                   <RealmPicker

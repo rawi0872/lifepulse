@@ -18,6 +18,16 @@ export const LEVEL_THRESHOLDS = [
   1900,   // Level 8
   2500,   // Level 9
   3200,   // Level 10
+  4000,   // Level 11
+  4900,   // Level 12
+  5900,   // Level 13
+  7000,   // Level 14
+  8200,   // Level 15
+  9500,   // Level 16
+  10900,  // Level 17
+  12400,  // Level 18
+  14000,  // Level 19
+  15700,  // Level 20
 ];
 
 // Future: additional presets for customization
@@ -103,36 +113,48 @@ export const DEFAULT_REALM_TITLES: Record<string, TitleEntry[]> = {
     { minLevel: 3, title: "Focused Thinker" },
     { minLevel: 5, title: "Sharp Strategist" },
     { minLevel: 8, title: "Mastermind" },
+    { minLevel: 13, title: "Grand Strategist" },
+    { minLevel: 18, title: "Sage of Reason" },
   ],
   Body: [
     { minLevel: 1, title: "Starting Athlete" },
     { minLevel: 3, title: "Consistent Mover" },
     { minLevel: 5, title: "Strong Foundation" },
     { minLevel: 8, title: "Peak Performer" },
+    { minLevel: 13, title: "Iron Discipline" },
+    { minLevel: 18, title: "Endurance Exemplar" },
   ],
   Career: [
     { minLevel: 1, title: "Beginner Builder" },
     { minLevel: 3, title: "Skill Builder" },
     { minLevel: 5, title: "Operator" },
     { minLevel: 8, title: "Visionary" },
+    { minLevel: 13, title: "Industry Leader" },
+    { minLevel: 18, title: "Legacy Builder" },
   ],
   Relationships: [
     { minLevel: 1, title: "Present Friend" },
     { minLevel: 3, title: "Trusted Connector" },
     { minLevel: 5, title: "Social Anchor" },
     { minLevel: 8, title: "Community Builder" },
+    { minLevel: 13, title: "Circle Weaver" },
+    { minLevel: 18, title: "Legacy of Care" },
   ],
   Finance: [
     { minLevel: 1, title: "Money Aware" },
     { minLevel: 3, title: "Budget Builder" },
     { minLevel: 5, title: "Wealth Planner" },
     { minLevel: 8, title: "Capital Allocator" },
+    { minLevel: 13, title: "Portfolio Master" },
+    { minLevel: 18, title: "Financial Sage" },
   ],
   Faith: [
     { minLevel: 1, title: "Grounded Seeker" },
     { minLevel: 3, title: "Steady Believer" },
     { minLevel: 5, title: "Inner Anchor" },
     { minLevel: 8, title: "Spirit Builder" },
+    { minLevel: 13, title: "Deep Roots" },
+    { minLevel: 18, title: "Guiding Light" },
   ],
 };
 
@@ -141,6 +163,8 @@ export const FALLBACK_TITLES: TitleEntry[] = [
   { minLevel: 3, title: "Builder" },
   { minLevel: 5, title: "Advanced" },
   { minLevel: 8, title: "Master" },
+  { minLevel: 13, title: "Grandmaster" },
+  { minLevel: 18, title: "Legend" },
 ];
 
 export const OVERALL_TITLES: TitleEntry[] = [
@@ -148,6 +172,8 @@ export const OVERALL_TITLES: TitleEntry[] = [
   { minLevel: 3, title: "Rising Builder" },
   { minLevel: 5, title: "Disciplined Operator" },
   { minLevel: 8, title: "Life Architect" },
+  { minLevel: 13, title: "Purpose Driven" },
+  { minLevel: 18, title: "Legacy in Motion" },
 ];
 
 // --- Title helpers ---

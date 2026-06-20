@@ -133,7 +133,11 @@ export default function TasksPage() {
 
   async function save() {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user || !title.trim()) return;
+    if (!user) return;
+    if (!title.trim()) {
+      setFeedback({ type: "error", message: "Title is required." });
+      return;
+    }
 
     setSaving(true);
     setFeedback(null);
@@ -359,7 +363,7 @@ export default function TasksPage() {
                 />
               </div>
 
-              <div className="flex gap-3">
+              <div className="flex flex-col gap-3 sm:flex-row">
                 <div className="flex-1">
                   <label className="mb-1.5 block text-xs font-medium text-[var(--text-muted)]">Priority</label>
                   <SelectPicker
@@ -396,7 +400,7 @@ export default function TasksPage() {
           </Card>
         )}
 
-        <div className="mb-4 flex gap-2">
+        <div className="mb-4 flex flex-wrap gap-2">
           {(["today", "upcoming", "all", "done"] as const).map((f) => (
             <button
               key={f}
