@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { LifePulseLogo } from "@/components/LifePulseLogo";
 
 const navGroups = [
   {
@@ -97,11 +98,9 @@ export function DashboardNav({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen">
       <aside className="fixed left-0 top-0 z-40 hidden h-screen w-56 flex-col border-r border-[var(--border)] bg-[var(--bg-elevated)] md:flex">
-        <Link href="/today" className="mx-4 mt-5 mb-7 flex items-center gap-2.5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-[var(--accent-soft)]">
-            <svg className="h-4 w-4 text-[var(--accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+        <Link href="/today" className="mx-4 mt-5 mb-7 flex items-center gap-2.5 group">
+          <div className="relative transition-all duration-200 group-hover:opacity-80">
+            <LifePulseLogo variant="mark" size="sm" />
           </div>
           <div className="flex flex-col leading-tight">
             <span className="text-sm font-semibold tracking-tight text-[var(--text)]">

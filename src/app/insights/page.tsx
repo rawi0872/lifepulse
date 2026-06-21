@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { DashboardNav } from "@/components/DashboardNav";
@@ -9,6 +9,15 @@ import { getTodayDateString, getWeekStartDate } from "@/lib/utils";
 import { getLevelInfo, getOverallTitle, getRealmTitle } from "@/lib/levels";
 import { HelpPopover } from "@/components/HelpPopover";
 import { getCurrentStreak, getBestStreak } from "@/lib/streaks";
+import {
+  RealmRadarChart,
+  RealmRadarExpandedDialog,
+  computeRealmScores,
+  getStrongestRealm,
+  getWeakestRealm,
+  computeBalanceScore,
+  generateSuggestion,
+} from "@/components/insights/RealmRadarChart";
 
 interface RealmXp {
   name: string;
@@ -75,6 +84,7 @@ export default function InsightsPage() {
   const [financeNet, setFinanceNet] = useState(0);
   const [financeHasData, setFinanceHasData] = useState(false);
   const [financeBudgetTotal, setFinanceBudgetTotal] = useState(0);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const supabase = createClient();
@@ -232,6 +242,20 @@ export default function InsightsPage() {
   const taskCompletionRate = taskCount > 0 ? Math.round((doneTaskCount / taskCount) * 100) : 0;
   const weekHabitRate = weekDueHabits > 0 ? Math.round((weekHabitLogs / weekDueHabits) * 100) : null;
 
+  // Shared scoring for both the card and the dialog
+  const scoredRealms = realmXp.length > 0
+    ? computeRealmScores(realmXp, (xp) => {
+        const info = getLevelInfo(xp);
+        return { level: info.level, progressPercent: info.progressPercent };
+      })
+    : [];
+  const strongest = scoredRealms.length > 0 ? getStrongestRealm(scoredRealms) : null;
+  const weakest = scoredRealms.length > 0 ? getWeakestRealm(scoredRealms) : null;
+  const balanceScore = scoredRealms.length > 0 ? computeBalanceScore(scoredRealms) : null;
+  const suggestion = generateSuggestion(strongest, weakest);
+
+  const handleOpenDialog = useCallback(() => setDialogOpen(true), []);
+
   if (loading) return <InsightSkeleton />;
 
   return (
@@ -268,91 +292,186 @@ export default function InsightsPage() {
           </div>
         </Card>
 
-        {/* Life area levels — hero section */}
-        <div className="mb-6">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-[var(--text)]">
-              Life area levels
-              <HelpPopover title="How XP and levels work">
-                <p>Completing habits and tasks earns XP. XP goes into your overall level and into the life area connected to that action.</p>
-                <p className="mt-1.5">Weekly consistency shows how often you completed expected habit check-ins. Life area levels show where your progress is growing.</p>
-              </HelpPopover>
-            </h2>
-            <button
-              onClick={() => router.push("/settings")}
-              className="text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors"
-            >
-              Manage
-            </button>
-          </div>
+        {/* Life Balance Map */}
+        {(() => {
+          const hasAnyXp = realmXp.some((r) => r.xp > 0);
 
-          {realmXp.length === 0 || realmXp.every((r) => r.xp === 0) ? (
-            <Card variant="subtle" className="border-dashed border-[var(--border)]">
-              <div className="p-6 text-center">
-                <p className="text-sm text-[var(--text-muted)]">
-                  Complete habits or tasks to start leveling up your life areas.
-                </p>
+          return (
+            <div className="mb-8">
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-sm font-semibold text-[var(--text)]">
+                  Life Balance Map
+                  <div onClick={(e) => e.stopPropagation()}>
+                    <HelpPopover title="How the map works">
+                      <p>Each angle represents one of your life areas. The farther a point extends outward, the more energy that area has received through completed habits, tasks, and projects.</p>
+                      <p className="mt-1.5">A balanced shape means you are spreading your attention across multiple areas. Lopsided shapes show where your focus is concentrated.</p>
+                    </HelpPopover>
+                  </div>
+                </h2>
+                <button
+                  onClick={handleOpenDialog}
+                  className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-[0.1em] text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors"
+                  aria-label="Open Life Balance Map details"
+                >
+                  <span>Expand</span>
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                    <path d="M4 2h6v6M10 2L2 10" />
+                  </svg>
+                </button>
               </div>
-            </Card>
-          ) : (
-            <div className="grid gap-2">
-              {realmXp.map((r) => {
-                const info = getLevelInfo(r.xp);
-                const title = getRealmTitle(r.name, info.level);
-                const xpInLevel = r.xp - info.currentLevelXp;
-                const xpRange = info.nextLevelXp - info.currentLevelXp;
-                return (
-                  <Card key={r.name} className="overflow-hidden border-[var(--border-strong)] transition-all duration-150 hover:border-[var(--border-strong)]">
-                    <div className="flex items-center gap-4 p-5">
-                      <div
-                        className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl text-xl shadow-sm bg-gradient-to-br"
-                        style={{
-                          backgroundImage: `linear-gradient(to bottom right, ${r.color}33, transparent)`,
-                          color: r.color,
-                          boxShadow: `inset 0 0 0 1px ${r.color}30`,
-                        }}
-                      >
-                        {r.icon}
+
+              {scoredRealms.length === 0 ? (
+                <Card variant="subtle" className="border-dashed border-[var(--border)]">
+                  <div className="flex flex-col items-center justify-center p-10 text-center">
+                    <div className="mb-6 h-[140px] w-[140px] opacity-30 select-none pointer-events-none">
+                      <RealmRadarChart realms={[]} />
+                    </div>
+                    <p className="text-sm text-[var(--text-muted)]">
+                      Your balance map will take shape as you complete actions across your life areas.
+                    </p>
+                    <p className="mt-1 text-xs text-[var(--text-muted)]">
+                      Complete tasks, habits, and projects connected to life areas to shape your map.
+                    </p>
+                  </div>
+                </Card>
+              ) : (
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={handleOpenDialog}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handleOpenDialog();
+                    }
+                  }}
+                  aria-label="Open Life Balance Map details"
+                  className="cursor-pointer group"
+                >
+                  <Card className="overflow-hidden border-[var(--border-strong)] transition-all duration-200 group-hover:border-[var(--accent)]/20 group-hover:shadow-sm group-hover:shadow-[var(--accent)]/5">
+                    <div className="flex flex-col gap-8 p-6 sm:flex-row sm:items-center sm:p-7">
+                      {/* Chart */}
+                      <div className="mx-auto w-full max-w-[260px] shrink-0 sm:mx-0 sm:max-w-[320px]">
+                        <RealmRadarChart realms={scoredRealms} />
                       </div>
+
+                      {/* Analysis panel */}
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="text-sm font-semibold text-[var(--text)] truncate">{r.name}</p>
-                            <p className="text-[11px] text-[var(--text-muted)]">{title}</p>
-                          </div>
-                          <div className="flex items-center gap-3 shrink-0">
-                            <div className="text-right">
-                              <p className="text-xl font-bold text-[var(--text)]">{info.level}</p>
-                              <p className="text-[9px] uppercase tracking-wider text-[var(--text-muted)]">Level</p>
+                        {hasAnyXp ? (
+                          <div className="flex flex-col gap-4">
+                            <p className="text-xs text-[var(--text-muted)]">
+                              See which areas of your life are getting the most energy — and which ones need attention.
+                            </p>
+
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3.5">
+                                <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">
+                                  Strongest
+                                </p>
+                                {strongest && (
+                                  <div className="mt-1.5">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-sm">{strongest.icon}</span>
+                                      <span className="text-sm font-semibold text-[var(--text)]">{strongest.name}</span>
+                                      <span className="text-[13px] font-bold tabular-nums ml-auto" style={{ color: strongest.color }}>
+                                        {Math.round(strongest.score)}%
+                                      </span>
+                                    </div>
+                                    <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-[var(--surface-soft)]">
+                                      <div
+                                        className="h-full rounded-full transition-all"
+                                        style={{ width: `${strongest.score}%`, backgroundColor: strongest.color, opacity: 0.6 }}
+                                      />
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                              <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3.5">
+                                <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">
+                                  Needs attention
+                                </p>
+                                {weakest && (
+                                  <div className="mt-1.5">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-sm">{weakest.icon}</span>
+                                      <span className="text-sm font-semibold text-[var(--text)]">{weakest.name}</span>
+                                      <span className="text-[13px] font-bold tabular-nums ml-auto text-[var(--text-muted)]">
+                                        {Math.round(weakest.score)}%
+                                      </span>
+                                    </div>
+                                    <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-[var(--surface-soft)]">
+                                      <div
+                                        className="h-full rounded-full transition-all"
+                                        style={{ width: `${weakest.score}%`, backgroundColor: "var(--text-muted)", opacity: 0.25 }}
+                                      />
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                            <div
-                              className="flex h-9 w-9 items-center justify-center rounded-md text-xs font-bold"
-                              style={{
-                                backgroundColor: r.color + "15",
-                                color: r.color,
-                              }}
-                            >
-                              {r.xp}
+
+                            {balanceScore !== null && (
+                              <div className="flex items-center gap-2.5 pl-0.5">
+                                <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">
+                                  Balance
+                                </span>
+                                <div className="flex items-center gap-2">
+                                  <span
+                                    className="text-sm font-bold tabular-nums"
+                                    style={{
+                                      color: balanceScore >= 70
+                                        ? "var(--success)"
+                                        : balanceScore >= 40
+                                        ? "var(--warning)"
+                                        : "var(--text-secondary)",
+                                    }}
+                                  >
+                                    {balanceScore}%
+                                  </span>
+                                  <div className="h-1.5 w-24 overflow-hidden rounded-full bg-[var(--surface-soft)] sm:w-28">
+                                    <div
+                                      className="h-full rounded-full transition-all"
+                                      style={{
+                                        width: `${balanceScore}%`,
+                                        backgroundColor: balanceScore >= 70
+                                          ? "var(--success)"
+                                          : balanceScore >= 40
+                                          ? "var(--warning)"
+                                          : "var(--text-secondary)",
+                                        opacity: 0.55,
+                                      }}
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                            {suggestion && (
+                              <p className="text-xs leading-relaxed text-[var(--text-muted)] border-t border-[var(--border)] pt-3.5">
+                                {suggestion}
+                              </p>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="flex flex-col gap-2">
+                            <p className="text-xs text-[var(--text-muted)]">
+                              See which areas of your life are getting the most energy — and which ones need attention.
+                            </p>
+                            <div className="rounded-lg border border-dashed border-[var(--border)] bg-[var(--surface-soft)] p-4 text-center">
+                              <p className="text-xs text-[var(--text-muted)]">
+                                Complete habits and tasks to start shaping your balance map.
+                              </p>
                             </div>
                           </div>
-                        </div>
-                        <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-[var(--surface)] ring-1 ring-inset ring-[var(--border)]">
-                          <div
-                            className="h-full rounded-full transition-all"
-                            style={{ width: `${info.progressPercent}%`, backgroundColor: r.color, boxShadow: `0 1px 3px 0 ${r.color}1A` }}
-                          />
-                        </div>
-                        <p className="mt-1 text-[10px] text-[var(--text-muted)]">
-                          {r.xp} XP &middot; {xpInLevel}/{xpRange} to next level
-                        </p>
+                        )}
                       </div>
                     </div>
                   </Card>
-                );
-              })}
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          );
+        })()}
 
         {/* Momentum */}
         <h2 className="mb-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">
@@ -504,6 +623,104 @@ export default function InsightsPage() {
             </div>
           </Card>
         )}
+
+        {/* Expanded dialog */}
+        <RealmRadarExpandedDialog
+          open={dialogOpen}
+          onClose={() => setDialogOpen(false)}
+          scoredRealms={scoredRealms}
+          realmXp={realmXp}
+          strongest={strongest}
+          weakest={weakest}
+          balanceScore={balanceScore}
+          suggestion={suggestion}
+        />
+
+        {/* Life area levels — bottom section */}
+        <div className="mb-6">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-[var(--text)]">
+              Life area levels
+              <HelpPopover title="How XP and levels work">
+                <p>Completing habits and tasks earns XP. XP goes into your overall level and into the life area connected to that action.</p>
+                <p className="mt-1.5">Weekly consistency shows how often you completed expected habit check-ins. Life area levels show where your progress is growing.</p>
+              </HelpPopover>
+            </h2>
+            <button
+              onClick={() => router.push("/settings")}
+              className="text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors"
+            >
+              Manage
+            </button>
+          </div>
+
+          {realmXp.length === 0 || realmXp.every((r) => r.xp === 0) ? (
+            <Card variant="subtle" className="border-dashed border-[var(--border)]">
+              <div className="p-6 text-center">
+                <p className="text-sm text-[var(--text-muted)]">
+                  Complete habits or tasks to start leveling up your life areas.
+                </p>
+              </div>
+            </Card>
+          ) : (
+            <div className="grid gap-2">
+              {realmXp.map((r) => {
+                const info = getLevelInfo(r.xp);
+                const title = getRealmTitle(r.name, info.level);
+                const xpInLevel = r.xp - info.currentLevelXp;
+                const xpRange = info.nextLevelXp - info.currentLevelXp;
+                return (
+                  <Card key={r.name} className="overflow-hidden border-[var(--border-strong)] transition-all duration-150 hover:border-[var(--border-strong)]">
+                    <div className="flex items-center gap-4 p-5">
+                      <div
+                        className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl text-xl shadow-sm bg-gradient-to-br"
+                        style={{
+                          backgroundImage: `linear-gradient(to bottom right, ${r.color}33, transparent)`,
+                          color: r.color,
+                          boxShadow: `inset 0 0 0 1px ${r.color}30`,
+                        }}
+                      >
+                        {r.icon}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-[var(--text)] truncate">{r.name}</p>
+                            <p className="text-[11px] text-[var(--text-muted)]">{title}</p>
+                          </div>
+                          <div className="flex items-center gap-3 shrink-0">
+                            <div className="text-right">
+                              <p className="text-xl font-bold text-[var(--text)]">{info.level}</p>
+                              <p className="text-[9px] uppercase tracking-wider text-[var(--text-muted)]">Level</p>
+                            </div>
+                            <div
+                              className="flex h-9 w-9 items-center justify-center rounded-md text-xs font-bold"
+                              style={{
+                                backgroundColor: r.color + "15",
+                                color: r.color,
+                              }}
+                            >
+                              {r.xp}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-[var(--surface)] ring-1 ring-inset ring-[var(--border)]">
+                          <div
+                            className="h-full rounded-full transition-all"
+                            style={{ width: `${info.progressPercent}%`, backgroundColor: r.color, boxShadow: `0 1px 3px 0 ${r.color}1A` }}
+                          />
+                        </div>
+                        <p className="mt-1 text-[10px] text-[var(--text-muted)]">
+                          {r.xp} XP &middot; {xpInLevel}/{xpRange} to next level
+                        </p>
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
     </DashboardNav>
   );

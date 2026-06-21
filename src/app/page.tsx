@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LifePulseLogo } from "@/components/LifePulseLogo";
 
 const features = [
   {
@@ -31,16 +32,7 @@ export default function Home() {
   return (
     <div className="flex min-h-screen flex-col">
       <nav className="flex items-center justify-between px-6 py-4 md:px-10">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-[var(--accent-soft)]">
-            <svg className="h-4 w-4 text-[var(--accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <span className="text-sm font-semibold tracking-tight text-[var(--text)]">
-            Life Pulse
-          </span>
-        </div>
+        <LifePulseLogo size="sm" />
         <div className="flex items-center gap-3">
           <Link
             href="/login"

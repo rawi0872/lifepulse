@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
+import { LifePulseLogo } from "@/components/LifePulseLogo";
 import Link from "next/link";
 
 export default function SignupPage() {
@@ -129,8 +130,8 @@ export default function SignupPage() {
     <div className="flex min-h-screen flex-col items-center justify-center px-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--accent-soft)] text-xl font-bold text-[var(--accent)] ring-1 ring-[var(--accent-soft)]">
-            LP
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--accent-soft)] ring-1 ring-[var(--accent-soft)]">
+            <LifePulseLogo variant="mark" size="md" />
           </div>
           <h1 className="text-2xl font-bold text-[var(--text)]">Get started</h1>
           <p className="mt-1 text-sm text-[var(--text-muted)]">
