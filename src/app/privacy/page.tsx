@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { LifePulseLogo } from "@/components/LifePulseLogo";
+import { getSupportEmail } from "@/lib/config";
 
-// TODO: Replace support@example.com with real support email before production launch.
-const SUPPORT_EMAIL = "support@example.com";
+const SUPPORT_EMAIL = getSupportEmail();
 
 export default function PrivacyPage() {
   return (
