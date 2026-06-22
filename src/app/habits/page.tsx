@@ -9,6 +9,8 @@ import { SelectPicker } from "@/components/SelectPicker";
 import { HelpPopover } from "@/components/HelpPopover";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
 import { getTodayDateString, getWeekStartDate } from "@/lib/utils";
 import { getCurrentStreak, getBestStreak, getWeeklyProgress } from "@/lib/streaks";
 
@@ -61,7 +63,7 @@ export default function HabitsPage() {
   const [weeklyProgress, setWeeklyProgress] = useState<Record<string, { completed: number; target: number } | null>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const { toast } = useToast();
   const router = useRouter();
   const supabase = createClient();
   const today = getTodayDateString();
@@ -160,7 +162,6 @@ export default function HabitsPage() {
     if (!user || !title.trim()) return;
 
     setSaving(true);
-    setFeedback(null);
 
     const payload = {
       user_id: user.id,
@@ -175,7 +176,7 @@ export default function HabitsPage() {
       const { error: err } = await supabase.from("habits").update(payload).eq("id", editingId);
 
       if (err) {
-        setFeedback({ type: "error", message: "Failed to update habit." });
+        toast({ type: "error", title: "Failed to update habit." });
         setSaving(false);
         return;
       }
@@ -183,7 +184,7 @@ export default function HabitsPage() {
       const { error: err } = await supabase.from("habits").insert(payload);
 
       if (err) {
-        setFeedback({ type: "error", message: "Failed to create habit." });
+        toast({ type: "error", title: "Failed to create habit." });
         setSaving(false);
         return;
       }
@@ -192,26 +193,24 @@ export default function HabitsPage() {
     resetForm();
     setShowForm(false);
     setSaving(false);
-    setFeedback({ type: "success", message: editingId ? "Habit updated." : "Habit created." });
+    toast({ type: "success", title: editingId ? "Habit updated." : "Habit created." });
     await load();
-    setTimeout(() => setFeedback(null), 3000);
   }
 
   async function remove(id: string) {
     if (!confirm("Delete this habit? This cannot be undone.")) return;
     const { error: logErr } = await supabase.from("habit_logs").delete().eq("habit_id", id);
     if (logErr) {
-      setFeedback({ type: "error", message: "Failed to remove habit data." });
+      toast({ type: "error", title: "Failed to remove habit data." });
       return;
     }
     const { error } = await supabase.from("habits").delete().eq("id", id);
     if (error) {
-      setFeedback({ type: "error", message: "Failed to delete habit." });
+      toast({ type: "error", title: "Failed to delete habit." });
       return;
     }
-    setFeedback({ type: "success", message: "Habit deleted." });
+    toast({ type: "success", title: "Habit deleted." });
     await load();
-    setTimeout(() => setFeedback(null), 3000);
   }
 
   function toggleDay(d: number) {
@@ -283,25 +282,6 @@ export default function HabitsPage() {
           </Button>
         </div>
 
-        {feedback && (
-          <div className={`mb-4 rounded-lg border px-4 py-2 text-sm flex items-center gap-2 ${
-            feedback.type === "error"
-              ? "border-[var(--danger)]/30 bg-[var(--danger-soft)] text-[var(--danger)]"
-              : "border-[var(--accent)]/30 bg-[var(--accent-soft)] text-[var(--accent)]"
-          }`}>
-            {feedback.type === "success" ? (
-              <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
-            ) : (
-              <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
-              </svg>
-            )}
-            {feedback.message}
-          </div>
-        )}
-
         {habits.length > 0 && habits.length <= 2 && (
           <div className="mb-4 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2">
             <p className="text-xs text-[var(--text-muted)]">
@@ -313,16 +293,13 @@ export default function HabitsPage() {
         {showForm && (
           <Card className="mb-6 border-[var(--border-strong)]">
             <div className="flex flex-col gap-4 p-4">
-              <div>
-                <label className="mb-1.5 block text-xs font-medium text-[var(--text-muted)]">Title</label>
-                <input
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Habit title"
-                  maxLength={100}
-                  className="w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface-soft)] px-3 py-2 text-sm text-[var(--text)] placeholder-[var(--text-muted)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none"
-                />
-              </div>
+              <Input
+                label="Title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Habit title"
+                maxLength={100}
+              />
 
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-[var(--text-muted)]">Realm</label>

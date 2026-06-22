@@ -11,6 +11,7 @@ import { HelpPopover } from "@/components/HelpPopover";
 import { toggleTaskCompletion } from "@/lib/taskCompletion";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 interface Realm {
   id: string;
@@ -137,7 +138,7 @@ export default function ProjectsPage() {
   const [deadline, setDeadline] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const { toast } = useToast();
 
   const [quickInput, setQuickInput] = useState("");
   const [quickDraft, setQuickDraft] = useState<{ title: string; realmId: string; category: string; suggestedTasks: string[] } | null>(null);
@@ -231,7 +232,6 @@ export default function ProjectsPage() {
     if (!user || !title.trim()) return;
 
     setSaving(true);
-    setFeedback(null);
 
     const payload: Record<string, unknown> = {
       user_id: user.id,
@@ -244,19 +244,18 @@ export default function ProjectsPage() {
     if (editingId) {
       payload.status = status;
       const { error: err } = await supabase.from("projects").update(payload).eq("id", editingId);
-      if (err) { setFeedback({ type: "error", message: "Failed to update project." }); setSaving(false); return; }
+      if (err) { toast({ type: "error", title: "Failed to update project." }); setSaving(false); return; }
     } else {
       payload.status = "active";
       const { error: err } = await supabase.from("projects").insert(payload);
-      if (err) { setFeedback({ type: "error", message: "Failed to create project." }); setSaving(false); return; }
+      if (err) { toast({ type: "error", title: "Failed to create project." }); setSaving(false); return; }
     }
 
     resetForm();
     setShowForm(false);
     setSaving(false);
-    setFeedback({ type: "success", message: editingId ? "Project updated." : "Project created." });
+    toast({ type: "success", title: editingId ? "Project updated." : "Project created." });
     await reloadAll();
-    setTimeout(() => setFeedback(null), 3000);
   }
 
   async function reloadAll() {
@@ -275,12 +274,11 @@ export default function ProjectsPage() {
   async function remove(id: string) {
     if (!confirm("Delete this project? Linked tasks will be unlinked but not deleted.")) return;
     const { error: unlinkErr } = await supabase.from("tasks").update({ project_id: null }).eq("project_id", id);
-    if (unlinkErr) { setFeedback({ type: "error", message: "Failed to unlink tasks." }); return; }
+    if (unlinkErr) { toast({ type: "error", title: "Failed to unlink tasks." }); return; }
     const { error } = await supabase.from("projects").delete().eq("id", id);
-    if (error) { setFeedback({ type: "error", message: "Failed to delete project." }); return; }
-    setFeedback({ type: "success", message: "Project deleted." });
+    if (error) { toast({ type: "error", title: "Failed to delete project." }); return; }
+    toast({ type: "success", title: "Project deleted." });
     await reloadAll();
-    setTimeout(() => setFeedback(null), 3000);
   }
 
   async function toggleTaskStatus(taskId: string, currentStatus: string) {
@@ -289,7 +287,7 @@ export default function ProjectsPage() {
 
     const result = await toggleTaskCompletion(supabase, user.id, taskId, currentStatus !== "done");
     if (!result.success) {
-      setFeedback({ type: "error", message: result.error ?? "Failed to update task" });
+      toast({ type: "error", title: result.error ?? "Failed to update task" });
       return;
     }
 
@@ -310,7 +308,7 @@ export default function ProjectsPage() {
       status: "todo",
     });
 
-    if (error) { setFeedback({ type: "error", message: "Failed to add task." }); return; }
+    if (error) { toast({ type: "error", title: "Failed to add task." }); return; }
 
     setNewTaskTitle("");
     setNewTaskDue("");
@@ -352,7 +350,7 @@ export default function ProjectsPage() {
       .single();
 
     if (pErr || !newProject) {
-      setFeedback({ type: "error", message: "Failed to create project." });
+      toast({ type: "error", title: "Failed to create project." });
       setSaving(false);
       return;
     }
@@ -369,7 +367,7 @@ export default function ProjectsPage() {
       }));
       const { error: tErr } = await supabase.from("tasks").insert(inserts);
       if (tErr) {
-        setFeedback({ type: "error", message: "Project created but some tasks failed to save." });
+        toast({ type: "error", title: "Project created but some tasks failed to save." });
         setSaving(false);
         return;
       }
@@ -378,9 +376,8 @@ export default function ProjectsPage() {
     setQuickDraft(null);
     setQuickInput("");
     setSaving(false);
-    setFeedback({ type: "success", message: "Quick plan created with tasks!" });
+    toast({ type: "success", title: "Quick plan created with tasks!" });
     await reloadAll();
-    setTimeout(() => setFeedback(null), 3000);
   }
 
   function cancelQuickDraft() {
@@ -434,25 +431,6 @@ export default function ProjectsPage() {
             </Button>
           </div>
         </div>
-
-        {feedback && (
-          <div className={`mb-4 rounded-lg border px-4 py-2 text-sm flex items-center gap-2 ${
-            feedback.type === "error"
-              ? "border-[var(--danger)]/30 bg-[var(--danger-soft)] text-[var(--danger)]"
-              : "border-[var(--accent)]/30 bg-[var(--accent-soft)] text-[var(--accent)]"
-          }`}>
-            {feedback.type === "success" ? (
-              <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
-            ) : (
-              <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
-              </svg>
-            )}
-            {feedback.message}
-          </div>
-        )}
 
         {projects.length > 0 && projects.length <= 2 && (
           <div className="mb-4 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2">

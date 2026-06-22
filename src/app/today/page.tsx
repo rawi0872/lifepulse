@@ -22,6 +22,7 @@ import { XpDisplay } from "@/components/XpDisplay";
 import { HelpPopover } from "@/components/HelpPopover";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 import { PulseCard } from "@/components/ui/pulse-card";
 import { MetricCard } from "@/components/ui/metric-card";
 import { SectionHeader } from "@/components/ui/section-header";
@@ -110,8 +111,7 @@ function TodayContent() {
   const [quickCapture, setQuickCapture] = useState("");
   const [quickType, setQuickType] = useState<"task" | "habit" | "project">("task");
   const [quickSaving, setQuickSaving] = useState(false);
-  const [quickSuccess, setQuickSuccess] = useState(false);
-  const [quickError, setQuickError] = useState<string | null>(null);
+
 
   const [projectTasks, setProjectTasks] = useState<ProjectTask[]>([]);
   const [financeNet, setFinanceNet] = useState<number | null>(null);
@@ -119,6 +119,7 @@ function TodayContent() {
 
   const router = useRouter();
   const supabase = createClient();
+  const { toast } = useToast();
   const today = getTodayDateString();
   const weekStart = getWeekStartDate();
   const todayDow = getTodayDayOfWeek();
@@ -171,7 +172,6 @@ function TodayContent() {
   async function handleQuickCapture() {
     if (!quickCapture.trim() || quickSaving) return;
     setQuickSaving(true);
-    setQuickError(null);
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -188,7 +188,7 @@ function TodayContent() {
           priority: "medium",
           due_date: today,
         });
-        if (err) { setQuickError("Failed to save task."); setQuickSaving(false); return; }
+        if (err) { toast({ type: "error", title: "Failed to save task." }); setQuickSaving(false); return; }
         success = true;
       } else if (type === "habit") {
         const { data: realms } = await supabase
@@ -199,7 +199,7 @@ function TodayContent() {
           .limit(1);
         const realmId = realms?.[0]?.id ?? "";
         if (!realmId) {
-          setQuickError("Create a life area first in Settings.");
+          toast({ type: "error", title: "Create a life area first in Settings." });
           setQuickSaving(false);
           return;
         }
@@ -209,7 +209,7 @@ function TodayContent() {
           title: quickCapture.trim(),
           frequency: "daily",
         });
-        if (err) { setQuickError("Failed to save habit."); setQuickSaving(false); return; }
+        if (err) { toast({ type: "error", title: "Failed to save habit." }); setQuickSaving(false); return; }
         success = true;
       } else if (type === "project") {
         const { error: err } = await supabase.from("projects").insert({
@@ -217,20 +217,17 @@ function TodayContent() {
           title: quickCapture.trim(),
           status: "active",
         });
-        if (err) { setQuickError("Failed to save project."); setQuickSaving(false); return; }
+        if (err) { toast({ type: "error", title: "Failed to save project." }); setQuickSaving(false); return; }
         success = true;
       }
 
       if (success) {
-        setQuickSuccess(true);
-        setTimeout(() => {
-          setQuickSuccess(false);
-          setQuickCapture("");
-          reloadAll();
-        }, 600);
+        toast({ type: "success", title: "Quick capture saved!" });
+        setQuickCapture("");
+        reloadAll();
       }
     } catch {
-      setQuickError("Quick capture failed. Try again.");
+      toast({ type: "error", title: "Quick capture failed. Try again." });
     }
 
     setQuickSaving(false);
@@ -501,6 +498,7 @@ function TodayContent() {
           amount: 10,
         });
 
+        toast({ type: "success", title: "Habit logged!" });
         setCompletedHabitIds(new Set([...completedHabitIds, habitId]));
         setTpwCounts((prev) => ({ ...prev, [habitId]: (prev[habitId] ?? 0) + 1 }));
         setTodayXp((prev) => prev + 10);
@@ -542,6 +540,7 @@ function TodayContent() {
     if (!result.success) return;
 
     if (isDone) {
+      toast({ type: "success", title: "Task completed!" });
       setTasks((prev) =>
         prev.map((t) =>
           t.id === taskId
@@ -825,11 +824,7 @@ function TodayContent() {
                   onKeyDown={(e) => { if (e.key === "Enter") handleQuickCapture(); }}
                   placeholder="Capture a task, habit, or project idea..."
                   maxLength={200}
-                  className={`w-full rounded-lg border bg-[var(--surface-soft)] px-3 py-2 pr-20 text-sm text-[var(--text)] placeholder-[var(--text-muted)] transition-all duration-150 focus:outline-none ${
-                    quickSuccess
-                      ? "border-[var(--success)]/50 ring-2 ring-[var(--success-soft)]"
-                      : "border-[var(--border-strong)] focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)]"
-                  }`}
+                  className="w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface-soft)] px-3 py-2 pr-20 text-sm text-[var(--text)] placeholder-[var(--text-muted)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none"
                 />
                 <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
                   <span className={`rounded px-2 py-0.5 text-[10px] font-medium ${
@@ -843,15 +838,8 @@ function TodayContent() {
                   </span>
                 </div>
               </div>
-              <Button onClick={handleQuickCapture} disabled={!quickCapture.trim() || quickSaving} className={quickSuccess ? "ring-2 ring-[var(--success)]/30" : ""}>
-                {quickSaving ? "..." : quickSuccess ? (
-                  <span className="flex items-center gap-1">
-                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                    Added
-                  </span>
-                ) : "Add"}
+              <Button onClick={handleQuickCapture} disabled={!quickCapture.trim() || quickSaving}>
+                {quickSaving ? "..." : "Add"}
               </Button>
             </div>
             {quickCapture.trim() && (
@@ -869,9 +857,7 @@ function TodayContent() {
                 ))}
               </div>
             )}
-            {quickError && (
-              <p className="mt-1.5 text-[10px] text-[var(--danger)] animate-slide-up">{quickError}</p>
-            )}
+            
           </div>
         </div>
       </PulseCard>

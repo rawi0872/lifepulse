@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { getTodayDateString } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 interface JournalStats {
   habitsDone: number;
@@ -20,8 +21,7 @@ export function JournalSection({ stats }: { stats?: JournalStats }) {
   const [energy, setEnergy] = useState<number | null>(null);
   const [entryId, setEntryId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
   const supabase = createClient();
   const today = getTodayDateString();
 
@@ -51,8 +51,6 @@ export function JournalSection({ stats }: { stats?: JournalStats }) {
 
   async function save() {
     setSaving(true);
-    setSaved(false);
-    setError(null);
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -72,7 +70,7 @@ export function JournalSection({ stats }: { stats?: JournalStats }) {
           .update(payload)
           .eq("id", entryId);
 
-        if (uErr) { setError(uErr.message); setSaving(false); return; }
+        if (uErr) { toast({ type: "error", title: uErr.message }); setSaving(false); return; }
       } else {
         const { data, error: iErr } = await supabase
           .from("journal_entries")
@@ -80,15 +78,14 @@ export function JournalSection({ stats }: { stats?: JournalStats }) {
           .select()
           .single();
 
-        if (iErr) { setError(iErr.message); setSaving(false); return; }
+        if (iErr) { toast({ type: "error", title: iErr.message }); setSaving(false); return; }
         if (data) setEntryId(data.id);
       }
 
       setSaving(false);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
+      toast({ type: "success", title: "Journal entry saved." });
     } catch {
-      setError("Failed to save journal entry.");
+      toast({ type: "error", title: "Failed to save journal entry." });
       setSaving(false);
     }
   }
@@ -169,22 +166,8 @@ export function JournalSection({ stats }: { stats?: JournalStats }) {
           </div>
       </div>
 
-      {error && (
-        <p className="mt-3 text-xs text-[var(--danger)]">{error}</p>
-      )}
-
-      <div className="mt-4 flex items-center justify-between">
-        <span className={`flex items-center gap-1 text-xs ${saved ? "text-[var(--accent)]" : "text-[var(--text-muted)]"}`}>
-          {saved ? (
-            <>
-              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
-              Saved
-            </>
-          ) : "\u00a0"}
-        </span>
-        <Button size="sm" onClick={save} disabled={saving} className={saved ? "ring-1 ring-[var(--accent)]/30" : ""}>
+      <div className="mt-4 flex items-center justify-end">
+        <Button size="sm" onClick={save} disabled={saving}>
           {saving ? "Saving..." : "Save journal"}
         </Button>
       </div>

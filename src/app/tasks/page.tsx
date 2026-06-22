@@ -13,6 +13,8 @@ import { HelpPopover } from "@/components/HelpPopover";
 import { toggleTaskCompletion } from "@/lib/taskCompletion";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
 
 interface Realm {
   id: string;
@@ -70,7 +72,7 @@ export default function TasksPage() {
   const [dueDate, setDueDate] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const { toast } = useToast();
   const router = useRouter();
   const supabase = createClient();
 
@@ -135,12 +137,11 @@ export default function TasksPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     if (!title.trim()) {
-      setFeedback({ type: "error", message: "Title is required." });
+      toast({ type: "error", title: "Title is required." });
       return;
     }
 
     setSaving(true);
-    setFeedback(null);
 
     const payload = {
       user_id: user.id,
@@ -156,7 +157,7 @@ export default function TasksPage() {
       const { error: err } = await supabase.from("tasks").update(payload).eq("id", editingId);
 
       if (err) {
-        setFeedback({ type: "error", message: "Failed to update task." });
+        toast({ type: "error", title: "Failed to update task." });
         setSaving(false);
         return;
       }
@@ -164,7 +165,7 @@ export default function TasksPage() {
       const { error: err } = await supabase.from("tasks").insert(payload);
 
       if (err) {
-        setFeedback({ type: "error", message: "Failed to create task." });
+        toast({ type: "error", title: "Failed to create task." });
         setSaving(false);
         return;
       }
@@ -173,9 +174,8 @@ export default function TasksPage() {
     resetForm();
     setShowForm(false);
     setSaving(false);
-    setFeedback({ type: "success", message: editingId ? "Task updated." : "Task created." });
+    toast({ type: "success", title: editingId ? "Task updated." : "Task created." });
     reloadTasks();
-    setTimeout(() => setFeedback(null), 3000);
   }
 
   async function reloadTasks() {
@@ -195,26 +195,24 @@ export default function TasksPage() {
     if (!confirm("Delete this task? This cannot be undone.")) return;
     const { error } = await supabase.from("tasks").delete().eq("id", id);
     if (error) {
-      setFeedback({ type: "error", message: "Failed to delete task." });
+      toast({ type: "error", title: "Failed to delete task." });
       return;
     }
-    setFeedback({ type: "success", message: "Task deleted." });
+    toast({ type: "success", title: "Task deleted." });
     reloadTasks();
-    setTimeout(() => setFeedback(null), 3000);
   }
 
   async function toggleDone(task: Task) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    setFeedback(null);
-
     const result = await toggleTaskCompletion(supabase, user.id, task.id, task.status !== "done");
     if (!result.success) {
-      setFeedback({ type: "error", message: result.error ?? "Failed to update task" });
+      toast({ type: "error", title: result.error ?? "Failed to update task" });
       return;
     }
 
+    toast({ type: "success", title: task.status !== "done" ? "Task completed" : "Task reopened" });
     reloadTasks();
   }
 
@@ -294,25 +292,6 @@ export default function TasksPage() {
           </Button>
         </div>
 
-        {feedback && (
-          <div className={`mb-4 rounded-lg border px-4 py-2 text-sm flex items-center gap-2 ${
-            feedback.type === "error"
-              ? "border-[var(--danger)]/30 bg-[var(--danger-soft)] text-[var(--danger)]"
-              : "border-[var(--success)]/30 bg-[var(--success-soft)] text-[var(--success)]"
-          }`}>
-            {feedback.type === "success" ? (
-              <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
-            ) : (
-              <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
-              </svg>
-            )}
-            {feedback.message}
-          </div>
-        )}
-
         {tasks.length > 0 && tasks.length <= 2 && (
           <div className="mb-4 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2 hover:border-[var(--accent)]/20 transition-all duration-150">
             <p className="text-xs text-[var(--text-muted)]">
@@ -332,16 +311,13 @@ export default function TasksPage() {
         {showForm && (
           <Card className="mb-6">
             <div className="flex flex-col gap-4 p-4">
-              <div>
-                <label className="mb-1.5 block text-xs font-medium text-[var(--text-muted)]">Title</label>
-                <input
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Task title"
-                  maxLength={200}
-                  className="w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface-soft)] px-3 py-2 text-sm text-[var(--text)] placeholder-[var(--text-muted)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none"
-                />
-              </div>
+              <Input
+                label="Title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Task title"
+                maxLength={200}
+              />
 
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-[var(--text-muted)]">Realm</label>
@@ -378,12 +354,11 @@ export default function TasksPage() {
                 </div>
 
                 <div className="flex-1">
-                  <label className="mb-1.5 block text-xs font-medium text-[var(--text-muted)]">Due date</label>
-                  <input
+                  <Input
+                    label="Due date"
                     type="date"
                     value={dueDate}
                     onChange={(e) => setDueDate(e.target.value)}
-                    className="w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface-soft)] px-3 py-2 text-sm text-[var(--text)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none [color-scheme:dark]"
                   />
                 </div>
               </div>
