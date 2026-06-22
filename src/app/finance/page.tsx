@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { HelpPopover } from "@/components/HelpPopover";
 import { InfoTip } from "@/components/InfoTip";
 import { getTodayDateString } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 import type {
   FinanceAccount,
   FinanceCategory,
@@ -135,7 +136,7 @@ export default function FinancePage() {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const { toast } = useToast();
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
   const [accounts, setAccounts] = useState<FinanceAccount[]>([]);
@@ -168,7 +169,6 @@ export default function FinancePage() {
   async function loadData() {
     if (cancelledRef.current) return;
     setLoading(true);
-    setFeedback(null);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.replace("/login"); return; }
@@ -202,7 +202,7 @@ export default function FinancePage() {
       }
     } catch {
       if (!cancelledRef.current) {
-        setFeedback({ type: "error", message: "Failed to load finance data." });
+        toast({ type: "error", title: "Failed to load finance data." });
       }
     } finally {
       if (!cancelledRef.current) setLoading(false);
@@ -275,20 +275,19 @@ export default function FinancePage() {
     const amount = parseFloat(txAmount);
 
     if (!title) {
-      setFeedback({ type: "error", message: "Title is required." });
+      toast({ type: "error", title: "Title is required." });
       return;
     }
     if (!amount || isNaN(amount) || amount <= 0) {
-      setFeedback({ type: "error", message: "Amount must be greater than 0." });
+      toast({ type: "error", title: "Amount must be greater than 0." });
       return;
     }
     if (!txCategoryId) {
-      setFeedback({ type: "error", message: "Category is required." });
+      toast({ type: "error", title: "Category is required." });
       return;
     }
 
     setSaving(true);
-    setFeedback(null);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.replace("/login"); return; }
@@ -314,9 +313,9 @@ export default function FinancePage() {
 
       resetTxForm();
       loadData();
-      setFeedback({ type: "success", message: editingTxId ? "Transaction updated." : "Transaction added." });
+      toast({ type: "success", title: editingTxId ? "Transaction updated." : "Transaction added." });
     } catch {
-      setFeedback({ type: "error", message: "Failed to save transaction." });
+      toast({ type: "error", title: "Failed to save transaction." });
     } finally {
       setSaving(false);
     }
@@ -329,7 +328,7 @@ export default function FinancePage() {
       if (error) throw error;
       loadData();
     } catch {
-      setFeedback({ type: "error", message: "Failed to delete transaction." });
+      toast({ type: "error", title: "Failed to delete transaction." });
     } finally {
       setSaving(false);
     }
@@ -360,7 +359,7 @@ export default function FinancePage() {
       setShowBudgetForm(false);
       loadData();
     } catch {
-      setFeedback({ type: "error", message: "Failed to add budget." });
+      toast({ type: "error", title: "Failed to add budget." });
     } finally {
       setSaving(false);
     }
@@ -372,7 +371,7 @@ export default function FinancePage() {
       await supabase.from("finance_budgets").delete().eq("id", id);
       loadData();
     } catch {
-      setFeedback({ type: "error", message: "Failed to delete budget." });
+      toast({ type: "error", title: "Failed to delete budget." });
     }
   }
 
@@ -407,7 +406,7 @@ export default function FinancePage() {
       setShowAccountForm(false);
       loadData();
     } catch {
-      setFeedback({ type: "error", message: "Failed to add account." });
+      toast({ type: "error", title: "Failed to add account." });
     } finally {
       setSaving(false);
     }
@@ -419,7 +418,7 @@ export default function FinancePage() {
       await supabase.from("finance_accounts").delete().eq("id", id);
       loadData();
     } catch {
-      setFeedback({ type: "error", message: "Failed to delete account." });
+      toast({ type: "error", title: "Failed to delete account." });
     }
   }
 
@@ -505,16 +504,6 @@ export default function FinancePage() {
             </div>
           </div>
         </div>
-
-        {feedback && (
-          <div className={`mb-4 rounded-lg border px-4 py-3 text-sm ${
-            feedback.type === "error"
-              ? "border-[var(--danger)]/20 bg-[var(--danger-soft)] text-[var(--danger)]"
-              : "border-[var(--success)]/20 bg-[var(--success-soft)] text-[var(--success)]"
-          }`}>
-            {feedback.message}
-          </div>
-        )}
 
         {!hasData && (
           <>

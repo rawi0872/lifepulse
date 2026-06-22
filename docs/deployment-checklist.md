@@ -27,8 +27,10 @@ git push origin private-beta-v1
 - [ ] `.env.local` is NOT staged — run `git status` and confirm it does not appear
 - [ ] `.env.example` IS tracked — run `git ls-files .env.example` to confirm
 - [ ] No real secrets in any committed file
-- [ ] `npm run lint` passes
-- [ ] `npm run build` passes
+- [ ] `npm run lint` passes (0 errors)
+- [ ] `npm run build` passes (19 pages compiled)
+- [ ] Toast system functional (verify on all dashboard pages)
+- [ ] Custom favicon present (`/icon.svg` — Life Pulse pulse/heartbeat)
 
 ---
 

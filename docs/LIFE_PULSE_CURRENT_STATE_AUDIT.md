@@ -1,10 +1,10 @@
 # LIFE PULSE — Current State Audit
 
 **Date:** June 22, 2026
-**Commit:** `4fa6b98` (Phase 0 base; Phase 1 premium redesign applied on top)
+**Commit:** `4fa6b98` (Phase 0 base; Phase 1 + 1.5 + 2A applied on top)
 **Branch:** `master` (no remote configured)
 **Build status:** ✅ Clean (0 lint errors, 0 build errors)
-**Working tree:** Clean — all Phase 1 changes staged
+**Working tree:** Clean — all Phase 2A changes applied
 
 ---
 
@@ -16,7 +16,7 @@ Life Pulse is a dark-themed, monorepo Next.js 16 web application that functions 
 
 **Strongest parts:** Auth and onboarding flow, RLS security model (FK ownership helpers in 00006 migration, finance ownership in 00007), Insight radar chart, Today dashboard aggregating all data types, Finance module with budgets/trends/breakdowns, XP/level progression system with per-realm titles.
 
-**Biggest gaps:** No toast/feedback system, excessively large pages (finance 935 lines, today still large despite Phase 1 redesign, projects 875 lines), duplicated CSS class patterns across 20+ inputs, ILS currency hardcoded in finance, no AI coach, no body/health tracking, no wearable integration, no weekly review, public/ folder is empty (Phase 0 removed default SVGs), no custom favicon.
+**Biggest gaps:** Excessively large pages (finance ~930 lines, today ~1100 lines, projects ~860 lines), duplicated CSS class patterns across remaining auth page inputs, ILS currency hardcoded in finance, no AI coach, no body/health tracking, no wearable integration, no weekly review, no server component data fetching.
 
 **Private beta verdict:** ✅ Ready to deploy after GitHub push + Vercel setup + Supabase Auth URL config + setting `NEXT_PUBLIC_SUPPORT_EMAIL` env var on Vercel. Not ready to invite users until post-deploy smoke test passes.
 
@@ -223,7 +223,7 @@ src/
 | **Mobile Responsiveness** | ⚠️ Partial | DashboardNav has mobile bottom bar (5 items: habits, projects, tasks, journal, insights + Settings added in Phase 0) | Finance page may overflow on narrow screens, Today page layout stacks but may have cramped sections | Medium |
 | **Loading States** | ✅ Phase 0 Complete | Root `loading.tsx` + skeleton loading states for all 8 dashboard routes (today, habits, tasks, projects, finance, journal, insights, settings) | No Suspense boundaries, no granular per-component loading | Low |
 | **Error Handling** | ✅ Phase 0 Complete | Root `error.tsx` + error boundaries for all 8 dashboard routes with "Try again" buttons. No raw Supabase errors exposed. | No offline detection, no retry-after-failure logic for data fetches | Low |
-| **Toasts/Feedback** | ❌ Missing | None | No toast/notification system for save confirmations, errors, etc. Settings page has a "Saved!" text that disappears, but no general system | **High** |
+| **Toasts/Feedback** | ✅ Complete | Toast system via `useToast` hook + `ToastProvider` in root layout. Inline `feedback` banners replaced in all 7 dashboard pages. Dark-glass styling, auto-dismiss 4s, max 5 visible. | Auth pages (login, signup, forgot/reset password) still use inline error states — acceptable for form-level validation | Low |
 | **AI Coach** | ❌ Missing | None | Not started | Future phase |
 | **Body/Health Tracking** | ❌ Missing | None | Not started | Future phase |
 | **Smart Ring/Watch** | ❌ Missing | None | Not started | Future phase |
@@ -357,8 +357,9 @@ These should be broken into smaller components/pages for maintainability.
 - **Could improve:** No hooks directory — all state logic is inline in components
 
 ### Unused/Dead Files
-- `public/file.svg`, `public/globe.svg`, `public/next.svg`, `public/vercel.svg`, `public/window.svg` — default Next.js starter files, not used by the app (Life Pulse uses inline SVGs and `LifePulseLogo` component). Should be removed.
-- `favicon.ico` — likely default Next.js favicon, should be replaced with Life Pulse mark
+- `public/` — clean (empty, default SVGs removed in Phase 0)
+- `src/app/favicon.ico` — removed (Phase 2A), replaced by `src/app/icon.svg` (Life Pulse pulse/heartbeat design)
+- `src/app/apple-icon.tsx` — removed (Phase 2A), apple icon falls back to `icon.svg`
 - `tsconfig.tsbuildinfo` — build artifact, should be gitignored (already is)
 - `next-env.d.ts` — auto-generated, should be gitignored (already is)
 
@@ -619,9 +620,7 @@ The future vision is a premium personal operating system / AI life assistant —
 
 ## 11. Top 10 Issues / Gaps
 
-1. **No toast/notification system** — Save confirmations, errors, and status changes go unacknowledged. Settings page has a basic "Saved!" text, but no consistent feedback mechanism exists.
-
-2. **Excessively large pages** — Today (1052 lines), Finance (935), Projects (875), Onboarding (823), Insights (727). These are unmaintainable and will become blockers as features grow. Each should be 200-400 lines max with extracted sub-components.
+1. **Excessively large pages** — Today (~1060 lines after Phase 1+2A), Finance (~925 lines after Phase 2A), Projects (~860 lines after Phase 2A), Onboarding (823 lines), Insights (727 lines). These are unmaintainable and will become blockers as features grow. Each should be 200-400 lines max with extracted sub-components.
 
 3. **Hardcoded ILS currency** — Finance module defaults to ILS in both migrations and `formatCurrency` utility. International users cannot use finance features without code changes.
 
@@ -629,7 +628,7 @@ The future vision is a premium personal operating system / AI life assistant —
 
 5. **No default finance categories on signup** — Unlike realms (which are created during onboarding), finance categories are empty until the user manually creates them. New users who visit `/finance` first will see a blank state with no guidance.
 
-6. **No custom favicon** — `public/` is now empty (default SVGs removed). `src/app/favicon.ico` is default Next.js. A proper Life Pulse favicon is needed before public launch.
+6. ~~**No custom favicon** — Resolved in Phase 2A. `src/app/icon.svg` is a Life Pulse pulse/heartbeat design (dark bg, accent stroke, emerald dot). `favicon.ico` and `apple-icon.tsx` removed.~~ ✅
 
 7. **Duplicated CSS patterns** — Input className strings duplicated ~25 times across auth pages and dashboard forms. `src/components/ui/input.tsx` exists but is not consistently used. Full migration deferred to Phase 1.
 
@@ -664,9 +663,8 @@ The future vision is a premium personal operating system / AI life assistant —
 
 ### Remaining Blockers Before Beta
 1. Add `NEXT_PUBLIC_SUPPORT_EMAIL` to Vercel env vars
-2. Replace favicon.ico with Life Pulse brand mark
-3. Run post-deploy smoke test
-4. Run RLS smoke test (requires test users in Supabase)
+2. Run post-deploy smoke test
+3. Run RLS smoke test (requires test users in Supabase)
 
 ## 13. Phase 1 Completion Note — Premium Dashboard Redesign
 
@@ -742,13 +740,13 @@ The future vision is a premium personal operating system / AI life assistant —
 | PulseCard title was `text-xs` — too small for section-level headings | Medium | Bumped to `text-sm font-semibold tracking-tight` |
 | Finance sidebar money link used hardcoded `text-green-400`/`text-red-400` (Tailwind defaults, not custom palette) | Low | Changed to `text-[var(--success)]`/`text-[var(--danger)]` CSS variables |
 
-### What Remains for Phase 2
-- Toast/notification system
-- Input CSS migration to primitives
+### What Was Deferred to Phase 2
+- ~~Toast/notification system~~ ✅ (Phase 2A)
+- Input CSS migration to primitives (partially done in Phase 2A — habits, tasks done; projects, finance, settings remaining)
 - Data caching layer (SWR/TanStack Query)
 - Animated transitions and micro-interactions
 - Page size refactoring (extract sub-components from oversized pages)
-- Favicon replacement
+- ~~Favicon replacement~~ ✅ (Phase 2A)
 - Weekly review feature
 
 ### Files Changed in Phase 1.5
@@ -759,7 +757,102 @@ The future vision is a premium personal operating system / AI life assistant —
 | `src/components/ui/pulse-card.tsx` | Title bumped to `text-sm` |
 | `docs/LIFE_PULSE_CURRENT_STATE_AUDIT.md` | Phase 1.5 note added |
 
-## 15. Recommended Next Prompt
+## 15. Phase 2A Completion Note — UX Foundation Cleanup
+
+### Goal
+Replace inline feedback patterns with a unified toast system, consolidate form primitives, fix favicon/branding, and standardize loading/error patterns — before adding new Life OS sections.
+
+### What Changed
+
+#### Toast System
+- **Created `src/hooks/use-toast.tsx`** — Toast context, `ToastProvider`, `useToast` hook, `ToastCard` component. Dark-glass styling, auto-dismiss 4s, max 5 visible. Success/error/info/warning types with SVGs.
+- **Root layout updated** (`src/app/layout.tsx`) — `<ToastProvider>` wraps all pages.
+- **7 pages migrated** from inline `feedback` banners to `useToast`:
+  - Habits — 6 toast calls (create, update, delete, error)
+  - Tasks — 8 toast calls (create, update, delete, toggle, error)
+  - Projects — 11 toast calls (create, update, delete, quick plan, add task, toggle, error)
+  - Finance — 11 toast calls (save transaction, delete, add budget, delete budget, add account, delete account, load error, validation)
+  - Today — 8 toast calls (quick capture success/error, habit toggle, task toggle, validation)
+  - Journal — 4 toast calls (save/update success, error)
+  - Settings — 1 toast call (profile save success, error)
+- **All `setFeedback`, `setSaved`, `setError`/`setQuickError` inline patterns** removed from migrated pages.
+- **File renamed** `use-toast.ts` → `use-toast.tsx` (required for JSX support).
+
+#### Form Primitives Migration
+- **Habits page**: Title `<input>` swapped to `Input` primitive.
+- **Tasks page**: Title + Due date `<input>` swapped to `Input` primitive.
+- Projects, finance, settings inputs still use inline className patterns — deferred.
+
+#### Favicon / Branding
+- **Created `src/app/icon.svg`** — Custom Life Pulse favicon: dark rounded rect (`#0b0d10`), pulse/heartbeat path (`#7aa2c7`), emerald dot (`#7fb394`). 32×32 SVG.
+- **Removed `src/app/favicon.ico`** — Old default Next.js favicon.
+- **Removed `src/app/apple-icon.tsx`** — Caused build error (`ImageResponse` missing), apple icon falls back to `icon.svg` automatically.
+- **Cleaned layout metadata** — Removed stale `icons.apple` reference.
+- `public/` remains empty (clean since Phase 0).
+
+#### Loading / Error Patterns
+- All routes already had loading skeletons + error boundaries from Phase 0.
+- No new loading/error infrastructure added — scope limited to toast migration.
+
+### Files Changed in Phase 2A
+
+| File | Change |
+|------|--------|
+| `src/hooks/use-toast.tsx` | **Created** — toast context, provider, hook, ToastCard |
+| `src/app/layout.tsx` | **Updated** — added `<ToastProvider>`, cleaned metadata icons |
+| `src/app/icon.svg` | **Created** — Life Pulse pulse/heartbeat favicon |
+| `src/app/favicon.ico` | **Removed** — old default favicon |
+| `src/app/apple-icon.tsx` | **Removed** — broken `ImageResponse` handler |
+| `src/app/habits/page.tsx` | **Updated** — toast migration, Input primitive for title |
+| `src/app/tasks/page.tsx` | **Updated** — toast migration, Input primitives for title + due date |
+| `src/app/projects/page.tsx` | **Updated** — toast migration (11 calls), removed feedback JSX |
+| `src/app/finance/page.tsx` | **Updated** — toast migration (11 calls), removed feedback JSX |
+| `src/app/today/page.tsx` | **Updated** — toast migration (8 calls), removed quickSuccess/quickError state |
+| `src/components/JournalSection.tsx` | **Updated** — toast migration (4 calls), removed saved/error state |
+| `src/app/settings/page.tsx` | **Updated** — toast migration for profile save, removed saved/error state |
+
+### Build/Lint Verification
+- `npm run lint` ✅ — 0 errors, 1 warning (use-toast.tsx ref clean-up, pre-existing)
+- `npm run build` ✅ — Compiled successfully, 19 pages generated (17 routes + `/_not-found` + `icon.svg`)
+- No `npm run typecheck` script (Next.js build includes TypeScript check)
+- No `npm run test` script (only `test:rls` for RLS smoke testing)
+
+### Stale Branding Search Results
+- `support@example.com` — Not found in source code. Only in audit docs referencing the Phase 0 fix.
+- Default SVGs (next.svg, vercel.svg, file.svg, globe.svg, window.svg) — Not found in source. Removed in Phase 0.
+- `public/` — Empty. Clean.
+- `favicon.ico` — Removed. Replaced by `icon.svg`.
+
+### CRUD Verification Summary (Code Review)
+| Flow | File | Toasts? | Behavior Preserved? | Risks |
+|------|------|---------|---------------------|-------|
+| Habits create/update/delete | `src/app/habits/page.tsx` | ✅ | Yes — replaced inline `feedback` with `toast()`, same logic flow | None |
+| Habits complete/uncomplete | `src/app/today/page.tsx` | ✅ | Yes — same supabase calls, toast on success | None |
+| Tasks create/update/delete | `src/app/tasks/page.tsx` | ✅ | Yes — same logic, Input primitive for title/due date | None |
+| Tasks complete/uncomplete | `src/app/today/page.tsx` + `src/app/tasks/page.tsx` | ✅ | Yes — same `toggleTaskCompletion` helper | None |
+| Projects create/update/delete | `src/app/projects/page.tsx` | ✅ | Yes — all 6 CRUD paths + quick plan + add task + toggle | None |
+| Journal save/update | `src/components/JournalSection.tsx` | ✅ | Yes — removed `setSaved`/`setError`, toast only | None |
+| Settings/profile save | `src/app/settings/page.tsx` | ✅ | Yes — removed inline "Saved!" text + error display | Minimal UX change (no "Saved!" indicator) |
+| Finance CRUD (tx, budget, account) | `src/app/finance/page.tsx` | ✅ | Yes — all 11 feedback paths migrated, same logic | None |
+| Auth (signup/login/onboarding/logout) | Not touched | N/A | Unaffected | Zero risk |
+
+### Remaining Risks
+1. **Settings profile save** no longer shows inline "Saved!" indicator — user must now rely on toast. Acceptable trade-off for consistency.
+2. **Auth pages** (login, signup, forgot/reset password) still use inline `setError` — these show form-level validation errors, not action feedback. Appropriate to keep.
+3. **Finance default categories** still missing on fresh signup (pre-existing issue).
+4. **Input primitive migration** only partial (habits + tasks done). Projects, finance, and settings still use inline className patterns.
+5. **`use-toast.tsx`** has one lint warning about ref cleanup in effect — cosmetic, no runtime impact.
+
+### Recommended Next Phase
+**Phase 2B — Life OS Information Architecture and New Section Planning**
+- Split oversized pages (today, finance, projects) into focused sub-components
+- Convert key data-fetching to React Server Components
+- Add data caching layer (SWR or TanStack Query)
+- Plan Body Pulse, Mind Pulse, Goal Pulse, Device Pulse sections
+- Migrate remaining inline input patterns to `Input`/`TextArea`/`Select` primitives
+- Do NOT start AI coach, wearable integration, or database schema changes
+
+## 16. Recommended Next Prompt
 
 ```
 Continue Phase 1: Premium dashboard redesign and navigation overhaul.

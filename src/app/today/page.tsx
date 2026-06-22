@@ -528,7 +528,7 @@ function TodayContent() {
         setTotalXp((prev) => Math.max(0, prev - 10));
       }
     } catch {
-      setError("Failed to update habit.");
+      toast({ type: "error", title: "Failed to update habit." });
     }
   }
 

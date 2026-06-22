@@ -10,6 +10,7 @@ import { IconPicker } from "@/components/IconPicker";
 import { ColorPicker } from "@/components/ColorPicker";
 import { InfoTip } from "@/components/InfoTip";
 import { HelpPopover } from "@/components/HelpPopover";
+import { useToast } from "@/hooks/use-toast";
 
 export default function SettingsPage() {
   const [firstName, setFirstName] = useState("");
@@ -18,9 +19,8 @@ export default function SettingsPage() {
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
   interface Realm { id: string; name: string; color: string; icon: string }
   const [realms, setRealms] = useState<Realm[]>([]);
@@ -79,8 +79,6 @@ export default function SettingsPage() {
 
   async function saveProfile() {
     setSaving(true);
-    setSaved(false);
-    setError(null);
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
@@ -98,12 +96,11 @@ export default function SettingsPage() {
     setSaving(false);
 
     if (updateError) {
-      setError("Failed to save profile. Please try again.");
+      toast({ type: "error", title: "Failed to save profile. Please try again." });
       return;
     }
 
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    toast({ type: "success", title: "Profile saved." });
   }
 
   async function handleLogout() {
@@ -317,14 +314,7 @@ export default function SettingsPage() {
                 />
               </div>
 
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-[var(--text-muted)]">
-                  {error ? (
-                    <span className="text-[var(--danger)]">{error}</span>
-                  ) : saved ? (
-                    <span className="text-[var(--accent)]">Saved!</span>
-                  ) : "\u00a0"}
-                </span>
+              <div className="flex items-center justify-end">
                 <Button size="sm" onClick={saveProfile} disabled={saving}>
                   {saving ? "Saving..." : "Save"}
                 </Button>
