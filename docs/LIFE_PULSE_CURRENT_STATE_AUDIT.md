@@ -1,10 +1,10 @@
 # LIFE PULSE — Current State Audit
 
 **Date:** June 22, 2026
-**Commit:** `4fa6b98` (final private beta readiness pass; Phase 0 applied on top)
+**Commit:** `4fa6b98` (Phase 0 base; Phase 1 premium redesign applied on top)
 **Branch:** `master` (no remote configured)
 **Build status:** ✅ Clean (0 lint errors, 0 build errors)
-**Working tree:** Multiple pending changes from Phase 0 cleanup (see section below)
+**Working tree:** Clean — all Phase 1 changes staged
 
 ---
 
@@ -16,7 +16,7 @@ Life Pulse is a dark-themed, monorepo Next.js 16 web application that functions 
 
 **Strongest parts:** Auth and onboarding flow, RLS security model (FK ownership helpers in 00006 migration, finance ownership in 00007), Insight radar chart, Today dashboard aggregating all data types, Finance module with budgets/trends/breakdowns, XP/level progression system with per-realm titles.
 
-**Biggest gaps:** No toast/feedback system, excessively large pages (finance 935 lines, today 1052 lines, projects 875 lines), duplicated CSS class patterns across 20+ inputs, ILS currency hardcoded in finance, no AI coach, no body/health tracking, no wearable integration, no weekly review, public/ folder is empty (Phase 0 removed default SVGs), no custom favicon.
+**Biggest gaps:** No toast/feedback system, excessively large pages (finance 935 lines, today still large despite Phase 1 redesign, projects 875 lines), duplicated CSS class patterns across 20+ inputs, ILS currency hardcoded in finance, no AI coach, no body/health tracking, no wearable integration, no weekly review, public/ folder is empty (Phase 0 removed default SVGs), no custom favicon.
 
 **Private beta verdict:** ✅ Ready to deploy after GitHub push + Vercel setup + Supabase Auth URL config + setting `NEXT_PUBLIC_SUPPORT_EMAIL` env var on Vercel. Not ready to invite users until post-deploy smoke test passes.
 
@@ -668,7 +668,62 @@ The future vision is a premium personal operating system / AI life assistant —
 3. Run post-deploy smoke test
 4. Run RLS smoke test (requires test users in Supabase)
 
-## 13. Recommended Next Prompt
+## 13. Phase 1 Completion Note — Premium Dashboard Redesign
+
+### What Changed
+- **Dashboard UI primitives**: Created 4 reusable components in `src/components/ui/`:
+  - `pulse-card.tsx` — Card with optional accent header, title, description, action slot, and variant support
+  - `metric-card.tsx` — Compact KPI display card with icon, label, value, trend indicator, and active state
+  - `section-header.tsx` — Consistent section heading with accent dot, label, optional count and action slot
+  - `empty-state.tsx` — Reusable empty state with message, description, and optional CTA
+- **Today page redesign** (`/today`):
+  - Added "Today's Pulse" header badge with "Life OS · Mission Control" sub-label
+  - Added 5-column **Command Strip** with compact MetricCards for Habits, Tasks, Reflection, XP, and Money (Money links to /finance)
+  - Grouped priorities + quick capture into a single **Mission Control** PulseCard
+  - Kept existing next-action suggestion card
+  - Rebranded sections: habits → **Body Pulse**, tasks → **Mind Pulse**, journal → **Evening Reflection**
+  - Added all-done "Day complete" banner
+  - Used `EmptyState` component for empty habit/task states
+  - Welcome message updated to "Welcome to your Life OS"
+- **DashboardNav polish** (`DashboardNav.tsx`):
+  - Active nav items now show a left accent bar (gradient from accent to accent-strong)
+  - "Today" renamed to **"Today's Pulse"** (mobile nav shows "Today" for space)
+  - Nav group "primary" renamed to **"Pulse"** group
+  - Settings sidebar now matches nav item styling with active accent bar
+  - Mobile bottom nav now has `backdrop-blur-sm` for premium glass effect
+  - Improved hover states across all nav items
+- **Life OS language** introduced throughout:
+  - "Today's Pulse", "Mission Control", "Body Pulse", "Mind Pulse", "Evening Reflection"
+  - "Life OS · Mission Control" header tagline
+  - "Welcome to your Life OS" onboarding copy
+  - "Pulse" nav group label
+
+### What Was Intentionally Not Changed
+- No toast/notification system (Phase 2)
+- No page extraction/refactoring (Phase 2 — today page remains ~1050 lines with new layout)
+- No input CSS migration (Phase 2)
+- No data caching (Phase 2)
+- No animated transitions beyond existing CSS animations
+- No favicon replacement (needs designer input)
+- No ILS currency generalization (Phase 3)
+- No AI coach or wearable features (Phase 4+)
+
+### Files Touched
+| File | Change |
+|------|--------|
+| `src/components/ui/pulse-card.tsx` | **Created** — reusable pulse card with accent header |
+| `src/components/ui/metric-card.tsx` | **Created** — compact KPI display |
+| `src/components/ui/section-header.tsx` | **Created** — consistent section heading |
+| `src/components/ui/empty-state.tsx` | **Created** — reusable empty state |
+| `src/app/today/page.tsx` | **Redesigned** — new header, command strip, mission control, Life OS rebranding |
+| `src/components/DashboardNav.tsx` | **Polished** — active accent bar, premium sidebar, Life OS labels, mobile glass |
+| `docs/LIFE_PULSE_CURRENT_STATE_AUDIT.md` | **Updated** — Phase 1 summary |
+
+### Build Verification
+- `npm run lint` ✅ — 0 ESLint errors
+- `npm run build` ✅ — Compiled successfully, all 18 pages generated
+
+## 14. Recommended Next Prompt
 
 ```
 Continue Phase 1: Premium dashboard redesign and navigation overhaul.

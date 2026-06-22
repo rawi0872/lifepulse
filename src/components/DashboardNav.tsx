@@ -6,10 +6,10 @@ import { LifePulseLogo } from "@/components/LifePulseLogo";
 
 const navGroups = [
   {
-    label: null,
+    label: "Pulse",
     items: [
       {
-        label: "Today",
+        label: "Today's Pulse",
         href: "/today",
         icon: (
           <svg className="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -128,16 +128,19 @@ export function DashboardNav({ children }: { children: React.ReactNode }) {
                       key={item.href}
                       href={item.href}
                       aria-current={active ? "page" : undefined}
-                      className={`flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm font-medium transition-all duration-200 ${
+                      className={`group relative flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm font-medium transition-all duration-200 ${
                         active
                           ? "text-[var(--text)] bg-[var(--accent-ghost)]"
                           : "text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-white/[0.03]"
                       }`}
                     >
-                      <span className={`transition-colors duration-200 ${
+                      {active && (
+                        <span className="absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-full bg-gradient-to-b from-[var(--accent)] to-[var(--accent-strong)]" />
+                      )}
+                      <span className={`shrink-0 transition-colors duration-200 ${
                         active
                           ? "text-[var(--accent)]"
-                          : "text-[var(--text-muted)]"
+                          : "text-[var(--text-muted)] group-hover:text-[var(--text-secondary)]"
                       }`}>
                         {item.icon}
                       </span>
@@ -150,16 +153,21 @@ export function DashboardNav({ children }: { children: React.ReactNode }) {
           ))}
         </nav>
 
-        <div className="border-t border-[var(--border)] px-2 py-3">
+        <div className="border-t border-[var(--border)] px-2 py-2.5">
           <Link
             href="/settings"
-            className={`flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-all duration-200 ${
+            className={`group relative flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-all duration-200 ${
               pathname === "/settings"
                 ? "text-[var(--text)] bg-[var(--accent-ghost)]"
                 : "text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-white/[0.03]"
             }`}
           >
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-white/[0.06] text-[var(--text-muted)]">
+            {pathname === "/settings" && (
+              <span className="absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-full bg-gradient-to-b from-[var(--accent)] to-[var(--accent-strong)]" />
+            )}
+            <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded bg-white/[0.06] transition-colors duration-200 ${
+              pathname === "/settings" ? "text-[var(--accent)]" : "text-[var(--text-muted)] group-hover:text-[var(--text-secondary)]"
+            }`}>
               <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
               </svg>
@@ -176,7 +184,7 @@ export function DashboardNav({ children }: { children: React.ReactNode }) {
         {children}
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-[var(--border)] bg-[var(--bg-elevated)] px-1 md:hidden">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-[var(--border)] bg-[var(--bg-elevated)]/95 backdrop-blur-sm px-1 md:hidden">
         <div className="flex items-center justify-around">
           {navGroups.flatMap((g) => g.items).map((item) => {
             const active = isActive(item.href);
@@ -184,7 +192,7 @@ export function DashboardNav({ children }: { children: React.ReactNode }) {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex flex-col items-center gap-0.5 rounded-lg px-2 py-2 text-[10px] font-medium transition-all duration-200 ${
+                className={`flex flex-col items-center gap-0.5 rounded-lg px-2 py-1.5 text-[10px] font-medium transition-all duration-200 ${
                   active
                     ? "text-[var(--accent)] bg-[var(--accent-ghost)]"
                     : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
@@ -195,7 +203,9 @@ export function DashboardNav({ children }: { children: React.ReactNode }) {
                 }`}>
                   {item.icon}
                 </span>
-                {item.label}
+                <span className={active ? "text-[var(--accent)]" : ""}>
+                  {item.label === "Today's Pulse" ? "Today" : item.label}
+                </span>
               </Link>
             );
           })}

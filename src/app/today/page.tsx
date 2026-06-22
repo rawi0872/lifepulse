@@ -22,6 +22,10 @@ import { XpDisplay } from "@/components/XpDisplay";
 import { HelpPopover } from "@/components/HelpPopover";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { PulseCard } from "@/components/ui/pulse-card";
+import { MetricCard } from "@/components/ui/metric-card";
+import { SectionHeader } from "@/components/ui/section-header";
+import { EmptyState } from "@/components/ui/empty-state";
 
 interface RealmInfo {
   name: string;
@@ -580,6 +584,8 @@ function TodayContent() {
   }
 
   const { level } = getLevelInfo(totalXp);
+  const allDone = completedHabitCount === dueHabits.length && doneTaskCount === tasks.length && dueHabits.length > 0 && tasks.length > 0 && hasJournal;
+  const hasContent = habits.length > 0 || tasks.length > 0;
 
   if (loading) {
     return (
@@ -588,9 +594,9 @@ function TodayContent() {
           <div className="h-9 w-72 animate-pulse rounded-lg bg-[var(--surface)]" />
           <div className="mt-2 h-4 w-48 animate-pulse rounded-lg bg-[var(--surface)]" />
         </div>
-        <div className="mb-8 grid grid-cols-4 gap-2">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-14 animate-pulse rounded-lg bg-[var(--surface)]" />
+        <div className="mb-8 grid grid-cols-5 gap-2">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="h-16 animate-pulse rounded-lg bg-[var(--surface)]" />
           ))}
         </div>
         <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
@@ -614,13 +620,22 @@ function TodayContent() {
       <header className="mb-6">
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-[var(--text)]">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--accent)]">
+                Today&apos;s Pulse
+              </span>
+              <div className="h-1 w-1 rounded-full bg-[var(--accent)]/40" />
+              <span className="text-[10px] text-[var(--text-muted)] tracking-wider">
+                Life OS &middot; Mission Control
+              </span>
+            </div>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight text-[var(--text)]">
               Good {getGreeting()}{firstName ? `, ${firstName}` : ''}
             </h1>
             <div className="mt-0.5 flex items-center gap-2 text-sm text-[var(--text-muted)]">
               {formatDate(new Date())}
-              <HelpPopover title="How to use Today">
-                <p>Today is your daily operating loop. Start by setting a focus, complete your habits and tasks, then reflect in the evening.</p>
+              <HelpPopover title="Today's Pulse">
+                <p>This is your Life OS command center. Set priorities, complete habits and tasks, then reflect in the evening to keep your life in motion.</p>
               </HelpPopover>
             </div>
             <div className="mt-1.5 flex items-center gap-3">
@@ -640,12 +655,65 @@ function TodayContent() {
         </div>
       )}
 
-      <div className="mb-4 flex items-center gap-3">
-        <span className="text-[10px] font-semibold text-[var(--text-muted)]">FOCUS</span>
-        <div className="h-px flex-1 bg-[var(--border)]" />
+      {/* Command Strip */}
+      <div className="mb-6 grid grid-cols-5 gap-2">
+        <MetricCard
+          label="Habits"
+          value={`${completedHabitCount}/${dueHabits.length}`}
+          active={completedHabitCount === dueHabits.length && dueHabits.length > 0}
+          icon={
+            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+            </svg>
+          }
+        />
+        <MetricCard
+          label="Tasks"
+          value={`${doneTaskCount}/${tasks.length}`}
+          active={doneTaskCount > 0 && doneTaskCount === tasks.length && tasks.length > 0}
+          icon={
+            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+            </svg>
+          }
+        />
+        <MetricCard
+          label="Reflect"
+          value={hasJournal ? "Done" : "\u2014"}
+          active={hasJournal}
+          icon={
+            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+            </svg>
+          }
+        />
+        <MetricCard
+          label="XP Today"
+          value={`+${todayXp}`}
+          active={todayXp > 0}
+          icon={
+            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+          }
+        />
+        <Link href="/finance" className="contents">
+          <MetricCard
+            label="Money"
+            value={financeHasTx && financeNet !== null ? new Intl.NumberFormat("en-US", { style: "currency", currency: "ILS", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(financeNet) : "\u2014"}
+            active={financeHasTx}
+            trend={financeNet !== null && financeNet < 0 ? "down" : financeNet !== null && financeNet >= 0 ? "up" : undefined}
+            icon={
+              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            }
+          />
+        </Link>
       </div>
 
-      <Card className="mb-6">
+      {/* Mission Control */}
+      <PulseCard accent="accent" title="Mission Control" className="mb-6">
         <div className="p-4">
           <div>
             <label className="text-xs font-medium text-[var(--text-secondary)]">
@@ -709,16 +777,16 @@ function TodayContent() {
                   <div className="mt-1">
                     {addingPriority ? (
                       <div className="flex gap-2">
-                          <input
-                            autoFocus
-                            value={priorityInput}
-                            onChange={(e) => setPriorityInput(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") addPriorityItem();
-                              if (e.key === "Escape") { setAddingPriority(false); setPriorityInput(""); }
-                            }}
-                            placeholder="What else matters?"
-                            maxLength={200}
+                        <input
+                          autoFocus
+                          value={priorityInput}
+                          onChange={(e) => setPriorityInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") addPriorityItem();
+                            if (e.key === "Escape") { setAddingPriority(false); setPriorityInput(""); }
+                          }}
+                          placeholder="What else matters?"
+                          maxLength={200}
                           className="flex-1 rounded-lg border border-[var(--border-strong)] bg-[var(--surface-soft)] px-2.5 py-1.5 text-xs text-[var(--text)] placeholder-[var(--text-muted)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none"
                         />
                         <button
@@ -806,13 +874,9 @@ function TodayContent() {
             )}
           </div>
         </div>
-      </Card>
+      </PulseCard>
 
-      <div className="mb-4 flex items-center gap-3">
-        <span className="text-[10px] font-semibold text-[var(--text-muted)]">EXECUTE</span>
-        <div className="h-px flex-1 bg-[var(--border)]" />
-      </div>
-
+      {/* Next action */}
       {suggestedTask && suggestedTask.projects ? (
         <Card className="mb-4">
           <div className="flex items-center gap-3 px-4 py-3 hover:bg-[var(--surface-active)]">
@@ -826,7 +890,7 @@ function TodayContent() {
               </svg>
             </button>
             <div className="flex-1 min-w-0">
-              <p className="text-[10px] font-medium tracking-wider text-[var(--accent)]">→ Next action</p>
+              <p className="text-[10px] font-medium tracking-wider text-[var(--accent)]">&rarr; Next action</p>
               <p className="text-sm font-medium text-[var(--text)] truncate">{suggestedTask.title}</p>
               <div className="flex items-center gap-2 mt-0.5">
                 <span className="text-[10px] text-[var(--text-muted)]">From: {suggestedTask.projects.title}</span>
@@ -853,7 +917,7 @@ function TodayContent() {
             </div>
           </div>
         </Card>
-      ) : habits.length === 0 && tasks.length === 0 ? null : (
+      ) : hasContent ? (
         <Card variant="subtle" className="mb-4 border-dashed border-[var(--border)]">
           <div className="px-4 py-3">
             <p className="text-[10px] font-medium text-[var(--text-muted)]">No next action</p>
@@ -869,38 +933,22 @@ function TodayContent() {
             </p>
           </div>
         </Card>
+      ) : null}
+
+      {allDone && (
+        <div className="mb-4 flex items-center gap-2 text-xs text-[var(--success)] font-medium">
+          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          Day complete &middot; you&apos;re in motion
+        </div>
       )}
 
-      <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
-        <span className="flex items-center gap-1.5">
-          <span className={`h-1.5 w-1.5 rounded-full ${completedHabitCount === dueHabits.length && dueHabits.length > 0 ? "bg-[var(--success)]" : "bg-[var(--text-muted)]"}`} />
-          Habits <strong className={completedHabitCount === dueHabits.length && dueHabits.length > 0 ? "text-[var(--success)]" : "text-[var(--text-secondary)]"}>{completedHabitCount}/{dueHabits.length}</strong>
-        </span>
-        <span className="text-[var(--text-muted)]">&middot;</span>
-        <span className="flex items-center gap-1.5">
-          <span className={`h-1.5 w-1.5 rounded-full ${doneTaskCount > 0 && doneTaskCount === tasks.length && tasks.length > 0 ? "bg-[var(--success)]" : "bg-[var(--text-muted)]"}`} />
-          Tasks <strong className={doneTaskCount > 0 && doneTaskCount === tasks.length && tasks.length > 0 ? "text-[var(--success)]" : "text-[var(--text-secondary)]"}>{doneTaskCount}/{tasks.length}</strong>
-        </span>
-        <span className="text-[var(--text-muted)]">&middot;</span>
-        <span className="flex items-center gap-1.5">
-          <span className={`h-1.5 w-1.5 rounded-full ${hasJournal ? "bg-[var(--success)]" : "bg-[var(--text-muted)]"}`} />
-          Reflection <strong className={hasJournal ? "text-[var(--success)]" : "text-[var(--text-muted)]"}>{hasJournal ? "Done" : "\u2014"}</strong>
-        </span>
-        {completedHabitCount === dueHabits.length && doneTaskCount === tasks.length && dueHabits.length > 0 && tasks.length > 0 && hasJournal && (
-          <>
-            <span className="text-[var(--text-muted)]">&middot;</span>
-            <span className="flex items-center gap-1 text-[var(--success)] font-medium">
-              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-              Day in motion
-            </span>
-          </>
-        )}
-      </div>
-
-      {habits.length === 0 && tasks.length === 0 && (
+      {/* Empty state welcome */}
+      {!hasContent && (
         <Card variant="elevated" className="mb-6 overflow-hidden">
           <div className="border-b border-[var(--border)] px-5 py-4">
-            <h2 className="text-base font-semibold text-[var(--text)]">Welcome to your dashboard</h2>
+            <h2 className="text-base font-semibold text-[var(--text)]">Welcome to your Life OS</h2>
             <p className="mt-1 text-sm text-[var(--text-secondary)]">
               This is your daily command center. Add a habit or task to get started.
             </p>
@@ -922,24 +970,29 @@ function TodayContent() {
         </Card>
       )}
 
+      {/* Main grid */}
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
         <div className="space-y-6 md:col-span-2">
           <section>
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-[var(--text)]">Habits due today</h2>
-              <span className="text-xs text-[var(--text-muted)]">
-                {completedHabitCount}/{dueHabits.length} done
-              </span>
-            </div>
+            <SectionHeader
+              label="Body Pulse"
+              count={`${completedHabitCount}/${dueHabits.length}`}
+              action={
+                <Link href="/habits" className="text-[10px] text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">
+                  Manage
+                </Link>
+              }
+            />
             {dueHabits.length === 0 ? (
-              <Card variant="subtle" className="border-dashed border-[var(--border)]">
-                <div className="px-4 py-6 text-center">
-                  <p className="text-sm text-[var(--text-muted)]">No habits due today.</p>
-                  <Link href="/habits" className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">
+              <EmptyState
+                message="No habits due today."
+                compact
+                action={
+                  <Link href="/habits" className="inline-flex items-center gap-1 text-xs font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">
                     Create your first habit &rarr;
                   </Link>
-                </div>
-              </Card>
+                }
+              />
             ) : (
               <div className="flex flex-col gap-2">
                 {dueHabits.map((habit) => (
@@ -957,21 +1010,26 @@ function TodayContent() {
           </section>
 
           <section>
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-[var(--text)]">Tasks for today</h2>
-              <span className="text-xs text-[var(--text-muted)]">
-                {doneTaskCount}/{tasks.length} done
-              </span>
-            </div>
+            <SectionHeader
+              label="Mind Pulse"
+              count={`${doneTaskCount}/${tasks.length}`}
+              accent="success"
+              action={
+                <Link href="/tasks" className="text-[10px] text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">
+                  Manage
+                </Link>
+              }
+            />
             {tasks.length === 0 ? (
-              <Card variant="subtle" className="border-dashed border-[var(--border)]">
-                <div className="px-4 py-6 text-center">
-                  <p className="text-sm text-[var(--text-muted)]">No tasks for today.</p>
-                  <Link href="/tasks" className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">
+              <EmptyState
+                message="No tasks for today."
+                compact
+                action={
+                  <Link href="/tasks" className="inline-flex items-center gap-1 text-xs font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">
                     Add a task &rarr;
                   </Link>
-                </div>
-              </Card>
+                }
+              />
             ) : (
               <div className="flex flex-col gap-2">
                 {tasks.map((task) => (
@@ -990,7 +1048,7 @@ function TodayContent() {
             completedHabitCount={completedHabitCount}
           />
 
-          {financeHasTx && financeNet !== null && (
+          {financeHasTx && financeNet !== null ? (
             <Link
               href="/finance"
               className="flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2.5 transition-colors hover:bg-[var(--surface)]"
@@ -1000,9 +1058,7 @@ function TodayContent() {
                 {new Intl.NumberFormat("en-US", { style: "currency", currency: "ILS", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(financeNet)}
               </span>
             </Link>
-          )}
-
-          {!financeHasTx && (
+          ) : (
             <Link
               href="/finance"
               className="flex items-center gap-2 rounded-lg border border-dashed border-[var(--border)] px-3 py-2 text-xs text-[var(--text-muted)] transition-colors hover:text-[var(--text)] hover:bg-[var(--surface-soft)]"
@@ -1014,10 +1070,7 @@ function TodayContent() {
             </Link>
           )}
 
-          <div className="flex items-center gap-3">
-            <span className="text-[10px] font-semibold text-[var(--text-muted)]">REFLECT</span>
-            <div className="h-px flex-1 bg-[var(--border)]" />
-          </div>
+          <SectionHeader label="Evening Reflection" accent="warning" />
 
           <section>
             <JournalSection
