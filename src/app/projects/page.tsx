@@ -244,11 +244,11 @@ export default function ProjectsPage() {
     if (editingId) {
       payload.status = status;
       const { error: err } = await supabase.from("projects").update(payload).eq("id", editingId);
-      if (err) { setFeedback({ type: "error", message: err.message }); setSaving(false); return; }
+      if (err) { setFeedback({ type: "error", message: "Failed to update project." }); setSaving(false); return; }
     } else {
       payload.status = "active";
       const { error: err } = await supabase.from("projects").insert(payload);
-      if (err) { setFeedback({ type: "error", message: err.message }); setSaving(false); return; }
+      if (err) { setFeedback({ type: "error", message: "Failed to create project." }); setSaving(false); return; }
     }
 
     resetForm();
@@ -277,7 +277,7 @@ export default function ProjectsPage() {
     const { error: unlinkErr } = await supabase.from("tasks").update({ project_id: null }).eq("project_id", id);
     if (unlinkErr) { setFeedback({ type: "error", message: "Failed to unlink tasks." }); return; }
     const { error } = await supabase.from("projects").delete().eq("id", id);
-    if (error) { setFeedback({ type: "error", message: error.message }); return; }
+    if (error) { setFeedback({ type: "error", message: "Failed to delete project." }); return; }
     setFeedback({ type: "success", message: "Project deleted." });
     await reloadAll();
     setTimeout(() => setFeedback(null), 3000);
@@ -310,7 +310,7 @@ export default function ProjectsPage() {
       status: "todo",
     });
 
-    if (error) { setFeedback({ type: "error", message: error.message }); return; }
+    if (error) { setFeedback({ type: "error", message: "Failed to add task." }); return; }
 
     setNewTaskTitle("");
     setNewTaskDue("");
@@ -352,7 +352,7 @@ export default function ProjectsPage() {
       .single();
 
     if (pErr || !newProject) {
-      setFeedback({ type: "error", message: pErr?.message ?? "Failed to create project" });
+      setFeedback({ type: "error", message: "Failed to create project." });
       setSaving(false);
       return;
     }

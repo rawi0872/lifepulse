@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
-const ALLOWED_REDIRECT = ["/onboarding", "/today", "/settings"];
+const ALLOWED_REDIRECT = ["/onboarding", "/today", "/settings", "/reset-password"];
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);

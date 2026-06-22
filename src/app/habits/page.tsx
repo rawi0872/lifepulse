@@ -175,7 +175,7 @@ export default function HabitsPage() {
       const { error: err } = await supabase.from("habits").update(payload).eq("id", editingId);
 
       if (err) {
-        setFeedback({ type: "error", message: err.message });
+        setFeedback({ type: "error", message: "Failed to update habit." });
         setSaving(false);
         return;
       }
@@ -183,7 +183,7 @@ export default function HabitsPage() {
       const { error: err } = await supabase.from("habits").insert(payload);
 
       if (err) {
-        setFeedback({ type: "error", message: err.message });
+        setFeedback({ type: "error", message: "Failed to create habit." });
         setSaving(false);
         return;
       }
@@ -206,7 +206,7 @@ export default function HabitsPage() {
     }
     const { error } = await supabase.from("habits").delete().eq("id", id);
     if (error) {
-      setFeedback({ type: "error", message: error.message });
+      setFeedback({ type: "error", message: "Failed to delete habit." });
       return;
     }
     setFeedback({ type: "success", message: "Habit deleted." });

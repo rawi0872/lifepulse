@@ -156,7 +156,7 @@ export default function TasksPage() {
       const { error: err } = await supabase.from("tasks").update(payload).eq("id", editingId);
 
       if (err) {
-        setFeedback({ type: "error", message: err.message });
+        setFeedback({ type: "error", message: "Failed to update task." });
         setSaving(false);
         return;
       }
@@ -164,7 +164,7 @@ export default function TasksPage() {
       const { error: err } = await supabase.from("tasks").insert(payload);
 
       if (err) {
-        setFeedback({ type: "error", message: err.message });
+        setFeedback({ type: "error", message: "Failed to create task." });
         setSaving(false);
         return;
       }
@@ -195,7 +195,7 @@ export default function TasksPage() {
     if (!confirm("Delete this task? This cannot be undone.")) return;
     const { error } = await supabase.from("tasks").delete().eq("id", id);
     if (error) {
-      setFeedback({ type: "error", message: error.message });
+      setFeedback({ type: "error", message: "Failed to delete task." });
       return;
     }
     setFeedback({ type: "success", message: "Task deleted." });

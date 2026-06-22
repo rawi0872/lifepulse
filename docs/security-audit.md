@@ -167,7 +167,7 @@ base-uri 'self';
 
 - [ ] **Apply migration 00006** — `supabase migration up` (FK ownership validation)
 - [ ] **Production environment** — Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` in deployment environment
-- [ ] **Supabase Auth settings** — Toggle "Confirm email" as desired; configure redirect URL: `https://yourdomain.com/auth/callback`
+- [ ] **Supabase Auth settings** — Toggle "Confirm email" as desired; configure redirect URLs: `https://yourdomain.com/auth/callback` and `https://yourdomain.com/reset-password`
 - [ ] **Turn off email confirmation in dev** — Disable in Supabase dashboard for local development
 - [ ] **CSP review** — Update `connect-src` in `next.config.ts` if using custom Supabase host or external APIs
 - [ ] **Build verification** — `npm run build` (currently passing ✅)

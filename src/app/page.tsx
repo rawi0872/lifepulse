@@ -363,11 +363,17 @@ export default function Home() {
 
       {/* ── Footer ── */}
       <footer className="border-t border-[var(--border)] px-5 py-6 md:px-8">
-        <div className="mx-auto flex max-w-6xl items-center justify-between">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-2 sm:flex-row">
           <LifePulseLogo variant="compact" size="sm" showWordmark={true} />
-          <p className="text-[10px] text-[var(--text-muted)]">
-            &copy; {new Date().getFullYear()} Life Pulse
-          </p>
+          <div className="flex items-center gap-4 text-[10px] text-[var(--text-muted)]">
+            <Link href="/privacy" className="hover:text-[var(--text-secondary)] transition-colors">
+              Privacy
+            </Link>
+            <Link href="/terms" className="hover:text-[var(--text-secondary)] transition-colors">
+              Terms
+            </Link>
+            <span>&copy; {new Date().getFullYear()} Life Pulse</span>
+          </div>
         </div>
       </footer>
     </div>
