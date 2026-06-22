@@ -211,7 +211,7 @@ export function DashboardNav({ children }: { children: React.ReactNode }) {
           })}
           <Link
             href="/settings"
-            className={`flex flex-col items-center gap-0.5 rounded-lg px-2 py-2 text-[10px] font-medium transition-all duration-200 ${
+            className={`flex flex-col items-center gap-0.5 rounded-lg px-2 py-1.5 text-[10px] font-medium transition-all duration-200 ${
               pathname === "/settings"
                 ? "text-[var(--accent)] bg-[var(--accent-ghost)]"
                 : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"

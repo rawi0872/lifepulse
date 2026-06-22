@@ -594,7 +594,7 @@ function TodayContent() {
           <div className="h-9 w-72 animate-pulse rounded-lg bg-[var(--surface)]" />
           <div className="mt-2 h-4 w-48 animate-pulse rounded-lg bg-[var(--surface)]" />
         </div>
-        <div className="mb-8 grid grid-cols-5 gap-2">
+        <div className="mb-8 grid grid-cols-3 sm:grid-cols-5 gap-2">
           {Array.from({ length: 5 }).map((_, i) => (
             <div key={i} className="h-16 animate-pulse rounded-lg bg-[var(--surface)]" />
           ))}
@@ -656,7 +656,7 @@ function TodayContent() {
       )}
 
       {/* Command Strip */}
-      <div className="mb-6 grid grid-cols-5 gap-2">
+      <div className="mb-6 grid grid-cols-3 sm:grid-cols-5 gap-2">
         <MetricCard
           label="Habits"
           value={`${completedHabitCount}/${dueHabits.length}`}
@@ -1054,7 +1054,7 @@ function TodayContent() {
               className="flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2.5 transition-colors hover:bg-[var(--surface)]"
             >
               <span className="text-xs font-medium text-[var(--text-muted)]">Money this month</span>
-              <span className={`text-xs font-semibold ${financeNet >= 0 ? "text-green-400" : "text-red-400"}`}>
+              <span className={`text-xs font-semibold ${financeNet >= 0 ? "text-[var(--success)]" : "text-[var(--danger)]"}`}>
                 {new Intl.NumberFormat("en-US", { style: "currency", currency: "ILS", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(financeNet)}
               </span>
             </Link>

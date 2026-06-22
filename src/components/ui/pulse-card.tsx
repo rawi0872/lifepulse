@@ -37,7 +37,7 @@ export function PulseCard({
               <div className={cn("h-1 w-1 rounded-full", accentStyles[accent])} />
             )}
             <div>
-              <h3 className="text-xs font-semibold tracking-wide text-[var(--text)]">
+              <h3 className="text-sm font-semibold tracking-tight text-[var(--text)]">
                 {title}
               </h3>
               {description && (
