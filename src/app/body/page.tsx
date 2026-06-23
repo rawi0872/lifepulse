@@ -13,6 +13,7 @@ import { BodySignalCards } from "@/components/body/BodySignalCards";
 import { BodyHabitsCard } from "@/components/body/BodyHabitsCard";
 import { BodyMetricsForm } from "@/components/body/BodyMetricsForm";
 import { BodyMetricsSummary } from "@/components/body/BodyMetricsSummary";
+import { BodyMetricsAverages } from "@/components/body/BodyMetricsAverages";
 import type { BodyMetrics, BodyMetricsFormData } from "@/lib/bodyMetrics";
 import { getTodayDate } from "@/lib/bodyMetrics";
 
@@ -218,32 +219,7 @@ function BodyContent() {
           </div>
 
           <div className="space-y-6">
-            <PulseCard title="Energy Trend" accent="warning" description="From journal entries">
-              {journalCount === 0 ? (
-                <div className="p-4">
-                  <EmptyState
-                    message="No journal energy data yet."
-                    action={
-                      <Link href="/journal" className="inline-flex items-center gap-1 text-xs font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">
-                        Reflect in journal &rarr;
-                      </Link>
-                    }
-                  />
-                </div>
-              ) : (
-                <div className="p-4">
-                  <p className="text-[10px] text-[var(--text-muted)] mb-2">
-                    Energy data available from {journalCount} recent journal entries.
-                  </p>
-                  <Link
-                    href="/journal"
-                    className="inline-flex items-center gap-1 text-xs font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors"
-                  >
-                    View journal &rarr;
-                  </Link>
-                </div>
-              )}
-            </PulseCard>
+            <BodyMetricsAverages recent={bodyMetrics} />
 
             <BodyMetricsSummary recent={bodyMetrics} />
           </div>

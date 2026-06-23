@@ -1,8 +1,8 @@
 # Life Pulse — Life OS Architecture Plan
 
 **Date:** June 23, 2026
-**Status:** Phase 3A — Page Split & Navigation Restructure Complete
-**Audience:** Developers implementing Phase 3B+ features
+**Status:** Phase 4D — Body/Mind Dashboard Polish & Today Metric Preview Complete
+**Audience:** Developers implementing Phase 5+ features
 
 ---
 
@@ -19,15 +19,15 @@
 | `/reset-password` | `reset-password/page.tsx` | ~146 | Auth | Auth | No |
 | `/auth/callback` | `auth/callback/route.ts` | 47 | Auth | Auth | No |
 | `/onboarding` | `onboarding/page.tsx` | 823 | First-run setup | Onboarding | **Yes** — realm creation, profile, feature tour all in one |
-| `/today` | `today/page.tsx` | 801 (was 1091) | Daily command center | Today's Pulse | Phase 3A extracted 6 components, -290 lines |
+| `/today` | `today/page.tsx` | ~820 (was 1091) | Daily command center | Today's Pulse | Phase 3A extracted 6 components, -290 lines. Phase 4D adds "Logged today" badge + energy/mood preview on Body/Mind links |
 | `/habits` | `habits/page.tsx` | ~565 | Habit CRUD | Habit Pulse | Moderate — includes inline form + weekly grid |
 | `/tasks` | `tasks/page.tsx` | ~547 | Task CRUD | Task management | Moderate — includes inline form + filters |
 | `/projects` | `projects/page.tsx` | 454 (was 853) | Project CRUD | Project Pulse | Phase 3A extracted 4 components, -399 lines |
 | `/finance` | `finance/page.tsx` | 641 (was 867) | Finance management | Money Pulse | Phase 3A extracted 5 components, -226 lines |
 | `/journal` | `journal/page.tsx` | 209 | Daily journal | Journal/Reflection | No — clean, focused |
 | `/insights` | `insights/page.tsx` | 524 | Analytics/reviews | Intelligence | Phase 3B extracted ~200 lines into 6 components |
-| `/body` | `body/page.tsx` | 253 | Body Pulse dashboard + manual entry | Life Domains | Phase 4A+4B — body_metrics table, manual entry form, recent summary |
-| `/mind` | `mind/page.tsx` | 247 | Mind Pulse dashboard + manual entry | Life Domains | Phase 4A+4B — mind_metrics table, manual entry form, recent summary |
+| `/body` | `body/page.tsx` | ~255 | Body Pulse dashboard + manual entry | Life Domains | Phase 4A+4B+4D — body_metrics table, manual entry form, recent summary, averages card (sleep/energy/recovery/steps/workout) with trends |
+| `/mind` | `mind/page.tsx` | ~250 | Mind Pulse dashboard + manual entry | Life Domains | Phase 4A+4B+4D — mind_metrics table, manual entry form, recent summary, averages card (mood/stress/focus/clarity/motivation) with trends |
 | `/settings` | `settings/page.tsx` | ~510 | Profile/realms/prefs | System | Moderate — profile, realms, password, realm CRUD |
 | `/privacy` | `privacy/page.tsx` | 182 | Legal | Public | No |
 | `/terms` | `terms/page.tsx` | 170 | Legal | Public | No |
@@ -841,7 +841,7 @@ Phase 4A was recommended to add Body Pulse and Mind Pulse foundation. This has b
   - `src/components/body/BodyMetricsSummary.tsx` — recent entries list with "Today" badge
   - `src/components/mind/MindMetricsForm.tsx` — manual entry form with rating rows + tags + reflection
   - `src/components/mind/MindMetricsSummary.tsx` — recent entries list with mood/focus/stress preview
-- **2 new lib files**: `src/lib/bodyMetrics.ts` and `src/lib/mindMetrics.ts` — TypeScript types + helpers (`getTodayDate`, `avgRecent`)
+- **3 new lib files**: `src/lib/bodyMetrics.ts`, `src/lib/mindMetrics.ts`, and `src/lib/metricSummaries.ts` — TypeScript types + helpers (`getTodayDate`, `avgRecent`, `avg`, `trend`, `loggedToday`, `getToday`, `scoreLabel`)
 - **Body/Mind pages reduced** (previously imports only): Body page now 253 lines (was 223 + form logic), Mind page now 247 lines (was 226 + form logic)
 
 ### Database Schema Added

@@ -14,6 +14,7 @@ import { MoodEnergyCard } from "@/components/mind/MoodEnergyCard";
 import { ReflectionCard } from "@/components/mind/ReflectionCard";
 import { MindMetricsForm } from "@/components/mind/MindMetricsForm";
 import { MindMetricsSummary } from "@/components/mind/MindMetricsSummary";
+import { MindMetricsAverages } from "@/components/mind/MindMetricsAverages";
 import type { MindMetrics, MindMetricsFormData } from "@/lib/mindMetrics";
 import { getTodayDate } from "@/lib/mindMetrics";
 
@@ -221,6 +222,8 @@ function MindContent() {
                 </div>
               )}
             </PulseCard>
+
+            <MindMetricsAverages recent={mindMetrics} />
 
             <PulseCard title="Open Tasks" accent="accent" description="Mind-related tasks" action={
               <Link href="/tasks" className="text-[10px] font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">

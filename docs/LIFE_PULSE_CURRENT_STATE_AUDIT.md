@@ -1,11 +1,11 @@
 # LIFE PULSE — Current State Audit
 
 **Date:** June 23, 2026
-**Commit:** `4fa6b98` (Phase 0 base; Phase 1 + 1.5 + 2A + 2B + 3A + 3B + 4A + 4B applied on top)
+**Commit:** `4fa6b98` (Phase 0 base; Phase 1 + 1.5 + 2A + 2B + 3A + 3B + 4A + 4B + 4C + 4D applied on top)
 **Branch:** `master` (no remote configured)
 **Build status:** ✅ Clean (0 lint errors, 0 build errors)
-**Working tree:** Clean — all Phase 3A + 3B + 4A + 4B changes applied + Phase 4C QA fixes
-**Architecture Plan:** `docs/LIFE_OS_ARCHITECTURE_PLAN.md` (updated for Phase 4C)
+**Working tree:** Clean — all Phase 3A + 3B + 4A + 4B + 4C changes applied + Phase 4D Body/Mind polish
+**Architecture Plan:** `docs/LIFE_OS_ARCHITECTURE_PLAN.md` (updated for Phase 4D)
 
 ---
 
@@ -63,7 +63,9 @@ src/
 │   ├── page.tsx          # Landing page
 │   └── globals.css
 ├── components/           # Shared UI components
+│   ├── body/             # 3 files — BodyMetricsForm, BodyMetricsSummary, BodyMetricsAverages
 │   ├── finance/          # 13 files — accounts, transactions, budgets, charts, utils
+│   ├── mind/             # 4 files — MoodEnergyCard, ReflectionCard, MindMetricsSummary, MindMetricsAverages
 │   ├── projects/         # 4 files — cards, forms, wizard
 │   ├── today/            # 6 files — command strip, mission control, pulse sections
 │   ├── insights/         # Radar chart components
@@ -72,13 +74,16 @@ src/
 │   ├── JournalSection.tsx
 │   ├── HabitCard.tsx
 │   ├── TaskCard.tsx
-│   └── ... (13 more)
+│   └── ... (10 more)
 ├── lib/                  # Utilities and libraries
 │   ├── supabase/         # client.ts + server.ts
 │   ├── levels.ts         # XP/level system
 │   ├── streaks.ts        # Habit streak calculator
 │   ├── taskCompletion.ts # Task toggle + XP dedup
-│   └── utils.ts          # cn(), formatDate(), getTodayDateString()
+│   ├── utils.ts          # cn(), formatDate(), getTodayDateString()
+│   ├── bodyMetrics.ts    # BodyMetrics type + getTodayDate()
+│   ├── mindMetrics.ts    # MindMetrics type + getTodayDate()
+│   └── metricSummaries.ts # avg(), trend(), loggedToday(), getToday(), scoreLabel()
 └── proxy.ts              # Auth middleware (route protection)
 ```
 
@@ -130,15 +135,15 @@ src/
 | `/reset-password` | `src/app/reset-password/page.tsx` (146 lines) | Set new password with confirmation | Working | `supabase.auth.updateUser` | Validates min 8 chars + match. Session check on mount (redirects to `/login` if no session). |
 | `/auth/callback` | `src/app/auth/callback/route.ts` (47 lines) | OAuth code exchange + session creation | Working | `supabase.auth.exchangeCodeForSession` | Whitelist-based redirect (4 allowed paths). Safe against open redirect. |
 | `/onboarding` | `src/app/onboarding/page.tsx` (823 lines) | 6 default realms, profile creation, feature tour | Working | `profiles`, `realms` tables | Creates profile + 6 default realms in one transaction. Very large file. Feature tour carousel. |
-| `/today` | `src/app/today/page.tsx` (801 lines, was 1091) | Daily command center | Working | `tasks`, `habits`, `habit_logs`, `projects`, `journal_entries`, `xp_events`, `finance_transactions`, `finance_accounts`, `finance_budgets`, `realms` | Components extracted: TodaysPulseHeader, CommandStrip, MissionControl, BodyPulseSection, MindPulseSection, FinanceOverview into `src/components/today/`. Reduced by 290 lines. |
+| `/today` | `src/app/today/page.tsx` (~820 lines, was 1091) | Daily command center | Working | `tasks`, `habits`, `habit_logs`, `projects`, `journal_entries`, `xp_events`, `finance_transactions`, `finance_accounts`, `finance_budgets`, `realms`, `body_metrics`, `mind_metrics` | Components extracted: TodaysPulseHeader, CommandStrip, MissionControl, BodyPulseSection, MindPulseSection, FinanceOverview into `src/components/today/`. Reduced by 290 lines. Phase 4D added "Logged today" badge + energy/mood preview on Body/Mind links. |
 | `/habits` | `src/app/habits/page.tsx` (565 lines) | Habit CRUD, daily log, weekly grid, streaks | Working | `habits`, `habit_logs`, `realms` | Frequency: daily, weekdays, weekends, weekly, times_per_week. Streak calculation via `src/lib/streaks.ts`. Raw errors fixed in previous session. |
 | `/tasks` | `src/app/tasks/page.tsx` (547 lines) | Task CRUD with priority, due date, project filter | Working | `tasks`, `realms`, `projects` | Sort by priority + due date. Filter by project. Task completion via `toggleTaskCompletion()` with XP dedup. Raw errors fixed. |
 | `/projects` | `src/app/projects/page.tsx` (454 lines, was 853) | Project CRUD, task linking, quick-draft wizard | Working | `projects`, `tasks`, `realms` | Status: active/paused/completed. Progress slider (0-100). Expandable task list per project. Quick-draft wizard. Components extracted: QuickDraftWizard, ProjectForm, ProjectCard, EmptyProjectState into `src/components/projects/`. Reduced by 399 lines. |
 | `/finance` | `src/app/finance/page.tsx` (641 lines, was 867) | Accounts, transactions, budgets, KPI cards, charts | Partial | `finance_accounts`, `finance_categories`, `finance_transactions`, `finance_budgets` | Full CRUD for accounts, transactions, budgets. Cash-flow trend chart, expense breakdown pie, budget usage bar. Hardcoded ILS currency. Components extracted: SimpleSelect, TransactionForm, BudgetForm, AccountForm, BudgetHealthList into `src/components/finance/`. Reduced by 226 lines. Missing default categories on fresh signup. |
 | `/journal` | `src/app/journal/page.tsx` (209 lines) | Daily entries with mood/energy ratings, reflection prompts | Working | `journal_entries` | 5 reflection prompts. Mood (1-5) and energy (1-5) ratings. One entry per day (upsert). Clean, focused page. |
 | `/insights` | `src/app/insights/page.tsx` (524 lines) | Realm XP breakdown, radar chart, balance score, suggestions | Working | `xp_events`, `realms`, `habits`, `habit_logs` | Hexagonal radar chart with expanded dialog. Balance score computation. 6 realm XP totals. Strong visual component. Phase 3B extracted ~200 lines into 6 components. |
-| `/body` | `src/app/body/page.tsx` (253 lines) | Body Pulse dashboard + manual entry | Working | `habits`, `tasks`, `journal_entries`, `xp_events`, `habit_logs`, `body_metrics` | Displays body habits, tasks, energy trend from journal. BodyMetricsForm (sleep, steps, workouts, weight, HR, recovery) + BodyMetricsSummary. Phase 4B added body_metrics table + entry form. |
-| `/mind` | `src/app/mind/page.tsx` (247 lines) | Mind Pulse dashboard + manual entry | Working | `journal_entries`, `habits`, `tasks`, `xp_events`, `mind_metrics` | Displays journal mood/energy, habits, tasks, XP. MindMetricsForm (mood, stress, focus, clarity, motivation, tags, reflection) + MindMetricsSummary. Phase 4B added mind_metrics table + entry form. |
+| `/body` | `src/app/body/page.tsx` (~255 lines) | Body Pulse dashboard + manual entry | Working | `habits`, `tasks`, `journal_entries`, `xp_events`, `habit_logs`, `body_metrics` | Displays body habits, tasks, energy trend from journal. BodyMetricsForm (sleep, steps, workouts, weight, HR, recovery) + BodyMetricsSummary + BodyMetricsAverages. Phase 4B added body_metrics table + entry form. Phase 4D replaced Energy Trend card with averages card (sleep, energy, recovery, steps, workout) with trend indicators. |
+| `/mind` | `src/app/mind/page.tsx` (~250 lines) | Mind Pulse dashboard + manual entry | Working | `journal_entries`, `habits`, `tasks`, `xp_events`, `mind_metrics` | Displays journal mood/energy, habits, tasks, XP. MindMetricsForm (mood, stress, focus, clarity, motivation, tags, reflection) + MindMetricsSummary + MindMetricsAverages. Phase 4B added mind_metrics table + entry form. Phase 4D added averages card (mood, stress, focus, clarity, motivation) with trend indicators. |
 | `/settings` | `src/app/settings/page.tsx` (510 lines) | Profile fields, realm CRUD, change password, logout | Working | `profiles`, `realms` | Edit first/last name, display name, birth date. Add custom realms (icon + color picker). Change password form. Logout button. Progression customization section is a placeholder comment. |
 | `/privacy` | `src/app/privacy/page.tsx` (182 lines) | Privacy policy | Working (static) | `getSupportEmail()` from config | Reads from `NEXT_PUBLIC_SUPPORT_EMAIL` env var via `src/lib/config.ts`. Falls back to `support@lifepulse.app`. Must be set in Vercel before beta. |
 | `/terms` | `src/app/terms/page.tsx` (170 lines) | Terms of service | Working (static) | `getSupportEmail()` from config | Reads from `NEXT_PUBLIC_SUPPORT_EMAIL` env var via `src/lib/config.ts`. Falls back to `support@lifepulse.app`. Must be set in Vercel before beta. |
@@ -232,8 +237,8 @@ src/
 | **Loading States** | ✅ Phase 0 Complete | Root `loading.tsx` + skeleton loading states for all 8 dashboard routes (today, habits, tasks, projects, finance, journal, insights, settings) | No Suspense boundaries, no granular per-component loading | Low |
 | **Error Handling** | ✅ Phase 0 Complete | Root `error.tsx` + error boundaries for all 8 dashboard routes with "Try again" buttons. No raw Supabase errors exposed. | No offline detection, no retry-after-failure logic for data fetches | Low |
 | **Toasts/Feedback** | ✅ Complete | Toast system via `useToast` hook + `ToastProvider` in root layout. Inline `feedback` banners replaced in all 7 dashboard pages. Dark-glass styling, auto-dismiss 4s, max 5 visible. | Auth pages (login, signup, forgot/reset password) still use inline error states — acceptable for form-level validation | Low |
-| **Body Pulse** | ✅ Phase 4A+4B | /body route with manual entry form (sleep, steps, workouts, weight, HR, recovery, energy), body_metrics table with RLS, 7-day summary | No wearable/device sync, no AI coaching, no trend charts | Low (manual entry viable for beta) |
-| **Mind Pulse** | ✅ Phase 4A+4B | /mind route with manual entry form (mood, stress, focus, clarity, motivation, reflection, tags), mind_metrics table with RLS, 7-day summary | No structured focus sessions, no emotional pattern analysis | Low (manual entry viable for beta) |
+| **Body Pulse** | ✅ Phase 4A+4B+4D | /body route with manual entry form (sleep, steps, workouts, weight, HR, recovery, energy), body_metrics table with RLS, 7-day summary, averages card (sleep/energy/recovery/steps/workout) with trend indicators | No wearable/device sync, no AI coaching | Low (manual entry viable for beta) |
+| **Mind Pulse** | ✅ Phase 4A+4B+4D | /mind route with manual entry form (mood, stress, focus, clarity, motivation, reflection, tags), mind_metrics table with RLS, 7-day summary, averages card (mood/stress/focus/clarity/motivation) with trend indicators | No structured focus sessions, no emotional pattern analysis | Low (manual entry viable for beta) |
 | **AI Coach** | ❌ Missing | None | Not started | Future phase |
 | **Smart Ring/Watch** | ❌ Missing | None | Not started | Future phase |
 
