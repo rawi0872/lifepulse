@@ -1,10 +1,11 @@
 # LIFE PULSE — Current State Audit
 
 **Date:** June 22, 2026
-**Commit:** `4fa6b98` (Phase 0 base; Phase 1 + 1.5 + 2A applied on top)
+**Commit:** `4fa6b98` (Phase 0 base; Phase 1 + 1.5 + 2A + 2B applied on top)
 **Branch:** `master` (no remote configured)
 **Build status:** ✅ Clean (0 lint errors, 0 build errors)
-**Working tree:** Clean — all Phase 2A changes applied
+**Working tree:** Clean — all Phase 2B changes applied
+**Architecture Plan:** `docs/LIFE_OS_ARCHITECTURE_PLAN.md` (created in Phase 2B)
 
 ---
 
@@ -852,7 +853,41 @@ Replace inline feedback patterns with a unified toast system, consolidate form p
 - Migrate remaining inline input patterns to `Input`/`TextArea`/`Select` primitives
 - Do NOT start AI coach, wearable integration, or database schema changes
 
-## 16. Recommended Next Prompt
+## 16. Phase 2B Completion Note — Life OS Architecture and Implementation Plan
+
+### Goal
+Audit current information architecture, design the future Life OS route map, propose navigation restructuring, create a technical plan for splitting oversized pages, plan data layer improvements, design future schema for Body/Mind/Goals/Devices, plan wearable integration, and plan the AI Coach — all without implementing features or changing schema.
+
+### What Was Created
+- **`docs/LIFE_OS_ARCHITECTURE_PLAN.md`** — Comprehensive 200+ line architecture document covering all 10 task areas.
+
+### Key Decisions
+1. **Navigation Architecture**: Pulse → Growth → Life Domains → Intelligence → System (5 groups). Phase 3 renames "Build" → "Growth" and moves Finance to "Life Domains" as "Money". Body, Mind, Goals, Coach added in later phases.
+2. **Page Split Order**: Finance (lowest risk) → Projects → Today → Insights → Onboarding (highest risk). Each extraction documented with proposed component breakdown, estimated line reduction, and risk level.
+3. **Data Layer**: Custom hooks (`useHabits`, `useTasks`, etc.) in Phase 3 before evaluating SWR/React Query. No dependencies added yet. Cache helper option available if needed.
+4. **Future Schema**: Body (`body_metric_types`, `body_metric_logs`), Mind (`mind_session_types`, `mind_session_logs`), Goals (`goals`, `goal_milestones`, `goal_links`), Devices (`integration_providers`, `user_integrations`), Coach (`coach_recommendations`, `weekly_reviews`). All proposals — no migrations created.
+5. **Wearable Integration**: Manual entry first (Phase 4), HealthKit/Health Connect (Phase 6), Oura/smart ring APIs (Phase 7), generic provider abstraction (Phase 8). NOT direct BLE integration.
+6. **AI Coach**: Rule-based first (Phase 5), LLM-assisted optional (Phase 7). Data read from all existing tables but never shared without consent.
+7. **No Placeholder Routes**: Decision not to add `/body`, `/mind`, `/goals`, `/devices`, `/coach` yet. They create confusing pages for beta testers.
+8. **ADR-001 through ADR-006**: Documented architecture decisions with accepted status, rationale, and risk.
+
+### Build/Lint Verification
+- No code changed — only documentation created/updated.
+- `npm run lint` ✅ — 0 errors (1 pre-existing warning)
+- `npm run build` ✅ — Compiles cleanly
+
+### Files Touched
+| File | Change |
+|------|--------|
+| `docs/LIFE_OS_ARCHITECTURE_PLAN.md` | **Created** — comprehensive architecture and implementation plan |
+| `docs/LIFE_PULSE_CURRENT_STATE_AUDIT.md` | **Updated** — Phase 2B completion note |
+
+### Remaining Risks (Unchanged from Phase 2A)
+- Finance missing default categories (pre-existing)
+- Input primitive migration partial
+- Auth pages still use inline error states (appropriate)
+
+## 17. Recommended Next Prompt
 
 ```
 Continue Phase 1: Premium dashboard redesign and navigation overhaul.
