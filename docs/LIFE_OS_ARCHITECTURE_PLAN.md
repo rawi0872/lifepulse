@@ -800,6 +800,42 @@ All 5 oversized pages are now below 550 lines. The extraction pipeline is comple
 
 ---
 
+## 14. Phase 4A Completion Note (June 23, 2026)
+
+### What Changed
+- **2 new routes**: /body (Body Pulse), /mind (Mind Pulse)
+- **12 new component files** — 6 components (3 body, 3 mind), 6 route files (page, loading, error each)
+- **Navigation update**: Life Domains now includes Body, Mind, Money
+- **Route protection**: /body and /mind added to proxy middleware
+- **Today page integration**: Preview cards linking to /body and /mind
+
+### Data Sources Used
+| Page | Tables | Key Fields |
+|------|--------|------------|
+| Body Pulse | habits, tasks, journal_entries, xp_events, habit_logs | realm associations, energy, XP, streaks |
+| Mind Pulse | journal_entries, habits, tasks, xp_events | mood, energy, content, reflection_prompt |
+
+### Build Verification
+- `npm run lint` ✅ — 0 errors, 2 warnings (pre-existing)
+- `npm run build` ✅ — 22 routes generated
+- No schema changes, no external dependencies, no wearable integration
+
+### ADRs Updated
+- **ADR-004**: Manual Entry Before Wearable Integration — Phase 4A implements manual data from existing tables ✅
+- **ADR-006**: No Placeholder Routes — /body and /mind now have real content ✅
+
+### Remaining Risks
+1. No dedicated Body/Mind metrics schema — data is projected from existing tables
+2. Pages show empty states for users without Body/Mind realm habits/tasks
+3. Focus habit detection uses heuristic keyword matching
+4. 2 pre-existing lint warnings
+
+### Recommended Next Action: Phase 4B
+
+Add manual Body/Mind metric schema and entry forms. After reviewing Phase 4A, add lightweight tables for body metrics (sleep, weight, steps, workouts) and mind metrics (structured mood logs, focus sessions) with manual entry forms. Optionally migrate journal-based mood/energy into structured data.
+
+---
+
 ## 11. Architecture Decision Records
 
 ### ADR-001: Navigation Grouping

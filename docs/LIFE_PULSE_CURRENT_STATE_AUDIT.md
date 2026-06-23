@@ -1119,3 +1119,108 @@ Extract the two remaining oversized pages (Insights, Onboarding) into focused su
 Open with: Phase 4A — Add Body Pulse and Mind Pulse foundation with manual entry first, no wearable integration yet.
 
 Rationale: All 5 oversized pages have been split below 550 lines. The DashboardNav is organized into Life OS groups. The architecture is clean enough to begin feature expansion. Body/Mind Pulse are the highest-impact next features — they directly support the Life OS framing users see on every visit to /today. Manual entry first (per ADR-004) avoids wearable API complexity. No schema change needed beyond what the existing `habits` and `tasks` tables already support (realm associations already exist).
+
+## 20. Phase 4A Completion Note — Body Pulse and Mind Pulse Foundation
+
+### Goal
+Add Body Pulse (/body) and Mind Pulse (/mind) as real Life OS sections using existing data only, with manual-first messaging and no wearable integration. No schema changes or new external dependencies.
+
+### What Changed
+
+#### New Routes
+| Route | Purpose |
+|-------|---------|
+| `/body` | Body Pulse — physical health, fitness, and recovery signals |
+| `/mind` | Mind Pulse — mood, reflection, and mental clarity |
+
+#### New Components (`src/components/body/`)
+| Component | Purpose |
+|-----------|---------|
+| `BodyPulseHeader.tsx` | Header with realm badge, habit/task/journal counts |
+| `BodySignalCards.tsx` | 3 MetricCards: best streak, completion rate, total XP |
+| `BodyHabitsCard.tsx` | List of body-related habits with streak/completion |
+
+#### New Components (`src/components/mind/`)
+| Component | Purpose |
+|-----------|---------|
+| `MindPulseHeader.tsx` | Header with entry count, journal streak, avg mood |
+| `MoodEnergyCard.tsx` | Last 7 days mood/energy from journal entries |
+| `ReflectionCard.tsx` | Latest journal entry with reflection prompt preview |
+
+#### Protected Routes
+- `/body` and `/mind` added to `protectedRoutes` array in `src/proxy.ts`
+- Both pages show loading skeleton and error boundary
+
+#### Navigation Update (`src/components/DashboardNav.tsx`)
+- **Life Domains** group now includes: Body → /body, Mind → /mind, Money → /finance
+- Mobile bottom nav automatically picks up all 3 items via `navGroups.flatMap()`
+- All 10 routes now reachable on mobile
+
+#### Today Page Integration
+- Body Pulse and Mind Pulse preview cards added to sidebar (after FinanceOverview, before Evening Reflection)
+- Cards link to `/body` and `/mind`
+
+#### Data Strategy
+- **Body Pulse** queries: habits with `realms.name = 'Body'`, open tasks with `realms.name = 'Body'`, journal entries for energy, XP events for body realm, habit_logs for streaks/completion rates
+- **Mind Pulse** queries: journal entries (mood, energy, content), habits with `realms.name = 'Mind'`, open tasks with `realms.name = 'Mind'`, XP events for mind realm
+- Uses existing Supabase browser client pattern; no caching library introduced
+- Focus habits detected by title keywords (focus, meditate, mindful, read, learn, study)
+
+#### Manual-First UX
+- Both pages include "Coming Later" cards listing future device data
+- Body: sleep, steps, heart rate, workouts, weight, recovery
+- Mind: stress, focus score, emotional patterns, AI-guided reflection
+- CTAs guide users to existing tools (habits, tasks, journal) rather than pretending wearable data exists
+
+### Build/Lint Verification
+- `npm run lint` ✅ — 0 errors, 2 warnings (pre-existing, unchanged)
+- `npm run build` ✅ — Compiled successfully, 22 routes generated
+- Routes: /, /auth/callback, /body, /finance, /forgot-password, /habits, /icon.svg, /insights, /journal, /login, /mind, /onboarding, /privacy, /projects, /reset-password, /settings, /signup, /tasks, /terms, /today
+
+### Files Created
+| File | Purpose |
+|------|---------|
+| `src/app/body/page.tsx` | Body Pulse main page |
+| `src/app/body/loading.tsx` | Body loading skeleton |
+| `src/app/body/error.tsx` | Body error boundary |
+| `src/app/mind/page.tsx` | Mind Pulse main page |
+| `src/app/mind/loading.tsx` | Mind loading skeleton |
+| `src/app/mind/error.tsx` | Mind error boundary |
+| `src/components/body/BodyPulseHeader.tsx` | Body header component |
+| `src/components/body/BodySignalCards.tsx` | Body signal metric cards |
+| `src/components/body/BodyHabitsCard.tsx` | Body habits list card |
+| `src/components/mind/MindPulseHeader.tsx` | Mind header component |
+| `src/components/mind/MoodEnergyCard.tsx` | Mood/energy timeline card |
+| `src/components/mind/ReflectionCard.tsx` | Journal reflection preview card |
+
+### Files Modified
+| File | Change |
+|------|--------|
+| `src/proxy.ts` | Added /body and /mind to protectedRoutes |
+| `src/components/DashboardNav.tsx` | Added Body, Mind to Life Domains group |
+| `src/app/today/page.tsx` | Added Body/Mind preview cards to sidebar |
+| `docs/LIFE_PULSE_CURRENT_STATE_AUDIT.md` | Phase 4A completion note |
+| `docs/LIFE_OS_ARCHITECTURE_PLAN.md` | Phase 4A completion note |
+
+### What Was Intentionally Not Changed
+- No database schema or RLS changes
+- No wearable/device integrations
+- No new external dependencies
+- No Goals, Devices, Coach, or Weekly Review routes
+- No caching library introduced
+- No React Server Components migration
+- No visual redesign of /today
+- No changes to auth, onboarding, or existing dashboard pages
+
+### Remaining Risks
+1. Body/Mind pages rely on realm associations in habits/tasks — users without Body/Mind realm habits/tasks will see empty states
+2. Focus habit detection via title keyword matching is heuristic (focus, meditate, mindful, read, learn, study)
+3. No dedicated Body/Mind metrics schema yet — data is projections from existing tables
+4. 2 pre-existing lint warnings (cosmetic)
+5. No test suite beyond RLS smoke test
+
+### Recommended Phase 4B Prompt
+
+Open with: Phase 4B — Add manual Body/Mind metric schema and entry forms, only after reviewing the Phase 4A foundation.
+
+Rationale: Phase 4A established the routes, navigation, data queries, and UX patterns. Phase 4B should add lightweight dedicated tables for body metrics (sleep, weight, steps, workouts) and mind metrics (mood logs, focus sessions) with manual entry forms, and optionally migrate the journal-based mood/energy tracking into a structured table.
