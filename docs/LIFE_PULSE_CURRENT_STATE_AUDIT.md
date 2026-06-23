@@ -4,8 +4,8 @@
 **Commit:** `4fa6b98` (Phase 0 base; Phase 1 + 1.5 + 2A + 2B + 3A + 3B + 4A + 4B applied on top)
 **Branch:** `master` (no remote configured)
 **Build status:** ✅ Clean (0 lint errors, 0 build errors)
-**Working tree:** Clean — all Phase 3A + 3B + 4A + 4B changes applied
-**Architecture Plan:** `docs/LIFE_OS_ARCHITECTURE_PLAN.md` (updated for Phase 4B)
+**Working tree:** Clean — all Phase 3A + 3B + 4A + 4B changes applied + Phase 4C QA fixes
+**Architecture Plan:** `docs/LIFE_OS_ARCHITECTURE_PLAN.md` (updated for Phase 4C)
 
 ---
 
@@ -206,7 +206,7 @@ src/
 ### RLS Smoke Test
 - Script: `scripts/rls-smoke-test.mjs` (745 lines)
 - Requires env vars: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `RLS_TEST_USER_A_EMAIL`, `RLS_TEST_USER_A_PASSWORD`, `RLS_TEST_USER_B_EMAIL`, `RLS_TEST_USER_B_PASSWORD`
-- Tests that User A cannot read/update/delete User B's data across all 12 tables
+- Tests that User A cannot read/update/delete User B's data across all 14 tables (12 original + body_metrics + mind_metrics)
 - Currently **blocked** — cannot run until test users exist in production Supabase
 
 ---
@@ -386,7 +386,7 @@ Phase 3A extracted ~1044 lines of inline JSX into 15 component files across 3 do
 - Build and lint pass clean
 - All 17 routes render
 - Auth flow (signup → onboarding → dashboard) is complete
-- RLS enabled on all 12 tables with FK ownership checks
+- RLS enabled on all 14 tables with FK ownership checks
 - Security headers configured (CSP, HSTS, X-Frame-Options, etc.)
 - `.env.local` is gitignored
 - `.env.example` contains only placeholders

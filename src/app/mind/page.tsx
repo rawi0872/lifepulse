@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { DashboardNav } from "@/components/DashboardNav";
+import { useToast } from "@/hooks/use-toast";
 import { PulseCard } from "@/components/ui/pulse-card";
 import { MetricCard } from "@/components/ui/metric-card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -49,6 +50,7 @@ interface RawXpEvent {
 function MindContent() {
   const router = useRouter();
   const supabase = createClient();
+  const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [journalEntries, setJournalEntries] = useState<RawJournal[]>([]);
@@ -111,16 +113,24 @@ function MindContent() {
 
   async function onSaveMind(data: MindMetricsFormData) {
     setSaving(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    const today = getTodayDate();
-    const existing = mindMetrics.find((m) => m.entry_date === today);
-    if (existing) {
-      const { data: updated } = await supabase.from("mind_metrics").update(data).eq("id", existing.id).select().single();
-      if (updated) setMindMetrics((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
-    } else {
-      const { data: created } = await supabase.from("mind_metrics").insert({ ...data, user_id: user.id, entry_date: today }).select().single();
-      if (created) setMindMetrics((prev) => [created, ...prev]);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setSaving(false); return; }
+      const today = getTodayDate();
+      const existing = mindMetrics.find((m) => m.entry_date === today);
+      if (existing) {
+        const { data: updated, error } = await supabase.from("mind_metrics").update(data).eq("id", existing.id).select().single();
+        if (error) { toast({ type: "error", title: "Failed to update mind data." }); setSaving(false); return; }
+        if (updated) setMindMetrics((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
+        toast({ type: "success", title: "Mind data updated!" });
+      } else {
+        const { data: created, error } = await supabase.from("mind_metrics").insert({ ...data, user_id: user.id, entry_date: today }).select().single();
+        if (error) { toast({ type: "error", title: "Failed to save mind data." }); setSaving(false); return; }
+        if (created) setMindMetrics((prev) => [created, ...prev]);
+        toast({ type: "success", title: "Mind data saved!" });
+      }
+    } catch {
+      toast({ type: "error", title: "Failed to save mind data. Try again." });
     }
     setSaving(false);
   }

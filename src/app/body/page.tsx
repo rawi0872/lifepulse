@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { DashboardNav } from "@/components/DashboardNav";
+import { useToast } from "@/hooks/use-toast";
 import { PulseCard } from "@/components/ui/pulse-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { BodyPulseHeader } from "@/components/body/BodyPulseHeader";
@@ -59,6 +60,7 @@ interface HabitInfo {
 function BodyContent() {
   const router = useRouter();
   const supabase = createClient();
+  const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [bodyHabits, setBodyHabits] = useState<HabitInfo[]>([]);
@@ -134,16 +136,24 @@ function BodyContent() {
 
   async function onSaveBody(data: BodyMetricsFormData) {
     setSaving(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    const today = getTodayDate();
-    const existing = bodyMetrics.find((m) => m.entry_date === today);
-    if (existing) {
-      const { data: updated } = await supabase.from("body_metrics").update(data).eq("id", existing.id).select().single();
-      if (updated) setBodyMetrics((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
-    } else {
-      const { data: created } = await supabase.from("body_metrics").insert({ ...data, user_id: user.id, entry_date: today }).select().single();
-      if (created) setBodyMetrics((prev) => [created, ...prev]);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setSaving(false); return; }
+      const today = getTodayDate();
+      const existing = bodyMetrics.find((m) => m.entry_date === today);
+      if (existing) {
+        const { data: updated, error } = await supabase.from("body_metrics").update(data).eq("id", existing.id).select().single();
+        if (error) { toast({ type: "error", title: "Failed to update body data." }); setSaving(false); return; }
+        if (updated) setBodyMetrics((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
+        toast({ type: "success", title: "Body data updated!" });
+      } else {
+        const { data: created, error } = await supabase.from("body_metrics").insert({ ...data, user_id: user.id, entry_date: today }).select().single();
+        if (error) { toast({ type: "error", title: "Failed to save body data." }); setSaving(false); return; }
+        if (created) setBodyMetrics((prev) => [created, ...prev]);
+        toast({ type: "success", title: "Body data saved!" });
+      }
+    } catch {
+      toast({ type: "error", title: "Failed to save body data. Try again." });
     }
     setSaving(false);
   }

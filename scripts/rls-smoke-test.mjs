@@ -303,6 +303,30 @@ async function main() {
     process.exit(1);
   }
   console.log(`  Finance budget created: ${finBudgetA.id}`);
+
+  // 2n. Body metrics
+  const { data: bodyMetricsA, error: bodyMAErr } = await supabaseA
+    .from("body_metrics")
+    .insert({ entry_date: "2099-01-05", sleep_hours: 8, steps: 8000, energy: 4, user_id: userAId })
+    .select()
+    .single();
+  if (bodyMAErr) {
+    console.error(`  Failed to create body_metrics: ${bodyMAErr.message}`);
+    process.exit(1);
+  }
+  console.log(`  Body metrics created: ${bodyMetricsA.id}`);
+
+  // 2o. Mind metrics
+  const { data: mindMetricsA, error: mindMAErr } = await supabaseA
+    .from("mind_metrics")
+    .insert({ entry_date: "2099-01-05", mood: 4, stress: 2, focus: 3, tags: ["work", "creative"], user_id: userAId })
+    .select()
+    .single();
+  if (mindMAErr) {
+    console.error(`  Failed to create mind_metrics: ${mindMAErr.message}`);
+    process.exit(1);
+  }
+  console.log(`  Mind metrics created: ${mindMetricsA.id}`);
   console.log("");
 
   // ── 3. User B isolation: READ ──────────────────────────────────────────────
@@ -321,6 +345,8 @@ async function main() {
     ["finance category", "finance_categories", finCatExpenseA.id],
     ["finance transaction", "finance_transactions", finTxA.id],
     ["finance budget", "finance_budgets", finBudgetA.id],
+    ["body metrics", "body_metrics", bodyMetricsA.id],
+    ["mind metrics", "mind_metrics", mindMetricsA.id],
   ];
 
   for (const [label, table, id] of readTests) {
@@ -363,6 +389,8 @@ async function main() {
     ["finance category", "finance_categories", finCatExpenseA.id, { name: `${PREFIX}_HackedCat` }],
     ["finance transaction", "finance_transactions", finTxA.id, { title: `${PREFIX}_HackedTx` }],
     ["finance budget", "finance_budgets", finBudgetA.id, { amount: 9999 }],
+    ["body metrics", "body_metrics", bodyMetricsA.id, { sleep_hours: 99 }],
+    ["mind metrics", "mind_metrics", mindMetricsA.id, { mood: 1 }],
   ];
 
   for (const [label, table, id, changes] of updateTests) {
@@ -394,6 +422,8 @@ async function main() {
     ["journal entry", "journal_entries", journalA.id],
     ["finance account", "finance_accounts", finAccountA.id],
     ["finance transaction", "finance_transactions", finTxA.id],
+    ["body metrics", "body_metrics", bodyMetricsA.id],
+    ["mind metrics", "mind_metrics", mindMetricsA.id],
   ];
 
   for (const [label, table, id] of deleteTests) {
@@ -656,6 +686,8 @@ async function main() {
     ["finance category", "finance_categories", finCatExpenseA.id],
     ["finance transaction", "finance_transactions", finTxA.id],
     ["finance budget", "finance_budgets", finBudgetA.id],
+    ["body metrics", "body_metrics", bodyMetricsA.id],
+    ["mind metrics", "mind_metrics", mindMetricsA.id],
   ];
 
   for (const [label, table, id] of selfReadTests) {
@@ -687,6 +719,8 @@ async function main() {
     ["finance_categories", "id", finCatIncomeA.id],
     ["finance_accounts", "id", finAccountA.id],
     ["journal_entries", "id", journalA.id],
+    ["body_metrics", "id", bodyMetricsA.id],
+    ["mind_metrics", "id", mindMetricsA.id],
     ["realms", "id", realmA.id],
   ];
 

@@ -88,6 +88,15 @@ Add both of the following:
 - `https://YOUR-DOMAIN.com/auth/callback`
 - `https://YOUR-DOMAIN.com/reset-password`
 
+### Phase 4C QA (June 23, 2026)
+- Body/Mind metrics migration (00008) verifies project conventions ✅
+- BodyMetricsForm numeric parsing fixed for "0" values (steps, workout_minutes, etc.) ✅
+- Toast feedback added to Body/Mind save/update operations ✅
+- Error handling added to Body/Mind save/update operations ✅
+- RLS smoke-test extended to cover body_metrics and mind_metrics tables ✅
+- Build output includes /body and /mind (22 routes total) ✅
+- 14 app tables total (12 original + body_metrics + mind_metrics)
+
 ### Vercel Preview Deployments
 - Vercel preview deployments get random URLs (e.g. `project-xxxxx.vercel.app`). Auth redirects to these URLs will fail if they are not whitelisted in Supabase.
 - **Recommendation:** Disable auth testing on preview deployments, or add `https://*-username.vercel.app/auth/callback` as a wildcard redirect URL (Supabase supports `*` wildcards in redirect URLs). Test password reset and email confirmation only on the production domain.

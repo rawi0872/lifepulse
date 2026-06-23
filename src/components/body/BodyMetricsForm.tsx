@@ -65,14 +65,14 @@ export function BodyMetricsForm({ initial, saving, onSave }: BodyMetricsFormProp
 
   function handleSave() {
     onSave({
-      sleep_hours: sleepHours ? parseFloat(sleepHours) : null,
+      sleep_hours: sleepHours !== "" ? parseFloat(sleepHours) : null,
       sleep_quality: sleepQuality,
       energy,
-      steps: steps ? parseInt(steps, 10) : null,
-      workout_minutes: workoutMinutes ? parseInt(workoutMinutes, 10) : null,
-      weight_kg: weightKg ? parseFloat(weightKg) : null,
-      resting_heart_rate: restingHr ? parseInt(restingHr, 10) : null,
-      recovery_score: recoveryScore ? parseInt(recoveryScore, 10) : null,
+      steps: steps !== "" ? parseInt(steps, 10) : null,
+      workout_minutes: workoutMinutes !== "" ? parseInt(workoutMinutes, 10) : null,
+      weight_kg: weightKg !== "" ? parseFloat(weightKg) : null,
+      resting_heart_rate: restingHr !== "" ? parseInt(restingHr, 10) : null,
+      recovery_score: recoveryScore !== "" ? parseInt(recoveryScore, 10) : null,
       notes: notes || null,
     });
   }
