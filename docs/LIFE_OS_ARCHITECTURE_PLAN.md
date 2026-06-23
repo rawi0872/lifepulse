@@ -792,11 +792,9 @@ See Phase 3A closeout for the recommended Phase 3B prompt.
 ### ADRs Updated
 - **ADR-002**: Page splits before new features — all 5 target pages done ✅
 
-### Recommended Next Action: Phase 4A
+### Phase 4A Prompt (archived — now completed)
 
-Add **Body Pulse** and **Mind Pulse** foundation with manual entry first, no wearable integration yet. Per ADR-004, manual entry validates data models before device complexity. No schema changes needed — existing `habits` and `tasks` tables support realm associations already.
-
-All 5 oversized pages are now below 550 lines. The extraction pipeline is complete. Feature expansion can begin.
+Phase 4A was recommended to add Body Pulse and Mind Pulse foundation. This has been implemented — see Phase 4A Completion Note below.
 
 ---
 

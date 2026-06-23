@@ -120,7 +120,7 @@ After deploying, test every route and flow:
 - [ ] Email confirmation (if enabled) — users receive confirmation email
 - [ ] Forgot password (`/forgot-password`) — sends reset email, shows generic success
 - [ ] Reset password — click email link, set new password, success shown, can log in with new password
-- [ ] Protected routes redirect to `/login` when logged out (`/today`, `/habits`, `/tasks`, `/projects`, `/finance`, `/journal`, `/insights`, `/settings`)
+- [ ] Protected routes redirect to `/login` when logged out (`/today`, `/habits`, `/tasks`, `/projects`, `/finance`, `/journal`, `/insights`, `/settings`, `/body`, `/mind`)
 
 ### Onboarding & Core App
 - [ ] Onboarding — first-time flow works, creates profile

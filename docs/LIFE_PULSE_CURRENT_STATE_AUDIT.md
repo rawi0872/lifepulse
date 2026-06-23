@@ -1114,11 +1114,9 @@ Extract the two remaining oversized pages (Insights, Onboarding) into focused su
 6. **2 pre-existing lint warnings** (use-toast ref, TransactionForm onCancel) — cosmetic only
 7. **No test suite** beyond RLS smoke test (requires Supabase credentials)
 
-### Recommended Phase 4A Prompt
+### Phase 4A Prompt (archived — now completed)
 
-Open with: Phase 4A — Add Body Pulse and Mind Pulse foundation with manual entry first, no wearable integration yet.
-
-Rationale: All 5 oversized pages have been split below 550 lines. The DashboardNav is organized into Life OS groups. The architecture is clean enough to begin feature expansion. Body/Mind Pulse are the highest-impact next features — they directly support the Life OS framing users see on every visit to /today. Manual entry first (per ADR-004) avoids wearable API complexity. No schema change needed beyond what the existing `habits` and `tasks` tables already support (realm associations already exist).
+Phase 4A was recommended to add Body Pulse and Mind Pulse foundation. This has been implemented — see Phase 4A Completion Note below.
 
 ## 20. Phase 4A Completion Note — Body Pulse and Mind Pulse Foundation
 
