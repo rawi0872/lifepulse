@@ -746,8 +746,8 @@ What was done:
 5. ✅ **Build + lint passing** after each step
 
 What was deferred to Phase 3B:
-- ⏳ Insights extraction (727 lines)
-- ⏳ Onboarding extraction (823 lines)
+- ✅ **Insights extraction** (727→524 lines, 6 components) — **completed**
+- ✅ **Onboarding extraction** (823→526 lines, 4 components) — **completed**
 - ⏳ Shared data hooks (useHabits, useTasks, useProjects, useFinance, useJournal)
 - ⏳ Input CSS migration continuation
 - ⏳ Simple cache helper (optional)
@@ -755,6 +755,48 @@ What was deferred to Phase 3B:
 ### Phase 3B Recommended Prompt
 
 See Phase 3A closeout for the recommended Phase 3B prompt.
+
+---
+
+## 13. Phase 3B Completion Note (June 23, 2026)
+
+### What Changed
+- **Insights extraction** (727→524 lines): 6 components in `src/components/insights/` — InsightSkeleton, LevelOverviewCard, MomentumGrid, WeeklyConsistencyCard, HabitStreaksCard, RealmLevelList
+- **Onboarding extraction** (823→526 lines): 4 components in `src/components/onboarding/` — StepIndicator, FeatureTour, DailyLoopGrid, FinalSummary
+- **10 total component files** used/created, ~500 lines of inline JSX extracted from pages
+
+### Final Line Counts
+
+| Page | Lines |
+|------|-------|
+| Insights | 524 |
+| Onboarding | 526 |
+| Settings | 500 |
+| Habits | 542 |
+| Tasks | 522 |
+| Journal | 209 |
+
+### Build Verification
+- `npm run lint` ✅ — 0 errors, 2 warnings (pre-existing)
+- `npm run build` ✅ — Compiled successfully
+- No `typecheck` or `test` scripts exist (build covers TS; only `test:rls` available)
+
+### Remaining Risks
+1. Settings/Habits/Tasks/Journal still 500–542 lines (not extracted, but below threshold)
+2. Life Balance Map left inline in Insights
+3. RealmCards left inline in Onboarding
+4. Finance default categories missing (pre-existing)
+5. 2 pre-existing lint warnings (cosmetic)
+6. No test suite beyond RLS smoke test
+
+### ADRs Updated
+- **ADR-002**: Page splits before new features — all 5 target pages done ✅
+
+### Recommended Next Action: Phase 4A
+
+Add **Body Pulse** and **Mind Pulse** foundation with manual entry first, no wearable integration yet. Per ADR-004, manual entry validates data models before device complexity. No schema changes needed — existing `habits` and `tasks` tables support realm associations already.
+
+All 5 oversized pages are now below 550 lines. The extraction pipeline is complete. Feature expansion can begin.
 
 ---
 

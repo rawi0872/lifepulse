@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { DashboardNav } from "@/components/DashboardNav";
 import { Card } from "@/components/ui/card";
 import { getTodayDateString, getWeekStartDate } from "@/lib/utils";
-import { getLevelInfo, getOverallTitle, getRealmTitle } from "@/lib/levels";
+import { getLevelInfo, getOverallTitle } from "@/lib/levels";
 import { HelpPopover } from "@/components/HelpPopover";
 import { getCurrentStreak, getBestStreak } from "@/lib/streaks";
 import {
@@ -18,51 +18,18 @@ import {
   computeBalanceScore,
   generateSuggestion,
 } from "@/components/insights/RealmRadarChart";
+import { InsightSkeleton } from "@/components/insights/InsightSkeleton";
+import { LevelOverviewCard } from "@/components/insights/LevelOverviewCard";
+import { MomentumGrid } from "@/components/insights/MomentumGrid";
+import { WeeklyConsistencyCard } from "@/components/insights/WeeklyConsistencyCard";
+import { HabitStreaksCard } from "@/components/insights/HabitStreaksCard";
+import { RealmLevelList } from "@/components/insights/RealmLevelList";
 
 interface RealmXp {
   name: string;
   color: string;
   icon: string;
   xp: number;
-}
-
-function InsightSkeleton() {
-  return (
-    <DashboardNav>
-      <div className="mx-auto max-w-4xl px-5 py-8">
-        <div className="mb-8">
-          <div className="h-8 w-40 animate-pulse rounded-lg bg-[var(--surface)]" />
-          <div className="mt-2 h-4 w-72 animate-pulse rounded-lg bg-[var(--surface-soft)]" />
-        </div>
-        <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="min-h-[120px] rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-5">
-              <div className="mb-2 h-3 w-16 animate-pulse rounded bg-[var(--surface)]" />
-              <div className="mb-4 h-8 w-14 animate-pulse rounded bg-[var(--surface)]" />
-              <div className="mt-auto h-3 w-28 animate-pulse rounded bg-[var(--surface-soft)]" />
-            </div>
-          ))}
-        </div>
-        <div className="mb-6 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
-          <div className="mb-3 h-4 w-48 animate-pulse rounded bg-[var(--surface)]" />
-          <div className="h-3 w-full animate-pulse rounded bg-[var(--surface)]" />
-        </div>
-        <div className="space-y-3">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
-              <div className="mb-2 flex items-center justify-between">
-                <div className="h-4 w-32 animate-pulse rounded bg-[var(--surface)]" />
-                <div className="h-4 w-16 animate-pulse rounded bg-[var(--surface)]" />
-              </div>
-              <div className="mb-2 h-3 w-40 animate-pulse rounded bg-[var(--surface-soft)]" />
-              <div className="h-1.5 w-full animate-pulse rounded bg-[var(--surface)]" />
-              <div className="mt-1 h-3 w-36 animate-pulse rounded bg-[var(--surface-soft)]" />
-            </div>
-          ))}
-        </div>
-      </div>
-    </DashboardNav>
-  );
 }
 
 export default function InsightsPage() {
@@ -269,28 +236,13 @@ export default function InsightsPage() {
         </div>
 
         {/* Overview — compact level card */}
-        <Card variant="subtle" className="mb-6 border-[var(--border)]">
-          <div className="flex items-center gap-4 p-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[var(--accent-soft)] to-[var(--accent-ghost)] ring-1 ring-[var(--accent)]/20">
-              <div className="text-center">
-                <p className="text-lg font-bold text-[var(--accent)]">{levelInfo.level}</p>
-              </div>
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-baseline justify-between gap-3">
-                <p className="text-sm font-semibold text-[var(--text)] truncate">{overallTitle}</p>
-                <p className="text-[10px] text-[var(--text-muted)] shrink-0">{levelInfo.xpNeededForNext} XP to next</p>
-              </div>
-              <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-[var(--surface)] ring-1 ring-inset ring-[var(--border)]">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-[var(--accent)] to-[var(--accent-strong)] shadow-sm shadow-[var(--accent)]/10 transition-all"
-                  style={{ width: `${levelInfo.progressPercent}%` }}
-                />
-              </div>
-              <p className="mt-1 text-[10px] text-[var(--text-muted)]">{totalXp} total XP</p>
-            </div>
-          </div>
-        </Card>
+        <LevelOverviewCard
+          level={levelInfo.level}
+          overallTitle={overallTitle}
+          progressPercent={levelInfo.progressPercent}
+          xpNeededForNext={levelInfo.xpNeededForNext}
+          totalXp={totalXp}
+        />
 
         {/* Life Balance Map */}
         {(() => {
@@ -477,32 +429,15 @@ export default function InsightsPage() {
         <h2 className="mb-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">
           Momentum
         </h2>
-        <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <Card variant="default" className="flex flex-col p-4 min-h-[100px]">
-            <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">XP today</p>
-            <p className="mt-2 text-2xl font-bold text-[var(--accent)]">+{todayXp}</p>
-            <p className="mt-auto pt-2 text-[10px] text-[var(--text-muted)]">{today}</p>
-          </Card>
-          <Card variant="default" className="flex flex-col p-4 min-h-[100px]">
-            <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Active projects</p>
-            <p className="mt-2 text-2xl font-bold text-[var(--success)]">{activeProjectCount}</p>
-            <p className="mt-auto pt-2 text-[10px] text-[var(--text-muted)]">{activeProjectCount === 1 ? "Project in progress" : "Projects in progress"}</p>
-          </Card>
-          <Card variant="subtle" className="flex flex-col p-4 min-h-[100px]">
-            <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Task completion</p>
-            <p className="mt-2 text-2xl font-bold text-[var(--text)]">
-              {taskCount > 0 ? `${taskCompletionRate}%` : "\u2014"}
-            </p>
-            <p className="mt-auto pt-2 text-[10px] text-[var(--text-muted)]">
-              {taskCount > 0 ? `${doneTaskCount} of ${taskCount} done` : "No tasks yet"}
-            </p>
-          </Card>
-          <Card variant="subtle" className="flex flex-col p-4 min-h-[100px]">
-            <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Journal</p>
-            <p className="mt-2 text-2xl font-bold text-[var(--text)]">{journalCount}</p>
-            <p className="mt-auto pt-2 text-[10px] text-[var(--text-muted)]">{journalCount === 1 ? "Entry written" : "Entries written"}</p>
-          </Card>
-        </div>
+        <MomentumGrid
+          todayXp={todayXp}
+          today={today}
+          activeProjectCount={activeProjectCount}
+          taskCount={taskCount}
+          doneTaskCount={doneTaskCount}
+          taskCompletionRate={taskCompletionRate}
+          journalCount={journalCount}
+        />
 
         {/* Finance */}
         {financeHasData && (
@@ -550,79 +485,24 @@ export default function InsightsPage() {
           Weekly consistency
         </h2>
 
-        {habitCount > 0 ? (
-          <Card className="mb-6 border-[var(--border-strong)]">
-            <div className="p-5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-semibold text-[var(--text)]">Habit consistency</h3>
-                  <p className="mt-0.5 text-xs text-[var(--text-muted)]">
-                    {weekHabitLogs} of {weekDueHabits} expected check-ins this week
-                  </p>
-                </div>
-                <span className="text-3xl font-bold tabular-nums text-[var(--accent)]">
-                  {weekHabitRate ?? 0}%
-                </span>
-              </div>
-              <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-[var(--surface)] ring-1 ring-inset ring-[var(--border)]">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-[var(--accent-soft)] to-[var(--accent)] transition-all shadow-sm shadow-[var(--accent)]/10"
-                  style={{ width: `${weekHabitRate ?? 0}%` }}
-                />
-              </div>
-              <p className="mt-3 text-xs text-[var(--text-muted)]">
-                Daily habits counted 7&times;/week. Weekly habits count based on their target.
-              </p>
-            </div>
-          </Card>
-        ) : (
-          <Card variant="subtle" className="mb-6 border-dashed border-[var(--border)]">
-            <div className="p-4 text-center">
-              <p className="text-sm text-[var(--text-muted)]">No habits yet.</p>
-              <p className="mt-1 text-xs text-[var(--text-muted)]">
-                Create habits to track your weekly consistency.
-              </p>
-            </div>
-          </Card>
-        )}
+        <WeeklyConsistencyCard
+          habitCount={habitCount}
+          weekHabitLogs={weekHabitLogs}
+          weekDueHabits={weekDueHabits}
+          weekHabitRate={weekHabitRate}
+        />
 
         {/* Habit streaks */}
         <h2 className="mb-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">
           Habit streaks
         </h2>
 
-        {habitCount > 0 ? (
-          <Card className="mb-6 border-[var(--border-strong)]">
-            <div className="grid grid-cols-3 gap-4 p-5">
-              <div className="text-center">
-                <p className="text-3xl font-bold text-[var(--accent)]">{longestStreak}</p>
-                <p className="mt-1 text-xs text-[var(--text-muted)]">Longest current</p>
-              </div>
-              <div className="text-center">
-                <p className="text-3xl font-bold text-[var(--text)]">{activeStreaks}</p>
-                <p className="mt-1 text-xs text-[var(--text-muted)]">Active {activeStreaks === 1 ? "streak" : "streaks"}</p>
-              </div>
-              <div className="text-center">
-                <p className="text-3xl font-bold text-[var(--text)]">{bestEverStreak}</p>
-                <p className="mt-1 text-xs text-[var(--text-muted)]">Best ever</p>
-              </div>
-            </div>
-            <div className="border-t border-[var(--border)] px-5 py-3">
-              <p className="text-xs text-[var(--text-muted)]">
-                Streaks count expected habit days. Rest days do not break streaks.
-              </p>
-            </div>
-          </Card>
-        ) : (
-          <Card variant="subtle" className="mb-6 border-dashed border-[var(--border)]">
-            <div className="p-4 text-center">
-              <p className="text-sm text-[var(--text-muted)]">No habits yet.</p>
-              <p className="mt-1 text-xs text-[var(--text-muted)]">
-                Build a streak by completing habits consistently.
-              </p>
-            </div>
-          </Card>
-        )}
+        <HabitStreaksCard
+          habitCount={habitCount}
+          longestStreak={longestStreak}
+          activeStreaks={activeStreaks}
+          bestEverStreak={bestEverStreak}
+        />
 
         {/* Expanded dialog */}
         <RealmRadarExpandedDialog
@@ -637,90 +517,7 @@ export default function InsightsPage() {
         />
 
         {/* Life area levels — bottom section */}
-        <div className="mb-6">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-[var(--text)]">
-              Life area levels
-              <HelpPopover title="How XP and levels work">
-                <p>Completing habits and tasks earns XP. XP goes into your overall level and into the life area connected to that action.</p>
-                <p className="mt-1.5">Weekly consistency shows how often you completed expected habit check-ins. Life area levels show where your progress is growing.</p>
-              </HelpPopover>
-            </h2>
-            <button
-              onClick={() => router.push("/settings")}
-              className="text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors"
-            >
-              Manage
-            </button>
-          </div>
-
-          {realmXp.length === 0 || realmXp.every((r) => r.xp === 0) ? (
-            <Card variant="subtle" className="border-dashed border-[var(--border)]">
-              <div className="p-6 text-center">
-                <p className="text-sm text-[var(--text-muted)]">
-                  Complete habits or tasks to start leveling up your life areas.
-                </p>
-              </div>
-            </Card>
-          ) : (
-            <div className="grid gap-2">
-              {realmXp.map((r) => {
-                const info = getLevelInfo(r.xp);
-                const title = getRealmTitle(r.name, info.level);
-                const xpInLevel = r.xp - info.currentLevelXp;
-                const xpRange = info.nextLevelXp - info.currentLevelXp;
-                return (
-                  <Card key={r.name} className="overflow-hidden border-[var(--border-strong)] transition-all duration-150 hover:border-[var(--border-strong)]">
-                    <div className="flex items-center gap-4 p-5">
-                      <div
-                        className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl text-xl shadow-sm bg-gradient-to-br"
-                        style={{
-                          backgroundImage: `linear-gradient(to bottom right, ${r.color}33, transparent)`,
-                          color: r.color,
-                          boxShadow: `inset 0 0 0 1px ${r.color}30`,
-                        }}
-                      >
-                        {r.icon}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="text-sm font-semibold text-[var(--text)] truncate">{r.name}</p>
-                            <p className="text-[11px] text-[var(--text-muted)]">{title}</p>
-                          </div>
-                          <div className="flex items-center gap-3 shrink-0">
-                            <div className="text-right">
-                              <p className="text-xl font-bold text-[var(--text)]">{info.level}</p>
-                              <p className="text-[9px] uppercase tracking-wider text-[var(--text-muted)]">Level</p>
-                            </div>
-                            <div
-                              className="flex h-9 w-9 items-center justify-center rounded-md text-xs font-bold"
-                              style={{
-                                backgroundColor: r.color + "15",
-                                color: r.color,
-                              }}
-                            >
-                              {r.xp}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-[var(--surface)] ring-1 ring-inset ring-[var(--border)]">
-                          <div
-                            className="h-full rounded-full transition-all"
-                            style={{ width: `${info.progressPercent}%`, backgroundColor: r.color, boxShadow: `0 1px 3px 0 ${r.color}1A` }}
-                          />
-                        </div>
-                        <p className="mt-1 text-[10px] text-[var(--text-muted)]">
-                          {r.xp} XP &middot; {xpInLevel}/{xpRange} to next level
-                        </p>
-                      </div>
-                    </div>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
-        </div>
+        <RealmLevelList realmXp={realmXp} />
       </div>
     </DashboardNav>
   );

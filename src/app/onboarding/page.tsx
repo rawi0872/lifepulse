@@ -6,6 +6,10 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { LifePulseLogo } from "@/components/LifePulseLogo";
+import { StepIndicator } from "@/components/onboarding/StepIndicator";
+import { FeatureTour } from "@/components/onboarding/FeatureTour";
+import { DailyLoopGrid } from "@/components/onboarding/DailyLoopGrid";
+import { FinalSummary } from "@/components/onboarding/FinalSummary";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -16,127 +20,6 @@ const DEFAULT_REALMS = [
   { name: "Relationships", color: "#f43f5e", icon: "❤️", description: "Family, friends, social life" },
   { name: "Finance", color: "#f59e0b", icon: "💰", description: "Money, spending, stability" },
   { name: "Faith", color: "#a855f7", icon: "🙏", description: "Values, discipline, spiritual growth" },
-] as const;
-
-const FEATURES = [
-  {
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
-        <path d="M3 12h3m12 0h3M5.64 5.64l2.12 2.12m8.48-2.12l-2.12 2.12M12 3v3m0 12v3" />
-        <circle cx="12" cy="12" r="3" />
-      </svg>
-    ),
-    name: "Today",
-    desc: "Daily command center",
-  },
-  {
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
-        <path d="M9 12l2 2 4-4" />
-        <circle cx="12" cy="12" r="9" />
-      </svg>
-    ),
-    name: "Habits",
-    desc: "Track daily practices",
-  },
-  {
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
-        <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-        <polyline points="9,22 9,12 15,12 15,22" />
-      </svg>
-    ),
-    name: "Projects",
-    desc: "Manage goals and work",
-  },
-  {
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
-        <line x1="12" y1="1" x2="12" y2="23" />
-        <path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
-      </svg>
-    ),
-    name: "Finance",
-    desc: "Monitor spending",
-  },
-  {
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
-        <path d="M12 20h9" />
-        <path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" />
-      </svg>
-    ),
-    name: "Journal",
-    desc: "End-of-day reflection",
-  },
-  {
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
-        <path d="M12 20V10" />
-        <path d="M18 20V4" />
-        <path d="M6 20v-4" />
-      </svg>
-    ),
-    name: "Insights",
-    desc: "See your patterns",
-  },
-] as const;
-
-const DAILY_LOOP = [
-  {
-    step: "01",
-    title: "Plan",
-    desc: "Choose your priorities for today",
-    color: "from-[var(--accent)]/20 to-[var(--accent)]/5",
-    borderColor: "border-[var(--accent)]/20",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
-        <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-        <line x1="3" y1="10" x2="21" y2="10" />
-        <line x1="8" y1="2" x2="8" y2="6" />
-        <line x1="16" y1="2" x2="16" y2="6" />
-      </svg>
-    ),
-  },
-  {
-    step: "02",
-    title: "Capture",
-    desc: "Add tasks, ideas, and notes",
-    color: "from-[var(--success)]/20 to-[var(--success)]/5",
-    borderColor: "border-[var(--success)]/20",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
-        <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
-        <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
-      </svg>
-    ),
-  },
-  {
-    step: "03",
-    title: "Act",
-    desc: "Complete habits and track actions",
-    color: "from-[var(--warning)]/20 to-[var(--warning)]/5",
-    borderColor: "border-[var(--warning)]/20",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
-        <polyline points="9,18 15,12 9,6" />
-      </svg>
-    ),
-  },
-  {
-    step: "04",
-    title: "Reflect",
-    desc: "Close the day with a journal entry",
-    color: "from-[var(--accent-strong)]/20 to-[var(--accent-strong)]/5",
-    borderColor: "border-[var(--accent-strong)]/20",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
-        <circle cx="12" cy="12" r="10" />
-        <path d="M12 16v-4" />
-        <path d="M12 8h.01" />
-      </svg>
-    ),
-  },
 ] as const;
 
 const STEP_LABELS = ["Welcome", "Life Areas", "Daily Loop", "Start"];
@@ -163,97 +46,6 @@ const STEP_LEFT = [
       "Your data stays tied to your account. You can edit your life areas and preferences later in Settings.",
   },
 ] as const;
-
-// ─── Sub-components ──────────────────────────────────────────────────────────
-
-function StepIndicator({ current }: { current: number }) {
-  return (
-    <nav aria-label="Setup progress" className="flex flex-col gap-0">
-      {STEP_LABELS.map((label, i) => {
-        const isCompleted = i < current;
-        const isCurrent = i === current;
-        return (
-          <div key={label} className="flex items-start gap-3">
-            <div className="flex flex-col items-center">
-              <div
-                className={cn(
-                  "flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-full text-[11px] font-medium transition-all duration-300",
-                  isCompleted && "bg-[var(--accent-soft)] text-[var(--accent)]",
-                  isCurrent && "bg-[var(--accent)] text-[var(--bg)] ring-2 ring-[var(--accent)]/30",
-                  !isCompleted && !isCurrent && "bg-[var(--surface)] text-[var(--text-muted)] ring-1 ring-[var(--border)]",
-                )}
-                aria-current={isCurrent ? "step" : undefined}
-              >
-                {isCompleted ? (
-                  <svg viewBox="0 0 16 16" fill="currentColor" className="h-3 w-3">
-                    <path d="M13.78 4.22a.75.75 0 010 1.06l-7.5 7.5a.75.75 0 01-1.06 0L2.22 9.78a.75.75 0 011.06-1.06L5.75 11.2l6.97-6.98a.75.75 0 011.06 0z" />
-                  </svg>
-                ) : (
-                  i + 1
-                )}
-              </div>
-              {i < STEP_LABELS.length - 1 && (
-                <div
-                  className={cn(
-                    "mt-1 h-8 w-px transition-all duration-300",
-                    i < current ? "bg-[var(--accent)]/40" : "bg-[var(--border)]",
-                  )}
-                />
-              )}
-            </div>
-            <div className="flex flex-col pt-[3px]">
-              <span
-                className={cn(
-                  "text-sm leading-tight transition-all duration-300",
-                  isCurrent && "font-medium text-[var(--text)]",
-                  isCompleted && "text-[var(--text-muted)]",
-                  !isCompleted && !isCurrent && "text-[var(--text-muted)]",
-                )}
-              >
-                {label}
-              </span>
-            </div>
-          </div>
-        );
-      })}
-    </nav>
-  );
-}
-
-function FeatureGrid() {
-  return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      {FEATURES.map((f) => (
-        <div
-          key={f.name}
-          className="group relative flex items-center gap-3.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 transition-all duration-300 hover:-translate-y-1 hover:border-[var(--accent)]/30 hover:bg-[var(--surface-raised)] hover:shadow-lg hover:shadow-[var(--accent)]/6"
-        >
-          {/* Background glow on hover */}
-          <div className="pointer-events-none absolute -inset-px rounded-xl opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-            style={{
-              background: "radial-gradient(160px circle at 50% 0%, var(--accent-ghost), transparent 70%)",
-            }}
-          />
-
-          <div className="relative z-10 flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] bg-[var(--accent-ghost)] text-[var(--accent)] transition-all duration-300 group-hover:bg-[var(--accent-soft)] group-hover:shadow-sm group-hover:shadow-[var(--accent)]/10">
-            <span className="transition-all duration-300 group-hover:-translate-y-0.5 group-hover:scale-110">
-              {f.icon}
-            </span>
-          </div>
-
-          <div className="relative z-10 min-w-0">
-            <p className="text-sm font-medium text-[var(--text)] transition-colors duration-300 group-hover:text-[var(--text)]">
-              {f.name}
-            </p>
-            <p className="mt-0.5 text-xs text-[var(--text-muted)] transition-colors duration-300 group-hover:text-[var(--text-secondary)]">
-              {f.desc}
-            </p>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
 
 function RealmCards({
   selectedRealms,
@@ -352,95 +144,6 @@ function RealmCards({
           </button>
         );
       })}
-    </div>
-  );
-}
-
-function DailyLoopGrid() {
-  return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-      {DAILY_LOOP.map((item, i) => (
-        <div
-          key={item.step}
-          className="group relative"
-        >
-          {/* Connector line to next card (visible on larger screens) */}
-          {i % 2 === 0 && i < DAILY_LOOP.length - 1 && (
-            <div className="pointer-events-none absolute -right-2 top-1/2 z-20 hidden h-px w-4 bg-gradient-to-r from-[var(--border-strong)] to-transparent sm:block" />
-          )}
-
-          <div className={cn(
-            "relative flex flex-col gap-3 rounded-xl border bg-[var(--surface)] p-5 transition-all duration-300",
-            "hover:-translate-y-1 hover:shadow-lg hover:shadow-black/10",
-            item.borderColor,
-          )}>
-            {/* Colored top accent */}
-            <div className={cn(
-              "absolute inset-x-0 top-0 h-[2px] rounded-t-xl bg-gradient-to-r opacity-60",
-              item.color,
-            )} />
-
-            {/* Background glow */}
-            <div className="pointer-events-none absolute inset-0 rounded-xl opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-              style={{
-                background: "radial-gradient(200px circle at 50% 0%, var(--accent-ghost), transparent 70%)",
-              }}
-            />
-
-            {/* Header row */}
-            <div className="relative z-10 flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] border border-[var(--border-strong)] bg-[var(--surface-soft)] text-[var(--accent)] transition-all duration-300 group-hover:border-[var(--accent)]/30 group-hover:bg-[var(--accent-soft)] group-hover:shadow-sm group-hover:shadow-[var(--accent)]/10">
-                <span className="transition-all duration-300 group-hover:scale-110">
-                  {item.icon}
-                </span>
-              </div>
-
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-semibold tracking-widest text-[var(--accent)]">{item.step}</span>
-                  <div className="h-px flex-1 bg-[var(--border)]" />
-                </div>
-                <p className="mt-0.5 text-sm font-semibold text-[var(--text)]">{item.title}</p>
-              </div>
-            </div>
-
-            {/* Description */}
-            <p className="relative z-10 text-xs leading-relaxed text-[var(--text-muted)] group-hover:text-[var(--text-secondary)] transition-colors duration-300">
-              {item.desc}
-            </p>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function FinalSummary() {
-  return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-      {[
-        { label: "6 life areas ready", desc: "Organize everything you track", icon: "🧭" },
-        { label: "Daily rhythm set", desc: "Plan, act, and reflect each day", icon: "🔄" },
-        { label: "Dashboard unlocked", desc: "Your personal command center", icon: "🎯" },
-      ].map((item) => (
-        <div
-          key={item.label}
-          className="group relative flex items-center gap-3.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-[var(--accent)]/25 hover:bg-[var(--surface-raised)] hover:shadow-lg hover:shadow-[var(--accent)]/6"
-        >
-          <div className="pointer-events-none absolute inset-0 rounded-xl opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-            style={{
-              background: "radial-gradient(140px circle at 50% 0%, var(--accent-ghost), transparent 70%)",
-            }}
-          />
-          <div className="relative z-10 flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] bg-[var(--accent-ghost)] text-lg transition-all duration-300 group-hover:bg-[var(--accent-soft)] group-hover:scale-105">
-            {item.icon}
-          </div>
-          <div className="relative z-10 min-w-0">
-            <p className="text-sm font-semibold text-[var(--text)]">{item.label}</p>
-            <p className="mt-0.5 text-xs text-[var(--text-muted)] group-hover:text-[var(--text-secondary)] transition-colors duration-300">{item.desc}</p>
-          </div>
-        </div>
-      ))}
     </div>
   );
 }
@@ -634,7 +337,7 @@ export default function OnboardingPage() {
 
           {/* Step indicator - desktop */}
           <div className="hidden lg:block">
-            <StepIndicator current={step} />
+            <StepIndicator steps={STEP_LABELS} current={step} />
           </div>
         </div>
 
@@ -697,7 +400,7 @@ export default function OnboardingPage() {
 
               {/* Feature cards grid - spans full width */}
               <div>
-                <FeatureGrid />
+                <FeatureTour />
               </div>
             </div>
           )}

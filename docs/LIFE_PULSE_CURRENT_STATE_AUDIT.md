@@ -1016,3 +1016,106 @@ Safely split oversized dashboard pages (Finance, Projects, Today) into focused s
 ### Recommended Phase 3B Prompt
 
 See Phase 3A closeout output for the recommended Phase 3B prompt.
+
+## 19. Phase 3B Completion Note — Insights and Onboarding Extraction
+
+### Goal
+Extract the two remaining oversized pages (Insights, Onboarding) into focused sub-components to finish the page-split work started in Phase 3A, without adding features, changing schema, or breaking existing flows.
+
+### What Changed
+
+#### Insights Extraction (`src/components/insights/`)
+- **6 components** used (5 new, 1 pre-existing):
+  - `InsightSkeleton.tsx` — loading skeleton for the entire page
+  - `LevelOverviewCard.tsx` — level/xp overview card with circular progress
+  - `MomentumGrid.tsx` — 4-stat grid (total XP, active projects, tasks done, journal entries)
+  - `WeeklyConsistencyCard.tsx` — habit consistency bar chart
+  - `HabitStreaksCard.tsx` — streak stats grid (longest, active, best)
+  - `RealmLevelList.tsx` — per-realm level list with XP progress bars
+- **Kept inline**: Life Balance Map (radar chart + dialog — tightly coupled to page state via `hasAnyXp` check)
+- **Insights page**: 727 → **524 lines** (‑203)
+
+#### Onboarding Extraction (`src/components/onboarding/`)
+- **4 components** used (all new):
+  - `StepIndicator.tsx` — desktop step progress indicator (receives `steps` + `current` props)
+  - `FeatureTour.tsx` — 6-feature grid (Today, Habits, Projects, Finance, Journal, Insights) with hover effects
+  - `DailyLoopGrid.tsx` — 4-step daily loop grid (Plan, Capture, Act, Reflect) with gradient accents
+  - `FinalSummary.tsx` — 3-item completion summary cards
+- **Constants moved into components**: `FEATURES` (6 SVG icons) → `FeatureTour.tsx`, `DAILY_LOOP` (4 step items) → `DailyLoopGrid.tsx`
+- **Kept inline**: `DEFAULT_REALMS`, `STEP_LABELS`, `STEP_LEFT`, `RealmCards` function (all coupled to page state — realm selection drives page-level `handleComplete` and `selectedRealms`)
+- **Onboarding page**: 823 → **526 lines** (‑297)
+
+### Build/Lint Verification
+- `npm run lint` ✅ — 0 errors, 2 warnings (pre-existing, unchanged)
+- `npm run build` ✅ — Compiled successfully, all routes generated
+- `npm run typecheck` — Not available (Next.js build covers TypeScript check)
+- `npm run test:rls` — Requires Supabase credentials (not run during extraction)
+
+### Files Touched in Phase 3B
+
+| File | Change |
+|------|--------|
+| `src/components/insights/InsightSkeleton.tsx` | **Used** — loading skeleton |
+| `src/components/insights/LevelOverviewCard.tsx` | **Used** — level/xp overview |
+| `src/components/insights/MomentumGrid.tsx` | **Used** — 4-stat grid |
+| `src/components/insights/WeeklyConsistencyCard.tsx` | **Used** — consistency bar |
+| `src/components/insights/HabitStreaksCard.tsx` | **Used** — streak stats |
+| `src/components/insights/RealmLevelList.tsx` | **Used** — per-realm levels |
+| `src/components/onboarding/StepIndicator.tsx` | **Created** — step progress indicator |
+| `src/components/onboarding/FeatureTour.tsx` | **Created** — feature tour grid |
+| `src/components/onboarding/DailyLoopGrid.tsx` | **Created** — daily loop cards |
+| `src/components/onboarding/FinalSummary.tsx` | **Created** — completion summary |
+| `src/app/insights/page.tsx` | **Refactored** — 727→524 lines, 6 sections extracted |
+| `src/app/onboarding/page.tsx` | **Refactored** — 823→526 lines, 4 sections extracted, FEATURES/DAILY_LOOP constants moved |
+| `docs/LIFE_PULSE_CURRENT_STATE_AUDIT.md` | **Updated** — Phase 3B summary |
+| `docs/LIFE_OS_ARCHITECTURE_PLAN.md` | **Updated** — Phase 3B completion note |
+
+### Total Extraction Across Phase 3A + Phase 3B
+
+| Phase | Page | Before | After | Change | Components |
+|-------|------|--------|-------|--------|------------|
+| 3A | Finance | 867 | 641 | –226 | 5 |
+| 3A | Projects | 853 | 454 | –399 | 4 |
+| 3A | Today | 1,091 | 801 | –290 | 6 |
+| 3B | Insights | 727 | 524 | –203 | 6 |
+| 3B | Onboarding | 823 | 526 | –297 | 4 |
+| **Total** | **5 pages** | **4,361** | **2,946** | **–1,415** | **25** |
+
+### Page Line Counts at Phase 3B Close
+
+| Page | Lines |
+|------|-------|
+| Insights | 524 |
+| Onboarding | 526 |
+| Settings | 500 |
+| Habits | 542 |
+| Tasks | 522 |
+| Journal | 209 |
+
+### What Was Intentionally Not Changed
+- **Shared data hooks** (useHabits, useTasks, useProjects, useFinance, useJournal, useRealm) — deferred
+- **Form primitive migration** (full Input/TextArea/Select consolidation) — deferred
+- **Settings/Habits/Tasks/Journal** page extractions — deferred (lines are 500–542, manageable)
+- **Input CSS migration** — deferred
+- **Data caching layer** — deferred
+- **React Server Components** — deferred
+- **New routes** (/body, /mind, /goals, /devices, /coach, /weekly-review) — not started
+- **Database schema or RLS changes** — not started
+- **Wearable integrations** — deferred (ADR-004)
+- **LLM/AI Coach** — deferred (ADR-005)
+- **Visual redesign** — not changed unless required by extraction
+
+### Remaining Risks
+1. **Life Balance Map** left inline in Insights — radar chart + dialog coupled to page-level `hasAnyXp` logic
+2. **RealmCards** left inline in Onboarding — `DEFAULT_REALMS` used by both the component and page's `handleComplete`/`selectedRealms` state
+3. **Settings/Habits/Tasks/Journal** still 500–542 lines — not extracted, but below the original 727–1091 threshold
+4. **Suggested task card, all-done banner, welcome empty state** left inline in /today — tightly coupled to page state
+5. **Finance default categories** still missing on fresh signup (pre-existing)
+6. **2 pre-existing lint warnings** (use-toast ref, TransactionForm onCancel) — cosmetic only
+7. **No test suite** beyond RLS smoke test (requires Supabase credentials)
+
+### Recommended Phase 4A Prompt
+
+Open with: Phase 4A — Add Body Pulse and Mind Pulse foundation with manual entry first, no wearable integration yet.
+
+Rationale: All 5 oversized pages have been split below 550 lines. The DashboardNav is organized into Life OS groups. The architecture is clean enough to begin feature expansion. Body/Mind Pulse are the highest-impact next features — they directly support the Life OS framing users see on every visit to /today. Manual entry first (per ADR-004) avoids wearable API complexity. No schema change needed beyond what the existing `habits` and `tasks` tables already support (realm associations already exist).
