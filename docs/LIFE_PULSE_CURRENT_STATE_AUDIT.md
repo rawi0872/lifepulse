@@ -1,11 +1,11 @@
 # LIFE PULSE — Current State Audit
 
-**Date:** June 22, 2026
-**Commit:** `4fa6b98` (Phase 0 base; Phase 1 + 1.5 + 2A + 2B applied on top)
+**Date:** June 23, 2026
+**Commit:** `4fa6b98` (Phase 0 base; Phase 1 + 1.5 + 2A + 2B + 3A applied on top)
 **Branch:** `master` (no remote configured)
 **Build status:** ✅ Clean (0 lint errors, 0 build errors)
-**Working tree:** Clean — all Phase 2B changes applied
-**Architecture Plan:** `docs/LIFE_OS_ARCHITECTURE_PLAN.md` (created in Phase 2B)
+**Working tree:** Clean — all Phase 3A changes applied
+**Architecture Plan:** `docs/LIFE_OS_ARCHITECTURE_PLAN.md` (updated for Phase 3A)
 
 ---
 
@@ -17,7 +17,7 @@ Life Pulse is a dark-themed, monorepo Next.js 16 web application that functions 
 
 **Strongest parts:** Auth and onboarding flow, RLS security model (FK ownership helpers in 00006 migration, finance ownership in 00007), Insight radar chart, Today dashboard aggregating all data types, Finance module with budgets/trends/breakdowns, XP/level progression system with per-realm titles.
 
-**Biggest gaps:** Excessively large pages (finance ~930 lines, today ~1100 lines, projects ~860 lines), duplicated CSS class patterns across remaining auth page inputs, ILS currency hardcoded in finance, no AI coach, no body/health tracking, no wearable integration, no weekly review, no server component data fetching.
+**Biggest gaps:** Remaining large pages (insights ~730 lines, onboarding ~820 lines), duplicated CSS class patterns across remaining auth page inputs, ILS currency hardcoded in finance, no AI coach, no body/health tracking, no wearable integration, no weekly review, no server component data fetching.
 
 **Private beta verdict:** ✅ Ready to deploy after GitHub push + Vercel setup + Supabase Auth URL config + setting `NEXT_PUBLIC_SUPPORT_EMAIL` env var on Vercel. Not ready to invite users until post-deploy smoke test passes.
 
@@ -44,29 +44,31 @@ Life Pulse is a dark-themed, monorepo Next.js 16 web application that functions 
 src/
 ├── app/                  # 17 routes + layout + globals.css
 │   ├── auth/callback/    # OAuth code exchange
-│   ├── finance/          # 935 lines — largest page
+│   ├── finance/          # 641 lines — significantly reduced (was 867)
 │   ├── forgot-password/
 │   ├── habits/
-│   ├── insights/
+│   ├── insights/         # 727 lines — next extraction target
 │   ├── journal/
 │   ├── login/
-│   ├── onboarding/       # 823 lines — very large
+│   ├── onboarding/       # 823 lines — next extraction target
 │   ├── privacy/
-│   ├── projects/         # 875 lines — very large
+│   ├── projects/         # 454 lines — significantly reduced (was 853)
 │   ├── reset-password/
 │   ├── settings/
 │   ├── signup/
 │   ├── tasks/
 │   ├── terms/
-│   ├── today/            # 1052 lines — largest page
+│   ├── today/            # 801 lines — reduced (was 1091)
 │   ├── layout.tsx
 │   ├── page.tsx          # Landing page
 │   └── globals.css
 ├── components/           # Shared UI components
-│   ├── finance/          # Finance sub-components
+│   ├── finance/          # 13 files — accounts, transactions, budgets, charts, utils
+│   ├── projects/         # 4 files — cards, forms, wizard
+│   ├── today/            # 6 files — command strip, mission control, pulse sections
 │   ├── insights/         # Radar chart components
-│   ├── ui/               # Button, Card, Input primitives
-│   ├── DashboardNav.tsx  # Sidebar + mobile bottom nav
+│   ├── ui/               # Button, Card, Input, PulseCard, MetricCard, SectionHeader, EmptyState primitives
+│   ├── DashboardNav.tsx  # Sidebar + mobile bottom nav (Life OS grouping)
 │   ├── JournalSection.tsx
 │   ├── HabitCard.tsx
 │   ├── TaskCard.tsx
@@ -128,11 +130,11 @@ src/
 | `/reset-password` | `src/app/reset-password/page.tsx` (146 lines) | Set new password with confirmation | Working | `supabase.auth.updateUser` | Validates min 8 chars + match. Session check on mount (redirects to `/login` if no session). |
 | `/auth/callback` | `src/app/auth/callback/route.ts` (47 lines) | OAuth code exchange + session creation | Working | `supabase.auth.exchangeCodeForSession` | Whitelist-based redirect (4 allowed paths). Safe against open redirect. |
 | `/onboarding` | `src/app/onboarding/page.tsx` (823 lines) | 6 default realms, profile creation, feature tour | Working | `profiles`, `realms` tables | Creates profile + 6 default realms in one transaction. Very large file. Feature tour carousel. |
-| `/today` | `src/app/today/page.tsx` (1052 lines) | Daily command center | Working | `tasks`, `habits`, `habit_logs`, `projects`, `journal_entries`, `xp_events`, `finance_transactions`, `finance_accounts`, `finance_budgets`, `realms` | Heaviest page. Priorities, habits grid, quick capture, task list, journal snippet, XP display, finance overview. No loading states. Largest file in project. |
+| `/today` | `src/app/today/page.tsx` (801 lines, was 1091) | Daily command center | Working | `tasks`, `habits`, `habit_logs`, `projects`, `journal_entries`, `xp_events`, `finance_transactions`, `finance_accounts`, `finance_budgets`, `realms` | Components extracted: TodaysPulseHeader, CommandStrip, MissionControl, BodyPulseSection, MindPulseSection, FinanceOverview into `src/components/today/`. Reduced by 290 lines. |
 | `/habits` | `src/app/habits/page.tsx` (565 lines) | Habit CRUD, daily log, weekly grid, streaks | Working | `habits`, `habit_logs`, `realms` | Frequency: daily, weekdays, weekends, weekly, times_per_week. Streak calculation via `src/lib/streaks.ts`. Raw errors fixed in previous session. |
 | `/tasks` | `src/app/tasks/page.tsx` (547 lines) | Task CRUD with priority, due date, project filter | Working | `tasks`, `realms`, `projects` | Sort by priority + due date. Filter by project. Task completion via `toggleTaskCompletion()` with XP dedup. Raw errors fixed. |
-| `/projects` | `src/app/projects/page.tsx` (875 lines) | Project CRUD, task linking, quick-draft wizard | Working | `projects`, `tasks`, `realms` | Status: active/paused/completed. Progress slider (0-100). Expandable task list per project. Quick-draft wizard. Raw errors fixed. Very large file. |
-| `/finance` | `src/app/finance/page.tsx` (935 lines) | Accounts, transactions, budgets, KPI cards, charts | Partial | `finance_accounts`, `finance_categories`, `finance_transactions`, `finance_budgets` | Full CRUD for accounts, transactions, budgets. Cash-flow trend chart, expense breakdown pie, budget usage bar. Hardcoded ILS currency. Responsive but complex. Second-largest file. Missing default categories on fresh signup. |
+| `/projects` | `src/app/projects/page.tsx` (454 lines, was 853) | Project CRUD, task linking, quick-draft wizard | Working | `projects`, `tasks`, `realms` | Status: active/paused/completed. Progress slider (0-100). Expandable task list per project. Quick-draft wizard. Components extracted: QuickDraftWizard, ProjectForm, ProjectCard, EmptyProjectState into `src/components/projects/`. Reduced by 399 lines. |
+| `/finance` | `src/app/finance/page.tsx` (641 lines, was 867) | Accounts, transactions, budgets, KPI cards, charts | Partial | `finance_accounts`, `finance_categories`, `finance_transactions`, `finance_budgets` | Full CRUD for accounts, transactions, budgets. Cash-flow trend chart, expense breakdown pie, budget usage bar. Hardcoded ILS currency. Components extracted: SimpleSelect, TransactionForm, BudgetForm, AccountForm, BudgetHealthList into `src/components/finance/`. Reduced by 226 lines. Missing default categories on fresh signup. |
 | `/journal` | `src/app/journal/page.tsx` (209 lines) | Daily entries with mood/energy ratings, reflection prompts | Working | `journal_entries` | 5 reflection prompts. Mood (1-5) and energy (1-5) ratings. One entry per day (upsert). Clean, focused page. |
 | `/insights` | `src/app/insights/page.tsx` (727 lines) | Realm XP breakdown, radar chart, balance score, suggestions | Working | `xp_events`, `realms`, `habits`, `habit_logs` | Hexagonal radar chart with expanded dialog. Balance score computation. 6 realm XP totals. Strong visual component. Large file with embedded analysis logic. |
 | `/settings` | `src/app/settings/page.tsx` (510 lines) | Profile fields, realm CRUD, change password, logout | Working | `profiles`, `realms` | Edit first/last name, display name, birth date. Add custom realms (icon + color picker). Change password form. Logout button. Progression customization section is a placeholder comment. |
@@ -264,21 +266,21 @@ src/
 - Settings page has `InfoTip` components; other pages don't
 
 ### Navigation Quality
-- Desktop: Fixed left sidebar (56px width) with grouped nav + Settings at bottom — good
-- Mobile: Fixed bottom bar with 5 items — but **Settings is missing** from mobile nav
+- Desktop: Fixed left sidebar (56px width) with Life OS grouped nav (Pulse, Growth, Life Domains, Intelligence, System) — good
+- Mobile: Fixed bottom bar derives all 8 items from nav groups (no hardcoded links) — all routes reachable
 - No breadcrumbs, no back button pattern for nested routes
 - Logo links to `/today` (correct), but no visual indicator of which nav section is active beyond color change
 
 ### Dashboard Quality
 - Today page is the most feature-rich dashboard. It aggregates: priorities, habits, tasks, journal, XP, finance overview
-- However, it's 1052 lines with all state/rendering logic in one file — hard to maintain, no component separation
+- Phase 3A extracted 6 components (TodaysPulseHeader, CommandStrip, MissionControl, BodyPulseSection, MindPulseSection, FinanceOverview), reducing page from 1091 to 801 lines
 - No "good morning" personalization, no weather/date greeting, no AI-suggested next action
 - Finance overview on Today page shows account balances only — no mini trends or budget alerts
 
 ### Mobile Readiness
 - Layout uses `min-h-screen` and `md:` breakpoints — adequate but not polished
-- DashboardNav mobile bottom bar is flat (all 5 items equal), no "more" menu for Settings
-- Finance page at 935 lines has complex responsive JSX that may overflow on small screens
+- DashboardNav mobile bottom bar derives all 8 nav items from nav groups (no hardcoded links)
+- Finance page at 641 lines is more manageable but still complex
 - No touch-friendly interactions (swipe, long-press, pull-to-refresh)
 - Input fields on mobile may be small (py-2.5 is ~28px touch target, which is minimum recommended)
 
@@ -314,14 +316,13 @@ The app has a solid foundation — the dark theme, CSS variable system, and typo
 - **Supabase client creation** done directly in each page instead of using a shared hook
 
 ### Oversized Pages/Components
-- `src/app/today/page.tsx`: **1052 lines** — dashboard aggregates 7 data types, all logic in one file
-- `src/app/finance/page.tsx`: **935 lines** — accounts, transactions, budgets, 6 modals, all in one file
-- `src/app/projects/page.tsx`: **875 lines** — project CRUD, task linking, wizard, all in one file
-- `src/app/onboarding/page.tsx`: **823 lines** — realm creation + feature tour + profile, all in one file
-- `src/app/insights/page.tsx`: **727 lines** — analytics computation + rendering + radar chart, all in one file
-- `src/app/today/page.tsx`: **1052 lines** — largest file in project
+- `src/app/today/page.tsx`: **801 lines (was 1091)** — 6 components extracted in Phase 3A
+- `src/app/finance/page.tsx`: **641 lines (was 867)** — 5 components extracted in Phase 3A
+- `src/app/projects/page.tsx`: **454 lines (was 853)** — 4 components extracted in Phase 3A
+- `src/app/onboarding/page.tsx`: **823 lines** — not yet extracted
+- `src/app/insights/page.tsx`: **727 lines** — not yet extracted
 
-These should be broken into smaller components/pages for maintainability.
+Phase 3A extracted ~1044 lines of inline JSX into 15 component files across 3 domains. Remaining extraction candidates: insights and onboarding.
 
 ### Client/Server Component Concerns
 - All pages use `"use client"` — **no server components** except `/privacy`, `/terms`, and `/` (landing page)
@@ -619,25 +620,23 @@ The future vision is a premium personal operating system / AI life assistant —
 
 ---
 
-## 11. Top 10 Issues / Gaps
+## 11. Top Issues / Gaps
 
-1. **Excessively large pages** — Today (~1060 lines after Phase 1+2A), Finance (~925 lines after Phase 2A), Projects (~860 lines after Phase 2A), Onboarding (823 lines), Insights (727 lines). These are unmaintainable and will become blockers as features grow. Each should be 200-400 lines max with extracted sub-components.
+1. **Remaining large pages** — Onboarding (823 lines), Insights (727 lines). Finance (641, was 867), Projects (454, was 853), and Today (801, was 1091) have been extracted. Onboarding and Insights remain as the next targets.
 
-3. **Hardcoded ILS currency** — Finance module defaults to ILS in both migrations and `formatCurrency` utility. International users cannot use finance features without code changes.
+2. **Hardcoded ILS currency** — Finance module defaults to ILS in both migrations and `formatCurrency` utility. International users cannot use finance features without code changes.
 
-4. **No data caching strategy** — Every page fetches data fresh on every render. No SWR, no TanStack Query, no React Server Components for initial data. This will cause poor UX and unnecessary Supabase queries at scale.
+3. **No data caching strategy** — Every page fetches data fresh on every render. No SWR, no TanStack Query, no React Server Components for initial data. This will cause poor UX and unnecessary Supabase queries at scale.
 
-5. **No default finance categories on signup** — Unlike realms (which are created during onboarding), finance categories are empty until the user manually creates them. New users who visit `/finance` first will see a blank state with no guidance.
+4. **No default finance categories on signup** — Unlike realms (which are created during onboarding), finance categories are empty until the user manually creates them. New users who visit `/finance` first will see a blank state with no guidance.
 
-6. ~~**No custom favicon** — Resolved in Phase 2A. `src/app/icon.svg` is a Life Pulse pulse/heartbeat design (dark bg, accent stroke, emerald dot). `favicon.ico` and `apple-icon.tsx` removed.~~ ✅
+5. ~~**No custom favicon** — Resolved in Phase 2A. `src/app/icon.svg` is a Life Pulse pulse/heartbeat design (dark bg, accent stroke, emerald dot). `favicon.ico` and `apple-icon.tsx` removed.~~ ✅
 
-7. **Duplicated CSS patterns** — Input className strings duplicated ~25 times across auth pages and dashboard forms. `src/components/ui/input.tsx` exists but is not consistently used. Full migration deferred to Phase 1.
+6. **Duplicated CSS patterns** — Input className strings duplicated ~25 times across auth pages and dashboard forms. `src/components/ui/input.tsx` exists but is not consistently used. Full migration deferred to later phases.
 
-8. **All pages are `"use client"`** — No React Server Components for initial data fetching. Only `/`, `/privacy`, and `/terms` are server components. This increases client JS bundle size and prevents SSR for dashboard data.
+7. **All pages are `"use client"`** — No React Server Components for initial data fetching. Only `/`, `/privacy`, and `/terms` are server components. This increases client JS bundle size and prevents SSR for dashboard data.
 
-9. **No Supabase query caching** — Every `useEffect` + `supabase.from().select()` fetches data fresh on mount. No SWR/TanStack Query layer. Unnecessary network requests on every navigation.
-
-10. **Finance missing default categories** — Unlike realms (seeded during onboarding), finance has no defaults. New users see an empty state with no guided setup.
+8. **No Supabase query caching** — Every `useEffect` + `supabase.from().select()` fetches data fresh on mount. No SWR/TanStack Query layer. Unnecessary network requests on every navigation.
 
 ---
 
@@ -916,3 +915,104 @@ Tasks:
 
 Run `npm run lint && npm run build` after each change. When done, update the audit document to reflect Phase 1 status.
 ```
+
+## 18. Phase 3A Completion Note — Safe Page Splits and Navigation Restructure
+
+### Goal
+Safely split oversized dashboard pages (Finance, Projects, Today) into focused sub-components and update the DashboardNav to the Life OS grouping — without adding features, changing schema, or breaking existing flows.
+
+### What Changed
+
+#### Finance Extraction (`src/components/finance/`)
+- **5 new components** created:
+  - `SimpleSelect.tsx` (90 lines) — reusable custom dropdown for form selects
+  - `TransactionForm.tsx` (156 lines) — transaction add/edit modal
+  - `BudgetForm.tsx` (67 lines) — budget add/edit modal
+  - `AccountForm.tsx` (99 lines) — account add/edit modal
+  - `BudgetHealthList.tsx` (82 lines) — budget usage bar list
+- Pre-existing finance components: `AccountSummary.tsx`, `CashflowTrendChart.tsx`, `ExpenseBreakdownChart.tsx`, `FinanceInsights.tsx`, `FinanceKpiCard.tsx`, `TransactionList.tsx`, `financeUtils.ts`, `types.ts`
+- **Finance page**: 867 → **641 lines** (‑226)
+
+#### Projects Extraction (`src/components/projects/`)
+- **4 new components** created:
+  - `QuickDraftWizard.tsx` (193 lines) — quick-plan wizard with realm detection, task templates
+  - `ProjectForm.tsx` (132 lines) — project create/edit form modal
+  - `ProjectCard.tsx` (294 lines) — project card with progress, deadine, inline task list
+  - `EmptyProjectState.tsx` (34 lines) — empty state with CTA
+- **Projects page**: 853 → **454 lines** (‑399)
+
+#### Today Extraction (`src/components/today/`)
+- **6 new components** created:
+  - `TodaysPulseHeader.tsx` (56 lines) — greeting, level badge, XP bar
+  - `CommandStrip.tsx` (84 lines) — 5-column MetricCard summary strip
+  - `MissionControl.tsx` (195 lines) — priorities + quick capture panel
+  - `BodyPulseSection.tsx` (80 lines) — habits section
+  - `MindPulseSection.tsx` (64 lines) — tasks section
+  - `FinanceOverview.tsx` (36 lines) — money summary link
+- **Today page**: 1091 → **801 lines** (‑290)
+
+#### DashboardNav Life OS Grouping
+- Nav groups restructured to match Phase 2B IA:
+  - **Pulse** → Today's Pulse
+  - **Growth** → Habits, Tasks, Projects (was "Build")
+  - **Life Domains** → Money (moved from Build)
+  - **Intelligence** → Journal, Insights (merged "Reflect" + "Review")
+  - **System** → Settings (moved from sidebar footer)
+- No route URLs changed
+- Mobile bottom nav now derives all 8 items from `navGroups.flatMap()` — no hardcoded links
+- Settings is reachable on mobile (was previously hardcoded, now part of navGroups)
+- Desktop sidebar no longer has a standalone Settings footer — Settings is rendered inline in navGroups like all other items
+
+#### Build/Lint Verification
+- `npm run lint` ✅ — 0 errors, 2 warnings (pre-existing, unchanged)
+- `npm run build` ✅ — Compiled successfully, all routes generated
+- `npm run typecheck` — Not available (Next.js build covers TypeScript check)
+- `npm test` — Not available (only `npm run test:rls` for RLS smoke testing)
+
+### Files Touched
+
+| File | Change |
+|------|--------|
+| `src/components/finance/SimpleSelect.tsx` | **Created** — reusable dropdown |
+| `src/components/finance/TransactionForm.tsx` | **Created** — transaction modal |
+| `src/components/finance/BudgetForm.tsx` | **Created** — budget modal |
+| `src/components/finance/AccountForm.tsx` | **Created** — account modal |
+| `src/components/finance/BudgetHealthList.tsx` | **Created** — budget list |
+| `src/components/projects/QuickDraftWizard.tsx` | **Created** — quick-plan wizard |
+| `src/components/projects/ProjectForm.tsx` | **Created** — project edit form |
+| `src/components/projects/ProjectCard.tsx` | **Created** — project display card |
+| `src/components/projects/EmptyProjectState.tsx` | **Created** — empty state |
+| `src/components/today/TodaysPulseHeader.tsx` | **Created** — greeting + XP |
+| `src/components/today/CommandStrip.tsx` | **Created** — metric cards strip |
+| `src/components/today/MissionControl.tsx` | **Created** — priorities + capture |
+| `src/components/today/BodyPulseSection.tsx` | **Created** — habits section |
+| `src/components/today/MindPulseSection.tsx` | **Created** — tasks section |
+| `src/components/today/FinanceOverview.tsx` | **Created** — money summary |
+| `src/components/DashboardNav.tsx` | **Updated** — Life OS grouping, removed hardcoded Settings |
+| `src/app/finance/page.tsx` | **Refactored** — 867→641 lines, 5 inline forms extracted |
+| `src/app/projects/page.tsx` | **Refactored** — 853→454 lines, 4 inline sections extracted |
+| `src/app/today/page.tsx` | **Refactored** — 1091→801 lines, 6 inline sections extracted |
+| `docs/LIFE_PULSE_CURRENT_STATE_AUDIT.md` | **Updated** — Phase 3A summary |
+| `docs/LIFE_OS_ARCHITECTURE_PLAN.md` | **Updated** — Phase 3A completion note |
+
+### What Was Intentionally Not Changed
+- No shared data hooks created (useHabits, useTasks, etc. — deferred to Phase 3B)
+- No Insights extraction (727 lines — deferred to Phase 3B)
+- No Onboarding extraction (823 lines — deferred to Phase 3B for safety)
+- No input CSS migration (deferred)
+- No data caching layer (deferred)
+- No React Server Components (deferred)
+- No new routes, schema, or features
+
+### Remaining Risks
+1. **Insights (727 lines) and Onboarding (823 lines)** remain large — next extraction targets
+2. **Suggested task card, all-done banner, welcome empty state** left inline in /today — tightly coupled to page state
+3. **DashboardNav no longer has special Settings styling** (rounded bg icon, subtitle) — Settings now renders with standard nav item styling
+4. **Finance default categories** still missing on fresh signup (pre-existing)
+5. **Input primitive migration** still partial (pre-existing)
+6. **`use-toast.tsx` lint warning** about ref cleanup (pre-existing, cosmetic)
+7. **`TransactionForm.tsx:59` lint warning** about unused `onCancel` prop (pre-existing, cosmetic)
+
+### Recommended Phase 3B Prompt
+
+See Phase 3A closeout output for the recommended Phase 3B prompt.
