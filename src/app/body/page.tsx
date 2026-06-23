@@ -5,12 +5,15 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { DashboardNav } from "@/components/DashboardNav";
-import { SectionHeader } from "@/components/ui/section-header";
 import { PulseCard } from "@/components/ui/pulse-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { BodyPulseHeader } from "@/components/body/BodyPulseHeader";
 import { BodySignalCards } from "@/components/body/BodySignalCards";
 import { BodyHabitsCard } from "@/components/body/BodyHabitsCard";
+import { BodyMetricsForm } from "@/components/body/BodyMetricsForm";
+import { BodyMetricsSummary } from "@/components/body/BodyMetricsSummary";
+import type { BodyMetrics, BodyMetricsFormData } from "@/lib/bodyMetrics";
+import { getTodayDate } from "@/lib/bodyMetrics";
 
 const BODY_REALM = "Body";
 
@@ -57,12 +60,14 @@ function BodyContent() {
   const router = useRouter();
   const supabase = createClient();
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [bodyHabits, setBodyHabits] = useState<HabitInfo[]>([]);
   const [bodyTaskCount, setBodyTaskCount] = useState(0);
   const [journalCount, setJournalCount] = useState(0);
   const [bestStreak, setBestStreak] = useState(0);
   const [completionRate, setCompletionRate] = useState(0);
   const [totalXp, setTotalXp] = useState(0);
+  const [bodyMetrics, setBodyMetrics] = useState<BodyMetrics[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -71,12 +76,13 @@ function BodyContent() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push("/login"); return; }
 
-      const [{ data: habits }, { data: tasks }, { data: journals }, { data: xpEvents }, { data: logs }] = await Promise.all([
+      const [{ data: habits }, { data: tasks }, { data: journals }, { data: xpEvents }, { data: logs }, { data: metrics }] = await Promise.all([
         supabase.from("habits").select("id, title, realms!inner(name)").eq("user_id", user.id).eq("realms.name", BODY_REALM),
         supabase.from("tasks").select("id, title, status, priority, realms!inner(name)").eq("user_id", user.id).neq("status", "done").eq("realms.name", BODY_REALM),
         supabase.from("journal_entries").select("id, energy, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(30),
         supabase.from("xp_events").select("id, amount, realm").eq("user_id", user.id).eq("realm", BODY_REALM),
         supabase.from("habit_logs").select("id, habit_id, logged_date").eq("user_id", user.id).gte("logged_date", new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10)),
+        supabase.from("body_metrics").select("*").eq("user_id", user.id).order("entry_date", { ascending: false }).limit(14),
       ]);
 
       if (cancelled) return;
@@ -118,12 +124,31 @@ function BodyContent() {
       setBestStreak(bestStreakVal);
       setCompletionRate(overallRate);
       setTotalXp(totalXpVal);
+      setBodyMetrics((metrics as BodyMetrics[]) || []);
       setLoading(false);
     }
 
     load();
     return () => { cancelled = true; };
   }, [router, supabase]);
+
+  async function onSaveBody(data: BodyMetricsFormData) {
+    setSaving(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const today = getTodayDate();
+    const existing = bodyMetrics.find((m) => m.entry_date === today);
+    if (existing) {
+      const { data: updated } = await supabase.from("body_metrics").update(data).eq("id", existing.id).select().single();
+      if (updated) setBodyMetrics((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
+    } else {
+      const { data: created } = await supabase.from("body_metrics").insert({ ...data, user_id: user.id, entry_date: today }).select().single();
+      if (created) setBodyMetrics((prev) => [created, ...prev]);
+    }
+    setSaving(false);
+  }
+
+  const todayMetrics = bodyMetrics.find((m) => m.entry_date === getTodayDate()) ?? null;
 
   if (loading) return null;
 
@@ -134,6 +159,24 @@ function BodyContent() {
 
         <div className="mb-6">
           <BodySignalCards habitStreak={bestStreak} completionRate={completionRate} totalXp={totalXp} />
+        </div>
+
+        <div className="mb-6">
+          <BodyMetricsForm
+            initial={{
+              sleep_hours: todayMetrics?.sleep_hours ?? null,
+              sleep_quality: todayMetrics?.sleep_quality ?? null,
+              energy: todayMetrics?.energy ?? null,
+              steps: todayMetrics?.steps ?? null,
+              workout_minutes: todayMetrics?.workout_minutes ?? null,
+              weight_kg: todayMetrics?.weight_kg ?? null,
+              resting_heart_rate: todayMetrics?.resting_heart_rate ?? null,
+              recovery_score: todayMetrics?.recovery_score ?? null,
+              notes: todayMetrics?.notes ?? null,
+            }}
+            saving={saving}
+            onSave={onSaveBody}
+          />
         </div>
 
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -192,21 +235,7 @@ function BodyContent() {
               )}
             </PulseCard>
 
-            <PulseCard title="Coming Later" variant="subtle">
-              <div className="p-4">
-                <SectionHeader label="Device Data" accent="none" />
-                <p className="text-sm text-[var(--text-muted)] leading-relaxed">
-                  Sleep, steps, heart rate, workouts, weight, and recovery score will appear here once device sync is available.
-                </p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {["Sleep", "Steps", "Heart Rate", "Workouts", "Weight", "Recovery"].map((item) => (
-                    <span key={item} className="rounded-md border border-dashed border-[var(--border)] bg-[var(--surface-soft)] px-2 py-1 text-[10px] text-[var(--text-muted)]">
-                      {item}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </PulseCard>
+            <BodyMetricsSummary recent={bodyMetrics} />
           </div>
         </div>
       </div>

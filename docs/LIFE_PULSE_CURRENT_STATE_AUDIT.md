@@ -1,23 +1,23 @@
 # LIFE PULSE — Current State Audit
 
 **Date:** June 23, 2026
-**Commit:** `4fa6b98` (Phase 0 base; Phase 1 + 1.5 + 2A + 2B + 3A applied on top)
+**Commit:** `4fa6b98` (Phase 0 base; Phase 1 + 1.5 + 2A + 2B + 3A + 3B + 4A + 4B applied on top)
 **Branch:** `master` (no remote configured)
 **Build status:** ✅ Clean (0 lint errors, 0 build errors)
-**Working tree:** Clean — all Phase 3A changes applied
-**Architecture Plan:** `docs/LIFE_OS_ARCHITECTURE_PLAN.md` (updated for Phase 3A)
+**Working tree:** Clean — all Phase 3A + 3B + 4A + 4B changes applied
+**Architecture Plan:** `docs/LIFE_OS_ARCHITECTURE_PLAN.md` (updated for Phase 4B)
 
 ---
 
 ## 1. Executive Summary
 
-Life Pulse is a dark-themed, monorepo Next.js 16 web application that functions as a personal dashboard operating system. It provides authenticated users with 8 core tools: Today (command center), Habits, Tasks, Projects, Finance, Journal, Insights (analytics), and Settings. It uses Supabase for all backend needs — auth, database, RLS, and row-level security.
+Life Pulse is a dark-themed, monorepo Next.js 16 web application that functions as a personal dashboard operating system. It provides authenticated users with 10 core tools: Today (command center), Habits, Tasks, Projects, Finance, Journal, Insights (analytics), Settings, Body Pulse, and Mind Pulse. It uses Supabase for all backend needs — auth, database, RLS, and row-level security.
 
-**Production readiness:** The app is feature-complete for a private beta. Build and lint pass clean. All 17 routes render. Auth flow (signup → onboarding → dashboard) is wired end-to-end. RLS is enabled on every table with FK ownership validation. The deployment checklist has been written. After GitHub push and Vercel import, the app can be deployed in minutes.
+**Production readiness:** The app is feature-complete for a private beta. Build and lint pass clean. All 22 routes render. Auth flow (signup → onboarding → dashboard) is wired end-to-end. RLS is enabled on every table with FK ownership validation. The deployment checklist has been written. After GitHub push and Vercel import, the app can be deployed in minutes.
 
-**Strongest parts:** Auth and onboarding flow, RLS security model (FK ownership helpers in 00006 migration, finance ownership in 00007), Insight radar chart, Today dashboard aggregating all data types, Finance module with budgets/trends/breakdowns, XP/level progression system with per-realm titles.
+**Strongest parts:** Auth and onboarding flow, RLS security model (FK ownership helpers in 00006 migration, finance ownership in 00007), Insight radar chart, Today dashboard aggregating all data types, Finance module with budgets/trends/breakdowns, XP/level progression system with per-realm titles, Body/Mind Pulse manual entry forms with body_metrics and mind_metrics schema.
 
-**Biggest gaps:** Remaining large pages (insights ~730 lines, onboarding ~820 lines), duplicated CSS class patterns across remaining auth page inputs, ILS currency hardcoded in finance, no AI coach, no body/health tracking, no wearable integration, no weekly review, no server component data fetching.
+**Biggest gaps:** ILS currency hardcoded in finance, no AI coach, no wearable integration, no weekly review, no server component data fetching.
 
 **Private beta verdict:** ✅ Ready to deploy after GitHub push + Vercel setup + Supabase Auth URL config + setting `NEXT_PUBLIC_SUPPORT_EMAIL` env var on Vercel. Not ready to invite users until post-deploy smoke test passes.
 
@@ -35,14 +35,14 @@ Life Pulse is a dark-themed, monorepo Next.js 16 web application that functions 
 - **ESLint:** ^9 with `eslint-config-next` 16.2.4
 
 ### Routing Model
-- App Router with 17 routes under `src/app/`
+- App Router with 22 routes under `src/app/`
 - All routes are server-rendered by default (dynamic), except static routes (/, /privacy, /terms) which are prerendered as static content
-- Proxy middleware (`src/proxy.ts`) handles auth gating for 8 protected routes and 2 auth routes
+- Proxy middleware (`src/proxy.ts`) handles auth gating for 10 protected routes and 2 auth routes
 
 ### Folder Structure
 ```
 src/
-├── app/                  # 17 routes + layout + globals.css
+├── app/                  # 22 routes + layout + globals.css
 │   ├── auth/callback/    # OAuth code exchange
 │   ├── finance/          # 641 lines — significantly reduced (was 867)
 │   ├── forgot-password/
@@ -84,7 +84,7 @@ src/
 
 ### Auth / Proxy Setup
 - `src/proxy.ts` exports `proxy()` and a `config.matcher` that intercepts all routes except static assets
-- Protected routes: `/onboarding`, `/today`, `/habits`, `/tasks`, `/journal`, `/insights`, `/settings`, `/finance`
+- Protected routes: `/onboarding`, `/today`, `/habits`, `/tasks`, `/journal`, `/insights`, `/settings`, `/finance`, `/body`, `/mind`
 - Auth routes (redirect to dashboard if logged in): `/login`, `/signup`
 - Root `/` redirects to `/today` (onboarded) or `/onboarding` (not onboarded)
 - Proxy checks `auth.getUser()`, then checks `profiles.onboarding_completed`
@@ -112,7 +112,7 @@ src/
 
 ### Deployment Readiness
 - Build and lint pass clean
-- `next build` produces 20 pages (17 routes + `/_not-found` + proxy + layout)
+- `next build` produces 25 pages (22 routes + `/_not-found` + proxy + layout)
 - 1 static route (/) pre-rendered; all others dynamic
 - No git remote configured (branch is `master`, not `main`)
 - Deployment checklist written with sections 0–8
@@ -136,17 +136,19 @@ src/
 | `/projects` | `src/app/projects/page.tsx` (454 lines, was 853) | Project CRUD, task linking, quick-draft wizard | Working | `projects`, `tasks`, `realms` | Status: active/paused/completed. Progress slider (0-100). Expandable task list per project. Quick-draft wizard. Components extracted: QuickDraftWizard, ProjectForm, ProjectCard, EmptyProjectState into `src/components/projects/`. Reduced by 399 lines. |
 | `/finance` | `src/app/finance/page.tsx` (641 lines, was 867) | Accounts, transactions, budgets, KPI cards, charts | Partial | `finance_accounts`, `finance_categories`, `finance_transactions`, `finance_budgets` | Full CRUD for accounts, transactions, budgets. Cash-flow trend chart, expense breakdown pie, budget usage bar. Hardcoded ILS currency. Components extracted: SimpleSelect, TransactionForm, BudgetForm, AccountForm, BudgetHealthList into `src/components/finance/`. Reduced by 226 lines. Missing default categories on fresh signup. |
 | `/journal` | `src/app/journal/page.tsx` (209 lines) | Daily entries with mood/energy ratings, reflection prompts | Working | `journal_entries` | 5 reflection prompts. Mood (1-5) and energy (1-5) ratings. One entry per day (upsert). Clean, focused page. |
-| `/insights` | `src/app/insights/page.tsx` (727 lines) | Realm XP breakdown, radar chart, balance score, suggestions | Working | `xp_events`, `realms`, `habits`, `habit_logs` | Hexagonal radar chart with expanded dialog. Balance score computation. 6 realm XP totals. Strong visual component. Large file with embedded analysis logic. |
+| `/insights` | `src/app/insights/page.tsx` (524 lines) | Realm XP breakdown, radar chart, balance score, suggestions | Working | `xp_events`, `realms`, `habits`, `habit_logs` | Hexagonal radar chart with expanded dialog. Balance score computation. 6 realm XP totals. Strong visual component. Phase 3B extracted ~200 lines into 6 components. |
+| `/body` | `src/app/body/page.tsx` (253 lines) | Body Pulse dashboard + manual entry | Working | `habits`, `tasks`, `journal_entries`, `xp_events`, `habit_logs`, `body_metrics` | Displays body habits, tasks, energy trend from journal. BodyMetricsForm (sleep, steps, workouts, weight, HR, recovery) + BodyMetricsSummary. Phase 4B added body_metrics table + entry form. |
+| `/mind` | `src/app/mind/page.tsx` (247 lines) | Mind Pulse dashboard + manual entry | Working | `journal_entries`, `habits`, `tasks`, `xp_events`, `mind_metrics` | Displays journal mood/energy, habits, tasks, XP. MindMetricsForm (mood, stress, focus, clarity, motivation, tags, reflection) + MindMetricsSummary. Phase 4B added mind_metrics table + entry form. |
 | `/settings` | `src/app/settings/page.tsx` (510 lines) | Profile fields, realm CRUD, change password, logout | Working | `profiles`, `realms` | Edit first/last name, display name, birth date. Add custom realms (icon + color picker). Change password form. Logout button. Progression customization section is a placeholder comment. |
 | `/privacy` | `src/app/privacy/page.tsx` (182 lines) | Privacy policy | Working (static) | `getSupportEmail()` from config | Reads from `NEXT_PUBLIC_SUPPORT_EMAIL` env var via `src/lib/config.ts`. Falls back to `support@lifepulse.app`. Must be set in Vercel before beta. |
 | `/terms` | `src/app/terms/page.tsx` (170 lines) | Terms of service | Working (static) | `getSupportEmail()` from config | Reads from `NEXT_PUBLIC_SUPPORT_EMAIL` env var via `src/lib/config.ts`. Falls back to `support@lifepulse.app`. Must be set in Vercel before beta. |
 
 ### Route Status Summary
-- **Working:** 16/17 routes (all except finance)
-- **Partial:** 1/17 (finance — missing default category seeding)
-- **Risky:** 0/17
-- **Placeholder:** 0/17
-- **Missing:** 0/17
+- **Working:** 20/22 routes (all except finance; body + mind added)
+- **Partial:** 2/22 (finance — missing default category seeding; body/mind show empty states without habits/tasks/journal)
+- **Risky:** 0/22
+- **Placeholder:** 0/22
+- **Missing:** 0/22
 - **Auto-generated (not in route list):** `/_not-found` (Next.js default, excluded from audit count)
 
 ---
@@ -169,6 +171,8 @@ src/
 | `finance_categories` | Income/expense categories per user | ✅ | N/A | Unique(user_id, type, lower(name)). |
 | `finance_transactions` | Income/expense records | ✅ | ✅ (account_id, category_id) | Amount > 0; type checked against category type. |
 | `finance_budgets` | Monthly budget per expense category | ✅ | ✅ (category_id must be expense type) | Month must be 1st of month. |
+| `body_metrics` | Daily body signals (sleep, steps, workouts, weight, HR, recovery, energy, notes) | ✅ | N/A | Unique(user_id, entry_date). Phase 4B — manual entry only, no device/wearable fields yet. |
+| `mind_metrics` | Daily mind signals (mood, stress, focus, clarity, motivation, reflection, tags) | ✅ | N/A | Unique(user_id, entry_date). Phase 4B — manual entry only, no device fields yet. |
 
 ### Key Relationships
 - All tables reference `auth.users(id)` via `user_id` with `on delete cascade`
@@ -179,8 +183,8 @@ src/
 - `finance_transactions.account_id` → `finance_accounts(id)` (set null), `finance_transactions.category_id` → `finance_categories(id)` (set null)
 - `finance_budgets.category_id` → `finance_categories(id)` (cascade delete)
 
-### Ownership Safety (00006 + 00007)
-- 5 helper functions: `realm_belongs_to_user`, `habit_belongs_to_user`, `project_belongs_to_user`, `task_belongs_to_user`, `habit_log_belongs_to_user`, `finance_account_belongs_to_user`, `finance_category_belongs_to_user_and_type`
+### Ownership Safety (00006 + 00007 + 00008)
+- 5 helper functions (from 00006): `realm_belongs_to_user`, `habit_belongs_to_user`, `project_belongs_to_user`, `task_belongs_to_user`, `habit_log_belongs_to_user`, `finance_account_belongs_to_user`, `finance_category_belongs_to_user_and_type`
 - All INSERT/UPDATE policies on FK-bearing tables validate ownership of referenced rows
 - XP event INSERT validates that the source task or habit log belongs to the user
 - Budgets only allow expense-type categories
@@ -192,9 +196,10 @@ src/
 - **00006 (RLS FK ownership):** Replaces policies from 00001 — safe, always drops first
 - **00007 (finance):** Adds new tables + helpers + policies — fully additive, no conflicts
 - **00005 (projects):** Adds `project_id` column to `tasks` via `alter table ... add column if not exists` — safe
+- **00008 (body_mind_metrics):** Adds `body_metrics` and `mind_metrics` tables with RLS + triggers — fully additive, no conflicts with existing tables
 
 ### Production Setup Requirements
-- Run `supabase migration up` (or apply all 7 migrations manually) on production Supabase project
+- Run `supabase migration up` (or apply all 8 migrations manually) on production Supabase project
 - Configure Supabase Auth: Enable email confirmations (or disable for beta), set Site URL and redirect URLs
 - Create 2 test users for RLS smoke test, then delete them
 
@@ -227,8 +232,9 @@ src/
 | **Loading States** | ✅ Phase 0 Complete | Root `loading.tsx` + skeleton loading states for all 8 dashboard routes (today, habits, tasks, projects, finance, journal, insights, settings) | No Suspense boundaries, no granular per-component loading | Low |
 | **Error Handling** | ✅ Phase 0 Complete | Root `error.tsx` + error boundaries for all 8 dashboard routes with "Try again" buttons. No raw Supabase errors exposed. | No offline detection, no retry-after-failure logic for data fetches | Low |
 | **Toasts/Feedback** | ✅ Complete | Toast system via `useToast` hook + `ToastProvider` in root layout. Inline `feedback` banners replaced in all 7 dashboard pages. Dark-glass styling, auto-dismiss 4s, max 5 visible. | Auth pages (login, signup, forgot/reset password) still use inline error states — acceptable for form-level validation | Low |
+| **Body Pulse** | ✅ Phase 4A+4B | /body route with manual entry form (sleep, steps, workouts, weight, HR, recovery, energy), body_metrics table with RLS, 7-day summary | No wearable/device sync, no AI coaching, no trend charts | Low (manual entry viable for beta) |
+| **Mind Pulse** | ✅ Phase 4A+4B | /mind route with manual entry form (mood, stress, focus, clarity, motivation, reflection, tags), mind_metrics table with RLS, 7-day summary | No structured focus sessions, no emotional pattern analysis | Low (manual entry viable for beta) |
 | **AI Coach** | ❌ Missing | None | Not started | Future phase |
-| **Body/Health Tracking** | ❌ Missing | None | Not started | Future phase |
 | **Smart Ring/Watch** | ❌ Missing | None | Not started | Future phase |
 
 ---

@@ -5,13 +5,16 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { DashboardNav } from "@/components/DashboardNav";
-import { SectionHeader } from "@/components/ui/section-header";
 import { PulseCard } from "@/components/ui/pulse-card";
 import { MetricCard } from "@/components/ui/metric-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { MindPulseHeader } from "@/components/mind/MindPulseHeader";
 import { MoodEnergyCard } from "@/components/mind/MoodEnergyCard";
 import { ReflectionCard } from "@/components/mind/ReflectionCard";
+import { MindMetricsForm } from "@/components/mind/MindMetricsForm";
+import { MindMetricsSummary } from "@/components/mind/MindMetricsSummary";
+import type { MindMetrics, MindMetricsFormData } from "@/lib/mindMetrics";
+import { getTodayDate } from "@/lib/mindMetrics";
 
 const MIND_REALM = "Mind";
 
@@ -47,12 +50,14 @@ function MindContent() {
   const router = useRouter();
   const supabase = createClient();
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [journalEntries, setJournalEntries] = useState<RawJournal[]>([]);
   const [mindHabits, setMindHabits] = useState<RawHabit[]>([]);
   const [mindTaskCount, setMindTaskCount] = useState(0);
   const [journalStreak, setJournalStreak] = useState(0);
   const [avgMood, setAvgMood] = useState<number | null>(null);
   const [mindXp, setMindXp] = useState(0);
+  const [mindMetrics, setMindMetrics] = useState<MindMetrics[]>([]);
   useEffect(() => {
     let cancelled = false;
 
@@ -60,11 +65,12 @@ function MindContent() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push("/login"); return; }
 
-      const [{ data: journals }, { data: habits }, { data: tasks }, { data: xpEvents }] = await Promise.all([
+      const [{ data: journals }, { data: habits }, { data: tasks }, { data: xpEvents }, { data: metrics }] = await Promise.all([
         supabase.from("journal_entries").select("id, mood, energy, content, reflection_prompt, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(30),
         supabase.from("habits").select("id, title, realms!inner(name)").eq("user_id", user.id).eq("realms.name", MIND_REALM),
         supabase.from("tasks").select("id, title, status, realms!inner(name)").eq("user_id", user.id).neq("status", "done").eq("realms.name", MIND_REALM),
         supabase.from("xp_events").select("id, amount, realm").eq("user_id", user.id).eq("realm", MIND_REALM),
+        supabase.from("mind_metrics").select("*").eq("user_id", user.id).order("entry_date", { ascending: false }).limit(14),
       ]);
 
       if (cancelled) return;
@@ -95,12 +101,31 @@ function MindContent() {
       setJournalStreak(streak);
       setAvgMood(avgMoodVal);
       setMindXp(mindXpVal);
+      setMindMetrics((metrics as MindMetrics[]) || []);
       setLoading(false);
     }
 
     load();
     return () => { cancelled = true; };
   }, [router, supabase]);
+
+  async function onSaveMind(data: MindMetricsFormData) {
+    setSaving(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const today = getTodayDate();
+    const existing = mindMetrics.find((m) => m.entry_date === today);
+    if (existing) {
+      const { data: updated } = await supabase.from("mind_metrics").update(data).eq("id", existing.id).select().single();
+      if (updated) setMindMetrics((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
+    } else {
+      const { data: created } = await supabase.from("mind_metrics").insert({ ...data, user_id: user.id, entry_date: today }).select().single();
+      if (created) setMindMetrics((prev) => [created, ...prev]);
+    }
+    setSaving(false);
+  }
+
+  const todayMetrics = mindMetrics.find((m) => m.entry_date === getTodayDate()) ?? null;
 
   if (loading) return null;
 
@@ -130,6 +155,22 @@ function MindContent() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           } trend={mindXp > 0 ? "up" : "neutral"} active={mindXp > 0} />
+        </div>
+
+        <div className="mb-6">
+          <MindMetricsForm
+            initial={{
+              mood: todayMetrics?.mood ?? null,
+              stress: todayMetrics?.stress ?? null,
+              focus: todayMetrics?.focus ?? null,
+              clarity: todayMetrics?.clarity ?? null,
+              motivation: todayMetrics?.motivation ?? null,
+              reflection: todayMetrics?.reflection ?? null,
+              tags: todayMetrics?.tags ?? [],
+            }}
+            saving={saving}
+            onSave={onSaveMind}
+          />
         </div>
 
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -195,21 +236,7 @@ function MindContent() {
               )}
             </PulseCard>
 
-            <PulseCard title="Coming Later" variant="subtle">
-              <div className="p-4">
-                <SectionHeader label="Advanced Analytics" accent="none" />
-                <p className="text-sm text-[var(--text-muted)] leading-relaxed">
-                  Stress tracking, focus score, emotional patterns, and AI-guided reflection prompts will appear here in future updates.
-                </p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {["Stress", "Focus Score", "Emotional Patterns", "AI Reflection"].map((item) => (
-                    <span key={item} className="rounded-md border border-dashed border-[var(--border)] bg-[var(--surface-soft)] px-2 py-1 text-[10px] text-[var(--text-muted)]">
-                      {item}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </PulseCard>
+            <MindMetricsSummary recent={mindMetrics} />
           </div>
         </div>
       </div>

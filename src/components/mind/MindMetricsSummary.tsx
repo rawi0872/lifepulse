@@ -1,0 +1,71 @@
+"use client";
+
+import { PulseCard } from "@/components/ui/pulse-card";
+import { EmptyState } from "@/components/ui/empty-state";
+import Link from "next/link";
+import type { MindMetrics } from "@/lib/mindMetrics";
+
+interface MindMetricsSummaryProps {
+  recent: MindMetrics[];
+}
+
+function scoreLabel(val: number): string {
+  if (val >= 4) return "High";
+  if (val >= 3) return "Moderate";
+  return "Low";
+}
+
+export function MindMetricsSummary({ recent }: MindMetricsSummaryProps) {
+  const hasData = recent.length > 0;
+
+  return (
+    <PulseCard title="Recent Mind Data" accent="accent" description="Last 7 days">
+      {!hasData ? (
+        <div className="p-4">
+          <EmptyState
+            message="No mind metrics logged yet."
+            description="Use the form to start tracking daily signals."
+          />
+        </div>
+      ) : (
+        <div className="divide-y divide-[var(--border)]">
+          {recent.slice(0, 7).map((entry) => {
+            const date = new Date(entry.entry_date);
+            const isToday = date.toDateString() === new Date().toDateString();
+            const parts: string[] = [];
+            if (entry.mood !== null) parts.push(`Mood ${entry.mood}/5`);
+            if (entry.focus !== null) parts.push(`Focus ${entry.focus}/5`);
+            if (entry.stress !== null) parts.push(`Stress ${scoreLabel(entry.stress)}`);
+            if (entry.tags && entry.tags.length > 0) parts.push(entry.tags.join(", "));
+
+            return (
+              <div key={entry.id} className="px-4 py-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-[var(--text-muted)]">
+                    {isToday ? "Today" : date.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
+                  </span>
+                  {isToday && (
+                    <span className="rounded-full bg-[var(--accent-soft)] px-2 py-0.5 text-[9px] font-medium text-[var(--accent)]">Logged</span>
+                  )}
+                </div>
+                {parts.length > 0 && (
+                  <p className="mt-0.5 text-xs text-[var(--text-secondary)]">{parts.join(" · ")}</p>
+                )}
+                {entry.reflection && (
+                  <p className="mt-0.5 line-clamp-1 text-[10px] text-[var(--text-muted)]">&ldquo;{entry.reflection}&rdquo;</p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+      {hasData && (
+        <div className="border-t border-[var(--border)] px-4 py-2">
+          <Link href="/mind" className="text-[10px] font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">
+            View all mind data &rarr;
+          </Link>
+        </div>
+      )}
+    </PulseCard>
+  );
+}

@@ -25,27 +25,27 @@
 | `/projects` | `projects/page.tsx` | 454 (was 853) | Project CRUD | Project Pulse | Phase 3A extracted 4 components, -399 lines |
 | `/finance` | `finance/page.tsx` | 641 (was 867) | Finance management | Money Pulse | Phase 3A extracted 5 components, -226 lines |
 | `/journal` | `journal/page.tsx` | 209 | Daily journal | Journal/Reflection | No — clean, focused |
-| `/insights` | `insights/page.tsx` | 727 | Analytics/reviews | Intelligence | Not yet extracted — next target |
+| `/insights` | `insights/page.tsx` | 524 | Analytics/reviews | Intelligence | Phase 3B extracted ~200 lines into 6 components |
+| `/body` | `body/page.tsx` | 253 | Body Pulse dashboard + manual entry | Life Domains | Phase 4A+4B — body_metrics table, manual entry form, recent summary |
+| `/mind` | `mind/page.tsx` | 247 | Mind Pulse dashboard + manual entry | Life Domains | Phase 4A+4B — mind_metrics table, manual entry form, recent summary |
 | `/settings` | `settings/page.tsx` | ~510 | Profile/realms/prefs | System | Moderate — profile, realms, password, realm CRUD |
 | `/privacy` | `privacy/page.tsx` | 182 | Legal | Public | No |
 | `/terms` | `terms/page.tsx` | 170 | Legal | Public | No |
 
-### 1.2 Current Navigation Structure (After Phase 3A)
+### 1.2 Current Navigation Structure (After Phase 4A+4B)
 
 ```
  Pulse           → Today's Pulse
  Growth          → Habits, Tasks, Projects
- Life Domains    → Money
+ Life Domains    → Body, Mind, Money
  Intelligence    → Journal, Insights
  System          → Settings
 ```
 
-**Changes from Phase 2B:**
-- "Build" renamed to "Growth" ✅
-- Finance moved to "Life Domains" as "Money" ✅
-- "Reflect" and "Review" merged into "Intelligence" ✅
-- Settings added to nav groups as "System" ✅
-- Mobile nav derives all 8 items from nav groups (no hardcoded links) ✅
+**Changes from Phase 3A:**
+- Body and Mind added to Life Domains ✅
+- 10 nav items across 5 groups (was 8 items in 5 groups) ✅
+- Mobile nav derives all 10 items from nav groups (no hardcoded links) ✅
 
 ### 1.3 Current Data Ownership
 
@@ -822,15 +822,55 @@ Phase 4A was recommended to add Body Pulse and Mind Pulse foundation. This has b
 - **ADR-004**: Manual Entry Before Wearable Integration — Phase 4A implements manual data from existing tables ✅
 - **ADR-006**: No Placeholder Routes — /body and /mind now have real content ✅
 
+### Previously Noted Risks (Now Addressed by Phase 4B)
+1. ✅ **Dedicated Body/Mind metrics schema added** — `body_metrics` and `mind_metrics` tables with RLS
+2. ⚠️ Pages show empty states for users without Body/Mind realm habits/tasks — unchanged, acceptable for v1
+3. Focus habit detection uses heuristic keyword matching — unchanged, acceptable for v1
+4. 2 pre-existing lint warnings — unchanged
+
+---
+
+## 15. Phase 4B Completion Note (June 23, 2026)
+
+### What Changed
+- **New migration**: `00008_body_mind_metrics.sql` — adds `body_metrics` and `mind_metrics` tables with RLS policies, indexes, and updated_at triggers
+- **Body Pulse page** (`/body`): Added `BodyMetricsForm` component (manual entry for sleep, steps, workouts, weight, HR, recovery, energy, notes) + `BodyMetricsSummary` showing last 7 days. Integrated with `body_metrics` table for CRUD via supabase client.
+- **Mind Pulse page** (`/mind`): Added `MindMetricsForm` (mood, stress, focus, clarity, motivation, reflection, tags) + `MindMetricsSummary` showing last 7 days. Integrated with `mind_metrics` table.
+- **4 new component files** created:
+  - `src/components/body/BodyMetricsForm.tsx` — manual entry form with rating rows + numeric inputs
+  - `src/components/body/BodyMetricsSummary.tsx` — recent entries list with "Today" badge
+  - `src/components/mind/MindMetricsForm.tsx` — manual entry form with rating rows + tags + reflection
+  - `src/components/mind/MindMetricsSummary.tsx` — recent entries list with mood/focus/stress preview
+- **2 new lib files**: `src/lib/bodyMetrics.ts` and `src/lib/mindMetrics.ts` — TypeScript types + helpers (`getTodayDate`, `avgRecent`)
+- **Body/Mind pages reduced** (previously imports only): Body page now 253 lines (was 223 + form logic), Mind page now 247 lines (was 226 + form logic)
+
+### Database Schema Added
+```sql
+-- body_metrics
+sleep_hours numeric(4,2), sleep_quality int(1-5), energy int(1-5),
+steps int, workout_minutes int, weight_kg numeric(6,2),
+resting_heart_rate int, recovery_score int(0-100), notes text
+unique(user_id, entry_date)
+
+-- mind_metrics
+mood int(1-5), stress int(1-5), focus int(1-5),
+clarity int(1-5), motivation int(1-5),
+reflection text, tags text[]
+unique(user_id, entry_date)
+```
+
+### Build Verification
+- `npm run lint` ✅ — 0 errors, 2 warnings (pre-existing)
+- `npm run build` ✅ — 25 routes generated (was 22)
+
+### ADRs Updated
+- **ADR-004**: Manual entry implemented — body_metrics + mind_metrics tables with manual forms ✅
+- **ADR-006**: /body and /mind now have real content with schema backing ✅
+
 ### Remaining Risks
-1. No dedicated Body/Mind metrics schema — data is projected from existing tables
-2. Pages show empty states for users without Body/Mind realm habits/tasks
-3. Focus habit detection uses heuristic keyword matching
-4. 2 pre-existing lint warnings
-
-### Recommended Next Action: Phase 4B
-
-Add manual Body/Mind metric schema and entry forms. After reviewing Phase 4A, add lightweight tables for body metrics (sleep, weight, steps, workouts) and mind metrics (structured mood logs, focus sessions) with manual entry forms. Optionally migrate journal-based mood/energy into structured data.
+1. Pages show empty states for users without Body/Mind realm habits/tasks
+2. Focus habit detection uses heuristic keyword matching
+3. 2 pre-existing lint warnings
 
 ---
 
