@@ -1,11 +1,11 @@
 # LIFE PULSE — Current State Audit
 
 **Date:** June 23, 2026
-**Commit:** `4fa6b98` (Phase 0 base; Phase 1 + 1.5 + 2A + 2B + 3A + 3B + 4A + 4B + 4C + 4D + 5A applied on top)
+**Commit:** `4fa6b98` (Phase 0 base; Phase 1 + 1.5 + 2A + 2B + 3A + 3B + 4A + 4B + 4C + 4D + 5A + 5B applied on top)
 **Branch:** `master` (no remote configured)
 **Build status:** ✅ Clean (0 lint errors, 0 build errors)
-**Working tree:** Clean — all Phase 4D changes applied + Phase 5A Goals foundation
-**Architecture Plan:** `docs/LIFE_OS_ARCHITECTURE_PLAN.md` (updated for Phase 5A)
+**Working tree:** Clean — all Phase 4D changes applied + Phase 5A Goals foundation + Phase 5B Goal Links
+**Architecture Plan:** `docs/LIFE_OS_ARCHITECTURE_PLAN.md` (updated for Phase 5B)
 
 ---
 
@@ -13,7 +13,7 @@
 
 Life Pulse is a dark-themed, monorepo Next.js 16 web application that functions as a personal dashboard operating system. It provides authenticated users with 10 core tools: Today (command center), Habits, Tasks, Projects, Finance, Journal, Insights (analytics), Settings, Body Pulse, and Mind Pulse. It uses Supabase for all backend needs — auth, database, RLS, and row-level security.
 
-**Production readiness:** The app is feature-complete for a private beta. Build and lint pass clean. All 22 routes render. Auth flow (signup → onboarding → dashboard) is wired end-to-end. RLS is enabled on every table with FK ownership validation. The deployment checklist has been written. After GitHub push and Vercel import, the app can be deployed in minutes.
+**Production readiness:** The app is feature-complete for a private beta. Build and lint pass clean. All 23 routes render. Auth flow (signup → onboarding → dashboard) is wired end-to-end. RLS is enabled on every table with FK ownership validation. The deployment checklist has been written. After GitHub push and Vercel import, the app can be deployed in minutes.
 
 **Strongest parts:** Auth and onboarding flow, RLS security model (FK ownership helpers in 00006 migration, finance ownership in 00007), Insight radar chart, Today dashboard aggregating all data types, Finance module with budgets/trends/breakdowns, XP/level progression system with per-realm titles, Body/Mind Pulse manual entry forms with body_metrics and mind_metrics schema.
 
@@ -35,14 +35,14 @@ Life Pulse is a dark-themed, monorepo Next.js 16 web application that functions 
 - **ESLint:** ^9 with `eslint-config-next` 16.2.4
 
 ### Routing Model
-- App Router with 22 routes under `src/app/`
+- App Router with 23 routes under `src/app/`
 - All routes are server-rendered by default (dynamic), except static routes (/, /privacy, /terms) which are prerendered as static content
 - Proxy middleware (`src/proxy.ts`) handles auth gating for 10 protected routes and 2 auth routes
 
 ### Folder Structure
 ```
 src/
-├── app/                  # 22 routes + layout + globals.css
+├── app/                  # 23 routes + layout + globals.css
 │   ├── auth/callback/    # OAuth code exchange
 │   ├── finance/          # 641 lines — significantly reduced (was 867)
 │   ├── forgot-password/
@@ -119,7 +119,7 @@ src/
 
 ### Deployment Readiness
 - Build and lint pass clean
-- `next build` produces 25 pages (22 routes + `/_not-found` + proxy + layout)
+- `next build` produces 25 pages (23 routes + `/_not-found` + proxy + layout)
 - 1 static route (/) pre-rendered; all others dynamic
 - No git remote configured (branch is `master`, not `main`)
 - Deployment checklist written with sections 0–8
@@ -144,7 +144,7 @@ src/
 | `/finance` | `src/app/finance/page.tsx` (641 lines, was 867) | Accounts, transactions, budgets, KPI cards, charts | Partial | `finance_accounts`, `finance_categories`, `finance_transactions`, `finance_budgets` | Full CRUD for accounts, transactions, budgets. Cash-flow trend chart, expense breakdown pie, budget usage bar. Hardcoded ILS currency. Components extracted: SimpleSelect, TransactionForm, BudgetForm, AccountForm, BudgetHealthList into `src/components/finance/`. Reduced by 226 lines. Missing default categories on fresh signup. |
 | `/journal` | `src/app/journal/page.tsx` (209 lines) | Daily entries with mood/energy ratings, reflection prompts | Working | `journal_entries` | 5 reflection prompts. Mood (1-5) and energy (1-5) ratings. One entry per day (upsert). Clean, focused page. |
 | `/insights` | `src/app/insights/page.tsx` (524 lines) | Realm XP breakdown, radar chart, balance score, suggestions | Working | `xp_events`, `realms`, `habits`, `habit_logs` | Hexagonal radar chart with expanded dialog. Balance score computation. 6 realm XP totals. Strong visual component. Phase 3B extracted ~200 lines into 6 components. |
-| `/goals` | `src/app/goals/page.tsx` (~310 lines) | Goal Pulse dashboard for long-term outcomes | Working | `goals`, `goal_milestones`, `realms` | Goals CRUD (active/paused/completed/archived), milestones with progress bar, realm linking, priority/target date. Phase 5A — standalone goals + milestones, no project/task/habit linking yet. |
+| `/goals` | `src/app/goals/page.tsx` (~380 lines) | Goal Pulse dashboard for long-term outcomes | Working | `goals`, `goal_milestones`, `goal_links`, `projects`, `tasks`, `habits`, `realms` | Goals CRUD (active/paused/completed/archived), milestones with progress bar, realm linking, priority/target date, project/task/habit linking via goal_links. Phase 5B — linking UX with add/remove, expandable per goal card. |
 | `/body` | `src/app/body/page.tsx` (~255 lines) | Body Pulse dashboard + manual entry | Working | `habits`, `tasks`, `journal_entries`, `xp_events`, `habit_logs`, `body_metrics` | Displays body habits, tasks, energy trend from journal. BodyMetricsForm (sleep, steps, workouts, weight, HR, recovery) + BodyMetricsSummary + BodyMetricsAverages. Phase 4B added body_metrics table + entry form. Phase 4D replaced Energy Trend card with averages card (sleep, energy, recovery, steps, workout) with trend indicators. |
 | `/mind` | `src/app/mind/page.tsx` (~250 lines) | Mind Pulse dashboard + manual entry | Working | `journal_entries`, `habits`, `tasks`, `xp_events`, `mind_metrics` | Displays journal mood/energy, habits, tasks, XP. MindMetricsForm (mood, stress, focus, clarity, motivation, tags, reflection) + MindMetricsSummary + MindMetricsAverages. Phase 4B added mind_metrics table + entry form. Phase 4D added averages card (mood, stress, focus, clarity, motivation) with trend indicators. |
 | `/settings` | `src/app/settings/page.tsx` (510 lines) | Profile fields, realm CRUD, change password, logout | Working | `profiles`, `realms` | Edit first/last name, display name, birth date. Add custom realms (icon + color picker). Change password form. Logout button. Progression customization section is a placeholder comment. |
@@ -193,7 +193,7 @@ src/
 - `finance_transactions.account_id` → `finance_accounts(id)` (set null), `finance_transactions.category_id` → `finance_categories(id)` (set null)
 - `finance_budgets.category_id` → `finance_categories(id)` (cascade delete)
 
-### Ownership Safety (00006 + 00007 + 00008 + 00009)
+### Ownership Safety (00006 + 00007 + 00008 + 00009 + 00010)
 - 6 helper functions: `realm_belongs_to_user`, `habit_belongs_to_user`, `project_belongs_to_user`, `task_belongs_to_user`, `habit_log_belongs_to_user`, `finance_account_belongs_to_user`, `finance_category_belongs_to_user_and_type`, `goal_realm_belongs_to_user`
 - All INSERT/UPDATE policies on FK-bearing tables validate ownership of referenced rows
 - XP event INSERT validates that the source task or habit log belongs to the user
@@ -208,16 +208,17 @@ src/
 - **00005 (projects):** Adds `project_id` column to `tasks` via `alter table ... add column if not exists` — safe
 - **00008 (body_mind_metrics):** Adds `body_metrics` and `mind_metrics` tables with RLS + triggers — fully additive, no conflicts with existing tables
 - **00009 (goals):** Adds `goals` and `goal_milestones` tables with RLS + triggers + FK ownership helper — fully additive, no conflicts with existing tables
+- **00010 (goal_links):** Adds `goal_links` table with RLS + ownership validation via policy `with check` (reuses existing `goal_belongs_to_user`, `project_belongs_to_user`, `task_belongs_to_user`, `habit_belongs_to_user` helpers) — fully additive, no conflicts
 
 ### Production Setup Requirements
-- Run `supabase migration up` (or apply all 9 migrations manually) on production Supabase project
+- Run `supabase migration up` (or apply all 10 migrations manually) on production Supabase project
 - Configure Supabase Auth: Enable email confirmations (or disable for beta), set Site URL and redirect URLs
 - Create 2 test users for RLS smoke test, then delete them
 
 ### RLS Smoke Test
 - Script: `scripts/rls-smoke-test.mjs` (745 lines)
 - Requires env vars: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `RLS_TEST_USER_A_EMAIL`, `RLS_TEST_USER_A_PASSWORD`, `RLS_TEST_USER_B_EMAIL`, `RLS_TEST_USER_B_PASSWORD`
-- Tests that User A cannot read/update/delete User B's data across all 16 tables (12 original + body_metrics + mind_metrics + goals + goal_milestones)
+- Tests that User A cannot read/update/delete User B's data across all 17 tables (12 original + body_metrics + mind_metrics + goals + goal_milestones + goal_links)
 - Currently **blocked** — cannot run until test users exist in production Supabase
 
 ---
@@ -398,7 +399,7 @@ Phase 3A extracted ~1044 lines of inline JSX into 15 component files across 3 do
 - Build and lint pass clean
 - All 21 routes render
 - Auth flow (signup → onboarding → dashboard) is complete
-- RLS enabled on all 14 tables with FK ownership checks
+- RLS enabled on all 17 tables with FK ownership checks
 - Security headers configured (CSP, HSTS, X-Frame-Options, etc.)
 - `.env.local` is gitignored
 - `.env.example` contains only placeholders
@@ -473,8 +474,8 @@ The future vision is a premium personal operating system / AI life assistant —
 **Needed:** Multi-currency support, recurring transactions, bill reminders, net worth tracking, investment portfolio tracking, spending insights (AI-categorized), export to CSV/PDF, financial goal setting.
 
 ### Goal Pulse
-**Current:** No dedicated goals feature. Projects serve as proxies.
-**Needed:** Goal-setting framework (OKR or SMART), progress tracking aligned with XP, milestone tracking, quarterly/annual review.
+**Current:** Goals CRUD (active/paused/completed/archived), milestones with progress bar, realm linking, priority/target date, project/task/habit linking (goal_links). Today page Goal Pulse preview shows active count, nearest target date, and milestone completion rate.
+**Needed:** OKR-style key results, XP-aligned progress tracking, quarterly/annual review, Goals→Projects timeline view.
 
 ### Project Pulse
 **Current:** Projects CRUD with tasks, progress slider, deadlines.
@@ -882,7 +883,7 @@ Audit current information architecture, design the future Life OS route map, pro
 1. **Navigation Architecture**: Pulse → Growth → Life Domains → Intelligence → System (5 groups). Phase 3 renames "Build" → "Growth" and moves Finance to "Life Domains" as "Money". Body, Mind, Goals, Coach added in later phases.
 2. **Page Split Order**: Finance (lowest risk) → Projects → Today → Insights → Onboarding (highest risk). Each extraction documented with proposed component breakdown, estimated line reduction, and risk level.
 3. **Data Layer**: Custom hooks (`useHabits`, `useTasks`, etc.) in Phase 3 before evaluating SWR/React Query. No dependencies added yet. Cache helper option available if needed.
-4. **Future Schema**: Body (`body_metric_types`, `body_metric_logs`), Mind (`mind_session_types`, `mind_session_logs`), Goals (`goals`, `goal_milestones`, `goal_links`), Devices (`integration_providers`, `user_integrations`), Coach (`coach_recommendations`, `weekly_reviews`). All proposals — no migrations created.
+4. **Future Schema**: Body (`body_metric_types`, `body_metric_logs`), Mind (`mind_session_types`, `mind_session_logs`), Goals (`goals`, `goal_milestones`, `goal_links` ✅ — Phase 5B), Devices (`integration_providers`, `user_integrations`), Coach (`coach_recommendations`, `weekly_reviews`). Proposals — migrations created for goals/goal_milestones (00009) and goal_links (00010).
 5. **Wearable Integration**: Manual entry first (Phase 4), HealthKit/Health Connect (Phase 6), Oura/smart ring APIs (Phase 7), generic provider abstraction (Phase 8). NOT direct BLE integration.
 6. **AI Coach**: Rule-based first (Phase 5), LLM-assisted optional (Phase 7). Data read from all existing tables but never shared without consent.
 7. **No Placeholder Routes**: Decision not to add `/body`, `/mind`, `/goals`, `/devices`, `/coach` yet. They create confusing pages for beta testers.
@@ -1190,8 +1191,8 @@ Add Body Pulse (/body) and Mind Pulse (/mind) as real Life OS sections using exi
 
 ### Build/Lint Verification
 - `npm run lint` ✅ — 0 errors, 2 warnings (pre-existing, unchanged)
-- `npm run build` ✅ — Compiled successfully, 22 routes generated
-- Routes: /, /auth/callback, /body, /finance, /forgot-password, /habits, /icon.svg, /insights, /journal, /login, /mind, /onboarding, /privacy, /projects, /reset-password, /settings, /signup, /tasks, /terms, /today
+- `npm run build` ✅ — Compiled successfully, 23 routes generated
+- Routes: /, /auth/callback, /body, /finance, /forgot-password, /goals, /habits, /icon.svg, /insights, /journal, /login, /mind, /onboarding, /privacy, /projects, /reset-password, /settings, /signup, /tasks, /terms, /today
 
 ### Files Created
 | File | Purpose |
@@ -1215,28 +1216,29 @@ Add Body Pulse (/body) and Mind Pulse (/mind) as real Life OS sections using exi
 | `src/proxy.ts` | Added /body and /mind to protectedRoutes |
 | `src/components/DashboardNav.tsx` | Added Body, Mind to Life Domains group |
 | `src/app/today/page.tsx` | Added Body/Mind preview cards to sidebar |
-| `docs/LIFE_PULSE_CURRENT_STATE_AUDIT.md` | Phase 4A completion note |
-| `docs/LIFE_OS_ARCHITECTURE_PLAN.md` | Phase 4A completion note |
+| `docs/LIFE_PULSE_CURRENT_STATE_AUDIT.md` | Phase 5A + 5B completion |
+| `docs/LIFE_OS_ARCHITECTURE_PLAN.md` | Phase 5B completion |
+| `supabase/migrations/00010_goal_links.sql` | Goal links table + RLS + ownership validation |
+| `src/components/goals/GoalLinks.tsx` | Goal linking UI component (add/remove links) |
+| `src/lib/goals.ts` | Added GoalLink, GoalLinkType, GOAL_LINK_LABELS |
 
-### What Was Intentionally Not Changed
-- No database schema or RLS changes
-- No wearable/device integrations
+### Files Modified (Phase 5B)
+| File | Change |
+|------|--------|
+| `src/app/goals/page.tsx` | Added goal_links, projects, tasks, habits fetch + linking UX in expanded section |
+| `src/app/today/page.tsx` | Enhanced Goal Pulse preview with active count, nearest target date, milestone rate |
+| `scripts/rls-smoke-test.mjs` | Added goal_links read/update/delete/FK ownership + positive control tests |
+| `docs/deployment-checklist.md` | Updated migration count to 10 |
+
+### What Was Intentionally Not Changed (Phase 5B)
+- No project integration (showing linked goals on /projects) — deferred to Phase 5C
+- No goal milestones count or cascade logic in goal deletion (milestones cascade-delete via FK, which is correct)
+- No redesign of existing routes
 - No new external dependencies
-- No Goals, Devices, Coach, or Weekly Review routes
-- No caching library introduced
-- No React Server Components migration
-- No visual redesign of /today
-- No changes to auth, onboarding, or existing dashboard pages
 
 ### Remaining Risks
-1. Body/Mind pages rely on realm associations in habits/tasks — users without Body/Mind realm habits/tasks will see empty states
+1. Body/Mind pages still rely on realm associations in habits/tasks for content — empty states for users without habits/tasks in those realms
 2. Focus habit detection via title keyword matching is heuristic (focus, meditate, mindful, read, learn, study)
-3. No dedicated Body/Mind metrics schema yet — data is projections from existing tables
-4. 2 pre-existing lint warnings (cosmetic)
-5. No test suite beyond RLS smoke test
-
-### Recommended Phase 4B Prompt
-
-Open with: Phase 4B — Add manual Body/Mind metric schema and entry forms, only after reviewing the Phase 4A foundation.
-
-Rationale: Phase 4A established the routes, navigation, data queries, and UX patterns. Phase 4B should add lightweight dedicated tables for body metrics (sleep, weight, steps, workouts) and mind metrics (mood logs, focus sessions) with manual entry forms, and optionally migrate the journal-based mood/energy tracking into a structured table.
+3. 2 pre-existing lint warnings (cosmetic)
+4. No test suite beyond RLS smoke test
+5. Goal linking UX is inside expanded goal card — users must expand a goal to see links; not visible in compact view

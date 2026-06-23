@@ -11,7 +11,8 @@ import { GoalPulseHeader } from "@/components/goals/GoalPulseHeader";
 import { GoalForm } from "@/components/goals/GoalForm";
 import { GoalCard } from "@/components/goals/GoalCard";
 import { GoalMilestones } from "@/components/goals/GoalMilestones";
-import type { Goal, GoalMilestone, GoalFormData } from "@/lib/goals";
+import { GoalLinks } from "@/components/goals/GoalLinks";
+import type { Goal, GoalMilestone, GoalFormData, GoalLink, GoalLinkType } from "@/lib/goals";
 
 interface RealmInfo {
   id: string;
@@ -32,6 +33,10 @@ function GoalsContent() {
   const [showForm, setShowForm] = useState(false);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
   const [expandedGoalId, setExpandedGoalId] = useState<string | null>(null);
+  const [links, setLinks] = useState<GoalLink[]>([]);
+  const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
+  const [tasks, setTasks] = useState<{ id: string; title: string }[]>([]);
+  const [habits, setHabits] = useState<{ id: string; title: string }[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -40,7 +45,7 @@ function GoalsContent() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push("/login"); return; }
 
-      const [goalsRes, milestonesRes, realmsRes] = await Promise.all([
+      const [goalsRes, milestonesRes, realmsRes, linksRes, projectsRes, tasksRes, habitsRes] = await Promise.all([
         supabase
           .from("goals")
           .select("*, realms(name, color, icon)")
@@ -56,12 +61,36 @@ function GoalsContent() {
           .select("id, name, color, icon")
           .eq("user_id", user.id)
           .order("name"),
+        supabase
+          .from("goal_links")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: true }),
+        supabase
+          .from("projects")
+          .select("id, name")
+          .eq("user_id", user.id)
+          .order("name"),
+        supabase
+          .from("tasks")
+          .select("id, title")
+          .eq("user_id", user.id)
+          .order("title"),
+        supabase
+          .from("habits")
+          .select("id, title")
+          .eq("user_id", user.id)
+          .order("title"),
       ]);
 
       if (cancelled) return;
       if (goalsRes.data) setGoals(goalsRes.data as Goal[]);
       if (milestonesRes.data) setMilestones(milestonesRes.data as GoalMilestone[]);
       if (realmsRes.data) setRealms(realmsRes.data as RealmInfo[]);
+      if (linksRes.data) setLinks(linksRes.data as GoalLink[]);
+      if (projectsRes.data) setProjects(projectsRes.data);
+      if (tasksRes.data) setTasks(tasksRes.data);
+      if (habitsRes.data) setHabits(habitsRes.data);
       setLoading(false);
     }
 
@@ -72,14 +101,22 @@ function GoalsContent() {
   async function reload() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    const [goalsRes, milestonesRes, realmsRes] = await Promise.all([
+    const [goalsRes, milestonesRes, realmsRes, linksRes, projectsRes, tasksRes, habitsRes] = await Promise.all([
       supabase.from("goals").select("*, realms(name, color, icon)").eq("user_id", user.id).order("created_at", { ascending: false }),
       supabase.from("goal_milestones").select("*").eq("user_id", user.id).order("sort_order", { ascending: true }),
       supabase.from("realms").select("id, name, color, icon").eq("user_id", user.id).order("name"),
+      supabase.from("goal_links").select("*").eq("user_id", user.id).order("created_at", { ascending: true }),
+      supabase.from("projects").select("id, name").eq("user_id", user.id).order("name"),
+      supabase.from("tasks").select("id, title").eq("user_id", user.id).order("title"),
+      supabase.from("habits").select("id, title").eq("user_id", user.id).order("title"),
     ]);
     if (goalsRes.data) setGoals(goalsRes.data as Goal[]);
     if (milestonesRes.data) setMilestones(milestonesRes.data as GoalMilestone[]);
     if (realmsRes.data) setRealms(realmsRes.data as RealmInfo[]);
+    if (linksRes.data) setLinks(linksRes.data as GoalLink[]);
+    if (projectsRes.data) setProjects(projectsRes.data);
+    if (tasksRes.data) setTasks(tasksRes.data);
+    if (habitsRes.data) setHabits(habitsRes.data);
   }
 
   const activeGoals = goals.filter((g) => g.status === "active");
@@ -112,9 +149,13 @@ function GoalsContent() {
       if (!user) { setSaving(false); return; }
 
       if (editingGoal) {
+        const updatePayload: Record<string, unknown> = { ...data };
+        if (typeof updatePayload.status === "string" && updatePayload.status !== "completed") {
+          updatePayload.completed_at = null;
+        }
         const { error } = await supabase
           .from("goals")
-          .update(data)
+          .update(updatePayload)
           .eq("id", editingGoal.id)
           .eq("user_id", user.id);
         if (error) { toast({ type: "error", title: "Failed to update goal." }); setSaving(false); return; }
@@ -162,6 +203,38 @@ function GoalsContent() {
         .eq("user_id", user.id);
       if (error) { toast({ type: "error", title: "Failed to complete goal." }); setSaving(false); return; }
       toast({ type: "success", title: "Goal completed! Great work." });
+      reload();
+    } catch {
+      toast({ type: "error", title: "Something went wrong." });
+    }
+    setSaving(false);
+  }
+
+  async function handleAddLink(goalId: string, linkedType: GoalLinkType, linkedId: string) {
+    setSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setSaving(false); return; }
+      const { error } = await supabase
+        .from("goal_links")
+        .insert({ goal_id: goalId, user_id: user.id, linked_type: linkedType, linked_id: linkedId });
+      if (error) { toast({ type: "error", title: "Failed to add link." }); setSaving(false); return; }
+      toast({ type: "success", title: "Linked!" });
+      reload();
+    } catch {
+      toast({ type: "error", title: "Something went wrong." });
+    }
+    setSaving(false);
+  }
+
+  async function handleRemoveLink(linkId: string) {
+    setSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setSaving(false); return; }
+      const { error } = await supabase.from("goal_links").delete().eq("id", linkId).eq("user_id", user.id);
+      if (error) { toast({ type: "error", title: "Failed to remove link." }); setSaving(false); return; }
+      toast({ type: "success", title: "Link removed." });
       reload();
     } catch {
       toast({ type: "error", title: "Something went wrong." });
@@ -268,13 +341,22 @@ function GoalsContent() {
                   </button>
                 )}
                 {isExpanded && (
-                  <div className="mt-2">
+                  <div className="mt-2 space-y-3">
                     <GoalMilestones
                       milestones={goalMilestones}
                       saving={saving}
                       onAdd={(title) => handleAddMilestone(goal.id, title)}
                       onToggle={handleToggleMilestone}
                       onDelete={handleDeleteMilestone}
+                    />
+                    <GoalLinks
+                      links={links.filter((l) => l.goal_id === goal.id)}
+                      projects={projects}
+                      tasks={tasks}
+                      habits={habits}
+                      saving={saving}
+                      onAdd={(linkedType, linkedId) => handleAddLink(goal.id, linkedType, linkedId)}
+                      onRemove={handleRemoveLink}
                     />
                   </div>
                 )}

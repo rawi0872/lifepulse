@@ -88,15 +88,15 @@ Add both of the following:
 - `https://YOUR-DOMAIN.com/auth/callback`
 - `https://YOUR-DOMAIN.com/reset-password`
 
-### Phase 4C QA (June 23, 2026)
-- Body/Mind metrics migration (00008) verifies project conventions ✅
-- Goals migration (00009) follows 00008 pattern exactly (goals + goal_milestones tables, RLS, triggers, FK ownership) ✅
-- BodyMetricsForm numeric parsing fixed for "0" values (steps, workout_minutes, etc.) ✅
-- Toast feedback added to Body/Mind save/update operations ✅
-- Error handling added to Body/Mind save/update operations ✅
-- RLS smoke-test extended to cover body_metrics and mind_metrics tables ✅
-- Build output includes /body and /mind (22 routes total) ✅
-- 14 app tables total (12 original + body_metrics + mind_metrics)
+### Phase 5B QA (June 23, 2026)
+- Goals migration (00009) verifies project conventions ✅
+- Goal links migration (00010) adds goal_links table with RLS + policy-level ownership validation ✅
+- GoalLinks component UI (add/remove links per goal card) ✅
+- Today Goal Pulse preview shows active count, nearest target date, milestone rate ✅
+- Goal QA: handleSave clears completed_at when re-opening a completed goal ✅
+- RLS smoke-test extended to cover goal_links (read/update/delete/FK ownership) ✅
+- Build output includes /goals (23 routes total) ✅
+- 17 app tables total (12 original + body_metrics + mind_metrics + goals + goal_milestones + goal_links)
 
 ### Vercel Preview Deployments
 - Vercel preview deployments get random URLs (e.g. `project-xxxxx.vercel.app`). Auth redirects to these URLs will fail if they are not whitelisted in Supabase.

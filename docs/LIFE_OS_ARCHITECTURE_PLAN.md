@@ -1,8 +1,8 @@
 # Life Pulse — Life OS Architecture Plan
 
 **Date:** June 23, 2026
-**Status:** Phase 5A — Goals Foundation Complete
-**Audience:** Developers implementing Phase 5B+ features
+**Status:** Phase 5B — Goal Linking + Today Goal Pulse Complete
+**Audience:** Developers implementing Phase 5C+ features
 
 ---
 
@@ -26,7 +26,7 @@
 | `/finance` | `finance/page.tsx` | 641 (was 867) | Finance management | Money Pulse | Phase 3A extracted 5 components, -226 lines |
 | `/journal` | `journal/page.tsx` | 209 | Daily journal | Journal/Reflection | No — clean, focused |
 | `/insights` | `insights/page.tsx` | 524 | Analytics/reviews | Intelligence | Phase 3B extracted ~200 lines into 6 components |
-| `/goals` | `goals/page.tsx` | ~310 | Goal Pulse dashboard + milestones | Growth | Phase 5A — goals CRUD, milestones with progress bar, realm linking, priority/target date |
+| `/goals` | `goals/page.tsx` | ~380 | Goal Pulse dashboard + milestones + linking | Growth | Phase 5B — goals CRUD, milestones, realm linking, project/task/habit linking via goal_links, Today Goal Pulse preview |
 | `/body` | `body/page.tsx` | ~255 | Body Pulse dashboard + manual entry | Life Domains | Phase 4A+4B+4D — body_metrics table, manual entry form, recent summary, averages card (sleep/energy/recovery/steps/workout) with trends |
 | `/mind` | `mind/page.tsx` | ~250 | Mind Pulse dashboard + manual entry | Life Domains | Phase 4A+4B+4D — mind_metrics table, manual entry form, recent summary, averages card (mood/stress/focus/clarity/motivation) with trends |
 | `/settings` | `settings/page.tsx` | ~510 | Profile/realms/prefs | System | Moderate — profile, realms, password, realm CRUD |
@@ -127,9 +127,9 @@ Phase 6+ — Devices:
 #### `/goals` — Goal Pulse
 - **Purpose:** Long-term goals with milestones, linked to projects/tasks/habits
 - **Data reuse:** Projects, tasks, habits, XP, realms
-- **New tables needed:** `goals` (user_id, title, description, target_date, realm_id, status), `goal_milestones` (goal_id, title, target_date, completed), `goal_links` (goal_id, project_id|task_id|habit_id)
-- **Phase:** 5
-- **Risk:** Medium — cross-linking to existing tables is complex
+- **New tables:** `goals` ✅ (00009), `goal_milestones` ✅ (00009), `goal_links` ✅ (00010)
+- **Phase:** 5 ✅
+- **Risk:** Medium — cross-linking to existing tables is complex (solved with policy-level ownership validation in 00010)
 
 #### `/coach` — AI Coach
 - **Purpose:** Daily briefing, next-best-action, pattern detection, recommendations

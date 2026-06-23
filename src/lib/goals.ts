@@ -44,6 +44,23 @@ export interface MilestoneFormData {
   sort_order?: number;
 }
 
+export type GoalLinkType = "project" | "task" | "habit";
+
+export interface GoalLink {
+  id: string;
+  user_id: string;
+  goal_id: string;
+  linked_type: GoalLinkType;
+  linked_id: string;
+  created_at: string;
+}
+
+export const GOAL_LINK_LABELS: Record<GoalLinkType, string> = {
+  project: "Project",
+  task: "Task",
+  habit: "Habit",
+};
+
 export function getTodayDate(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;

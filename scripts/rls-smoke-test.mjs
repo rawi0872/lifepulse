@@ -351,6 +351,18 @@ async function main() {
     process.exit(1);
   }
   console.log(`  Goal milestone created: ${milestoneA.id}`);
+
+  // 2r. Goal link (project)
+  const { data: goalLinkA, error: goalLinkAErr } = await supabaseA
+    .from("goal_links")
+    .insert({ goal_id: goalA.id, linked_type: "project", linked_id: projectA.id, user_id: userAId })
+    .select()
+    .single();
+  if (goalLinkAErr) {
+    console.error(`  Failed to create goal link: ${goalLinkAErr.message}`);
+    process.exit(1);
+  }
+  console.log(`  Goal link created: ${goalLinkA.id}`);
   console.log("");
 
   // ── 3. User B isolation: READ ──────────────────────────────────────────────
@@ -372,6 +384,7 @@ async function main() {
     ["body metrics", "body_metrics", bodyMetricsA.id],
     ["mind metrics", "mind_metrics", mindMetricsA.id],
     ["goal", "goals", goalA.id],
+    ["goal link", "goal_links", goalLinkA.id],
   ];
 
   for (const [label, table, id] of readTests) {
@@ -417,6 +430,7 @@ async function main() {
     ["body metrics", "body_metrics", bodyMetricsA.id, { sleep_hours: 99 }],
     ["mind metrics", "mind_metrics", mindMetricsA.id, { mood: 1 }],
     ["goal", "goals", goalA.id, { title: `${PREFIX}_HackedGoal` }],
+    ["goal link", "goal_links", goalLinkA.id, { linked_type: "habit" }],
   ];
 
   for (const [label, table, id, changes] of updateTests) {
@@ -452,6 +466,7 @@ async function main() {
     ["mind metrics", "mind_metrics", mindMetricsA.id],
     ["goal", "goals", goalA.id],
     ["goal milestone", "goal_milestones", milestoneA.id],
+    ["goal link", "goal_links", goalLinkA.id],
   ];
 
   for (const [label, table, id] of deleteTests) {
@@ -642,6 +657,20 @@ async function main() {
     fail("User B could link finance budget to User A category");
   }
 
+  // 6l. Goal link with User B user_id but User A goal_id
+  const { error: fkGlGoal } = await supabaseB.from("goal_links").insert({
+    goal_id: goalA.id,
+    linked_type: "project",
+    linked_id: projectA.id,
+    user_id: userBId,
+  });
+  if (fkGlGoal) {
+    pass("User B cannot link goal_link to User A goal");
+  } else {
+    await supabaseB.from("goal_links").delete().eq("goal_id", goalA.id);
+    fail("User B could link goal_link to User A goal");
+  }
+
   console.log("");
 
   // ── 7. Positive controls: User B can CRUD own data ─────────────────────────
@@ -710,6 +739,32 @@ async function main() {
     pass("User B can create own finance transaction");
   }
 
+  // 7g. Goal + goal link for User B
+  let goalB, goalLinkB;
+  const goalBResult = await supabaseB
+    .from("goals")
+    .insert({ title: `${PREFIX}_Goal_B`, realm_id: realmB.id, priority: "medium", status: "active", user_id: userBId })
+    .select()
+    .single();
+  goalB = goalBResult.data;
+  if (goalBResult.error) {
+    fail(`User B could not create own goal: ${goalBResult.error.message}`);
+  } else {
+    pass("User B can create own goal");
+
+    const goalLinkBResult = await supabaseB
+      .from("goal_links")
+      .insert({ goal_id: goalB.id, linked_type: "task", linked_id: taskB.id, user_id: userBId })
+      .select()
+      .single();
+    goalLinkB = goalLinkBResult.data;
+    if (goalLinkBResult.error) {
+      fail(`User B could not create own goal link: ${goalLinkBResult.error.message}`);
+    } else {
+      pass("User B can create own goal link");
+    }
+  }
+
   console.log("");
 
   // ── 8. User A can still read own data ──────────────────────────────────────
@@ -731,6 +786,7 @@ async function main() {
     ["body metrics", "body_metrics", bodyMetricsA.id],
     ["mind metrics", "mind_metrics", mindMetricsA.id],
     ["goal", "goals", goalA.id],
+    ["goal link", "goal_links", goalLinkA.id],
   ];
 
   for (const [label, table, id] of selfReadTests) {
@@ -763,6 +819,7 @@ async function main() {
     ["finance_accounts", "id", finAccountA.id],
     ["journal_entries", "id", journalA.id],
     ["body_metrics", "id", bodyMetricsA.id],
+    ["goal_links", "id", goalLinkA.id],
     ["goal_milestones", "id", milestoneA.id],
     ["goals", "id", goalA.id],
     ["mind_metrics", "id", mindMetricsA.id],
@@ -781,6 +838,8 @@ async function main() {
     ["finance_transactions", "id", finTxB?.id],
     ["finance_categories", "id", finCatB?.id],
     ["journal_entries", "id", journalB?.id],
+    ["goal_links", "id", goalLinkB?.id],
+    ["goals", "id", goalB?.id],
     ["tasks", "id", taskB?.id],
     ["realms", "id", realmB?.id],
   ];

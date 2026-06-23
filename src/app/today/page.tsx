@@ -117,8 +117,8 @@ function TodayContent() {
   const [bodyEnergyToday, setBodyEnergyToday] = useState<number | null>(null);
   const [mindLoggedToday, setMindLoggedToday] = useState(false);
   const [mindMoodToday, setMindMoodToday] = useState<number | null>(null);
-  const [goalActiveCount, setGoalActiveCount] = useState(0);
-  const [goalUpcomingCount, setGoalUpcomingCount] = useState(0);
+  const [goalPreviewGoals, setGoalPreviewGoals] = useState<{ id: string; status: string; target_date: string | null }[]>([]);
+  const [goalPreviewMilestones, setGoalPreviewMilestones] = useState<{ goal_id: string; completed_at: string | null }[]>([]);
 
   const router = useRouter();
   const supabase = createClient();
@@ -405,11 +405,15 @@ function TodayContent() {
 
         const { data: goalData } = await supabase
           .from("goals")
-          .select("status, target_date")
+          .select("id, status, target_date")
+          .eq("user_id", user.id);
+        const { data: goalMsData } = await supabase
+          .from("goal_milestones")
+          .select("goal_id, completed_at")
           .eq("user_id", user.id);
         if (!cancelled && goalData) {
-          setGoalActiveCount(goalData.filter((g) => g.status === "active").length);
-          setGoalUpcomingCount(goalData.filter((g) => g.target_date && g.status !== "completed" && g.status !== "archived").length);
+          setGoalPreviewGoals(goalData);
+          if (goalMsData) setGoalPreviewMilestones(goalMsData);
         }
       } catch {
         setError("Failed to load dashboard.");
@@ -865,9 +869,25 @@ function TodayContent() {
             </svg>
             Goal Pulse
             <span className="ml-auto flex items-center gap-1.5 text-[10px]">
-              {goalActiveCount > 0 && <span className="text-[var(--accent)]">{goalActiveCount} active</span>}
-              {goalUpcomingCount > 0 && <span className="text-[var(--text-muted)]">&middot; {goalUpcomingCount} upcoming</span>}
-              {goalActiveCount === 0 && <span className="text-[var(--text-muted)]">View &rarr;</span>}
+              {(() => {
+                const active = goalPreviewGoals.filter((g) => g.status === "active");
+                const upcoming = goalPreviewGoals.filter((g) => g.target_date && g.status !== "completed" && g.status !== "archived");
+                const nearest = active
+                  .filter((g) => g.target_date)
+                  .sort((a, b) => (a.target_date ?? "").localeCompare(b.target_date ?? ""))[0];
+                const goalMsTotal = goalPreviewMilestones.length;
+                const goalMsDone = goalPreviewMilestones.filter((m) => m.completed_at).length;
+                const msRate = goalMsTotal > 0 ? (goalMsDone / goalMsTotal * 100).toFixed(0) : null;
+                return (
+                  <>
+                    {active.length > 0 && <span className="text-[var(--accent)]">{active.length} active</span>}
+                    {nearest && <span className="text-[var(--text-muted)]">by {new Date(nearest.target_date!).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>}
+                    {msRate !== null && <span className="text-[var(--text-muted)]">{msRate}%</span>}
+                    {upcoming.length > 0 && !nearest && <span className="text-[var(--text-muted)]">&middot; {upcoming.length} upcoming</span>}
+                    {active.length === 0 && <span className="text-[var(--text-muted)]">View &rarr;</span>}
+                  </>
+                );
+              })()}
             </span>
           </Link>
 
