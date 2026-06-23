@@ -1,7 +1,7 @@
 # Life Pulse — Life OS Architecture Plan
 
 **Date:** June 23, 2026
-**Status:** Phase 5C — Goals Integration QA Complete
+**Status:** Phase 6A — Device Pulse Placeholder Complete
 **Audience:** Developers implementing Phase 6+ features
 
 ---
@@ -32,21 +32,21 @@
 | `/settings` | `settings/page.tsx` | ~510 | Profile/realms/prefs | System | Moderate — profile, realms, password, realm CRUD |
 | `/privacy` | `privacy/page.tsx` | 182 | Legal | Public | No |
 | `/terms` | `terms/page.tsx` | 170 | Legal | Public | No |
+| `/devices` | `devices/page.tsx` | ~80 | Device Pulse placeholder | Intelligence | No — placeholder, no real integration |
 
-### 1.2 Current Navigation Structure (After Phase 5A)
+### 1.2 Current Navigation Structure (After Phase 6A)
 
 ```
  Pulse           → Today's Pulse
  Growth          → Goals, Habits, Tasks, Projects
  Life Domains    → Body, Mind, Money
- Intelligence    → Journal, Insights
+ Intelligence    → Journal, Insights, Devices
  System          → Settings
 ```
 
-**Changes from Phase 4D:**
-- Goals added to Growth group (before Habits) ✅
-- 11 nav items across 5 groups (was 10) ✅
-- Mobile nav derives all 11 items from nav groups (no hardcoded links) ✅
+**Changes from Phase 5C:**
+- Devices added to Intelligence group (after Insights) ✅
+- 12 nav items across 5 groups (was 11) ✅
 
 ### 1.3 Current Data Ownership
 
@@ -63,14 +63,14 @@
 
 ### 1.4 Gaps (Missing Future Routes)
 
-| Missing Route | Life OS Component | Priority | Current Workaround |
-|--------------|-------------------|----------|-------------------|
-| `/body` | Body Pulse | High | Body realm exists but no dedicated tracking |
-| `/mind` | Mind Pulse | High | Mind realm exists + journal, but no dedicated tracking |
-| `/goals` | Goal Pulse | Medium | Projects serve as proxies |
-| `/devices` | Device Pulse | Low | Nothing |
-| `/coach` | AI Coach | Medium | Nothing |
-| `/weekly-review` | Weekly Review | Medium | Nothing |
+| Missing Route | Life OS Component | Priority | Current Workaround | Status |
+|--------------|-------------------|----------|-------------------|--------|
+| `/body` | Body Pulse | High | Body realm exists but no dedicated tracking | ✅ Phase 4B |
+| `/mind` | Mind Pulse | High | Mind realm exists + journal, but no dedicated tracking | ✅ Phase 4B |
+| `/goals` | Goal Pulse | Medium | Projects serve as proxies | ✅ Phase 5A+5B |
+| `/devices` | Device Pulse | Low | Nothing | ✅ Phase 6A (placeholder) |
+| `/coach` | AI Coach | Medium | Nothing | ❌ |
+| `/weekly-review` | Weekly Review | Medium | Nothing | ❌ |
 
 ---
 
@@ -102,6 +102,12 @@ Phase 5 — Coaching and review:
 | `/goals` | **New** | Goal framework (OKR/SMART with XP alignment) |
 | `/coach` | **New** | AI Coach dashboard (daily briefing, recommendations) |
 | `/weekly-review` | **New** | Weekly review (narrative + stats) |
+
+Phase 6 — Device Pulse:
+| Route | Action | Rationale |
+|-------|--------|-----------|
+| `/devices` | **New** (Phase 6A) | Device Pulse placeholder — future wearable/health platform integration |
+| (schema) | **New** (Phase 6B) | `device_connections`, `device_metric_samples`, `device_provider_tokens` |
 
 Phase 6+ — Devices:
 | Route | Action | Rationale |

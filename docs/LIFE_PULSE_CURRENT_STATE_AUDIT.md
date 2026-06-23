@@ -1,11 +1,11 @@
 # LIFE PULSE — Current State Audit
 
 **Date:** June 23, 2026
-**Commit:** `4fa6b98` (Phase 0 base; Phase 1 + 1.5 + 2A + 2B + 3A + 3B + 4A + 4B + 4C + 4D + 5A + 5B + 5C applied on top)
+**Commit:** `4fa6b98` (Phase 0 base; Phase 1 + 1.5 + 2A + 2B + 3A + 3B + 4A + 4B + 4C + 4D + 5A + 5B + 5C + 6A applied on top)
 **Branch:** `master` (no remote configured)
 **Build status:** ✅ Clean (0 lint errors, 0 build errors)
-**Working tree:** Clean — Phase 5C QA complete
-**Architecture Plan:** `docs/LIFE_OS_ARCHITECTURE_PLAN.md` (updated for Phase 5C)
+**Working tree:** Clean — Phase 6A Device Pulse placeholder complete
+**Architecture Plan:** `docs/LIFE_OS_ARCHITECTURE_PLAN.md` (updated for Phase 6A)
 
 ---
 
@@ -13,7 +13,7 @@
 
 Life Pulse is a dark-themed, monorepo Next.js 16 web application that functions as a personal dashboard operating system. It provides authenticated users with 10 core tools: Today (command center), Habits, Tasks, Projects, Finance, Journal, Insights (analytics), Settings, Body Pulse, and Mind Pulse. It uses Supabase for all backend needs — auth, database, RLS, and row-level security.
 
-**Production readiness:** The app is feature-complete for a private beta. Build and lint pass clean. All 23 routes render. Auth flow (signup → onboarding → dashboard) is wired end-to-end. RLS is enabled on every table with FK ownership validation. The deployment checklist has been written. After GitHub push and Vercel import, the app can be deployed in minutes.
+**Production readiness:** The app is feature-complete for a private beta. Build and lint pass clean. All 24 routes render. Auth flow (signup → onboarding → dashboard) is wired end-to-end. RLS is enabled on every table with FK ownership validation. The deployment checklist has been written. After GitHub push and Vercel import, the app can be deployed in minutes.
 
 **Strongest parts:** Auth and onboarding flow, RLS security model (FK ownership helpers in 00006 migration, finance ownership in 00007), Insight radar chart, Today dashboard aggregating all data types, Finance module with budgets/trends/breakdowns, XP/level progression system with per-realm titles, Body/Mind Pulse manual entry forms with body_metrics and mind_metrics schema.
 
@@ -150,13 +150,14 @@ src/
 | `/settings` | `src/app/settings/page.tsx` (510 lines) | Profile fields, realm CRUD, change password, logout | Working | `profiles`, `realms` | Edit first/last name, display name, birth date. Add custom realms (icon + color picker). Change password form. Logout button. Progression customization section is a placeholder comment. |
 | `/privacy` | `src/app/privacy/page.tsx` (182 lines) | Privacy policy | Working (static) | `getSupportEmail()` from config | Reads from `NEXT_PUBLIC_SUPPORT_EMAIL` env var via `src/lib/config.ts`. Falls back to `support@lifepulse.app`. Must be set in Vercel before beta. |
 | `/terms` | `src/app/terms/page.tsx` (170 lines) | Terms of service | Working (static) | `getSupportEmail()` from config | Reads from `NEXT_PUBLIC_SUPPORT_EMAIL` env var via `src/lib/config.ts`. Falls back to `support@lifepulse.app`. Must be set in Vercel before beta. |
+| `/devices` | `src/app/devices/page.tsx` (~80 lines) | Device Pulse placeholder — provider list, future device sync hub | Working (placeholder) | None | Phase 6A — placeholder route with connected/available/future provider cards. No real device integration, no schema changes. |
 
 ### Route Status Summary
-- **Working:** 21/23 routes
-- **Partial:** 2/23 (finance — missing default category seeding; body/mind show empty states without habits/tasks/journal)
-- **Risky:** 0/22
-- **Placeholder:** 0/22
-- **Missing:** 0/22
+- **Working:** 22/24 routes
+- **Partial:** 2/24 (finance — missing default category seeding; body/mind show empty states without habits/tasks/journal)
+- **Risky:** 0/24
+- **Placeholder:** 1/24 (/devices)
+- **Missing:** 0/24
 - **Auto-generated (not in route list):** `/_not-found` (Next.js default, excluded from audit count)
 
 ---
@@ -248,7 +249,7 @@ src/
 | **Mind Pulse** | ✅ Phase 4A+4B+4D | /mind route with manual entry form (mood, stress, focus, clarity, motivation, reflection, tags), mind_metrics table with RLS, 7-day summary, averages card (mood/stress/focus/clarity/motivation) with trend indicators | No structured focus sessions, no emotional pattern analysis | Low (manual entry viable for beta) |
 | **Goals** | ✅ Phase 5A | /goals route with goals + milestones CRUD, realm linking, priority/target date, progress bar, status management (active/paused/completed/archived), today preview card | No project/task/habit linking, no AI recommendations, no goal templates | Medium (linking to projects/tasks/habits is next) |
 | **AI Coach** | ❌ Missing | None | Not started | Future phase |
-| **Smart Ring/Watch** | ❌ Missing | None | Not started | Future phase |
+| **Smart Ring/Watch** | ⏳ Phase 6A | /devices placeholder route with provider cards; architecture doc defines schema, provider strategy, and phased plan | No real device integrations, no schema changes, no API calls | Future phase |
 
 ---
 
@@ -490,7 +491,7 @@ The future vision is a premium personal operating system / AI life assistant —
 **Needed:** Rich text editor, media attachments, entry search, calendar view, mood trend charts, AI-generated weekly summaries, prompt customization.
 
 ### Device Pulse
-**Current:** Not started.
+**Current:** Phase 6A — placeholder route at `/devices` with connected/available/future provider cards. Architecture doc (`docs/DEVICE_PULSE_ARCHITECTURE.md`) defines proposed schema, provider strategy, and phased implementation plan. No real device integrations, no schema changes.
 **Needed:** Smart ring (Oura, Ultrahuman), smartwatch (Apple Watch, Garmin, Fitbit, Whoop), continuous glucose monitor integration, sleep tracker data import.
 
 ### AI Coach
@@ -502,7 +503,7 @@ The future vision is a premium personal operating system / AI life assistant —
 **Needed:** Automated weekly summary (what went well, what needs work, streak report, XP earned, finance overview, mood trend), reflection prompts, goal progress review.
 
 ### Apple Health / Health Connect Readiness
-**Current:** No health data storage schema.
+**Current:** Device Pulse architecture doc (`docs/DEVICE_PULSE_ARCHITECTURE.md`) defines proposed schema for `device_connections`, `device_metric_samples`, and `device_provider_tokens`. No real provider integrations yet.
 **Needed:** Health metrics tables, data import pipeline (Apple Health XML export / Health Connect API), normalized health data model (steps, sleep, HR, weight, etc.).
 
 ### Daily Recommendations
@@ -611,15 +612,16 @@ The future vision is a premium personal operating system / AI life assistant —
 **Difficulty:** Medium
 
 ### Phase 7: Smart Ring / Watch Integrations
-**Goal:** Direct API integrations with wearable devices
+**Goal:** Direct API integrations with wearable devices (follows Phase 6A Device Pulse placeholder + architecture)
 **What to build:**
 - Oura Ring API integration
 - Apple Health / Health Connect bridge
 - Whoop API integration
 - Automatic nightly sync
 - Sleep/activity/readiness scores imported into Life Pulse
+- See `docs/DEVICE_PULSE_ARCHITECTURE.md` for proposed schema and provider strategy
 **Likely affected files:** New `src/lib/integrations/` directory, new API routes for OAuth, background sync jobs
-**Database changes:** New `integrations` table, OAuth token storage
+**Database changes:** New `device_connections`, `device_metric_samples`, `device_provider_tokens` tables (schema defined in architecture doc)
 **Risks:** High — each API has different auth, rate limits, data formats; OAuth token refresh complexity
 **Difficulty:** High
 
@@ -975,7 +977,7 @@ Safely split oversized dashboard pages (Finance, Projects, Today) into focused s
   - **Pulse** → Today's Pulse
   - **Growth** → Habits, Tasks, Projects (was "Build")
   - **Life Domains** → Money (moved from Build)
-  - **Intelligence** → Journal, Insights (merged "Reflect" + "Review")
+  - **Intelligence** → Journal, Insights, Devices (merged "Reflect" + "Review")
   - **System** → Settings (moved from sidebar footer)
 - No route URLs changed
 - Mobile bottom nav now derives all 8 items from `navGroups.flatMap()` — no hardcoded links

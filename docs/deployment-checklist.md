@@ -98,6 +98,17 @@ Add both of the following:
 - Build output includes /goals /body /mind (23 routes total) ✅
 - 17 app tables total (profiles, realms, habits, habit_logs, tasks, xp_events, journal_entries, projects, finance_accounts, finance_categories, finance_transactions, finance_budgets, body_metrics, mind_metrics, goals, goal_milestones, goal_links)
 
+### Phase 6A QA (June 23, 2026)
+- /devices route created with loading + error states ✅
+- Route protected in proxy.ts ✅
+- DashboardNav updated — Devices added to Intelligence group (after Insights) ✅
+- Device Pulse architecture doc created (docs/DEVICE_PULSE_ARCHITECTURE.md) — defines schema, provider strategy, privacy model ✅
+- Audit doc updated: 24 routes, updated nav, Device Pulse section reflecting placeholder status ✅
+- Architecture plan updated: route map, nav structure, gaps table ✅
+- No schema changes (Phase 6B is next) ✅
+- 24 routes total (23 existing + /devices) ✅
+- 17 app tables (unchanged from Phase 5C)
+
 ### Vercel Preview Deployments
 - Vercel preview deployments get random URLs (e.g. `project-xxxxx.vercel.app`). Auth redirects to these URLs will fail if they are not whitelisted in Supabase.
 - **Recommendation:** Disable auth testing on preview deployments, or add `https://*-username.vercel.app/auth/callback` as a wildcard redirect URL (Supabase supports `*` wildcards in redirect URLs). Test password reset and email confirmation only on the production domain.
@@ -130,7 +141,7 @@ After deploying, test every route and flow:
 - [ ] Email confirmation (if enabled) — users receive confirmation email
 - [ ] Forgot password (`/forgot-password`) — sends reset email, shows generic success
 - [ ] Reset password — click email link, set new password, success shown, can log in with new password
-- [ ] Protected routes redirect to `/login` when logged out (`/today`, `/habits`, `/tasks`, `/projects`, `/finance`, `/journal`, `/insights`, `/settings`, `/body`, `/mind`)
+- [ ] Protected routes redirect to `/login` when logged out (`/today`, `/habits`, `/tasks`, `/projects`, `/finance`, `/journal`, `/insights`, `/settings`, `/body`, `/mind`, `/devices`)
 
 ### Onboarding & Core App
 - [ ] Onboarding — first-time flow works, creates profile
