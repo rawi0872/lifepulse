@@ -326,20 +326,30 @@ function GoalsContent() {
                   onDelete={handleDelete}
                   onComplete={handleComplete}
                 />
-                {goalMilestones.length > 0 && (
-                  <button
-                    onClick={() => toggleExpand(goal.id)}
-                    className="mt-1 flex w-full items-center justify-center gap-1 py-1 text-[9px] text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors"
-                  >
-                    <svg
-                      className={`h-3 w-3 transition-transform ${isExpanded ? "rotate-180" : ""}`}
-                      fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}
+                {(() => {
+                  const goalLinks = links.filter((l) => l.goal_id === goal.id);
+                  const hasMs = goalMilestones.length > 0;
+                  const hasLinks = goalLinks.length > 0;
+                  if (!hasMs && !hasLinks) return null;
+                  const label = isExpanded ? "Hide details" : [
+                    hasMs ? `${goalMilestones.length} milestone${goalMilestones.length !== 1 ? "s" : ""}` : "",
+                    hasLinks ? `${goalLinks.length} link${goalLinks.length !== 1 ? "s" : ""}` : "",
+                  ].filter(Boolean).join(", ");
+                  return (
+                    <button
+                      onClick={() => toggleExpand(goal.id)}
+                      className="mt-1 flex w-full items-center justify-center gap-1 py-1 text-[9px] text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors"
                     >
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-                    </svg>
-                    {isExpanded ? "Hide milestones" : `${goalMilestones.length} milestone${goalMilestones.length !== 1 ? "s" : ""}`}
-                  </button>
-                )}
+                      <svg
+                        className={`h-3 w-3 transition-transform ${isExpanded ? "rotate-180" : ""}`}
+                        fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                      </svg>
+                      {label}
+                    </button>
+                  );
+                })()}
                 {isExpanded && (
                   <div className="mt-2 space-y-3">
                     <GoalMilestones

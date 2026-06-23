@@ -871,20 +871,18 @@ function TodayContent() {
             <span className="ml-auto flex items-center gap-1.5 text-[10px]">
               {(() => {
                 const active = goalPreviewGoals.filter((g) => g.status === "active");
-                const upcoming = goalPreviewGoals.filter((g) => g.target_date && g.status !== "completed" && g.status !== "archived");
+                if (active.length === 0) return <span className="text-[var(--text-muted)]">View &rarr;</span>;
                 const nearest = active
                   .filter((g) => g.target_date)
                   .sort((a, b) => (a.target_date ?? "").localeCompare(b.target_date ?? ""))[0];
                 const goalMsTotal = goalPreviewMilestones.length;
                 const goalMsDone = goalPreviewMilestones.filter((m) => m.completed_at).length;
-                const msRate = goalMsTotal > 0 ? (goalMsDone / goalMsTotal * 100).toFixed(0) : null;
+                const msRate = goalMsTotal > 0 ? Math.round(goalMsDone / goalMsTotal * 100) : null;
                 return (
                   <>
-                    {active.length > 0 && <span className="text-[var(--accent)]">{active.length} active</span>}
+                    <span className="text-[var(--accent)]">{active.length} active</span>
                     {nearest && <span className="text-[var(--text-muted)]">by {new Date(nearest.target_date!).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>}
                     {msRate !== null && <span className="text-[var(--text-muted)]">{msRate}%</span>}
-                    {upcoming.length > 0 && !nearest && <span className="text-[var(--text-muted)]">&middot; {upcoming.length} upcoming</span>}
-                    {active.length === 0 && <span className="text-[var(--text-muted)]">View &rarr;</span>}
                   </>
                 );
               })()}

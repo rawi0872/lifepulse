@@ -60,6 +60,7 @@ function getDueLabel(due_date: string | null): string | null {
 interface ProjectCardProps {
   project: Project;
   isPrimary: boolean;
+  isLinked?: boolean;
   tasks: LinkedTask[];
   tasksByProject: Record<string, LinkedTask[]>;
   projects: Project[];
@@ -91,6 +92,7 @@ function getProjectProgress(projectId: string, tasksByProject: Record<string, Li
 export function ProjectCard({
   project,
   isPrimary,
+  isLinked,
   tasks,
   tasksByProject,
   projects,
@@ -138,6 +140,14 @@ export function ProjectCard({
               </p>
             )}
             <div className="mt-2 flex items-center gap-2 flex-wrap">
+              {isLinked && (
+                <span className="inline-flex items-center gap-0.5 rounded-full bg-[var(--accent-soft)] px-2 py-0.5 text-[10px] font-medium text-[var(--accent)]">
+                  <svg className="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m9.86-2.297a4.5 4.5 0 00-6.364 0l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
+                  </svg>
+                  Goal
+                </span>
+              )}
               {project.realms && (
                 <span className="inline-block rounded-full px-2 py-0.5 text-[10px]" style={{ backgroundColor: project.realms.color + "20", color: project.realms.color }}>
                   {project.realms.icon} {project.realms.name}

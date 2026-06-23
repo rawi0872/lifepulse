@@ -56,6 +56,7 @@ export default function ProjectsPage() {
   const [deadline, setDeadline] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+const [linkedProjectIds, setLinkedProjectIds] = useState<Set<string>>(new Set());
   const { toast } = useToast();
 
   const [quickInput, setQuickInput] = useState("");
@@ -77,7 +78,7 @@ export default function ProjectsPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push("/login"); return; }
 
-      const [projectsRes, tasksRes, realmsRes] = await Promise.all([
+      const [projectsRes, tasksRes, realmsRes, linksRes] = await Promise.all([
         supabase
           .from("projects")
           .select("*, realms(name, color, icon)")
@@ -93,12 +94,18 @@ export default function ProjectsPage() {
           .select("*")
           .eq("user_id", user.id)
           .order("sort_order"),
+        supabase
+          .from("goal_links")
+          .select("linked_id")
+          .eq("user_id", user.id)
+          .eq("linked_type", "project"),
       ]);
 
       if (cancelled) return;
       if (projectsRes.data) setProjects(projectsRes.data as Project[]);
       if (tasksRes.data) setLinkedTasks(tasksRes.data as LinkedTask[]);
       if (realmsRes.data) setRealms(realmsRes.data as Realm[]);
+      if (linksRes.data) setLinkedProjectIds(new Set(linksRes.data.map((l: { linked_id: string }) => l.linked_id)));
       setLoading(false);
     }
 
@@ -170,13 +177,15 @@ export default function ProjectsPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const [projectsRes, tasksRes] = await Promise.all([
+    const [projectsRes, tasksRes, linksRes] = await Promise.all([
       supabase.from("projects").select("*, realms(name, color, icon)").eq("user_id", user.id).order("created_at", { ascending: false }),
       supabase.from("tasks").select("id, title, status, priority, due_date, project_id").eq("user_id", user.id).not("project_id", "is", null),
+      supabase.from("goal_links").select("linked_id").eq("user_id", user.id).eq("linked_type", "project"),
     ]);
 
     if (projectsRes.data) setProjects(projectsRes.data as Project[]);
     if (tasksRes.data) setLinkedTasks(tasksRes.data as LinkedTask[]);
+    if (linksRes.data) setLinkedProjectIds(new Set(linksRes.data.map((l: { linked_id: string }) => l.linked_id)));
   }
 
   async function remove(id: string) {
@@ -423,6 +432,7 @@ export default function ProjectsPage() {
                           key={project.id}
                           project={project}
                           isPrimary={isPrimary}
+                          isLinked={linkedProjectIds.has(project.id)}
                           tasks={tasks}
                           tasksByProject={tasksByProject}
                           projects={projects}

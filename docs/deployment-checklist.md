@@ -88,15 +88,15 @@ Add both of the following:
 - `https://YOUR-DOMAIN.com/auth/callback`
 - `https://YOUR-DOMAIN.com/reset-password`
 
-### Phase 5B QA (June 23, 2026)
-- Goals migration (00009) verifies project conventions ✅
-- Goal links migration (00010) adds goal_links table with RLS + policy-level ownership validation ✅
-- GoalLinks component UI (add/remove links per goal card) ✅
-- Today Goal Pulse preview shows active count, nearest target date, milestone rate ✅
-- Goal QA: handleSave clears completed_at when re-opening a completed goal ✅
-- RLS smoke-test extended to cover goal_links (read/update/delete/FK ownership) ✅
-- Build output includes /goals (23 routes total) ✅
-- 17 app tables total (12 original + body_metrics + mind_metrics + goals + goal_milestones + goal_links)
+### Phase 5C QA (June 23, 2026)
+- Goal links migration QA: follows project conventions, security model correct, 17 tables ✅
+- Goal links UI QA: expand button now shows when links exist (fixed bug — was gated on milestones only) ✅
+- Goals page behavior QA: create/edit/delete/complete/reopen/add-milestone/toggle-milestone/delete-milestone/add-link/remove-link all verified from code ✅
+- Today Goal Pulse QA: lightweight query (id, status, target_date + goal_id, completed_at), no divide-by-zero, clean empty state ✅
+- Cross-page integration: `/projects` shows "Goal" badge for linked projects (light query, no schema change) ✅
+- RLS smoke test review: 13 goal_links tests cover read/update/delete/FK/positive/self-read/cleanup, no credentials hardcoded ✅
+- Build output includes /goals /body /mind (23 routes total) ✅
+- 17 app tables total (profiles, realms, habits, habit_logs, tasks, xp_events, journal_entries, projects, finance_accounts, finance_categories, finance_transactions, finance_budgets, body_metrics, mind_metrics, goals, goal_milestones, goal_links)
 
 ### Vercel Preview Deployments
 - Vercel preview deployments get random URLs (e.g. `project-xxxxx.vercel.app`). Auth redirects to these URLs will fail if they are not whitelisted in Supabase.
