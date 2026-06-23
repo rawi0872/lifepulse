@@ -153,6 +153,11 @@ After deploying, test every route and flow:
 - [ ] `/journal` — write, save, view journal entries
 - [ ] `/insights` — Life Balance Map renders, expanded dialog opens/closes
 - [ ] `/settings` — profile, realms, password settings save correctly
+- [ ] `/body` — Body Pulse manual metrics form saves/updates (sleep, steps, energy, HR, workouts, weight, recovery)
+- [ ] `/mind` — Mind Pulse manual metrics form saves/updates (mood, stress, focus, clarity, motivation, tags, reflection)
+- [ ] `/goals` — Goal Pulse works: create/edit/complete/pause/archive goals, add/toggle/delete milestones, add/remove goal links to projects/tasks/habits
+- [ ] `/goals` — Goal links appear on linked project pages ("Goal" badge)
+- [ ] `/devices` — Device Pulse placeholder page loads, shows "Coming Soon" state, links to Body/Mind
 
 ### Mobile (narrow viewport)
 - [ ] Landing page — responsive, no overflow
@@ -161,12 +166,17 @@ After deploying, test every route and flow:
 - [ ] `/finance` — account cards, transaction list, budget cards fit viewport
 - [ ] `/insights` — expanded Life Balance Map dialog scrollable and closable
 - [ ] `/settings` — form fields and buttons accessible
+- [ ] `/body` — Body Pulse form scrollable on mobile viewport
+- [ ] `/mind` — Mind Pulse form scrollable on mobile viewport
+- [ ] `/goals` — Goal Pulse expandable sections work on mobile
+- [ ] `/devices` — Device Pulse cards readable on mobile
 
 ---
 
 ## 5. RLS Production Smoke Test
 
-**Before inviting testers**, run the RLS smoke test against the **production** Supabase project:
+**Before inviting testers**, run the RLS smoke test against the **production** Supabase project.
+The smoke test covers: profiles, realms, habits, habit_logs, tasks, xp_events, journal_entries, projects, finance_accounts, finance_categories, finance_transactions, finance_budgets, body_metrics, mind_metrics, goals, goal_milestones, goal_links (13 test groups for goal_links alone).
 
 1. Create two test accounts in the production Supabase Auth (use email/password)
 2. Set these environment variables locally:
@@ -216,6 +226,7 @@ After deploying, test every route and flow:
 - [ ] Supabase project shows active connections
 - [ ] `npm run build` passes locally (current state ✅)
 - [ ] `npm run lint` passes locally (current state ✅)
+- [ ] Build output includes all 24 routes: /, /auth/callback, /body, /devices, /finance, /forgot-password, /goals, /habits, /icon.svg, /insights, /journal, /login, /mind, /onboarding, /privacy, /projects, /reset-password, /settings, /signup, /tasks, /terms, /today
 
 ---
 

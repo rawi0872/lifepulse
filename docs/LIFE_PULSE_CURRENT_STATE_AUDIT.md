@@ -35,14 +35,14 @@ Life Pulse is a dark-themed, monorepo Next.js 16 web application that functions 
 - **ESLint:** ^9 with `eslint-config-next` 16.2.4
 
 ### Routing Model
-- App Router with 23 routes under `src/app/`
+- App Router with 24 routes under `src/app/`
 - All routes are server-rendered by default (dynamic), except static routes (/, /privacy, /terms) which are prerendered as static content
-- Proxy middleware (`src/proxy.ts`) handles auth gating for 10 protected routes and 2 auth routes
+- Proxy middleware (`src/proxy.ts`) handles auth gating for 13 protected routes and 2 auth routes
 
 ### Folder Structure
 ```
 src/
-├── app/                  # 23 routes + layout + globals.css
+├── app/                  # 24 routes + layout + globals.css
 │   ├── auth/callback/    # OAuth code exchange
 │   ├── finance/          # 641 lines — significantly reduced (was 867)
 │   ├── forgot-password/
@@ -119,7 +119,7 @@ src/
 
 ### Deployment Readiness
 - Build and lint pass clean
-- `next build` produces 25 pages (23 routes + `/_not-found` + proxy + layout)
+- `next build` produces 26 pages (24 routes + `/_not-found` + proxy + layout)
 - 1 static route (/) pre-rendered; all others dynamic
 - No git remote configured (branch is `master`, not `main`)
 - Deployment checklist written with sections 0–8
@@ -389,7 +389,7 @@ Phase 3A extracted ~1044 lines of inline JSX into 15 component files across 3 do
 - **Lint:** ✅ 0 errors, 0 warnings (`npm run lint` passes)
 - **TypeScript:** ✅ No type errors (verified during build)
 - **Build:** ✅ `next build` completes successfully (3.0s compile, 4.8s TypeScript check, 520ms page generation)
-- 23 pages generated (21 routes + `/_not-found` + proxy + layout)
+- 24 pages generated (22 routes + `/_not-found` + proxy + layout)
 - 1 static route (`/`), rest dynamic
 
 ---
@@ -520,13 +520,13 @@ The future vision is a premium personal operating system / AI life assistant —
 
 ### Phase 0: Private Beta Deployment Cleanup
 **Goal:** Ship a stable, safe private beta
-**What to build:**
-- Replace `support@example.com` with real support email
-- Add `loading.tsx` to all dashboard routes (simple skeleton)
-- Add `error.tsx` to all dashboard routes (basic error boundary with retry)
-- Remove default Next.js SVGs from `public/`
-- Replace favicon.ico with Life Pulse mark
-- Add Settings to mobile bottom nav
+**Completed:**
+- ✅ `support@example.com` replaced — support email now reads from `getSupportEmail()` env var
+- ✅ `loading.tsx` added to all dashboard routes
+- ✅ `error.tsx` added to all dashboard routes
+- ✅ Default Next.js SVGs removed from `public/`
+- ✅ Favicon replaced with Life Pulse mark
+- ✅ Settings added to mobile bottom nav
 - Minor: extract duplicated input className into reusable component
 **Likely affected files:** `src/app/privacy/page.tsx`, `src/app/terms/page.tsx`, `public/*.svg`, `public/favicon.ico`, `src/components/DashboardNav.tsx`, `src/components/ui/input.tsx`, 8x `loading.tsx`, 8x `error.tsx`
 **Database changes:** None
@@ -1193,8 +1193,8 @@ Add Body Pulse (/body) and Mind Pulse (/mind) as real Life OS sections using exi
 
 ### Build/Lint Verification
 - `npm run lint` ✅ — 0 errors, 2 warnings (pre-existing, unchanged)
-- `npm run build` ✅ — Compiled successfully, 23 routes generated
-- Routes: /, /auth/callback, /body, /finance, /forgot-password, /goals, /habits, /icon.svg, /insights, /journal, /login, /mind, /onboarding, /privacy, /projects, /reset-password, /settings, /signup, /tasks, /terms, /today
+- `npm run build` ✅ — Compiled successfully, 24 routes generated
+- Routes: /, /auth/callback, /body, /devices, /finance, /forgot-password, /goals, /habits, /icon.svg, /insights, /journal, /login, /mind, /onboarding, /privacy, /projects, /reset-password, /settings, /signup, /tasks, /terms, /today
 
 ### Files Created
 | File | Purpose |
@@ -1233,7 +1233,6 @@ Add Body Pulse (/body) and Mind Pulse (/mind) as real Life OS sections using exi
 | `docs/deployment-checklist.md` | Updated migration count to 10 |
 
 ### What Was Intentionally Not Changed (Phase 5B)
-- No project integration (showing linked goals on /projects) — deferred to Phase 5C
 - No goal milestones count or cascade logic in goal deletion (milestones cascade-delete via FK, which is correct)
 - No redesign of existing routes
 - No new external dependencies

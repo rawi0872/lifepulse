@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const protectedRoutes = ["/onboarding", "/today", "/habits", "/tasks", "/journal", "/insights", "/settings", "/finance", "/body", "/mind", "/goals", "/devices"];
+const protectedRoutes = ["/onboarding", "/today", "/habits", "/tasks", "/projects", "/journal", "/insights", "/settings", "/finance", "/body", "/mind", "/goals", "/devices"];
 const authRoutes = ["/login", "/signup"];
 
 export async function proxy(request: NextRequest) {
@@ -69,7 +69,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/today", request.url));
   }
 
-  if (!onboardingDone && pathname.startsWith("/today")) {
+  if (!onboardingDone && isProtected && pathname !== "/onboarding") {
     return NextResponse.redirect(new URL("/onboarding", request.url));
   }
 
