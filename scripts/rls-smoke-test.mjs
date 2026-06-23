@@ -327,6 +327,30 @@ async function main() {
     process.exit(1);
   }
   console.log(`  Mind metrics created: ${mindMetricsA.id}`);
+
+  // 2p. Goal
+  const { data: goalA, error: goalAErr } = await supabaseA
+    .from("goals")
+    .insert({ title: `${PREFIX}_Goal`, realm_id: realmA.id, priority: "high", status: "active", user_id: userAId })
+    .select()
+    .single();
+  if (goalAErr) {
+    console.error(`  Failed to create goal: ${goalAErr.message}`);
+    process.exit(1);
+  }
+  console.log(`  Goal created: ${goalA.id}`);
+
+  // 2q. Goal milestone
+  const { data: milestoneA, error: msAErr } = await supabaseA
+    .from("goal_milestones")
+    .insert({ goal_id: goalA.id, title: `${PREFIX}_Milestone`, sort_order: 1, user_id: userAId })
+    .select()
+    .single();
+  if (msAErr) {
+    console.error(`  Failed to create goal milestone: ${msAErr.message}`);
+    process.exit(1);
+  }
+  console.log(`  Goal milestone created: ${milestoneA.id}`);
   console.log("");
 
   // ── 3. User B isolation: READ ──────────────────────────────────────────────
@@ -347,6 +371,7 @@ async function main() {
     ["finance budget", "finance_budgets", finBudgetA.id],
     ["body metrics", "body_metrics", bodyMetricsA.id],
     ["mind metrics", "mind_metrics", mindMetricsA.id],
+    ["goal", "goals", goalA.id],
   ];
 
   for (const [label, table, id] of readTests) {
@@ -391,6 +416,7 @@ async function main() {
     ["finance budget", "finance_budgets", finBudgetA.id, { amount: 9999 }],
     ["body metrics", "body_metrics", bodyMetricsA.id, { sleep_hours: 99 }],
     ["mind metrics", "mind_metrics", mindMetricsA.id, { mood: 1 }],
+    ["goal", "goals", goalA.id, { title: `${PREFIX}_HackedGoal` }],
   ];
 
   for (const [label, table, id, changes] of updateTests) {
@@ -424,6 +450,8 @@ async function main() {
     ["finance transaction", "finance_transactions", finTxA.id],
     ["body metrics", "body_metrics", bodyMetricsA.id],
     ["mind metrics", "mind_metrics", mindMetricsA.id],
+    ["goal", "goals", goalA.id],
+    ["goal milestone", "goal_milestones", milestoneA.id],
   ];
 
   for (const [label, table, id] of deleteTests) {
@@ -593,6 +621,20 @@ async function main() {
     amount: 300,
     user_id: userBId,
   });
+
+  // 6k. Goal with User B user_id but User A realm_id
+  const { error: fkGoalRealm } = await supabaseB.from("goals").insert({
+    title: `${PREFIX}_FkGoalRealm`,
+    realm_id: realmA.id,
+    status: "active",
+    user_id: userBId,
+  });
+  if (fkGoalRealm) {
+    pass("User B cannot link goal to User A realm");
+  } else {
+    await supabaseB.from("goals").delete().ilike("title", `${PREFIX}_FkGoalRealm`);
+    fail("User B could link goal to User A realm");
+  }
   if (fkFinBudCat) {
     pass("User B cannot link finance budget to User A category");
   } else {
@@ -688,6 +730,7 @@ async function main() {
     ["finance budget", "finance_budgets", finBudgetA.id],
     ["body metrics", "body_metrics", bodyMetricsA.id],
     ["mind metrics", "mind_metrics", mindMetricsA.id],
+    ["goal", "goals", goalA.id],
   ];
 
   for (const [label, table, id] of selfReadTests) {
@@ -720,6 +763,8 @@ async function main() {
     ["finance_accounts", "id", finAccountA.id],
     ["journal_entries", "id", journalA.id],
     ["body_metrics", "id", bodyMetricsA.id],
+    ["goal_milestones", "id", milestoneA.id],
+    ["goals", "id", goalA.id],
     ["mind_metrics", "id", mindMetricsA.id],
     ["realms", "id", realmA.id],
   ];

@@ -1,11 +1,11 @@
 # LIFE PULSE — Current State Audit
 
 **Date:** June 23, 2026
-**Commit:** `4fa6b98` (Phase 0 base; Phase 1 + 1.5 + 2A + 2B + 3A + 3B + 4A + 4B + 4C + 4D applied on top)
+**Commit:** `4fa6b98` (Phase 0 base; Phase 1 + 1.5 + 2A + 2B + 3A + 3B + 4A + 4B + 4C + 4D + 5A applied on top)
 **Branch:** `master` (no remote configured)
 **Build status:** ✅ Clean (0 lint errors, 0 build errors)
-**Working tree:** Clean — all Phase 3A + 3B + 4A + 4B + 4C changes applied + Phase 4D Body/Mind polish
-**Architecture Plan:** `docs/LIFE_OS_ARCHITECTURE_PLAN.md` (updated for Phase 4D)
+**Working tree:** Clean — all Phase 4D changes applied + Phase 5A Goals foundation
+**Architecture Plan:** `docs/LIFE_OS_ARCHITECTURE_PLAN.md` (updated for Phase 5A)
 
 ---
 
@@ -65,6 +65,7 @@ src/
 ├── components/           # Shared UI components
 │   ├── body/             # 3 files — BodyMetricsForm, BodyMetricsSummary, BodyMetricsAverages
 │   ├── finance/          # 13 files — accounts, transactions, budgets, charts, utils
+│   ├── goals/            # 4 files — GoalPulseHeader, GoalForm, GoalCard, GoalMilestones
 │   ├── mind/             # 4 files — MoodEnergyCard, ReflectionCard, MindMetricsSummary, MindMetricsAverages
 │   ├── projects/         # 4 files — cards, forms, wizard
 │   ├── today/            # 6 files — command strip, mission control, pulse sections
@@ -83,6 +84,7 @@ src/
 │   ├── utils.ts          # cn(), formatDate(), getTodayDateString()
 │   ├── bodyMetrics.ts    # BodyMetrics type + getTodayDate()
 │   ├── mindMetrics.ts    # MindMetrics type + getTodayDate()
+│   ├── goals.ts          # Goal + GoalMilestone types, form data types, getTodayDate()
 │   └── metricSummaries.ts # avg(), trend(), loggedToday(), getToday(), scoreLabel()
 └── proxy.ts              # Auth middleware (route protection)
 ```
@@ -142,6 +144,7 @@ src/
 | `/finance` | `src/app/finance/page.tsx` (641 lines, was 867) | Accounts, transactions, budgets, KPI cards, charts | Partial | `finance_accounts`, `finance_categories`, `finance_transactions`, `finance_budgets` | Full CRUD for accounts, transactions, budgets. Cash-flow trend chart, expense breakdown pie, budget usage bar. Hardcoded ILS currency. Components extracted: SimpleSelect, TransactionForm, BudgetForm, AccountForm, BudgetHealthList into `src/components/finance/`. Reduced by 226 lines. Missing default categories on fresh signup. |
 | `/journal` | `src/app/journal/page.tsx` (209 lines) | Daily entries with mood/energy ratings, reflection prompts | Working | `journal_entries` | 5 reflection prompts. Mood (1-5) and energy (1-5) ratings. One entry per day (upsert). Clean, focused page. |
 | `/insights` | `src/app/insights/page.tsx` (524 lines) | Realm XP breakdown, radar chart, balance score, suggestions | Working | `xp_events`, `realms`, `habits`, `habit_logs` | Hexagonal radar chart with expanded dialog. Balance score computation. 6 realm XP totals. Strong visual component. Phase 3B extracted ~200 lines into 6 components. |
+| `/goals` | `src/app/goals/page.tsx` (~310 lines) | Goal Pulse dashboard for long-term outcomes | Working | `goals`, `goal_milestones`, `realms` | Goals CRUD (active/paused/completed/archived), milestones with progress bar, realm linking, priority/target date. Phase 5A — standalone goals + milestones, no project/task/habit linking yet. |
 | `/body` | `src/app/body/page.tsx` (~255 lines) | Body Pulse dashboard + manual entry | Working | `habits`, `tasks`, `journal_entries`, `xp_events`, `habit_logs`, `body_metrics` | Displays body habits, tasks, energy trend from journal. BodyMetricsForm (sleep, steps, workouts, weight, HR, recovery) + BodyMetricsSummary + BodyMetricsAverages. Phase 4B added body_metrics table + entry form. Phase 4D replaced Energy Trend card with averages card (sleep, energy, recovery, steps, workout) with trend indicators. |
 | `/mind` | `src/app/mind/page.tsx` (~250 lines) | Mind Pulse dashboard + manual entry | Working | `journal_entries`, `habits`, `tasks`, `xp_events`, `mind_metrics` | Displays journal mood/energy, habits, tasks, XP. MindMetricsForm (mood, stress, focus, clarity, motivation, tags, reflection) + MindMetricsSummary + MindMetricsAverages. Phase 4B added mind_metrics table + entry form. Phase 4D added averages card (mood, stress, focus, clarity, motivation) with trend indicators. |
 | `/settings` | `src/app/settings/page.tsx` (510 lines) | Profile fields, realm CRUD, change password, logout | Working | `profiles`, `realms` | Edit first/last name, display name, birth date. Add custom realms (icon + color picker). Change password form. Logout button. Progression customization section is a placeholder comment. |
@@ -149,8 +152,8 @@ src/
 | `/terms` | `src/app/terms/page.tsx` (170 lines) | Terms of service | Working (static) | `getSupportEmail()` from config | Reads from `NEXT_PUBLIC_SUPPORT_EMAIL` env var via `src/lib/config.ts`. Falls back to `support@lifepulse.app`. Must be set in Vercel before beta. |
 
 ### Route Status Summary
-- **Working:** 20/22 routes (all except finance; body + mind added)
-- **Partial:** 2/22 (finance — missing default category seeding; body/mind show empty states without habits/tasks/journal)
+- **Working:** 21/23 routes
+- **Partial:** 2/23 (finance — missing default category seeding; body/mind show empty states without habits/tasks/journal)
 - **Risky:** 0/22
 - **Placeholder:** 0/22
 - **Missing:** 0/22
@@ -178,6 +181,8 @@ src/
 | `finance_budgets` | Monthly budget per expense category | ✅ | ✅ (category_id must be expense type) | Month must be 1st of month. |
 | `body_metrics` | Daily body signals (sleep, steps, workouts, weight, HR, recovery, energy, notes) | ✅ | N/A | Unique(user_id, entry_date). Phase 4B — manual entry only, no device/wearable fields yet. |
 | `mind_metrics` | Daily mind signals (mood, stress, focus, clarity, motivation, reflection, tags) | ✅ | N/A | Unique(user_id, entry_date). Phase 4B — manual entry only, no device fields yet. |
+| `goals` | Long-term outcome tracking (title, description, why, status, priority, target_date, realm) | ✅ | ✅ (realm_id via trigger) | Phase 5A — standalone, no project/task/habit linking yet. Status: active/paused/completed/archived. |
+| `goal_milestones` | Milestones per goal (title, due_date, completed_at, sort_order) | ✅ | N/A (FK check via user_id) | Phase 5A — cascading delete with parent goal. |
 
 ### Key Relationships
 - All tables reference `auth.users(id)` via `user_id` with `on delete cascade`
@@ -188,8 +193,8 @@ src/
 - `finance_transactions.account_id` → `finance_accounts(id)` (set null), `finance_transactions.category_id` → `finance_categories(id)` (set null)
 - `finance_budgets.category_id` → `finance_categories(id)` (cascade delete)
 
-### Ownership Safety (00006 + 00007 + 00008)
-- 5 helper functions (from 00006): `realm_belongs_to_user`, `habit_belongs_to_user`, `project_belongs_to_user`, `task_belongs_to_user`, `habit_log_belongs_to_user`, `finance_account_belongs_to_user`, `finance_category_belongs_to_user_and_type`
+### Ownership Safety (00006 + 00007 + 00008 + 00009)
+- 6 helper functions: `realm_belongs_to_user`, `habit_belongs_to_user`, `project_belongs_to_user`, `task_belongs_to_user`, `habit_log_belongs_to_user`, `finance_account_belongs_to_user`, `finance_category_belongs_to_user_and_type`, `goal_realm_belongs_to_user`
 - All INSERT/UPDATE policies on FK-bearing tables validate ownership of referenced rows
 - XP event INSERT validates that the source task or habit log belongs to the user
 - Budgets only allow expense-type categories
@@ -202,16 +207,17 @@ src/
 - **00007 (finance):** Adds new tables + helpers + policies — fully additive, no conflicts
 - **00005 (projects):** Adds `project_id` column to `tasks` via `alter table ... add column if not exists` — safe
 - **00008 (body_mind_metrics):** Adds `body_metrics` and `mind_metrics` tables with RLS + triggers — fully additive, no conflicts with existing tables
+- **00009 (goals):** Adds `goals` and `goal_milestones` tables with RLS + triggers + FK ownership helper — fully additive, no conflicts with existing tables
 
 ### Production Setup Requirements
-- Run `supabase migration up` (or apply all 8 migrations manually) on production Supabase project
+- Run `supabase migration up` (or apply all 9 migrations manually) on production Supabase project
 - Configure Supabase Auth: Enable email confirmations (or disable for beta), set Site URL and redirect URLs
 - Create 2 test users for RLS smoke test, then delete them
 
 ### RLS Smoke Test
 - Script: `scripts/rls-smoke-test.mjs` (745 lines)
 - Requires env vars: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `RLS_TEST_USER_A_EMAIL`, `RLS_TEST_USER_A_PASSWORD`, `RLS_TEST_USER_B_EMAIL`, `RLS_TEST_USER_B_PASSWORD`
-- Tests that User A cannot read/update/delete User B's data across all 14 tables (12 original + body_metrics + mind_metrics)
+- Tests that User A cannot read/update/delete User B's data across all 16 tables (12 original + body_metrics + mind_metrics + goals + goal_milestones)
 - Currently **blocked** — cannot run until test users exist in production Supabase
 
 ---
@@ -239,6 +245,7 @@ src/
 | **Toasts/Feedback** | ✅ Complete | Toast system via `useToast` hook + `ToastProvider` in root layout. Inline `feedback` banners replaced in all 7 dashboard pages. Dark-glass styling, auto-dismiss 4s, max 5 visible. | Auth pages (login, signup, forgot/reset password) still use inline error states — acceptable for form-level validation | Low |
 | **Body Pulse** | ✅ Phase 4A+4B+4D | /body route with manual entry form (sleep, steps, workouts, weight, HR, recovery, energy), body_metrics table with RLS, 7-day summary, averages card (sleep/energy/recovery/steps/workout) with trend indicators | No wearable/device sync, no AI coaching | Low (manual entry viable for beta) |
 | **Mind Pulse** | ✅ Phase 4A+4B+4D | /mind route with manual entry form (mood, stress, focus, clarity, motivation, reflection, tags), mind_metrics table with RLS, 7-day summary, averages card (mood/stress/focus/clarity/motivation) with trend indicators | No structured focus sessions, no emotional pattern analysis | Low (manual entry viable for beta) |
+| **Goals** | ✅ Phase 5A | /goals route with goals + milestones CRUD, realm linking, priority/target date, progress bar, status management (active/paused/completed/archived), today preview card | No project/task/habit linking, no AI recommendations, no goal templates | Medium (linking to projects/tasks/habits is next) |
 | **AI Coach** | ❌ Missing | None | Not started | Future phase |
 | **Smart Ring/Watch** | ❌ Missing | None | Not started | Future phase |
 
@@ -327,7 +334,7 @@ The app has a solid foundation — the dark theme, CSS variable system, and typo
 - **Supabase client creation** done directly in each page instead of using a shared hook
 
 ### Oversized Pages/Components
-- `src/app/today/page.tsx`: **801 lines (was 1091)** — 6 components extracted in Phase 3A
+- `src/app/today/page.tsx`: **~890 lines (was 1091)** — 6 components extracted in Phase 3A; Phase 4D/5A added body/mind/goals preview
 - `src/app/finance/page.tsx`: **641 lines (was 867)** — 5 components extracted in Phase 3A
 - `src/app/projects/page.tsx`: **454 lines (was 853)** — 4 components extracted in Phase 3A
 - `src/app/onboarding/page.tsx`: **823 lines** — not yet extracted
@@ -380,7 +387,7 @@ Phase 3A extracted ~1044 lines of inline JSX into 15 component files across 3 do
 - **Lint:** ✅ 0 errors, 0 warnings (`npm run lint` passes)
 - **TypeScript:** ✅ No type errors (verified during build)
 - **Build:** ✅ `next build` completes successfully (3.0s compile, 4.8s TypeScript check, 520ms page generation)
-- 20 pages generated (17 routes + `/_not-found` + proxy + layout)
+- 23 pages generated (21 routes + `/_not-found` + proxy + layout)
 - 1 static route (`/`), rest dynamic
 
 ---
@@ -389,7 +396,7 @@ Phase 3A extracted ~1044 lines of inline JSX into 15 component files across 3 do
 
 ### What Is Already Ready
 - Build and lint pass clean
-- All 17 routes render
+- All 21 routes render
 - Auth flow (signup → onboarding → dashboard) is complete
 - RLS enabled on all 14 tables with FK ownership checks
 - Security headers configured (CSP, HSTS, X-Frame-Options, etc.)

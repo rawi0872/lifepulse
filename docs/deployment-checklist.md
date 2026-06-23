@@ -28,7 +28,7 @@ git push origin private-beta-v1
 - [ ] `.env.example` IS tracked — run `git ls-files .env.example` to confirm
 - [ ] No real secrets in any committed file
 - [ ] `npm run lint` passes (0 errors)
-- [ ] `npm run build` passes (19 pages compiled)
+- [ ] `npm run build` passes (23 pages compiled)
 - [ ] Toast system functional (verify on all dashboard pages)
 - [ ] Custom favicon present (`/icon.svg` — Life Pulse pulse/heartbeat)
 
@@ -90,6 +90,7 @@ Add both of the following:
 
 ### Phase 4C QA (June 23, 2026)
 - Body/Mind metrics migration (00008) verifies project conventions ✅
+- Goals migration (00009) follows 00008 pattern exactly (goals + goal_milestones tables, RLS, triggers, FK ownership) ✅
 - BodyMetricsForm numeric parsing fixed for "0" values (steps, workout_minutes, etc.) ✅
 - Toast feedback added to Body/Mind save/update operations ✅
 - Error handling added to Body/Mind save/update operations ✅

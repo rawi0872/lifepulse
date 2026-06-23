@@ -117,6 +117,8 @@ function TodayContent() {
   const [bodyEnergyToday, setBodyEnergyToday] = useState<number | null>(null);
   const [mindLoggedToday, setMindLoggedToday] = useState(false);
   const [mindMoodToday, setMindMoodToday] = useState<number | null>(null);
+  const [goalActiveCount, setGoalActiveCount] = useState(0);
+  const [goalUpcomingCount, setGoalUpcomingCount] = useState(0);
 
   const router = useRouter();
   const supabase = createClient();
@@ -399,6 +401,15 @@ function TodayContent() {
             setMindLoggedToday(true);
             setMindMoodToday(mindRes.data.mood);
           }
+        }
+
+        const { data: goalData } = await supabase
+          .from("goals")
+          .select("status, target_date")
+          .eq("user_id", user.id);
+        if (!cancelled && goalData) {
+          setGoalActiveCount(goalData.filter((g) => g.status === "active").length);
+          setGoalUpcomingCount(goalData.filter((g) => g.target_date && g.status !== "completed" && g.status !== "archived").length);
         }
       } catch {
         setError("Failed to load dashboard.");
@@ -843,6 +854,21 @@ function TodayContent() {
             ) : (
               <span className="ml-auto text-[10px] text-[var(--text-muted)]">Log &rarr;</span>
             )}
+          </Link>
+
+          <Link
+            href="/goals"
+            className="flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2.5 text-xs font-medium text-[var(--text)] transition-colors hover:bg-[var(--surface)]"
+          >
+            <svg className="h-3.5 w-3.5 shrink-0 text-[var(--accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.59 14.37a6 6 0 01-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 006.16-12.12A14.98 14.98 0 009.631 8.41m5.96 5.96a14.926 14.926 0 01-5.841 2.58m-.119-8.54a6 6 0 00-7.381 5.84h4.8m2.581-5.84a14.927 14.927 0 00-2.58 5.84m2.699 2.7c-.103.021-.207.041-.311.06a15.09 15.09 0 01-2.448-2.448 14.9 14.9 0 01.06-.312m-2.24 2.39a4.493 4.493 0 00-1.757 4.306 4.493 4.493 0 004.306-1.758M16.5 9a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
+            </svg>
+            Goal Pulse
+            <span className="ml-auto flex items-center gap-1.5 text-[10px]">
+              {goalActiveCount > 0 && <span className="text-[var(--accent)]">{goalActiveCount} active</span>}
+              {goalUpcomingCount > 0 && <span className="text-[var(--text-muted)]">&middot; {goalUpcomingCount} upcoming</span>}
+              {goalActiveCount === 0 && <span className="text-[var(--text-muted)]">View &rarr;</span>}
+            </span>
           </Link>
 
           <SectionHeader label="Evening Reflection" accent="warning" />

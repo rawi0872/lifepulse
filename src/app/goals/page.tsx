@@ -1,0 +1,367 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+import { DashboardNav } from "@/components/DashboardNav";
+import { useToast } from "@/hooks/use-toast";
+import { SectionHeader } from "@/components/ui/section-header";
+import { EmptyState } from "@/components/ui/empty-state";
+import { GoalPulseHeader } from "@/components/goals/GoalPulseHeader";
+import { GoalForm } from "@/components/goals/GoalForm";
+import { GoalCard } from "@/components/goals/GoalCard";
+import { GoalMilestones } from "@/components/goals/GoalMilestones";
+import type { Goal, GoalMilestone, GoalFormData } from "@/lib/goals";
+
+interface RealmInfo {
+  id: string;
+  name: string;
+  color: string;
+  icon: string;
+}
+
+function GoalsContent() {
+  const router = useRouter();
+  const supabase = createClient();
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [goals, setGoals] = useState<Goal[]>([]);
+  const [milestones, setMilestones] = useState<GoalMilestone[]>([]);
+  const [realms, setRealms] = useState<RealmInfo[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
+  const [expandedGoalId, setExpandedGoalId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { router.push("/login"); return; }
+
+      const [goalsRes, milestonesRes, realmsRes] = await Promise.all([
+        supabase
+          .from("goals")
+          .select("*, realms(name, color, icon)")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("goal_milestones")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("sort_order", { ascending: true }),
+        supabase
+          .from("realms")
+          .select("id, name, color, icon")
+          .eq("user_id", user.id)
+          .order("name"),
+      ]);
+
+      if (cancelled) return;
+      if (goalsRes.data) setGoals(goalsRes.data as Goal[]);
+      if (milestonesRes.data) setMilestones(milestonesRes.data as GoalMilestone[]);
+      if (realmsRes.data) setRealms(realmsRes.data as RealmInfo[]);
+      setLoading(false);
+    }
+
+    load();
+    return () => { cancelled = true; };
+  }, [router, supabase]);
+
+  async function reload() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const [goalsRes, milestonesRes, realmsRes] = await Promise.all([
+      supabase.from("goals").select("*, realms(name, color, icon)").eq("user_id", user.id).order("created_at", { ascending: false }),
+      supabase.from("goal_milestones").select("*").eq("user_id", user.id).order("sort_order", { ascending: true }),
+      supabase.from("realms").select("id, name, color, icon").eq("user_id", user.id).order("name"),
+    ]);
+    if (goalsRes.data) setGoals(goalsRes.data as Goal[]);
+    if (milestonesRes.data) setMilestones(milestonesRes.data as GoalMilestone[]);
+    if (realmsRes.data) setRealms(realmsRes.data as RealmInfo[]);
+  }
+
+  const activeGoals = goals.filter((g) => g.status === "active");
+  const pausedGoals = goals.filter((g) => g.status === "paused");
+  const completedGoals = goals.filter((g) => g.status === "completed");
+  const archivedGoals = goals.filter((g) => g.status === "archived");
+  const activeGoalCount = activeGoals.length;
+  const completedGoalCount = completedGoals.length;
+  const milestoneDoneCount = milestones.filter((m) => m.completed_at).length;
+  const upcomingDates = goals.filter((g) => g.target_date && g.status !== "completed" && g.status !== "archived").length;
+
+  const getMilestonesForGoal = (goalId: string) =>
+    milestones.filter((m) => m.goal_id === goalId);
+
+  const getMilestoneProgress = (goalId: string) => {
+    const ms = getMilestonesForGoal(goalId);
+    if (ms.length === 0) return 0;
+    return Math.round((ms.filter((m) => m.completed_at).length / ms.length) * 100);
+  };
+
+  const getNextMilestone = (goalId: string) => {
+    const ms = getMilestonesForGoal(goalId).filter((m) => !m.completed_at).sort((a, b) => a.sort_order - b.sort_order);
+    return ms[0];
+  };
+
+  async function handleSave(data: GoalFormData) {
+    setSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setSaving(false); return; }
+
+      if (editingGoal) {
+        const { error } = await supabase
+          .from("goals")
+          .update(data)
+          .eq("id", editingGoal.id)
+          .eq("user_id", user.id);
+        if (error) { toast({ type: "error", title: "Failed to update goal." }); setSaving(false); return; }
+        toast({ type: "success", title: "Goal updated!" });
+      } else {
+        const { error } = await supabase
+          .from("goals")
+          .insert({ ...data, user_id: user.id });
+        if (error) { toast({ type: "error", title: "Failed to create goal." }); setSaving(false); return; }
+        toast({ type: "success", title: "Goal created!" });
+      }
+
+      setShowForm(false);
+      setEditingGoal(null);
+      reload();
+    } catch {
+      toast({ type: "error", title: "Something went wrong. Try again." });
+    }
+    setSaving(false);
+  }
+
+  async function handleDelete(id: string) {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { error } = await supabase.from("goals").delete().eq("id", id).eq("user_id", user.id);
+      if (error) { toast({ type: "error", title: "Failed to delete goal." }); return; }
+      toast({ type: "success", title: "Goal deleted." });
+      setMilestones((prev) => prev.filter((m) => m.goal_id !== id));
+      reload();
+    } catch {
+      toast({ type: "error", title: "Something went wrong." });
+    }
+  }
+
+  async function handleComplete(id: string) {
+    setSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setSaving(false); return; }
+      const { error } = await supabase
+        .from("goals")
+        .update({ status: "completed", completed_at: new Date().toISOString() })
+        .eq("id", id)
+        .eq("user_id", user.id);
+      if (error) { toast({ type: "error", title: "Failed to complete goal." }); setSaving(false); return; }
+      toast({ type: "success", title: "Goal completed! Great work." });
+      reload();
+    } catch {
+      toast({ type: "error", title: "Something went wrong." });
+    }
+    setSaving(false);
+  }
+
+  async function handleAddMilestone(goalId: string, title: string) {
+    setSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setSaving(false); return; }
+      const existing = milestones.filter((m) => m.goal_id === goalId);
+      const maxOrder = existing.length > 0 ? Math.max(...existing.map((m) => m.sort_order)) : -1;
+      const { error } = await supabase
+        .from("goal_milestones")
+        .insert({ goal_id: goalId, user_id: user.id, title, sort_order: maxOrder + 1 });
+      if (error) { toast({ type: "error", title: "Failed to add milestone." }); setSaving(false); return; }
+      toast({ type: "success", title: "Milestone added!" });
+      reload();
+    } catch {
+      toast({ type: "error", title: "Something went wrong." });
+    }
+    setSaving(false);
+  }
+
+  async function handleToggleMilestone(id: string, completed: boolean) {
+    setSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setSaving(false); return; }
+      const { error } = await supabase
+        .from("goal_milestones")
+        .update({ completed_at: completed ? new Date().toISOString() : null })
+        .eq("id", id)
+        .eq("user_id", user.id);
+      if (error) { toast({ type: "error", title: "Failed to update milestone." }); setSaving(false); return; }
+      reload();
+    } catch {
+      toast({ type: "error", title: "Something went wrong." });
+    }
+    setSaving(false);
+  }
+
+  async function handleDeleteMilestone(id: string) {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { error } = await supabase.from("goal_milestones").delete().eq("id", id).eq("user_id", user.id);
+      if (error) { toast({ type: "error", title: "Failed to delete milestone." }); return; }
+      toast({ type: "success", title: "Milestone deleted." });
+      reload();
+    } catch {
+      toast({ type: "error", title: "Something went wrong." });
+    }
+  }
+
+  function startEdit(goal: Goal) {
+    setEditingGoal(goal);
+    setShowForm(true);
+  }
+
+  function cancelForm() {
+    setShowForm(false);
+    setEditingGoal(null);
+  }
+
+  function toggleExpand(goalId: string) {
+    setExpandedGoalId((prev) => prev === goalId ? null : goalId);
+  }
+
+  const renderGoalList = (items: Goal[], label: string) => {
+    if (items.length === 0) return null;
+    return (
+      <div className="mb-6">
+        <SectionHeader label={label} count={String(items.length)} accent="accent" />
+        <div className="space-y-2">
+          {items.map((goal) => {
+            const isExpanded = expandedGoalId === goal.id;
+            const goalMilestones = getMilestonesForGoal(goal.id);
+            const nextMs = getNextMilestone(goal.id);
+            return (
+              <div key={goal.id}>
+                <GoalCard
+                  goal={goal}
+                  milestoneProgress={getMilestoneProgress(goal.id)}
+                  nextMilestoneTitle={nextMs?.title}
+                  onEdit={startEdit}
+                  onDelete={handleDelete}
+                  onComplete={handleComplete}
+                />
+                {goalMilestones.length > 0 && (
+                  <button
+                    onClick={() => toggleExpand(goal.id)}
+                    className="mt-1 flex w-full items-center justify-center gap-1 py-1 text-[9px] text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors"
+                  >
+                    <svg
+                      className={`h-3 w-3 transition-transform ${isExpanded ? "rotate-180" : ""}`}
+                      fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                    </svg>
+                    {isExpanded ? "Hide milestones" : `${goalMilestones.length} milestone${goalMilestones.length !== 1 ? "s" : ""}`}
+                  </button>
+                )}
+                {isExpanded && (
+                  <div className="mt-2">
+                    <GoalMilestones
+                      milestones={goalMilestones}
+                      saving={saving}
+                      onAdd={(title) => handleAddMilestone(goal.id, title)}
+                      onToggle={handleToggleMilestone}
+                      onDelete={handleDeleteMilestone}
+                    />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  if (loading) return null;
+
+  return (
+    <div className="animate-fade-in p-4 md:p-6">
+      <div className="mx-auto max-w-3xl">
+        <GoalPulseHeader
+          activeCount={activeGoalCount}
+          completedCount={completedGoalCount}
+          milestoneCount={milestoneDoneCount}
+          upcomingCount={upcomingDates}
+        />
+
+        {!showForm && (
+          <div className="mb-6">
+            <button
+              onClick={() => { setEditingGoal(null); setShowForm(true); }}
+              className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 text-xs font-medium text-[var(--text-muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
+              Add a goal
+            </button>
+          </div>
+        )}
+
+        {showForm && (
+          <div className="mb-6">
+            <GoalForm
+              saving={saving}
+              onSave={handleSave}
+              onCancel={cancelForm}
+              initial={editingGoal ? {
+                title: editingGoal.title,
+                description: editingGoal.description ?? "",
+                why: editingGoal.why ?? "",
+                priority: editingGoal.priority,
+                realm_id: editingGoal.realm_id ?? "",
+                target_date: editingGoal.target_date ?? "",
+              } : undefined}
+              realms={realms}
+            />
+          </div>
+        )}
+
+        {goals.length === 0 ? (
+          <div className="py-12">
+            <EmptyState
+              message="No goals yet. Create your first goal to start tracking what matters."
+              action={
+                <button
+                  onClick={() => setShowForm(true)}
+                  className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors"
+                >
+                  Create your first goal &rarr;
+                </button>
+              }
+            />
+          </div>
+        ) : (
+          <>
+            {renderGoalList(activeGoals, "Active")}
+            {renderGoalList(pausedGoals, "Paused")}
+            {renderGoalList(completedGoals, "Completed")}
+            {renderGoalList(archivedGoals, "Archived")}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default function GoalsPage() {
+  return (
+    <DashboardNav>
+      <GoalsContent />
+    </DashboardNav>
+  );
+}

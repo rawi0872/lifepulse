@@ -1,8 +1,8 @@
 # Life Pulse — Life OS Architecture Plan
 
 **Date:** June 23, 2026
-**Status:** Phase 4D — Body/Mind Dashboard Polish & Today Metric Preview Complete
-**Audience:** Developers implementing Phase 5+ features
+**Status:** Phase 5A — Goals Foundation Complete
+**Audience:** Developers implementing Phase 5B+ features
 
 ---
 
@@ -26,26 +26,27 @@
 | `/finance` | `finance/page.tsx` | 641 (was 867) | Finance management | Money Pulse | Phase 3A extracted 5 components, -226 lines |
 | `/journal` | `journal/page.tsx` | 209 | Daily journal | Journal/Reflection | No — clean, focused |
 | `/insights` | `insights/page.tsx` | 524 | Analytics/reviews | Intelligence | Phase 3B extracted ~200 lines into 6 components |
+| `/goals` | `goals/page.tsx` | ~310 | Goal Pulse dashboard + milestones | Growth | Phase 5A — goals CRUD, milestones with progress bar, realm linking, priority/target date |
 | `/body` | `body/page.tsx` | ~255 | Body Pulse dashboard + manual entry | Life Domains | Phase 4A+4B+4D — body_metrics table, manual entry form, recent summary, averages card (sleep/energy/recovery/steps/workout) with trends |
 | `/mind` | `mind/page.tsx` | ~250 | Mind Pulse dashboard + manual entry | Life Domains | Phase 4A+4B+4D — mind_metrics table, manual entry form, recent summary, averages card (mood/stress/focus/clarity/motivation) with trends |
 | `/settings` | `settings/page.tsx` | ~510 | Profile/realms/prefs | System | Moderate — profile, realms, password, realm CRUD |
 | `/privacy` | `privacy/page.tsx` | 182 | Legal | Public | No |
 | `/terms` | `terms/page.tsx` | 170 | Legal | Public | No |
 
-### 1.2 Current Navigation Structure (After Phase 4A+4B)
+### 1.2 Current Navigation Structure (After Phase 5A)
 
 ```
  Pulse           → Today's Pulse
- Growth          → Habits, Tasks, Projects
+ Growth          → Goals, Habits, Tasks, Projects
  Life Domains    → Body, Mind, Money
  Intelligence    → Journal, Insights
  System          → Settings
 ```
 
-**Changes from Phase 3A:**
-- Body and Mind added to Life Domains ✅
-- 10 nav items across 5 groups (was 8 items in 5 groups) ✅
-- Mobile nav derives all 10 items from nav groups (no hardcoded links) ✅
+**Changes from Phase 4D:**
+- Goals added to Growth group (before Habits) ✅
+- 11 nav items across 5 groups (was 10) ✅
+- Mobile nav derives all 11 items from nav groups (no hardcoded links) ✅
 
 ### 1.3 Current Data Ownership
 
