@@ -5,28 +5,25 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import {
-  formatDate,
   getTodayDateString,
   getWeekStartDate,
   getTodayStartISO,
   getTodayDayOfWeek,
 } from "@/lib/utils";
 import { getCurrentStreak, getWeeklyProgress } from "@/lib/streaks";
-import { getLevelInfo } from "@/lib/levels";
 import { toggleTaskCompletion } from "@/lib/taskCompletion";
 import { DashboardNav } from "@/components/DashboardNav";
-import { HabitCard } from "@/components/HabitCard";
-import { TaskCard } from "@/components/TaskCard";
 import { JournalSection } from "@/components/JournalSection";
 import { XpDisplay } from "@/components/XpDisplay";
-import { HelpPopover } from "@/components/HelpPopover";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { PulseCard } from "@/components/ui/pulse-card";
-import { MetricCard } from "@/components/ui/metric-card";
 import { SectionHeader } from "@/components/ui/section-header";
-import { EmptyState } from "@/components/ui/empty-state";
+import { TodaysPulseHeader } from "@/components/today/TodaysPulseHeader";
+import { CommandStrip } from "@/components/today/CommandStrip";
+import { MissionControl } from "@/components/today/MissionControl";
+import { BodyPulseSection } from "@/components/today/BodyPulseSection";
+import { MindPulseSection } from "@/components/today/MindPulseSection";
+import { FinanceOverview } from "@/components/today/FinanceOverview";
 
 interface RealmInfo {
   name: string;
@@ -582,7 +579,6 @@ function TodayContent() {
     }
   }
 
-  const { level } = getLevelInfo(totalXp);
   const allDone = completedHabitCount === dueHabits.length && doneTaskCount === tasks.length && dueHabits.length > 0 && tasks.length > 0 && hasJournal;
   const hasContent = habits.length > 0 || tasks.length > 0;
 
@@ -616,37 +612,7 @@ function TodayContent() {
   return (
     <div className="mx-auto max-w-5xl px-5 py-8 animate-fade-in">
 
-      <header className="mb-6">
-        <div className="flex items-start justify-between">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--accent)]">
-                Today&apos;s Pulse
-              </span>
-              <div className="h-1 w-1 rounded-full bg-[var(--accent)]/40" />
-              <span className="text-[10px] text-[var(--text-muted)] tracking-wider">
-                Life OS &middot; Mission Control
-              </span>
-            </div>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight text-[var(--text)]">
-              Good {getGreeting()}{firstName ? `, ${firstName}` : ''}
-            </h1>
-            <div className="mt-0.5 flex items-center gap-2 text-sm text-[var(--text-muted)]">
-              {formatDate(new Date())}
-              <HelpPopover title="Today's Pulse">
-                <p>This is your Life OS command center. Set priorities, complete habits and tasks, then reflect in the evening to keep your life in motion.</p>
-              </HelpPopover>
-            </div>
-            <div className="mt-1.5 flex items-center gap-3">
-              <span className="text-[10px] font-medium text-[var(--accent)]">Level {level}</span>
-              <div className="h-1 w-20 overflow-hidden rounded-full bg-[var(--surface)] ring-1 ring-inset ring-[var(--border)]">
-                <div className="h-full rounded-full bg-gradient-to-r from-[var(--accent)] to-[var(--accent-strong)] transition-all duration-500" style={{width: `${getLevelInfo(totalXp).progressPercent}%`}} />
-              </div>
-              <span className="text-[10px] text-[var(--text-muted)]">+{todayXp} XP today</span>
-            </div>
-          </div>
-        </div>
-      </header>
+      <TodaysPulseHeader firstName={firstName} totalXp={totalXp} todayXp={todayXp} />
 
       {error && (
         <div className="mb-6 rounded-lg border border-[var(--danger)]/30 bg-[var(--danger)]/10 px-4 py-3 text-sm text-[var(--danger)]">
@@ -654,213 +620,33 @@ function TodayContent() {
         </div>
       )}
 
-      {/* Command Strip */}
-      <div className="mb-6 grid grid-cols-3 sm:grid-cols-5 gap-2">
-        <MetricCard
-          label="Habits"
-          value={`${completedHabitCount}/${dueHabits.length}`}
-          active={completedHabitCount === dueHabits.length && dueHabits.length > 0}
-          icon={
-            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-            </svg>
-          }
-        />
-        <MetricCard
-          label="Tasks"
-          value={`${doneTaskCount}/${tasks.length}`}
-          active={doneTaskCount > 0 && doneTaskCount === tasks.length && tasks.length > 0}
-          icon={
-            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-            </svg>
-          }
-        />
-        <MetricCard
-          label="Reflect"
-          value={hasJournal ? "Done" : "\u2014"}
-          active={hasJournal}
-          icon={
-            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-            </svg>
-          }
-        />
-        <MetricCard
-          label="XP Today"
-          value={`+${todayXp}`}
-          active={todayXp > 0}
-          icon={
-            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-          }
-        />
-        <Link href="/finance" className="contents">
-          <MetricCard
-            label="Money"
-            value={financeHasTx && financeNet !== null ? new Intl.NumberFormat("en-US", { style: "currency", currency: "ILS", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(financeNet) : "\u2014"}
-            active={financeHasTx}
-            trend={financeNet !== null && financeNet < 0 ? "down" : financeNet !== null && financeNet >= 0 ? "up" : undefined}
-            icon={
-              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            }
-          />
-        </Link>
-      </div>
+      <CommandStrip
+        completedHabitCount={completedHabitCount}
+        dueHabitsLength={dueHabits.length}
+        doneTaskCount={doneTaskCount}
+        tasksLength={tasks.length}
+        hasJournal={hasJournal}
+        todayXp={todayXp}
+        financeNet={financeNet}
+        financeHasTx={financeHasTx}
+      />
 
-      {/* Mission Control */}
-      <PulseCard accent="accent" title="Mission Control" className="mb-6">
-        <div className="p-4">
-          <div>
-            <label className="text-xs font-medium text-[var(--text-secondary)]">
-              Today&apos;s priorities
-            </label>
-            {priorities.length === 0 ? (
-              <div className="mt-2 flex gap-2">
-                <input
-                  value={priorityInput}
-                  onChange={(e) => setPriorityInput(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") addPriorityItem(); }}
-                  placeholder="What will make today count?"
-                  maxLength={200}
-                  className="flex-1 rounded-lg border border-[var(--border-strong)] bg-[var(--surface-soft)] px-3 py-2 text-sm text-[var(--text)] placeholder-[var(--text-muted)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none"
-                />
-                <Button onClick={addPriorityItem} disabled={!priorityInput.trim()} size="sm">
-                  Set
-                </Button>
-              </div>
-            ) : (
-              <div className="mt-2 space-y-1.5">
-                {priorities.map((p) => (
-                  <div key={p.id} className="flex items-center gap-2.5 group transition-all duration-200">
-                    <button
-                      onClick={() => togglePriorityItem(p.id)}
-                      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-all duration-150 ${
-                        p.done
-                          ? "border-[var(--success)]/70 bg-[var(--success)]/80 shadow-sm shadow-[var(--success)]/15"
-                          : "border-[var(--text-muted)]/40 hover:border-[var(--accent)]/50 hover:bg-[var(--accent-ghost)]"
-                      }`}
-                    >
-                      {p.done && (
-                        <svg className="h-2.5 w-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                        </svg>
-                      )}
-                    </button>
-                    <span className={`flex-1 text-sm ${p.done ? "line-through text-[var(--text-muted)]" : "text-[var(--text)]"}`}>
-                      {p.text}
-                    </span>
-                    <button
-                      onClick={() => removePriorityItem(p.id)}
-                      className="opacity-0 group-hover:opacity-100 text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-all text-xs"
-                      aria-label={`Remove "${p.text}"`}
-                    >
-                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </div>
-                ))}
-                {priorities.length > 0 && priorities.every(p => p.done) && (
-                  <div className="flex items-center gap-1.5 text-xs text-[var(--success)] mt-1">
-                    <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    Priorities set for today
-                  </div>
-                )}
-                {priorities.length < 3 && (
-                  <div className="mt-1">
-                    {addingPriority ? (
-                      <div className="flex gap-2">
-                        <input
-                          autoFocus
-                          value={priorityInput}
-                          onChange={(e) => setPriorityInput(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") addPriorityItem();
-                            if (e.key === "Escape") { setAddingPriority(false); setPriorityInput(""); }
-                          }}
-                          placeholder="What else matters?"
-                          maxLength={200}
-                          className="flex-1 rounded-lg border border-[var(--border-strong)] bg-[var(--surface-soft)] px-2.5 py-1.5 text-xs text-[var(--text)] placeholder-[var(--text-muted)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none"
-                        />
-                        <button
-                          onClick={addPriorityItem}
-                          disabled={!priorityInput.trim()}
-                          className="text-xs text-[var(--accent)] hover:text-[var(--accent-strong)] disabled:text-[var(--text-muted)] transition-colors"
-                        >
-                          Add
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => setAddingPriority(true)}
-                        className="text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors"
-                      >
-                        + Add priority
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          <div className="my-4 border-t border-[var(--border)]" />
-
-          <div>
-            <label className="text-xs font-medium text-[var(--text-secondary)]">
-              Quick capture
-            </label>
-            <div className="mt-2 flex gap-2">
-              <div className="relative flex-1">
-                <input
-                  value={quickCapture}
-                  onChange={(e) => handleQuickChange(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") handleQuickCapture(); }}
-                  placeholder="Capture a task, habit, or project idea..."
-                  maxLength={200}
-                  className="w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface-soft)] px-3 py-2 pr-20 text-sm text-[var(--text)] placeholder-[var(--text-muted)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none"
-                />
-                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                  <span className={`rounded px-2 py-0.5 text-[10px] font-medium ${
-                    quickType === "task"
-                      ? "bg-[var(--surface)] text-[var(--text-secondary)]"
-                      : quickType === "habit"
-                        ? "bg-[var(--success-soft)] text-[var(--success)]"
-                        : "bg-[var(--accent-soft)] text-[var(--accent)]"
-                  }`}>
-                    {quickType === "task" ? "Task" : quickType === "habit" ? "Habit" : "Project"}
-                  </span>
-                </div>
-              </div>
-              <Button onClick={handleQuickCapture} disabled={!quickCapture.trim() || quickSaving}>
-                {quickSaving ? "..." : "Add"}
-              </Button>
-            </div>
-            {quickCapture.trim() && (
-              <div className="mt-1.5 flex gap-2">
-                {(["task", "habit", "project"] as const).map((t) => (
-                  t !== quickType && (
-                    <button
-                      key={t}
-                      onClick={() => setQuickType(t)}
-                      className="rounded-md px-2 py-0.5 border border-[var(--border)] hover:border-[var(--border-strong)] text-[10px] text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors"
-                    >
-                      Save as {t}
-                    </button>
-                  )
-                ))}
-              </div>
-            )}
-            
-          </div>
-        </div>
-      </PulseCard>
+      <MissionControl
+        priorities={priorities}
+        priorityInput={priorityInput}
+        addingPriority={addingPriority}
+        quickCapture={quickCapture}
+        quickType={quickType}
+        quickSaving={quickSaving}
+        onPriorityInputChange={setPriorityInput}
+        onAddPriority={addPriorityItem}
+        onTogglePriority={togglePriorityItem}
+        onRemovePriority={removePriorityItem}
+        onAddingPriorityChange={setAddingPriority}
+        onQuickCaptureChange={handleQuickChange}
+        onQuickTypeChange={setQuickType}
+        onQuickCapture={handleQuickCapture}
+      />
 
       {/* Next action */}
       {suggestedTask && suggestedTask.projects ? (
@@ -959,71 +745,22 @@ function TodayContent() {
       {/* Main grid */}
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
         <div className="space-y-6 md:col-span-2">
-          <section>
-            <SectionHeader
-              label="Body Pulse"
-              count={`${completedHabitCount}/${dueHabits.length}`}
-              action={
-                <Link href="/habits" className="text-[10px] text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">
-                  Manage
-                </Link>
-              }
-            />
-            {dueHabits.length === 0 ? (
-              <EmptyState
-                message="No habits due today."
-                compact
-                action={
-                  <Link href="/habits" className="inline-flex items-center gap-1 text-xs font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">
-                    Create your first habit &rarr;
-                  </Link>
-                }
-              />
-            ) : (
-              <div className="flex flex-col gap-2">
-                {dueHabits.map((habit) => (
-                  <HabitCard
-                    key={habit.id}
-                    habit={habit}
-                    isCompleted={completedHabitIds.has(habit.id)}
-                    onToggle={toggleHabit}
-                    streak={streakMap[habit.id]}
-                    weeklyProgress={weeklyProgressMap[habit.id] ?? null}
-                  />
-                ))}
-              </div>
-            )}
-          </section>
+          <BodyPulseSection
+            dueHabits={dueHabits}
+            completedHabitIds={completedHabitIds}
+            completedHabitCount={completedHabitCount}
+            dueHabitsLength={dueHabits.length}
+            streakMap={streakMap}
+            weeklyProgressMap={weeklyProgressMap}
+            onToggleHabit={toggleHabit}
+          />
 
-          <section>
-            <SectionHeader
-              label="Mind Pulse"
-              count={`${doneTaskCount}/${tasks.length}`}
-              accent="success"
-              action={
-                <Link href="/tasks" className="text-[10px] text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">
-                  Manage
-                </Link>
-              }
-            />
-            {tasks.length === 0 ? (
-              <EmptyState
-                message="No tasks for today."
-                compact
-                action={
-                  <Link href="/tasks" className="inline-flex items-center gap-1 text-xs font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">
-                    Add a task &rarr;
-                  </Link>
-                }
-              />
-            ) : (
-              <div className="flex flex-col gap-2">
-                {tasks.map((task) => (
-                  <TaskCard key={task.id} task={task} onToggle={toggleTask} />
-                ))}
-              </div>
-            )}
-          </section>
+          <MindPulseSection
+            tasks={tasks}
+            doneTaskCount={doneTaskCount}
+            tasksLength={tasks.length}
+            onToggleTask={toggleTask}
+          />
         </div>
 
         <div className="space-y-4">
@@ -1034,27 +771,7 @@ function TodayContent() {
             completedHabitCount={completedHabitCount}
           />
 
-          {financeHasTx && financeNet !== null ? (
-            <Link
-              href="/finance"
-              className="flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2.5 transition-colors hover:bg-[var(--surface)]"
-            >
-              <span className="text-xs font-medium text-[var(--text-muted)]">Money this month</span>
-              <span className={`text-xs font-semibold ${financeNet >= 0 ? "text-[var(--success)]" : "text-[var(--danger)]"}`}>
-                {new Intl.NumberFormat("en-US", { style: "currency", currency: "ILS", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(financeNet)}
-              </span>
-            </Link>
-          ) : (
-            <Link
-              href="/finance"
-              className="flex items-center gap-2 rounded-lg border border-dashed border-[var(--border)] px-3 py-2 text-xs text-[var(--text-muted)] transition-colors hover:text-[var(--text)] hover:bg-[var(--surface-soft)]"
-            >
-              <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              Track one transaction
-            </Link>
-          )}
+          <FinanceOverview financeNet={financeNet} financeHasTx={financeHasTx} />
 
           <SectionHeader label="Evening Reflection" accent="warning" />
 
@@ -1074,14 +791,7 @@ function TodayContent() {
     </div>
   );
 }
-
-function getGreeting(): string {
-  const hour = new Date().getHours();
-  if (hour < 12) return "morning";
-  if (hour < 17) return "afternoon";
-  return "evening";
-}
-
+ 
 export default function TodayPage() {
   return (
     <DashboardNav>

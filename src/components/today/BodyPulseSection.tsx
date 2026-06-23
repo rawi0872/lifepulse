@@ -1,0 +1,80 @@
+"use client";
+
+import Link from "next/link";
+import { HabitCard } from "@/components/HabitCard";
+import { SectionHeader } from "@/components/ui/section-header";
+import { EmptyState } from "@/components/ui/empty-state";
+
+interface RealmInfo {
+  name: string;
+  color: string;
+  icon: string;
+}
+
+interface Habit {
+  id: string;
+  title: string;
+  description: string | null;
+  frequency: string;
+  days_of_week: number[] | null;
+  times_per_week: number | null;
+  realms: RealmInfo | null;
+}
+
+interface BodyPulseSectionProps {
+  dueHabits: Habit[];
+  completedHabitIds: Set<string>;
+  completedHabitCount: number;
+  dueHabitsLength: number;
+  streakMap: Record<string, number>;
+  weeklyProgressMap: Record<string, { completed: number; target: number } | null>;
+  onToggleHabit: (habitId: string, isCompleted: boolean) => void;
+}
+
+export function BodyPulseSection({
+  dueHabits,
+  completedHabitIds,
+  completedHabitCount,
+  dueHabitsLength,
+  streakMap,
+  weeklyProgressMap,
+  onToggleHabit,
+}: BodyPulseSectionProps) {
+  return (
+    <section>
+      <SectionHeader
+        label="Body Pulse"
+        count={`${completedHabitCount}/${dueHabitsLength}`}
+        action={
+          <Link href="/habits" className="text-[10px] text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">
+            Manage
+          </Link>
+        }
+      />
+      {dueHabits.length === 0 ? (
+        <EmptyState
+          message="No habits due today."
+          compact
+          action={
+            <Link href="/habits" className="inline-flex items-center gap-1 text-xs font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">
+              Create your first habit &rarr;
+            </Link>
+          }
+        />
+      ) : (
+        <div className="flex flex-col gap-2">
+          {dueHabits.map((habit) => (
+            <HabitCard
+              key={habit.id}
+              habit={habit}
+              isCompleted={completedHabitIds.has(habit.id)}
+              onToggle={onToggleHabit}
+              streak={streakMap[habit.id]}
+              weeklyProgress={weeklyProgressMap[habit.id] ?? null}
+            />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
