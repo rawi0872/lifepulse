@@ -28,106 +28,14 @@ import { ExpenseBreakdownChart } from "@/components/finance/ExpenseBreakdownChar
 import { FinanceInsights } from "@/components/finance/FinanceInsights";
 import { TransactionList } from "@/components/finance/TransactionList";
 import { AccountSummary } from "@/components/finance/AccountSummary";
+import { TransactionForm } from "@/components/finance/TransactionForm";
+import { BudgetForm } from "@/components/finance/BudgetForm";
+import { AccountForm } from "@/components/finance/AccountForm";
+import { BudgetHealthList } from "@/components/finance/BudgetHealthList";
 
 const DEFAULT_EXPENSE_CATEGORIES = ["Food", "Transport", "Subscriptions", "Clothes", "School", "Health", "Entertainment", "Other"];
 const DEFAULT_INCOME_CATEGORIES = ["Salary", "Freelance", "Gift", "Other"];
-const ACCOUNT_TYPES = [
-  { value: "cash", label: "Cash" },
-  { value: "bank", label: "Bank" },
-  { value: "card", label: "Card" },
-  { value: "savings", label: "Savings" },
-  { value: "investment", label: "Investment" },
-  { value: "other", label: "Other" },
-];
-const TRANSACTION_TYPES = [
-  { value: "expense", label: "Expense" },
-  { value: "income", label: "Income" },
-];
 
-function SimpleSelect({
-  options,
-  value,
-  onChange,
-  placeholder = "Select...",
-  label,
-}: {
-  options: { value: string; label: string }[];
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-  label?: string;
-}) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    }
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, []);
-
-  const selected = options.find((o) => o.value === value);
-
-  return (
-    <div>
-      {label && (
-        <label className="mb-1.5 block text-xs font-medium text-[var(--text-secondary)]">
-          {label}
-        </label>
-      )}
-      <div ref={ref} className="relative">
-        <button
-          type="button"
-          onClick={() => setOpen(!open)}
-          aria-haspopup="listbox"
-          aria-expanded={open}
-          className="flex w-full items-center gap-2 rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none"
-        >
-          <span className="flex-1 text-left">
-            {selected ? selected.label : <span className="text-[var(--text-muted)]">{placeholder}</span>}
-          </span>
-          <svg className={`h-4 w-4 shrink-0 text-[var(--text-muted)] transition-transform ${open ? "rotate-180" : ""}`}
-            fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
-        {open && (
-          <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-48 overflow-y-auto rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] shadow-xl" role="listbox">
-            {options.length === 0 ? (
-              <p className="px-3 py-2.5 text-xs text-[var(--text-muted)]">No options</p>
-            ) : (
-              options.map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  role="option"
-                  aria-selected={value === opt.value}
-                  onClick={() => { onChange(opt.value); setOpen(false); }}
-                  className={`flex w-full items-center gap-2 px-3 py-2.5 text-sm transition-colors ${
-                    value === opt.value
-                      ? "bg-[var(--accent-soft)] text-[var(--accent)]"
-                      : "text-[var(--text-secondary)] hover:bg-[var(--surface-raised)]"
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))
-            )}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
 
 export default function FinancePage() {
   const supabase = createClient();
@@ -611,99 +519,30 @@ export default function FinancePage() {
               </Button>
             )}
           </div>
-          {showTxForm && (
-            <Card className="p-4">
-              <form onSubmit={handleSaveTransaction} className="space-y-3">
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <div>
-                    <label className="mb-1.5 block text-xs font-medium text-[var(--text-secondary)]">Title</label>
-                    <input
-                      value={txTitle}
-                      onChange={(e) => setTxTitle(e.target.value)}
-                      placeholder="Groceries, Salary, ..."
-                      required
-                      maxLength={200}
-                      className="w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)] placeholder-[var(--text-muted)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1.5 block text-xs font-medium text-[var(--text-secondary)]">Amount</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0.01"
-                      value={txAmount}
-                      onChange={(e) => setTxAmount(e.target.value)}
-                      placeholder="0.00"
-                      required
-                      className="w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)] placeholder-[var(--text-muted)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none"
-                    />
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  {TRANSACTION_TYPES.map((t) => (
-                    <button
-                      key={t.value}
-                      type="button"
-                      onClick={() => { setTxType(t.value as "income" | "expense"); setTxCategoryId(""); }}
-                      className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-all ${
-                        txType === t.value
-                          ? t.value === "income"
-                            ? "bg-[var(--success-soft)] text-[var(--success)] ring-1 ring-[var(--success)]/30"
-                            : "bg-[var(--danger-soft)] text-[var(--danger)] ring-1 ring-[var(--danger)]/30"
-                          : "bg-[var(--surface-soft)] text-[var(--text-muted)] hover:text-[var(--text)]"
-                      }`}
-                    >
-                      {t.label}
-                    </button>
-                  ))}
-                </div>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <SimpleSelect
-                    label="Category"
-                    options={txType === "income" ? incomeOptions : expenseOptions}
-                    value={txCategoryId}
-                    onChange={setTxCategoryId}
-                    placeholder="Select category"
-                  />
-                  <SimpleSelect
-                    label="Account (optional)"
-                    options={accountOptions}
-                    value={txAccountId}
-                    onChange={setTxAccountId}
-                    placeholder="No account"
-                  />
-                </div>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <div>
-                    <label className="mb-1.5 block text-xs font-medium text-[var(--text-secondary)]">Date</label>
-                    <input
-                      type="date"
-                      value={txDate}
-                      onChange={(e) => setTxDate(e.target.value)}
-                      required
-                      className="w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1.5 block text-xs font-medium text-[var(--text-secondary)]">Note (optional)</label>
-                    <input
-                      value={txNote}
-                      onChange={(e) => setTxNote(e.target.value)}
-                      placeholder="Optional note"
-                      maxLength={500}
-                      className="w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)] placeholder-[var(--text-muted)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none"
-                    />
-                  </div>
-                </div>
-                <div className="flex justify-end gap-2 pt-1">
-                  <Button type="submit" size="sm" disabled={saving}>
-                    {saving ? "Saving..." : editingTxId ? "Update" : "Add Transaction"}
-                  </Button>
-                </div>
-              </form>
-            </Card>
-          )}
+          <TransactionForm
+            show={showTxForm}
+            saving={saving}
+            editingTxId={editingTxId}
+            txTitle={txTitle}
+            txAmount={txAmount}
+            txType={txType}
+            txCategoryId={txCategoryId}
+            txAccountId={txAccountId}
+            txDate={txDate}
+            txNote={txNote}
+            expenseOptions={expenseOptions}
+            incomeOptions={incomeOptions}
+            accountOptions={accountOptions}
+            onTitleChange={setTxTitle}
+            onAmountChange={setTxAmount}
+            onTypeChange={(v) => { setTxType(v); setTxCategoryId(""); }}
+            onCategoryChange={setTxCategoryId}
+            onAccountChange={setTxAccountId}
+            onDateChange={setTxDate}
+            onNoteChange={setTxNote}
+            onSave={handleSaveTransaction}
+            onCancel={resetTxForm}
+          />
         </div>
 
         <div className="mb-8">
@@ -738,106 +577,22 @@ export default function FinancePage() {
               </Button>
             )}
           </div>
-          {showBudgetForm && (
-            <Card className="mb-3 p-4">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:flex-wrap">
-                <div className="w-full sm:flex-1 sm:min-w-[150px]">
-                  <SimpleSelect
-                    label="Category"
-                    options={budgetCatOptions}
-                    value={budgetCategoryId}
-                    onChange={setBudgetCategoryId}
-                    placeholder="Select category"
-                  />
-                </div>
-                <div className="w-full sm:w-32">
-                  <label className="mb-1.5 block text-xs font-medium text-[var(--text-secondary)]">Monthly amount</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0.01"
-                    value={budgetAmount}
-                    onChange={(e) => setBudgetAmount(e.target.value)}
-                    placeholder="0.00"
-                    className="w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)] placeholder-[var(--text-muted)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none"
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <Button size="sm" onClick={handleAddBudget} disabled={saving || !budgetCategoryId || !budgetAmount}>
-                    Save
-                  </Button>
-                  <Button size="sm" variant="ghost" onClick={() => setShowBudgetForm(false)}>
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            </Card>
-          )}
-          {analytics.budgetUsage.length === 0 ? (
-            <Card variant="subtle" className="p-6 text-center">
-              <p className="text-sm text-[var(--text-muted)]">
-                Create a monthly budget for a spending category to see whether you are on track.
-              </p>
-            </Card>
-          ) : (
-            <div className="space-y-1.5">
-              {analytics.budgetUsage.map((b) => {
-                const barColor =
-                  b.status === "over_budget"
-                    ? "var(--danger)"
-                    : b.status === "near_limit"
-                    ? "var(--warning)"
-                    : "var(--accent)";
-
-                const statusLabel =
-                  b.status === "over_budget"
-                    ? "Over budget"
-                    : b.status === "near_limit"
-                    ? "Near limit"
-                    : "On track";
-
-                const statusColor =
-                  b.status === "over_budget"
-                    ? "text-[var(--danger)]"
-                    : b.status === "near_limit"
-                    ? "text-[var(--warning)]"
-                    : "text-[var(--success)]";
-
-                return (
-                  <Card key={b.budgetId} className="px-4 py-3">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-sm font-medium text-[var(--text)] truncate">{b.categoryName}</span>
-                        <span className={`text-[10px] font-medium ${statusColor}`}>{statusLabel}</span>
-                      </div>
-                      <span className="text-xs text-[var(--text-muted)] shrink-0">
-                        {formatCurrency(b.spent)} / {formatCurrency(b.budgetAmount)}
-                      </span>
-                    </div>
-                    <div className="h-2 w-full rounded-full bg-[var(--surface)] overflow-hidden">
-                      <div
-                        className="h-full rounded-full transition-all duration-300"
-                        style={{
-                          width: `${Math.min(b.percentage, 100)}%`,
-                          backgroundColor: barColor,
-                        }}
-                      />
-                    </div>
-                    <div className="mt-1 flex items-center justify-between">
-                      <span className="text-[10px] text-[var(--text-muted)]">{b.percentage}% used</span>
-                      <button
-                        type="button"
-                        onClick={() => deleteBudget(b.budgetId)}
-                        className="rounded-md px-2 py-0.5 text-[10px] text-[var(--text-muted)] hover:text-[var(--danger)] hover:bg-[var(--danger-soft)] transition-colors"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
+          <BudgetForm
+            show={showBudgetForm}
+            saving={saving}
+            budgetCategoryId={budgetCategoryId}
+            budgetAmount={budgetAmount}
+            budgetCatOptions={budgetCatOptions}
+            onCategoryChange={setBudgetCategoryId}
+            onAmountChange={setBudgetAmount}
+            onSave={handleAddBudget}
+            onCancel={() => setShowBudgetForm(false)}
+          />
+          <BudgetHealthList
+            budgetUsage={analytics.budgetUsage}
+            formatCurrency={formatCurrency}
+            onDelete={deleteBudget}
+          />
         </div>
 
         <div className="mb-8">
@@ -855,58 +610,20 @@ export default function FinancePage() {
               </Button>
             )}
           </div>
-          {showAccountForm && (
-            <Card className="mb-3 p-4">
-              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
-                <div className="w-full sm:flex-1 sm:min-w-[150px]">
-                  <label className="mb-1.5 block text-xs font-medium text-[var(--text-secondary)]">Name</label>
-                  <input
-                    value={acctName}
-                    onChange={(e) => setAcctName(e.target.value)}
-                    placeholder="Wallet, Checking, ..."
-                    maxLength={100}
-                    className="w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)] placeholder-[var(--text-muted)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none"
-                  />
-                </div>
-                <div className="w-full sm:w-36">
-                  <SimpleSelect
-                    label="Type"
-                    options={ACCOUNT_TYPES}
-                    value={acctType}
-                    onChange={setAcctType}
-                  />
-                </div>
-                <div className="w-full sm:w-32">
-                  <label className="mb-1.5 block text-xs font-medium text-[var(--text-secondary)]">Starting balance</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={acctBalance}
-                    onChange={(e) => setAcctBalance(e.target.value)}
-                    className="w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)] placeholder-[var(--text-muted)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none"
-                  />
-                </div>
-                <div className="w-full sm:w-20">
-                  <label className="mb-1.5 block text-xs font-medium text-[var(--text-secondary)]">Currency</label>
-                  <input
-                    value={acctCurrency}
-                    onChange={(e) => setAcctCurrency(e.target.value.toUpperCase())}
-                    maxLength={3}
-                    placeholder="ILS"
-                    className="w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)] placeholder-[var(--text-muted)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none"
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <Button size="sm" onClick={handleAddAccount} disabled={saving || !acctName.trim()}>
-                    Save
-                  </Button>
-                  <Button size="sm" variant="ghost" onClick={() => setShowAccountForm(false)}>
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            </Card>
-          )}
+          <AccountForm
+            show={showAccountForm}
+            saving={saving}
+            acctName={acctName}
+            acctType={acctType}
+            acctBalance={acctBalance}
+            acctCurrency={acctCurrency}
+            onNameChange={setAcctName}
+            onTypeChange={setAcctType}
+            onBalanceChange={setAcctBalance}
+            onCurrencyChange={setAcctCurrency}
+            onSave={handleAddAccount}
+            onCancel={() => setShowAccountForm(false)}
+          />
           <AccountSummary
             accountBalances={analytics.accountBalances}
             hasMixedCurrencies={analytics.hasMixedCurrencies}
