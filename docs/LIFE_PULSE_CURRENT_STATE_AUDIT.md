@@ -1,23 +1,23 @@
 # LIFE PULSE — Current State Audit
 
 **Date:** June 24, 2026
-**Commit:** `4fa6b98` (Phase 0 base; Phases 1–7A applied; Phase 8B Passions/Hobbies on top)
+**Commit:** `4fa6b98` (Phase 0 base; Phases 1–8B applied; Phase 9A Weekly Review on top)
 **Branch:** `master` (no remote configured)
 **Build status:** ✅ Clean (0 lint errors, 0 build errors)
-**Working tree:** Clean — Phase 8B Passions & Hobbies foundation complete
-**Architecture Plan:** `docs/LIFE_OS_ARCHITECTURE_PLAN.md` (updated for Phase 8B)
+**Working tree:** Clean — Phase 9A Weekly Review foundation complete
+**Architecture Plan:** `docs/LIFE_OS_ARCHITECTURE_PLAN.md` (updated for Phase 9A)
 
 ---
 
 ## 1. Executive Summary
 
-Life Pulse is a dark-themed, monorepo Next.js 16 web application that functions as a personal dashboard operating system. It provides authenticated users with 14 core tools: Today (command center), Habits, Tasks, Projects, Finance, Journal, Insights (analytics), Settings, Body Pulse, Mind Pulse, Goals, Devices, Passions & Hobbies, and an in-app feedback system. It uses Supabase for all backend needs — auth, database, RLS, and row-level security.
+Life Pulse is a dark-themed, monorepo Next.js 16 web application that functions as a personal dashboard operating system. It provides authenticated users with 15 core tools: Today (command center), Weekly Review, Habits, Tasks, Projects, Finance, Journal, Insights (analytics), Settings, Body Pulse, Mind Pulse, Goals, Devices, Passions & Hobbies, and an in-app feedback system. It uses Supabase for all backend needs — auth, database, RLS, and row-level security.
 
-**Production readiness:** The app is feature-complete for a private beta. Build and lint pass clean. All 25 routes render. Auth flow (signup → onboarding → dashboard) is wired end-to-end. RLS is enabled on every table with FK ownership validation. The deployment checklist has been written. After GitHub push and Vercel import, the app can be deployed in minutes.
+**Production readiness:** The app is feature-complete for a private beta. Build and lint pass clean. All 26 routes render. Auth flow (signup → onboarding → dashboard) is wired end-to-end. RLS is enabled on every table with FK ownership validation. The deployment checklist has been written. After GitHub push and Vercel import, the app can be deployed in minutes.
 
 **Strongest parts:** Auth and onboarding flow, RLS security model (FK ownership helpers in 00006 migration, finance ownership in 00007), Insight radar chart, Today dashboard aggregating all data types, Finance module with budgets/trends/breakdowns, XP/level progression system with per-realm titles, Body/Mind Pulse manual entry forms with body_metrics and mind_metrics schema.
 
-**Biggest gaps:** ILS currency hardcoded in finance, no AI coach, no wearable integration, no weekly review, no server component data fetching.
+**Biggest gaps:** ILS currency hardcoded in finance, no AI coach, no wearable integration, no server component data fetching.
 
 **Private beta verdict:** ✅ Ready to deploy after GitHub push + Vercel setup + Supabase Auth URL config + setting `NEXT_PUBLIC_SUPPORT_EMAIL` env var on Vercel. Not ready to invite users until post-deploy smoke test passes.
 
@@ -35,14 +35,14 @@ Life Pulse is a dark-themed, monorepo Next.js 16 web application that functions 
 - **ESLint:** ^9 with `eslint-config-next` 16.2.4
 
 ### Routing Model
-- App Router with 25 routes under `src/app/`
+- App Router with 26 routes under `src/app/`
 - All routes are server-rendered by default (dynamic), except static routes (/, /privacy, /terms) which are prerendered as static content
-- Proxy middleware (`src/proxy.ts`) handles auth gating for 13 protected routes and 2 auth routes
+- Proxy middleware (`src/proxy.ts`) handles auth gating for 14 protected routes and 2 auth routes
 
 ### Folder Structure
 ```
 src/
-├── app/                  # 25 routes + layout + globals.css
+├── app/                  # 26 routes + layout + globals.css
 │   ├── auth/callback/    # OAuth code exchange
 │   ├── finance/          # 641 lines — significantly reduced (was 867)
 │   ├── forgot-password/
@@ -152,13 +152,14 @@ src/
 | `/terms` | `src/app/terms/page.tsx` (170 lines) | Terms of service | Working (static) | `getSupportEmail()` from config | Reads from `NEXT_PUBLIC_SUPPORT_EMAIL` env var via `src/lib/config.ts`. Falls back to `support@lifepulse.app`. Must be set in Vercel before beta. |
 | `/devices` | `src/app/devices/page.tsx` (~80 lines) | Device Pulse placeholder — provider list, future device sync hub | Working (placeholder) | None | Phase 6A — placeholder route with connected/available/future provider cards. No real device integration, no schema changes. |
 | `/passions` | `src/app/passions/page.tsx` (~620 lines) | Passions & Hobbies — 4 tabs (Overview, My Passions, Sessions, Milestones) | Working | `passions`, `passion_sessions`, `passion_milestones` | Phase 8B — inline CRUD per tab. Categories (8), skill levels (4). Uses PulseCard, MetricCard, EmptyState, toast. |
+| `/weekly-review` | `src/app/weekly-review/page.tsx` (~390 lines) | Weekly Review — summaries, reflection prompts, plan next week | Working | `habit_logs`, `tasks`, `workouts`, `journal_entries`, `body_metrics`, `mind_metrics`, `nutrition_logs`, `body_measurements`, `passion_sessions`, `passions`, `goals`, `goal_milestones`, `projects` | Phase 9A — 5 sections (week summary, body/mind, goals/growth, passions, reflection). Reflection saved to journal. Rule-based suggested actions. |
 
 ### Route Status Summary
-- **Working:** 25/26 routes
-- **Partial:** 1/26 (body/mind show empty states without habits/tasks/journal)
-- **Risky:** 0/26
-- **Placeholder:** 1/26 (/devices)
-- **Missing:** 0/26
+- **Working:** 26/27 routes
+- **Partial:** 1/27 (body/mind show empty states without habits/tasks/journal)
+- **Risky:** 0/27
+- **Placeholder:** 1/27 (/devices)
+- **Missing:** 0/27
 - **Auto-generated (not in route list):** `/_not-found` (Next.js default, excluded from audit count)
 
 ---
@@ -1429,6 +1430,74 @@ Passions & Hobbies is a new Life Domain for tracking personal interests, creativ
 ### What Was Intentionally Not Changed
 - No AI coach integration
 - No device/wearable integration
-- No weekly review changes
 - No existing routes broken or modified in behavior
 - No external dependencies added
+
+---
+
+## 24. Phase 9A Completion Note — Weekly Review Foundation
+
+### What Was Built
+
+A Weekly Review system that pulls the user's week together across Life Pulse.
+
+#### Route & UI
+- **\`/weekly-review\`** (~390 lines) — Single page with 5 sections:
+  1. **Week Summary** — Habits done, tasks done, workouts, journal entries, body/mind check-ins, passion sessions, nutrition logs (8 metric cards)
+  2. **Body & Mind Review** — Avg energy, sleep, mood, focus, stress, workouts, nutrition, latest weight
+  3. **Goals & Growth Review** — Active goals, tasks done, active projects, habits done
+  4. **Passions Review** — Sessions, minutes practiced, most practiced passion, completed milestones
+  5. **Reflection Prompts** — 5 prompts (went well, felt difficult, focus next week, reduce/avoid, one win) saved to journal as today's entry
+
+#### Plan Next Week Section
+- Text input for "top focus for next week"
+- Rule-based suggested actions (no AI):
+  - No workouts → plan 1 workout
+  - No journal → schedule reflection
+  - No passion sessions → plan practice
+  - No body/mind check-ins → build daily habit habit
+
+#### Navigation
+- **Desktop sidebar:** Weekly Review added to Pulse group (after Today's Pulse)
+- **Mobile "More" sheet:** Weekly Review accessible via slice expansion
+
+#### Today Integration (NextBestAction)
+- **Monday:** Suggests "Plan your week ahead" → /weekly-review
+- **Thursday–Saturday:** Suggests "Review your week" → /weekly-review
+- Priority below body/mind/tasks/goals/journal/passions/workout/nutrition
+
+#### Insights Integration
+- Link card "Open Weekly Review" below PassionsInsights on /insights
+
+#### Proxy Protection
+- \`/weekly-review\` added to \`protectedRoutes\` in \`src/proxy.ts\`
+
+#### Production Smoke Test
+- 3 new test sections (6r: page load, 6s: Body & Mind section, 6t: reflection prompts)
+- \`/weekly-review\` added to post-logout redirect check
+
+### Build/Lint Verification
+- \`npm run lint\` ✅ — 0 errors, warnings unchanged (6 pre-existing)
+- \`npm run build\` ✅ — Compiled successfully, 26 routes (was 25, +/weekly-review)
+
+### Files Changed
+
+| File | Change |
+|------|--------|
+| \`src/app/weekly-review/page.tsx\` | **Created** — ~390 lines, all sections |
+| \`src/proxy.ts\` | **Updated** — added /weekly-review to protectedRoutes |
+| \`src/components/DashboardNav.tsx\` | **Updated** — Weekly Review in Pulse group, mobile "More" sheet |
+| \`src/components/today/NextBestAction.tsx\` | **Updated** — dayOfWeek prop, 2 weekly review rules (plan/review) |
+| \`src/app/today/page.tsx\` | **Updated** — pass dayOfWeek to NextBestAction |
+| \`src/app/insights/page.tsx\` | **Updated** — Link to /weekly-review |
+| \`scripts/prod-smoke-test.mjs\` | **Updated** — +3 weekly review test sections, added to post-logout redirect check |
+| \`docs/LIFE_PULSE_CURRENT_STATE_AUDIT.md\` | **Updated** — Phase 9A summary |
+| \`docs/LIFE_OS_ARCHITECTURE_PLAN.md\` | **Updated** — Phase 9A completion note |
+| \`docs/deployment-checklist.md\` | **Updated** — Phase 9A QA |
+
+### What Was Intentionally Not Changed
+- No AI coach integration
+- No device/wearable integration
+- No new database tables — Weekly Review reads existing tables; reflection saves to journal_entries
+- No external dependencies added
+- No existing routes broken

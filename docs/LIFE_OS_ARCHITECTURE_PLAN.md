@@ -1,7 +1,7 @@
 # Life Pulse — Life OS Architecture Plan
 
 **Date:** June 24, 2026
-**Status:** Phase 8B — Passions/Hobbies Foundation Complete
+**Status:** Phase 9A — Weekly Review Foundation Complete
 **Audience:** Developers implementing Phase 6+ features
 
 ---
@@ -34,12 +34,13 @@
 | `/terms` | `terms/page.tsx` | 170 | Legal | Public | No |
 | `/devices` | `devices/page.tsx` | ~80 | Device Pulse placeholder | Intelligence | No — placeholder, no real integration |
 | `/passions` | `passions/page.tsx` | ~620 | Passions & Hobbies tracking | Life Domains | Phase 8B — 4 tabs (Overview, My Passions, Sessions, Milestones), inline CRUD |
+| `/weekly-review` | `weekly-review/page.tsx` | ~390 | Weekly Review — summaries, reflection, plan next week | Pulse | Phase 9A — 5 metric sections, rule-based suggestions, no AI |
 
 ### 1.2 Current Navigation Structure (After Phase 7A)
 
-**Desktop sidebar (Phase 8B):**
+**Desktop sidebar (Phase 9A):**
 ```
-  Pulse           → Today's Pulse
+  Pulse           → Today's Pulse, Weekly Review
   Growth          → Goals, Habits, Tasks, Projects
   Life Domains    → Body, Mind, Money, Passions
   Intelligence    → Journal, Insights, Devices
@@ -47,14 +48,14 @@
   Footer          → FeedbackButton
 ```
 
-**Mobile bottom nav (Phase 8B):**
+**Mobile bottom nav (Phase 9A):**
 - 5 fixed tabs: Today, Goals, Body, Journal, More
-- "More" opens a bottom sheet with: Mind, Passions, Habits, Tasks, Projects, Money, Insights, Devices, Settings
+- "More" opens a bottom sheet with: Weekly Review, Mind, Passions, Habits, Tasks, Projects, Money, Insights, Devices, Settings
 - Feedback accessible via sidebar expansion or direct link
 
-**Changes from Phase 7A:**
-- Passions added to Life Domains (desktop sidebar) ✅
-- Passions added to "More" bottom sheet (mobile nav) ✅
+**Changes from Phase 8B:**
+- Weekly Review added to Pulse group (desktop sidebar) ✅
+- Weekly Review added to "More" bottom sheet (mobile nav) ✅
 
 ### 1.3 Current Data Ownership
 
@@ -1048,6 +1049,52 @@ Passions & Hobbies is a new Life Domain for tracking personal interests, creativ
 ### What Was Intentionally Not Changed
 - No AI coach integration
 - No device/wearable integration
-- No weekly review changes
 - No existing routes broken
 - No external dependencies added
+
+---
+
+## 18. Phase 9A Completion Note — Weekly Review Foundation
+
+Weekly Review pulls the user's week together across Life Pulse. No AI, no device integrations, no new database tables.
+
+### What Was Built
+
+#### Route & UI
+- **`/weekly-review`** (~390 lines) — Single page with 5 sections:
+  1. **Week Summary** — 8 metric cards (habits, tasks, workouts, journal, body/mind check-ins, passion sessions, nutrition)
+  2. **Body & Mind Review** — avg energy/sleep/mood/focus/stress, workouts, nutrition, latest weight
+  3. **Goals & Growth Review** — active goals, tasks done, active projects, habits done
+  4. **Passions Review** — sessions, minutes, most practiced passion, milestones
+  5. **Reflection Prompts** — 5 prompts saved to journal as today's entry
+- **Plan Next Week** card with top focus input + rule-based suggested actions (no AI)
+
+#### Navigation & Protection
+- **Desktop sidebar:** Weekly Review in Pulse group (after Today's Pulse)
+- **Mobile "More" sheet:** Weekly Review accessible
+- **Proxy:** Added `/weekly-review` to protectedRoutes
+
+#### Today Integration
+- **NextBestAction** — 2 new rules (lower priority):
+  - Monday → "Plan your week ahead"
+  - Thursday–Saturday → "Review your week"
+
+#### Insights Integration
+- Link card "Open Weekly Review" on `/insights`
+
+### Build Verification
+- `npm run lint` ✅ — 0 errors, warnings unchanged
+- `npm run build` ✅ — Compiled successfully, 26 routes (was 25, +/weekly-review)
+- `npm run test:prod` — Tests page load, Body & Mind section, reflection prompts
+
+### Files Changed
+- **Created (1):** `weekly-review/page.tsx`
+- **Modified (5):** `proxy.ts`, `DashboardNav.tsx`, `NextBestAction.tsx`, `today/page.tsx`, `insights/page.tsx`
+- **Updated (1):** `scripts/prod-smoke-test.mjs` (+3 test sections, +post-logout redirect check)
+- **Documentation (4):** Audit, Architecture Plan, Deployment Checklist, AGENTS.md
+
+### Recommended Next Phase
+**Phase 10A — Rule-Based Coach Engine:**
+- Personalized daily recommendations based on user data patterns
+- Still no AI — extend the rule system with configurable thresholds
+- Could power a dedicated Coach tab or inline Today suggestions

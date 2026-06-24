@@ -28,7 +28,7 @@ git push origin private-beta-v1
 - [ ] `.env.example` IS tracked — run `git ls-files .env.example` to confirm
 - [ ] No real secrets in any committed file
 - [ ] `npm run lint` passes (0 errors)
-- [ ] `npm run build` passes (25 pages compiled)
+- [ ] `npm run build` passes (26 pages compiled)
 - [ ] `npm run test:prod` passes (requires `.env.test.local` with valid test credentials)
 - [ ] Toast system functional (verify on all dashboard pages)
 - [ ] Custom favicon present (`/icon.svg` — Life Pulse pulse/heartbeat)
@@ -132,6 +132,20 @@ Add both of the following:
 - 25 routes total (24 existing + /passions) ✅
 - 21 app tables total (18 existing + passions, passion_sessions, passion_milestones)
 
+### Phase 9A QA (June 24, 2026)
+- /weekly-review route created with 5 sections (Week Summary, Body & Mind, Goals & Growth, Passions, Reflection) ✅
+- No new database tables — reads from 13 existing tables, reflection saved to journal_entries ✅
+- Proxy protection added for /weekly-review ✅
+- Desktop sidebar: Weekly Review added to Pulse group (after Today) ✅
+- Mobile "More" sheet: Weekly Review accessible ✅
+- NextBestAction: Monday shows "Plan your week ahead", Thu-Sat shows "Review your week" ✅
+- Insights page: "Open Weekly Review" link card ✅
+- Plan Next Week section with rule-based suggested actions (no AI) ✅
+- Production smoke test extended with weekly review tests (page load, sections, reflection) ✅
+- 26 routes total (25 existing + /weekly-review) ✅
+- 21 app tables (unchanged from Phase 8B — no new tables)
+- Recommended next phase: Phase 10A — Rule-Based Coach Engine
+
 ### Vercel Preview Deployments
 - Vercel preview deployments get random URLs (e.g. `project-xxxxx.vercel.app`). Auth redirects to these URLs will fail if they are not whitelisted in Supabase.
 - **Recommendation:** Disable auth testing on preview deployments, or add `https://*-username.vercel.app/auth/callback` as a wildcard redirect URL (Supabase supports `*` wildcards in redirect URLs). Test password reset and email confirmation only on the production domain.
@@ -152,7 +166,7 @@ Add both of the following:
 After deploying, test every route and flow:
 
 ### Automated Smoke Test
-- [ ] Run `npm run test:prod` — tests feedback dialog, NextBestAction, finance seeds, and all route rendering
+- [ ] Run `npm run test:prod` — tests feedback dialog, NextBestAction, finance seeds, passions CRUD, weekly review, and all route rendering
 
 ### Public pages
 - [ ] Landing page (`/`) — loads, nav links work, footer links work
@@ -171,7 +185,8 @@ After deploying, test every route and flow:
 
 ### Onboarding & Core App
 - [ ] Onboarding — first-time flow works, creates profile
-- [ ] `/today` — priorities, habits, quick capture all work; Next Best Action card visible with suggestions
+- [ ] `/today` — priorities, habits, quick capture all work; Next Best Action card visible with suggestions (including weekly review hints on Mon/Thu-Sat)
+- [ ] `/today` — feedback dialog opens from sidebar, submit works with all rating/category combinations
 - [ ] `/today` — feedback dialog opens from sidebar, submit works with all rating/category combinations
 - [ ] `/habits` — create, log, edit, delete habits
 - [ ] `/tasks` — create, complete, organize tasks
@@ -185,6 +200,7 @@ After deploying, test every route and flow:
 - [ ] `/goals` — Goal Pulse works: create/edit/complete/pause/archive goals, add/toggle/delete milestones, add/remove goal links to projects/tasks/habits
 - [ ] `/goals` — Goal links appear on linked project pages ("Goal" badge)
 - [ ] `/devices` — Device Pulse placeholder page loads, shows "Coming Soon" state, links to Body/Mind
+- [ ] `/weekly-review` — loads all sections, reflection saves to journal, plan next week suggestions show
 
 ### Mobile (narrow viewport)
 - [ ] Landing page — responsive, no overflow
@@ -254,7 +270,7 @@ The smoke test covers: profiles, realms, habits, habit_logs, tasks, xp_events, j
 - [ ] `npm run build` passes locally (current state ✅)
 - [ ] `npm run lint` passes locally (current state ✅)
 - [ ] `npm run test:prod` passes against production (requires `.env.test.local`)
-- [ ] Build output includes all 25 routes: /, /auth/callback, /body, /devices, /finance, /forgot-password, /goals, /habits, /icon.svg, /insights, /journal, /login, /mind, /onboarding, /passions, /privacy, /projects, /reset-password, /settings, /signup, /tasks, /terms, /today
+- [ ] Build output includes all 26 routes: /, /auth/callback, /body, /devices, /finance, /forgot-password, /goals, /habits, /icon.svg, /insights, /journal, /login, /mind, /onboarding, /passions, /privacy, /projects, /reset-password, /settings, /signup, /tasks, /terms, /today, /weekly-review
 
 ---
 

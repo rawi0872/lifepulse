@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { DashboardNav } from "@/components/DashboardNav";
 import { Card } from "@/components/ui/card";
@@ -488,6 +489,21 @@ export default function InsightsPage() {
 
         <div className="mb-6">
           <PassionsInsights />
+        </div>
+
+        <div className="mb-6">
+          <Link
+            href="/weekly-review"
+            className="flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 text-xs font-medium text-[var(--text)] transition-colors hover:bg-[var(--surface)]"
+          >
+            <span className="flex items-center gap-2">
+              <svg className="h-4 w-4 text-[var(--accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+              </svg>
+              Open Weekly Review
+            </span>
+            <span className="text-[var(--text-muted)]">&rarr;</span>
+          </Link>
         </div>
 
         {/* Weekly consistency */}

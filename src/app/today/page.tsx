@@ -736,6 +736,7 @@ function TodayContent() {
         hasNutritionToday={hasNutritionToday}
         hasActivePassions={hasActivePassions}
         hasPassionSessionThisWeek={hasPassionSessionThisWeek}
+        dayOfWeek={todayDow}
       />
 
       {/* Next action */}

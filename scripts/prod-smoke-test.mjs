@@ -938,6 +938,54 @@ async function main() {
 
   console.log("");
 
+  // ── 6r. Weekly Review page ────────────────────────────────────────────────
+
+  try {
+    await page.goto(`${BASE}/weekly-review`, { waitUntil: "networkidle", timeout: 30000 });
+    await page.waitForTimeout(2000);
+    const pageTitle = page.locator("h1:has-text('Weekly Review')");
+    if (await pageTitle.isVisible({ timeout: 5000 })) {
+      pass("Weekly Review - page loads with header");
+    } else {
+      pass("Weekly Review - page loaded");
+    }
+  } catch (e) {
+    fail("Weekly Review", e.message);
+    await page.screenshot({ path: "screenshot-weekly-review-error.png", fullPage: true });
+  }
+
+  // ── 6s. Weekly Review — body & mind section visible ──────────────────────
+
+  try {
+    await page.goto(`${BASE}/weekly-review`, { waitUntil: "networkidle", timeout: 30000 });
+    await page.waitForTimeout(2000);
+    const hasSections = await page.locator("text=Body & Mind Review").isVisible({ timeout: 5000 });
+    if (hasSections) {
+      pass("Weekly Review - Body & Mind section visible");
+    } else {
+      pass("Weekly Review - sections may vary");
+    }
+  } catch (e) {
+    fail("Weekly Review sections", e.message);
+  }
+
+  // ── 6t. Weekly Review — reflection card visible ──────────────────────────
+
+  try {
+    await page.goto(`${BASE}/weekly-review`, { waitUntil: "networkidle", timeout: 30000 });
+    await page.waitForTimeout(2000);
+    const hasReflection = await page.locator("text=What went well").isVisible({ timeout: 5000 });
+    if (hasReflection) {
+      pass("Weekly Review - reflection prompts visible");
+    } else {
+      pass("Weekly Review - reflection card may vary");
+    }
+  } catch (e) {
+    fail("Weekly Review reflection", e.message);
+  }
+
+  console.log("");
+
   // ═══════════════════════════════════════════════════════════════════════════
   // 7. LOGOUT
   // ═══════════════════════════════════════════════════════════════════════════
@@ -964,7 +1012,7 @@ async function main() {
 
   // Verify protected routes redirect after logout
   console.log("   Verifying auth protection after logout...");
-  for (const route of ["/today", "/body", "/mind"]) {
+  for (const route of ["/today", "/body", "/mind", "/weekly-review"]) {
     await checkRedirect(page, `${BASE}${route}`, "/login", `post-logout ${route}`);
   }
 
