@@ -33,8 +33,8 @@ import { BudgetForm } from "@/components/finance/BudgetForm";
 import { AccountForm } from "@/components/finance/AccountForm";
 import { BudgetHealthList } from "@/components/finance/BudgetHealthList";
 
-const DEFAULT_EXPENSE_CATEGORIES = ["Food", "Transport", "Subscriptions", "Clothes", "School", "Health", "Entertainment", "Other"];
-const DEFAULT_INCOME_CATEGORIES = ["Salary", "Freelance", "Gift", "Other"];
+const DEFAULT_EXPENSE_CATEGORIES = ["Food", "Transport", "Health", "Education", "Entertainment", "Subscriptions", "Shopping", "Savings", "Other expense"];
+const DEFAULT_INCOME_CATEGORIES = ["Salary", "Freelance", "Gift", "Other income"];
 
 
 export default function FinancePage() {

@@ -6,6 +6,40 @@ import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { LifePulseLogo } from "@/components/LifePulseLogo";
 
+function friendlyAuthError(error: { message: string; status?: number }): string {
+  const msg = error.message?.toLowerCase() ?? "";
+
+  if (msg.includes("invalid login credentials")) {
+    return "Wrong email or password. Please try again.";
+  }
+  if (msg.includes("email not confirmed")) {
+    return "Please confirm your email address before signing in. Check your inbox.";
+  }
+  if (msg.includes("invalid email")) {
+    return "Enter a valid email address.";
+  }
+  if (msg.includes("rate limit") || msg.includes("too many")) {
+    return "Too many attempts. Please wait a moment and try again.";
+  }
+  if (msg.includes("user already registered")) {
+    return "This email is already registered. Try signing in instead.";
+  }
+  if (msg.includes("password should be at least")) {
+    return "Password must be at least 6 characters.";
+  }
+  if (msg.includes("email link is invalid") || msg.includes("expired")) {
+    return "This link is invalid or has expired. Please request a new one.";
+  }
+  if (msg.includes("unable to validate")) {
+    return "Could not verify your credentials. Please try again.";
+  }
+  if (msg.includes("network") || msg.includes("fetch") || msg.includes("connect")) {
+    return "Unable to connect. Check your internet connection and try again.";
+  }
+
+  return "Something went wrong. Please try again.";
+}
+
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -20,21 +54,24 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { error: signInError } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password,
       });
 
-      if (error) {
-        setError(error.message);
+      if (signInError) {
+        console.error("Login error:", signInError.message);
+        setError(friendlyAuthError(signInError));
         setLoading(false);
         return;
       }
 
       setLoading(false);
       router.refresh();
-    } catch {
-      setError("Could not connect to Supabase. Check your environment variables and internet connection.");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Something went wrong. Please try again.";
+      console.error("Login exception:", err);
+      setError("Unable to connect. Check your internet connection and try again.");
       setLoading(false);
     }
   }

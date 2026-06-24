@@ -1,8 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LifePulseLogo } from "@/components/LifePulseLogo";
+import { FeedbackButton } from "@/components/feedback/FeedbackButton";
 
 const navGroups = [
   {
@@ -140,13 +142,30 @@ const navGroups = [
   },
 ];
 
+const mobilePrimaryItems = [
+  { label: "Today", href: "/today", icon: navGroups[0].items[0].icon },
+  { label: "Goals", href: "/goals", icon: navGroups[1].items[0].icon },
+  { label: "Body", href: "/body", icon: navGroups[2].items[0].icon },
+  { label: "Journal", href: "/journal", icon: navGroups[3].items[0].icon },
+];
+
+const mobileMoreItems = [
+  ...navGroups[1].items.slice(1),
+  navGroups[2].items[1],
+  navGroups[2].items[2],
+  ...navGroups[3].items.slice(1),
+  ...navGroups[4].items,
+];
+
 export function DashboardNav({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const [moreOpen, setMoreOpen] = useState(false);
 
   const isActive = (href: string) => pathname === href;
 
   return (
     <div className="min-h-screen">
+      {/* Desktop sidebar */}
       <aside className="fixed left-0 top-0 z-40 hidden h-screen w-56 flex-col border-r border-[var(--border)] bg-[var(--bg-elevated)] md:flex">
         <Link href="/today" className="mx-4 mt-5 mb-7 flex items-center gap-2.5 group">
           <div className="relative transition-all duration-200 group-hover:opacity-80">
@@ -162,7 +181,7 @@ export function DashboardNav({ children }: { children: React.ReactNode }) {
           </div>
         </Link>
 
-        <nav className="flex flex-1 flex-col gap-5 px-2 pb-4 overflow-y-auto">
+        <nav className="flex flex-1 flex-col gap-5 px-2 pb-2 overflow-y-auto">
           {navGroups.map((group) => (
             <div key={group.label ?? "primary"}>
               {group.label && (
@@ -202,15 +221,21 @@ export function DashboardNav({ children }: { children: React.ReactNode }) {
             </div>
           ))}
         </nav>
+
+        <div className="border-t border-[var(--border)] px-2 pt-1 pb-3">
+          <FeedbackButton />
+        </div>
       </aside>
 
+      {/* Main content */}
       <main className="min-h-screen md:ml-56 pb-20 md:pb-0">
         {children}
       </main>
 
+      {/* Mobile bottom nav */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-[var(--border)] bg-[var(--bg-elevated)]/95 backdrop-blur-sm px-1 md:hidden">
         <div className="flex items-center justify-around">
-          {navGroups.flatMap((g) => g.items).map((item) => {
+          {mobilePrimaryItems.map((item) => {
             const active = isActive(item.href);
             return (
               <Link
@@ -233,8 +258,66 @@ export function DashboardNav({ children }: { children: React.ReactNode }) {
               </Link>
             );
           })}
+
+          {/* More button */}
+          <button
+            onClick={() => setMoreOpen(true)}
+            className={`flex flex-col items-center gap-0.5 rounded-lg px-2 py-1.5 text-[10px] font-medium transition-all duration-200 ${
+              moreOpen || mobileMoreItems.some((i) => isActive(i.href))
+                ? "text-[var(--accent)] bg-[var(--accent-ghost)]"
+                : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+            }`}
+          >
+            <svg className="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM12.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM18.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
+            </svg>
+            <span>More</span>
+          </button>
         </div>
       </nav>
+
+      {/* Mobile More sheet */}
+      {moreOpen && (
+        <div className="fixed inset-0 z-[55] md:hidden">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setMoreOpen(false)} />
+          <div className="fixed bottom-0 left-0 right-0 z-10 max-h-[70vh] overflow-y-auto rounded-t-2xl border border-[var(--border)] bg-[var(--bg-elevated)] p-4 pb-8 shadow-2xl animate-slide-up">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-[var(--text)]">More</h2>
+              <button
+                onClick={() => setMoreOpen(false)}
+                className="rounded-lg p-1.5 text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface)] transition-colors"
+                aria-label="Close more menu"
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {mobileMoreItems.map((item) => {
+                const active = isActive(item.href);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setMoreOpen(false)}
+                    className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
+                      active
+                        ? "text-[var(--accent)] bg-[var(--accent-ghost)]"
+                        : "text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-white/[0.03]"
+                    }`}
+                  >
+                    <span className={`shrink-0 ${active ? "text-[var(--accent)]" : "text-[var(--text-muted)]"}`}>
+                      {item.icon}
+                    </span>
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

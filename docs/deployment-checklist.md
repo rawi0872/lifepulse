@@ -28,7 +28,8 @@ git push origin private-beta-v1
 - [ ] `.env.example` IS tracked — run `git ls-files .env.example` to confirm
 - [ ] No real secrets in any committed file
 - [ ] `npm run lint` passes (0 errors)
-- [ ] `npm run build` passes (23 pages compiled)
+- [ ] `npm run build` passes (24 pages compiled)
+- [ ] `npm run test:prod` passes (requires `.env.test.local` with valid test credentials)
 - [ ] Toast system functional (verify on all dashboard pages)
 - [ ] Custom favicon present (`/icon.svg` — Life Pulse pulse/heartbeat)
 
@@ -109,6 +110,17 @@ Add both of the following:
 - 24 routes total (23 existing + /devices) ✅
 - 17 app tables (unchanged from Phase 5C)
 
+### Phase 7A QA (June 24, 2026)
+- Feedback system migration (00011) creates `beta_feedback` table with insert-only RLS + `on delete set null` ✅
+- Feedback dialog UI opens from sidebar footer, collects rating (1-5), category, message, auto browser info ✅
+- Auth pages use `friendlyAuthError()` — safe, specific messages, no raw Supabase errors, no email enumeration ✅
+- Mobile nav has 5 fixed tabs (Today, Goals, Body, Journal, More) + "More" bottom sheet ✅
+- Next Best Action card shows on `/today` — rule-based, max 2 suggestions, links to correct pages ✅
+- Finance default categories updated (9 expense, 4 income) — idempotent seeding ✅
+- Production smoke test (`npm run test:prod`) tests feedback dialog, NextBestAction, finance seeds ✅
+- 18 app tables total (17 existing + beta_feedback)
+- 24 routes total (unchanged — no new routes in Phase 7A)
+
 ### Vercel Preview Deployments
 - Vercel preview deployments get random URLs (e.g. `project-xxxxx.vercel.app`). Auth redirects to these URLs will fail if they are not whitelisted in Supabase.
 - **Recommendation:** Disable auth testing on preview deployments, or add `https://*-username.vercel.app/auth/callback` as a wildcard redirect URL (Supabase supports `*` wildcards in redirect URLs). Test password reset and email confirmation only on the production domain.
@@ -128,6 +140,9 @@ Add both of the following:
 
 After deploying, test every route and flow:
 
+### Automated Smoke Test
+- [ ] Run `npm run test:prod` — tests feedback dialog, NextBestAction, finance seeds, and all route rendering
+
 ### Public pages
 - [ ] Landing page (`/`) — loads, nav links work, footer links work
 - [ ] Privacy Policy (`/privacy`) — loads, has support email
@@ -135,17 +150,18 @@ After deploying, test every route and flow:
 - [ ] Footer — Privacy and Terms links go to correct pages
 
 ### Auth flows
-- [ ] Signup (`/signup`) — account creation works
-- [ ] Login (`/login`) — "Forgot password?" link visible, sign in works
+- [ ] Signup (`/signup`) — account creation works, friendly error messages shown on validation issues
+- [ ] Login (`/login`) — "Forgot password?" link visible, sign in works, friendly errors for wrong credentials
 - [ ] Logout — clears session, redirects to login
 - [ ] Email confirmation (if enabled) — users receive confirmation email
-- [ ] Forgot password (`/forgot-password`) — sends reset email, shows generic success
+- [ ] Forgot password (`/forgot-password`) — sends reset email, shows generic "If an account exists…" message (no email enumeration)
 - [ ] Reset password — click email link, set new password, success shown, can log in with new password
 - [ ] Protected routes redirect to `/login` when logged out (`/today`, `/habits`, `/tasks`, `/projects`, `/finance`, `/journal`, `/insights`, `/settings`, `/body`, `/mind`, `/devices`)
 
 ### Onboarding & Core App
 - [ ] Onboarding — first-time flow works, creates profile
-- [ ] `/today` — priorities, habits, quick capture all work
+- [ ] `/today` — priorities, habits, quick capture all work; Next Best Action card visible with suggestions
+- [ ] `/today` — feedback dialog opens from sidebar, submit works with all rating/category combinations
 - [ ] `/habits` — create, log, edit, delete habits
 - [ ] `/tasks` — create, complete, organize tasks
 - [ ] `/projects` — create, manage, link tasks, update, delete
@@ -176,7 +192,7 @@ After deploying, test every route and flow:
 ## 5. RLS Production Smoke Test
 
 **Before inviting testers**, run the RLS smoke test against the **production** Supabase project.
-The smoke test covers: profiles, realms, habits, habit_logs, tasks, xp_events, journal_entries, projects, finance_accounts, finance_categories, finance_transactions, finance_budgets, body_metrics, mind_metrics, goals, goal_milestones, goal_links (13 test groups for goal_links alone).
+The smoke test covers: profiles, realms, habits, habit_logs, tasks, xp_events, journal_entries, projects, finance_accounts, finance_categories, finance_transactions, finance_budgets, body_metrics, mind_metrics, goals, goal_milestones, goal_links, beta_feedback (18 tables total).
 
 1. Create two test accounts in the production Supabase Auth (use email/password)
 2. Set these environment variables locally:
@@ -203,8 +219,8 @@ The smoke test covers: profiles, realms, habits, habit_logs, tasks, xp_events, j
 - [ ] Protected routes redirect unauthenticated users to `/login`
 - [ ] Privacy and Terms links exist in the landing page footer
 - [ ] Security headers (CSP, HSTS, X-Content-Type-Options, etc.) are present in production responses
-- [ ] No raw Supabase error messages shown to users (all errors use generic messages)
-- [ ] Forgot password does not reveal whether email is registered
+- [ ] No raw Supabase error messages shown to users (auth pages use `friendlyAuthError()` with safe messages)
+- [ ] Forgot password always shows "If an account exists…" — does not reveal whether email is registered
 - [ ] Reset password requires valid session (redirects to `/login` if no session)
 
 ---
@@ -226,8 +242,9 @@ The smoke test covers: profiles, realms, habits, habit_logs, tasks, xp_events, j
 - [ ] Supabase project shows active connections
 - [ ] `npm run build` passes locally (current state ✅)
 - [ ] `npm run lint` passes locally (current state ✅)
+- [ ] `npm run test:prod` passes against production (requires `.env.test.local`)
 - [ ] Build output includes all 24 routes: /, /auth/callback, /body, /devices, /finance, /forgot-password, /goals, /habits, /icon.svg, /insights, /journal, /login, /mind, /onboarding, /privacy, /projects, /reset-password, /settings, /signup, /tasks, /terms, /today
 
 ---
 
-*Life Pulse — Last updated: June 2026*
+*Life Pulse — Last updated: June 24, 2026 (Phase 7A — Private Beta Polish)*

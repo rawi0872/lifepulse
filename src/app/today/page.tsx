@@ -24,6 +24,7 @@ import { MissionControl } from "@/components/today/MissionControl";
 import { BodyPulseSection } from "@/components/today/BodyPulseSection";
 import { MindPulseSection } from "@/components/today/MindPulseSection";
 import { FinanceOverview } from "@/components/today/FinanceOverview";
+import { NextBestAction } from "@/components/today/NextBestAction";
 
 interface RealmInfo {
   name: string;
@@ -691,6 +692,18 @@ function TodayContent() {
         onQuickCaptureChange={handleQuickChange}
         onQuickTypeChange={setQuickType}
         onQuickCapture={handleQuickCapture}
+      />
+
+      <NextBestAction
+        hasBodyLogged={bodyLoggedToday}
+        hasMindLogged={mindLoggedToday}
+        hasHighPriorityTasks={tasks.some((t) => t.priority === "high" && t.status === "todo")}
+        hasGoalWithoutLinks={
+          goalPreviewGoals.some((g) => g.status === "active") &&
+          goalPreviewMilestones.filter((m) => m.completed_at).length === 0
+        }
+        hasJournalToday={hasJournal}
+        hasContent={hasContent}
       />
 
       {/* Next action */}

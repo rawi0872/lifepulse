@@ -26,15 +26,18 @@ export default function ForgotPasswordPage() {
       );
 
       if (resetError) {
-        setError("Something went wrong. Please try again.");
+        console.error("Forgot password error:", resetError.message);
+        // Don't reveal whether the email exists; show a generic message
+        setSent(true);
         setLoading(false);
         return;
       }
 
       setSent(true);
       setLoading(false);
-    } catch {
-      setError("Something went wrong. Please try again.");
+    } catch (err) {
+      console.error("Forgot password exception:", err);
+      setError("Unable to connect. Check your internet connection and try again.");
       setLoading(false);
     }
   }

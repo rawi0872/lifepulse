@@ -7,6 +7,34 @@ import { Button } from "@/components/ui/button";
 import { LifePulseLogo } from "@/components/LifePulseLogo";
 import Link from "next/link";
 
+function friendlyAuthError(error: { message: string; status?: number }): string {
+  const msg = error.message?.toLowerCase() ?? "";
+
+  if (msg.includes("user already registered")) {
+    return "This email is already registered. Try signing in instead.";
+  }
+  if (msg.includes("invalid email")) {
+    return "Enter a valid email address.";
+  }
+  if (msg.includes("password should be at least")) {
+    return "Password must be at least 6 characters.";
+  }
+  if (msg.includes("rate limit") || msg.includes("too many")) {
+    return "Too many attempts. Please wait a moment and try again.";
+  }
+  if (msg.includes("weak password")) {
+    return "Password is too weak. Choose a stronger password.";
+  }
+  if (msg.includes("network") || msg.includes("fetch") || msg.includes("connect")) {
+    return "Unable to connect. Check your internet connection and try again.";
+  }
+  if (msg.includes("profile") || msg.includes("database")) {
+    return "Account created but profile setup failed. Please contact support.";
+  }
+
+  return "Failed to create account. Please try again.";
+}
+
 export default function SignupPage() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -50,7 +78,7 @@ export default function SignupPage() {
     try {
       const displayName = `${firstName.trim()} ${lastName.trim()}`;
 
-      const { data, error } = await supabase.auth.signUp({
+      const { data, error: signUpError } = await supabase.auth.signUp({
         email: email.trim(),
         password,
         options: {
@@ -63,8 +91,9 @@ export default function SignupPage() {
         },
       });
 
-      if (error) {
-        setError("Failed to create account. Please try again.");
+      if (signUpError) {
+        console.error("Signup error:", signUpError.message);
+        setError(friendlyAuthError(signUpError));
         setLoading(false);
         return;
       }
@@ -76,8 +105,9 @@ export default function SignupPage() {
         setSuccess(true);
         setLoading(false);
       }
-    } catch {
-      setError("Could not connect to Supabase. Check your environment variables and internet connection.");
+    } catch (err) {
+      console.error("Signup exception:", err);
+      setError("Unable to connect. Check your internet connection and try again.");
       setLoading(false);
     }
   }

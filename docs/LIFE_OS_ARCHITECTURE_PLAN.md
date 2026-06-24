@@ -1,7 +1,7 @@
 # Life Pulse — Life OS Architecture Plan
 
-**Date:** June 23, 2026
-**Status:** Phase 6A — Device Pulse Placeholder Complete
+**Date:** June 24, 2026
+**Status:** Phase 7A — Private Beta Polish and Feedback System Complete
 **Audience:** Developers implementing Phase 6+ features
 
 ---
@@ -13,17 +13,17 @@
 | Route | File | Lines | Purpose | Life OS Role | Overloaded? |
 |-------|------|-------|---------|-------------|-------------|
 | `/` | `page.tsx` | 381 | Landing page | Public marketing | No |
-| `/login` | `login/page.tsx` | ~113 | Auth | Auth | No |
-| `/signup` | `signup/page.tsx` | ~237 | Auth | Auth | No |
-| `/forgot-password` | `forgot-password/page.tsx` | ~109 | Auth | Auth | No |
+| `/login` | `login/page.tsx` | ~135 | Auth (friendlyAuthError) | Auth | No |
+| `/signup` | `signup/page.tsx` | ~242 | Auth (friendlyAuthError) | Auth | No |
+| `/forgot-password` | `forgot-password/page.tsx` | ~101 | Auth (safe no-enumeration) | Auth | No |
 | `/reset-password` | `reset-password/page.tsx` | ~146 | Auth | Auth | No |
 | `/auth/callback` | `auth/callback/route.ts` | 47 | Auth | Auth | No |
 | `/onboarding` | `onboarding/page.tsx` | 823 | First-run setup | Onboarding | **Yes** — realm creation, profile, feature tour all in one |
-| `/today` | `today/page.tsx` | ~820 (was 1091) | Daily command center | Today's Pulse | Phase 3A extracted 6 components, -290 lines. Phase 4D adds "Logged today" badge + energy/mood preview on Body/Mind links |
+| `/today` | `today/page.tsx` | 838 (was 1091) | Daily command center | Today's Pulse | Phase 3A extracted 6 components, -290 lines. Phase 4D adds "Logged today" badge + energy/mood preview. Phase 7A adds NextBestAction rule-based card |
 | `/habits` | `habits/page.tsx` | ~565 | Habit CRUD | Habit Pulse | Moderate — includes inline form + weekly grid |
 | `/tasks` | `tasks/page.tsx` | ~547 | Task CRUD | Task management | Moderate — includes inline form + filters |
 | `/projects` | `projects/page.tsx` | 454 (was 853) | Project CRUD | Project Pulse | Phase 3A extracted 4 components, -399 lines |
-| `/finance` | `finance/page.tsx` | 641 (was 867) | Finance management | Money Pulse | Phase 3A extracted 5 components, -226 lines |
+| `/finance` | `finance/page.tsx` | 590 (was 867) | Finance management | Money Pulse | Phase 3A extracted 5 components, -226 lines. Phase 7A updated default categories (9 expense, 4 income) |
 | `/journal` | `journal/page.tsx` | 209 | Daily journal | Journal/Reflection | No — clean, focused |
 | `/insights` | `insights/page.tsx` | 524 | Analytics/reviews | Intelligence | Phase 3B extracted ~200 lines into 6 components |
 | `/goals` | `goals/page.tsx` | ~380 | Goal Pulse dashboard + milestones + linking | Growth | Phase 5B — goals CRUD, milestones, realm linking, project/task/habit linking via goal_links, Today Goal Pulse preview |
@@ -34,19 +34,27 @@
 | `/terms` | `terms/page.tsx` | 170 | Legal | Public | No |
 | `/devices` | `devices/page.tsx` | ~80 | Device Pulse placeholder | Intelligence | No — placeholder, no real integration |
 
-### 1.2 Current Navigation Structure (After Phase 6A)
+### 1.2 Current Navigation Structure (After Phase 7A)
 
+**Desktop sidebar (unchanged):**
 ```
- Pulse           → Today's Pulse
- Growth          → Goals, Habits, Tasks, Projects
- Life Domains    → Body, Mind, Money
- Intelligence    → Journal, Insights, Devices
- System          → Settings
+  Pulse           → Today's Pulse
+  Growth          → Goals, Habits, Tasks, Projects
+  Life Domains    → Body, Mind, Money
+  Intelligence    → Journal, Insights, Devices
+  System          → Settings
+  Footer          → FeedbackButton
 ```
 
-**Changes from Phase 5C:**
-- Devices added to Intelligence group (after Insights) ✅
-- 12 nav items across 5 groups (was 11) ✅
+**Mobile bottom nav (Phase 7A refined):**
+- 5 fixed tabs: Today, Goals, Body, Journal, More
+- "More" opens a bottom sheet with: Mind, Habits, Tasks, Projects, Money, Insights, Devices, Settings
+- Feedback accessible via sidebar expansion or direct link
+
+**Changes from Phase 6A:**
+- Mobile nav reduced from 8+ items to 5 fixed tabs + "More" overflow bottom sheet ✅
+- FeedbackButton added to desktop sidebar footer ✅
+- 12 nav items + 1 footer across 5 groups (unchanged) ✅
 
 ### 1.3 Current Data Ownership
 
@@ -202,12 +210,14 @@ Phase 6+:
 
 ### 3.3 Mobile Nav Considerations
 
-Mobile bottom nav currently holds: Today, Habits, Projects, Tasks, Journal, Insights + Settings.
+Mobile bottom nav (Phase 7A): 5 fixed tabs (Today, Goals, Body, Journal, More) with a "More" bottom sheet for remaining routes.
 
-Proposed mobile evolution:
-- Phase 3: Keep 6 items + Settings. Shorten labels ("Today", "Tasks", "Growth", "Money", "Reflect", "Data")
-- Phase 4+: Introduce a "More" overflow menu for less-frequented routes
-- Never exceed 6 primary mobile nav items
+Implementation decisions:
+- 5 fixed tabs chosen for clean, focused mobile experience
+- "More" bottom sheet uses `animate-slide-up` CSS animation (no external libraries)
+- Desktop sidebar unchanged — all items visible in Life OS groups
+- Feedback accessible via sidebar footer button on desktop
+- Never exceed 5-6 primary mobile nav items (Phase 7A implements this)
 
 ---
 
@@ -217,11 +227,11 @@ Proposed mobile evolution:
 
 | Order | Page | Original Lines | Current Lines | Diff | Status |
 |-------|------|---------------|---------------|------|--------|
-| 1 | **Finance** | 867 | 641 | -226 | ✅ Complete — 5 components extracted |
+| 1 | **Finance** | 867 | 590 | -277 | ✅ Complete — 5 components extracted; Phase 7A updated categories (-51 lines) |
 | 2 | **Projects** | 853 | 454 | -399 | ✅ Complete — 4 components extracted |
-| 3 | **Today** | 1091 | 801 | -290 | ✅ Complete — 6 components extracted |
-| 4 | **Insights** | 679 | 727 | +48 | ⏳ Not started (page grew during development) |
-| 5 | **Onboarding** | 751 | 823 | +72 | ⏳ Not started (page grew during development) |
+| 3 | **Today** | 1091 | 838 | -253 | ✅ Complete — 6 components extracted (+ NextBestAction in Phase 7A) |
+| 4 | **Insights** | 679 | 524 | -155 | ✅ Complete — extracted in Phase 3B (6 components) |
+| 5 | **Onboarding** | 751 | 526 | -225 | ✅ Complete — extracted in Phase 3B (4 components) |
 
 ### 4.2 Original Plan (Reference, Phase 3A Implemented)
 
@@ -919,6 +929,12 @@ unique(user_id, entry_date)
 **Rationale:** Placeholder routes suggest readiness that doesn't exist. Add when actively building.
 **Risk:** None.
 
+### ADR-007: Feedback System — Insert-Only RLS with User Retention
+**Status:** Accepted (Phase 7A)
+**Decision:** Feedback system uses `beta_feedback` table with insert-only RLS for authenticated users; `user_id` uses `on delete set null` so feedback survives user deletion
+**Rationale:** Feedback must never be modified or deleted by users (anti-spam, audit trail). Soft user_id reference ensures feedback remains useful even after account cleanup. Insert-only policy prevents data tampering.
+**Risk:** Low.
+
 ---
 
 ## 12. Phase 3A Completion Note (June 23, 2026)
@@ -946,3 +962,37 @@ unique(user_id, entry_date)
 - **ADR-001**: Navigation grouping — implemented ✅
 - **ADR-002**: Page splits before new features — partially implemented (3 of 5 pages done)
 - **ADR-003**: Custom hooks before caching library — deferred to Phase 3B
+
+---
+
+## 16. Phase 7A Completion Note — Private Beta Polish and Feedback System
+
+### What Changed
+- **Feedback system** — `beta_feedback` table (00011 migration) with insert-only RLS + `on delete set null`. `FeedbackDialog` with rating (1-5), category (bug/confusing/idea/praise/other), message, auto-browser-info. `FeedbackButton` in desktop sidebar footer.
+- **Auth error messages** — `friendlyAuthError()` function shared across `/login`, `/signup`, `/forgot-password`. Maps Supabase error codes to safe, specific user messages. Forgot-password always shows generic success (no email enumeration).
+- **Mobile nav refinement** — 5 fixed tabs (Today, Goals, Body, Journal, More) + "More" bottom sheet for remaining 8 routes. Replaced the previous 8-item flat bar.
+- **Next Best Action** — Rule-based suggestion card on `/today` (Body/Mind Pulse, priority tasks, goal connections, journal reflection). Max 2 suggestions. No AI.
+- **Finance default categories** — Updated expense (9) and income (4) arrays to more practical defaults. Seeding logic unchanged.
+- **Production smoke test** — `scripts/prod-smoke-test.mjs` extended with feedback/NextBestAction/finance seed tests. `npm run test:prod` script added.
+
+### Build Verification
+- `npm run lint` ✅ — 0 errors, 0 warnings
+- `npm run build` ✅ — Compiled successfully, 24 routes
+- `npm run test:prod` — Requires `.env.test.local`
+- `npm run test:rls` — Requires Supabase test credentials
+
+### ADRs Added
+- **ADR-007**: Feedback System — Insert-only RLS with `on delete set null` for user retention
+
+### Files Changed
+- **Created (5):** `FeedbackDialog.tsx`, `FeedbackButton.tsx`, `NextBestAction.tsx`, `00011_beta_feedback.sql`
+- **Modified (6):** `DashboardNav.tsx`, `login/page.tsx`, `signup/page.tsx`, `forgot-password/page.tsx`, `finance/page.tsx`, `today/page.tsx`
+- **Updated (2):** `scripts/prod-smoke-test.mjs`, `package.json`
+- **Documentation (3):** Audit, Architecture Plan, Deployment Checklist
+
+### What Was Intentionally Not Changed
+- No new database-heavy features (no AI coach, no workouts/macros, no device integrations)
+- No existing production flow broken
+- No `.env.test.local` or credentials committed
+- No external dependencies added
+- No React Server Components, no data caching layer
