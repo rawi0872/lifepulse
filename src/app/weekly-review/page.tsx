@@ -283,7 +283,7 @@ function WeeklyReviewContent() {
 
       {/* ── 5. Reflection Prompts ──────────────────────────────────── */}
       <section className="mb-8">
-        <h2 className="mb-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Reflection</h2>
+        <h2 className="mb-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Reflection Prompts</h2>
         <Card className="p-4">
           <div className="space-y-4">
             <ReflectionField

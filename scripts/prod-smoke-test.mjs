@@ -59,6 +59,11 @@ function fail(label, detail = "") {
   console.log(`  \u274c ${label}${detail ? ` - ${detail}` : ""}`);
 }
 
+function skip(label, reason = "") {
+  results.push({ label, status: "SKIP", detail: reason });
+  console.log(`  \u23ed ${label}${reason ? ` (${reason})` : ""}`);
+}
+
 function recordScreenshot(page, name) {
   screenshots.push(name);
 }
@@ -890,13 +895,13 @@ async function main() {
           await page.waitForTimeout(2000);
           pass("Passions My Passions - saved passion");
         } else {
-          pass("Passions My Passions - no save button");
+          skip("Passions My Passions - save", "Save Passion button not found");
         }
       } else {
-        pass("Passions My Passions - no name input");
+        skip("Passions My Passions - form", "Passion name input not found");
       }
     } else {
-      pass("Passions My Passions - no My Passions tab");
+      skip("Passions My Passions - tab", "My Passions tab not found");
     }
   } catch (e) {
     fail("Passions My Passions", e.message);
@@ -923,13 +928,13 @@ async function main() {
           await page.waitForTimeout(2000);
           pass("Passions Sessions - logged session");
         } else {
-          pass("Passions Sessions - no log button");
+          skip("Passions Sessions - log", "Log Session button not found");
         }
       } else {
-        pass("Passions Sessions - no duration input");
+        skip("Passions Sessions - form", "Duration input not found");
       }
     } else {
-      pass("Passions Sessions - no Sessions tab");
+      skip("Passions Sessions - tab", "Sessions tab not found");
     }
   } catch (e) {
     fail("Passions Sessions", e.message);
@@ -941,47 +946,30 @@ async function main() {
   // ── 6r. Weekly Review page ────────────────────────────────────────────────
 
   try {
-    await page.goto(`${BASE}/weekly-review`, { waitUntil: "networkidle", timeout: 30000 });
-    await page.waitForTimeout(2000);
-    const pageTitle = page.locator("h1:has-text('Weekly Review')");
-    if (await pageTitle.isVisible({ timeout: 5000 })) {
-      pass("Weekly Review - page loads with header");
-    } else {
-      pass("Weekly Review - page loaded");
+    await page.goto(`${BASE}/weekly-review`, { waitUntil: "domcontentloaded", timeout: 30000 });
+    await page.waitForTimeout(3000);
+
+    const sections = [
+      { label: "Weekly Review - header", selector: "h1:has-text('Weekly Review')" },
+      { label: "Weekly Review - Week Summary section", selector: "text=Week Summary" },
+      { label: "Weekly Review - Body & Mind section", selector: "text=Body & Mind Review" },
+      { label: "Weekly Review - Goals & Growth section", selector: "text=Goals & Growth Review" },
+      { label: "Weekly Review - Passions Review section", selector: "text=Passions Review" },
+      { label: "Weekly Review - Reflection section", selector: "text=Reflection Prompts" },
+      { label: "Weekly Review - Plan Next Week section", selector: "text=Plan Next Week" },
+    ];
+
+    for (const { label, selector } of sections) {
+      const visible = await page.locator(selector).isVisible({ timeout: 10000 }).catch(() => false);
+      if (visible) {
+        pass(label);
+      } else {
+        fail(label, "not visible after load");
+      }
     }
   } catch (e) {
-    fail("Weekly Review", e.message);
+    fail("Weekly Review page load", e.message);
     await page.screenshot({ path: "screenshot-weekly-review-error.png", fullPage: true });
-  }
-
-  // ── 6s. Weekly Review — body & mind section visible ──────────────────────
-
-  try {
-    await page.goto(`${BASE}/weekly-review`, { waitUntil: "networkidle", timeout: 30000 });
-    await page.waitForTimeout(2000);
-    const hasSections = await page.locator("text=Body & Mind Review").isVisible({ timeout: 5000 });
-    if (hasSections) {
-      pass("Weekly Review - Body & Mind section visible");
-    } else {
-      pass("Weekly Review - sections may vary");
-    }
-  } catch (e) {
-    fail("Weekly Review sections", e.message);
-  }
-
-  // ── 6t. Weekly Review — reflection card visible ──────────────────────────
-
-  try {
-    await page.goto(`${BASE}/weekly-review`, { waitUntil: "networkidle", timeout: 30000 });
-    await page.waitForTimeout(2000);
-    const hasReflection = await page.locator("text=What went well").isVisible({ timeout: 5000 });
-    if (hasReflection) {
-      pass("Weekly Review - reflection prompts visible");
-    } else {
-      pass("Weekly Review - reflection card may vary");
-    }
-  } catch (e) {
-    fail("Weekly Review reflection", e.message);
   }
 
   console.log("");
@@ -1024,11 +1012,17 @@ async function main() {
 
   const passed = results.filter((r) => r.status === "PASS").length;
   const failed = results.filter((r) => r.status === "FAIL").length;
+  const skipped = results.filter((r) => r.status === "SKIP").length;
   const total = results.length;
 
   console.log("=== Summary ===");
   console.log(`  Passed: ${passed} / ${total}`);
   console.log(`  Failed: ${failed} / ${total}`);
+  console.log(`  Skipped: ${skipped} / ${total}`);
+  if (failed > 0) {
+    console.log("  Failed tests:");
+    results.filter((r) => r.status === "FAIL").forEach((r) => console.log(`    - ${r.label}${r.detail ? `: ${r.detail}` : ""}`));
+  }
   console.log("");
 
   if (failed > 0) {
