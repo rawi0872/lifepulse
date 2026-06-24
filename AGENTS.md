@@ -20,4 +20,5 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - `.env.test.local` is gitignored via the `.env*` rule (with `.env.example` exception)
 - `playwright-report/`, `test-results/`, and `screenshot-*.png` are gitignored
 - Smoke test count is now dynamic (previously 44, now with Body Pro + passions tests)
+- Coach engine: `src/lib/coach.ts` — rule-based, no AI, deterministic recommendations. Import `getCoachInsights()`, `getTopInsights()`, types.
 <!-- END:project-config -->

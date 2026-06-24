@@ -188,6 +188,21 @@ Add both of the following:
 - 24 app tables (unchanged) ✅
 - Recommended next action: Invite 2–5 private beta testers
 
+### Phase 10A QA (June 24, 2026)
+- Coach engine created (`src/lib/coach.ts`): 12+ rule functions, priority sorting, category grouping, types ✅
+- Coach route (`/coach`) created with 4 sections: Overview, Recommended Actions, Area Breakdown, How It Works ✅
+- Coach added to navigation (Pulse group, between Weekly Review and Growth, mobile More menu) ✅
+- `/coach` added to `protectedRoutes` in proxy ✅
+- Today NextBestAction refactored to use shared `getTopInsights()` from coach engine ✅
+- Weekly Review: "Open Coach" link card added ✅
+- Insights: "Open Coach" link card added ✅
+- Knowledge rules: no items → suggest saving resource; items but no collections → suggest collection ✅
+- Production smoke test: Coach page tests (heading, sections, cards/empty state, protected redirect, post-logout redirect) ✅
+- 28 routes (27 existing + /coach) ✅
+- 24 app tables (unchanged — no new tables created) ✅
+- No medical/financial/therapeutic claims; engine is rule-based, transparent, deterministic ✅
+- Recommended next action: Invite 2–5 private beta testers — do not add more features before collecting feedback
+
 ### Vercel Preview Deployments
 - Vercel preview deployments get random URLs (e.g. `project-xxxxx.vercel.app`). Auth redirects to these URLs will fail if they are not whitelisted in Supabase.
 - **Recommendation:** Disable auth testing on preview deployments, or add `https://*-username.vercel.app/auth/callback` as a wildcard redirect URL (Supabase supports `*` wildcards in redirect URLs). Test password reset and email confirmation only on the production domain.
@@ -312,8 +327,8 @@ The smoke test covers: profiles, realms, habits, habit_logs, tasks, xp_events, j
 - [ ] `npm run build` passes locally (current state ✅)
 - [ ] `npm run lint` passes locally (current state ✅)
 - [ ] `npm run test:prod` passes against production (requires `.env.test.local`)
-- [ ] Build output includes all 27 routes: /, /auth/callback, /body, /devices, /finance, /forgot-password, /goals, /habits, /icon.svg, /insights, /journal, /knowledge, /login, /mind, /onboarding, /passions, /privacy, /projects, /reset-password, /settings, /signup, /tasks, /terms, /today, /weekly-review
+- [ ] Build output includes all 28 routes: /, /auth/callback, /body, /coach, /devices, /finance, /forgot-password, /goals, /habits, /icon.svg, /insights, /journal, /knowledge, /login, /mind, /onboarding, /passions, /privacy, /projects, /reset-password, /settings, /signup, /tasks, /terms, /today, /weekly-review
 
 ---
 
-*Life Pulse — Last updated: June 24, 2026 (Phase 9D — First-Time User Experience and Final App Polish)*
+*Life Pulse — Last updated: June 24, 2026 (Phase 10A — Rule-Based Coach Engine Foundation)*

@@ -1733,3 +1733,75 @@ After Phase 9D validation passes:
 
 ### Recommended Next Action
 > **Invite 2–5 private beta testers.**
+
+## 28. Phase 10A Completion Note — Rule-Based Coach Engine Foundation
+
+### Overview
+Created a central Coach engine that analyzes user data with simple deterministic rules and surfaces practical recommendations, warnings, and next actions.
+
+### Key Deliverables
+- **Central coach engine** (`src/lib/coach.ts`): 12+ rule functions, priority sorting, category grouping, insight types
+- **Coach page** (`/coach`): Overview metrics, Recommended Next Actions cards, Area Breakdown grid, Rules transparency section
+- **Today Next Best Action refactored** to use the shared coach engine
+- **Weekly Review**: Added "Open Coach" link card
+- **Insights**: Added "Open Coach" link card
+- **Knowledge rules**: No items → suggest saving a resource; items but no collections → suggest creating a collection
+- **Navigation**: Coach added under Pulse group (sidebar + mobile More menu)
+- **Route protection**: `/coach` added to proxy.ts protected routes
+
+### Coach Engine Details
+- **Types**: `CoachInsight`, `CoachData`, `CoachCategory`, `CoachPriority`
+- **Categories**: body, mind, goals, tasks, habits, passions, knowledge, weekly_review, finance, general
+- **Rules checked**:
+  - Body Pulse not logged today → log Body Pulse
+  - Mind Pulse not logged today → check in
+  - High-priority tasks exist → focus on one
+  - Goals without linked actions → connect a goal
+  - No journal entry today → write a short reflection
+  - No active passions → add a passion
+  - No passion session this week → log a practice session
+  - No workout this week → log a workout
+  - No nutrition today → log nutrition
+  - Monday → plan the week
+  - Thursday–Sunday → review the week
+  - No finance data → add first transaction
+  - No knowledge items → save a resource
+  - Knowledge items but no collections → create a collection
+
+### No AI / No External APIs
+- All rules are deterministic, transparent, and data-driven
+- No OpenAI, LLM, or external API calls
+- Disclaimers: "Consider...", "A useful next step could be...", "Based on what is missing..."
+- Coach page explicitly states: "Coach does not provide medical, therapeutic, or financial advice"
+- Rules transparency section explains the engine
+
+### Build/Lint Verification
+- `npm run lint` ✅ — 0 errors, 6 warnings (pre-existing, unchanged)
+- `npm run build` ✅ — 28 routes, clean compile
+
+### Files Changed
+
+| File | Change |
+|------|--------|
+| `src/lib/coach.ts` | **Created** — central coach engine with types, rules, helpers |
+| `src/app/coach/page.tsx` | **Created** — Coach page with overview, actions, area breakdown, transparency |
+| `src/proxy.ts` | **Updated** — added `/coach` to protectedRoutes |
+| `src/components/DashboardNav.tsx` | **Updated** — added Coach to Pulse group and mobile More menu |
+| `src/components/today/NextBestAction.tsx` | **Updated** — refactored to use shared `getTopInsights()` from coach engine |
+| `src/app/weekly-review/page.tsx` | **Updated** — added "Open Coach" link card |
+| `src/app/insights/page.tsx` | **Updated** — added "Open Coach" link card |
+| `scripts/prod-smoke-test.mjs` | **Updated** — added Coach page tests, protected route test, post-logout test |
+| `docs/LIFE_PULSE_CURRENT_STATE_AUDIT.md` | **Updated** — Phase 10A summary |
+| `docs/deployment-checklist.md` | **Updated** — Phase 10A QA section |
+| `docs/LIFE_OS_ARCHITECTURE_PLAN.md` | **Updated** — Phase 10A summary |
+
+### Remaining Non-Blockers
+- Coach is rule-based only — no AI/LLM
+- No device/wearable integration (design intent)
+- Knowledge collection-item linking not exposed in UI
+- No search/filter for knowledge items
+- No file uploads or embeddings (design intent)
+- Production smoke test run requires push + Vercel redeploy
+
+### Recommended Next Action
+> **Invite 2–5 private beta testers. Do not add major features before collecting feedback.**

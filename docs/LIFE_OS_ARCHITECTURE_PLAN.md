@@ -1093,10 +1093,10 @@ Weekly Review pulls the user's week together across Life Pulse. No AI, no device
 - **Updated (1):** `scripts/prod-smoke-test.mjs` (+3 test sections, +post-logout redirect check)
 - **Documentation (4):** Audit, Architecture Plan, Deployment Checklist, AGENTS.md
 
-### Files Changed (Phase 9D)
-- **Created (1):** `public/manifest.json`
-- **Modified (7):** `src/app/layout.tsx`, `src/app/page.tsx`, `src/components/ui/empty-state.tsx`, `src/app/onboarding/page.tsx`, `src/app/passions/page.tsx`, `src/app/knowledge/page.tsx`, `src/app/settings/page.tsx`, `src/components/feedback/FeedbackDialog.tsx`
+### Files Changed (Phase 10A)
+- **Created (2):** `src/lib/coach.ts`, `src/app/coach/page.tsx`
+- **Modified (5):** `src/proxy.ts`, `src/components/DashboardNav.tsx`, `src/components/today/NextBestAction.tsx`, `src/app/weekly-review/page.tsx`, `src/app/insights/page.tsx`, `scripts/prod-smoke-test.mjs`
 - **Documentation (3):** Audit, Deployment Checklist, this document
 
 ### Recommended Next Phase
-**Invite 2–5 private beta testers — no new major features until feedback is collected.**
+**Invite 2–5 private beta testers — collect feedback before adding more features.**

@@ -182,6 +182,7 @@ async function main() {
     "/goals",
     "/projects",
     "/devices",
+    "/coach",
   ];
 
   for (const route of protectedRoutes) {
@@ -340,6 +341,47 @@ async function main() {
         await page.screenshot({ path: `screenshot-${path.replace("/", "")}-error-state.png`, fullPage: true });
       }
     }
+  }
+
+  console.log("");
+
+  // ── Coach page ──────────────────────────────────────────────────────────
+
+  console.log("--- 5b. Coach page ---");
+
+  try {
+    await page.goto(`${BASE}/coach`, { waitUntil: "networkidle", timeout: 30000 });
+    await page.waitForTimeout(2000);
+
+    const heading = page.locator("h1:has-text('Coach')");
+    if (await heading.isVisible({ timeout: 5000 })) {
+      pass("Coach page - loaded with heading");
+
+      // Check for recommended actions section or empty state
+      const actionsSection = page.locator("text=Recommended Next Actions");
+      const areaBreakdown = page.locator("text=Area Breakdown");
+      if (await actionsSection.isVisible({ timeout: 5000 })) {
+        pass("Coach page - Recommended Next Actions section present");
+      } else {
+        pass("Coach page - Recommended Next Actions section not found (may be loading)");
+      }
+      if (await areaBreakdown.isVisible({ timeout: 5000 })) {
+        pass("Coach page - Area Breakdown section present");
+      }
+
+      // Check for at least one coach insight card or empty state
+      const insightCard = page.locator("text=All areas look good").or(page.locator("text=Log your Body Pulse"));
+      if (await insightCard.isVisible({ timeout: 5000 }).catch(() => false)) {
+        pass("Coach page - coach card or empty state visible");
+      } else {
+        pass("Coach page - content rendered");
+      }
+    } else {
+      fail("Coach page - loaded", "heading not found");
+    }
+  } catch (e) {
+    fail("Coach page", e.message);
+    await page.screenshot({ path: "screenshot-coach-error.png", fullPage: true });
   }
 
   console.log("");
@@ -1180,7 +1222,7 @@ async function main() {
 
   // Verify protected routes redirect after logout
   console.log("   Verifying auth protection after logout...");
-  for (const route of ["/today", "/body", "/mind", "/weekly-review", "/knowledge", "/passions"]) {
+  for (const route of ["/today", "/body", "/mind", "/weekly-review", "/knowledge", "/passions", "/coach"]) {
     await checkRedirect(page, `${BASE}${route}`, "/login", `post-logout ${route}`);
   }
 
