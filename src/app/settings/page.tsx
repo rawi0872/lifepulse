@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { DashboardNav } from "@/components/DashboardNav";
@@ -478,6 +479,26 @@ export default function SettingsPage() {
             <p className="mt-1 text-xs text-[var(--text-muted)]">
               Deleting or archiving life areas is coming later.
             </p>
+          </div>
+        </Card>
+
+        {/* Feedback / Beta */}
+        <Card className="border-[var(--border-strong)]">
+          <div className="p-5">
+            <h3 className="mb-3 text-sm font-semibold text-[var(--text)]">Private Beta</h3>
+            <p className="mb-3 text-xs leading-relaxed text-[var(--text-muted)]">
+              Life Pulse is in private beta. Your feedback shapes what comes next.
+              Share what feels confusing, broken, useful, or missing.
+            </p>
+            <Link
+              href="/today"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-active)]"
+            >
+              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
+              </svg>
+              Give feedback &rarr;
+            </Link>
           </div>
         </Card>
 

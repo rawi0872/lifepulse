@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { DashboardNav } from "@/components/DashboardNav";
@@ -175,7 +176,7 @@ function KnowledgeContent() {
                   Save articles, book notes, course takeaways, life lessons, and any reference material you want to keep.
                 </p>
                 {items.length === 0 && collections.length === 0 && (
-                  <EmptyState message="No knowledge items yet. Start by adding a note or creating a collection!" />
+                  <EmptyState title="Overview" message="No knowledge items yet. Save notes, articles, ideas, and reference materials to organize what matters." action={<Link href="/knowledge" className="inline-flex items-center gap-1 text-xs font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">Add your first item &rarr;</Link>} />
                 )}
               </div>
             </PulseCard>
@@ -189,6 +190,7 @@ function KnowledgeContent() {
               <div className="grid grid-cols-2 gap-3 p-4">
                 <input type="text" placeholder="Title" value={itemForm.title}
                   onChange={(e) => setItemForm((f) => ({ ...f, title: e.target.value }))}
+                  data-testid="knowledge-item-title-input"
                   className="col-span-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none focus:border-[var(--accent)]" />
                 <div className="flex flex-col gap-1">
                   <label className="text-[10px] font-medium text-[var(--text-muted)]">Type</label>
@@ -216,6 +218,7 @@ function KnowledgeContent() {
                   className="col-span-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none resize-none" rows={4} />
                 <div className="col-span-2 flex justify-end">
                   <button onClick={handleSaveItem} disabled={saving || !itemForm.title.trim()}
+                    data-testid="knowledge-item-save-button"
                     className="rounded-lg bg-[var(--accent)] px-4 py-2 text-xs font-medium text-[var(--text-on-accent)] transition-all hover:opacity-90 disabled:opacity-40">
                     {saving ? "Saving..." : "Save Knowledge"}
                   </button>
@@ -232,12 +235,14 @@ function KnowledgeContent() {
               <div className="grid grid-cols-2 gap-3 p-4">
                 <input type="text" placeholder="Collection name" value={collectionForm.name}
                   onChange={(e) => setCollectionForm((f) => ({ ...f, name: e.target.value }))}
+                  data-testid="knowledge-collection-name-input"
                   className="col-span-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none focus:border-[var(--accent)]" />
                 <textarea placeholder="Description (optional)" value={collectionForm.description}
                   onChange={(e) => setCollectionForm((f) => ({ ...f, description: e.target.value }))}
                   className="col-span-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none resize-none" rows={2} />
                 <div className="col-span-2 flex justify-end">
                   <button onClick={handleSaveCollection} disabled={saving || !collectionForm.name.trim()}
+                    data-testid="knowledge-collection-save-button"
                     className="rounded-lg bg-[var(--accent)] px-4 py-2 text-xs font-medium text-[var(--text-on-accent)] transition-all hover:opacity-90 disabled:opacity-40">
                     {saving ? "Saving..." : "Create Collection"}
                   </button>
@@ -247,7 +252,7 @@ function KnowledgeContent() {
 
             {collections.length === 0 ? (
               <PulseCard title="Your Collections" accent="accent">
-                <EmptyState message="No collections yet. Create one to organize your knowledge." />
+                <EmptyState title="Your Collections" message="No collections yet. Collections group related knowledge items together — like a folder for a topic or project." action={<Link href="/knowledge" className="inline-flex items-center gap-1 text-xs font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">Create a collection &rarr;</Link>} />
               </PulseCard>
             ) : (
               <PulseCard title="Your Collections" accent="accent" description={`${collections.length} total`}>
@@ -273,7 +278,7 @@ function KnowledgeContent() {
           <div>
             {items.length === 0 ? (
               <PulseCard title="Recent Items" accent="accent">
-                <EmptyState message="No knowledge items yet. Add your first one!" />
+                <EmptyState title="Recent Items" message="No knowledge items yet. Add notes, links, articles, and reference material to build your personal library." action={<Link href="/knowledge" className="inline-flex items-center gap-1 text-xs font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">Add your first item &rarr;</Link>} />
               </PulseCard>
             ) : (
               <PulseCard title="Recent Items" accent="accent" description={`${items.length} total`}>

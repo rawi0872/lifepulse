@@ -155,13 +155,13 @@ export default function Home() {
             <LifePulseLogo size="lg" />
           </div>
           <h1 className="mb-5 text-4xl font-bold tracking-tight text-[var(--text)] md:text-5xl">
-            Your personal operating system
+            Your personal Life OS
             <br />
             <span className="text-[var(--text-secondary)]">for daily progress.</span>
           </h1>
           <p className="mx-auto max-w-xl text-base leading-relaxed text-[var(--text-secondary)]">
-            Plan your day, build habits, manage projects, track money, reflect, and see where your energy is going
-            — all in one private dashboard.
+            A personal Life OS for tracking your goals, habits, health, mind, money, passions, knowledge,
+            and weekly progress — all in one private dashboard.
           </p>
           <div className="mt-8 flex items-center justify-center gap-3">
             <Link
@@ -345,6 +345,32 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ── Why Life Pulse is different ── */}
+      <section className="border-t border-[var(--border)] px-5 py-20 md:px-8 md:py-24">
+        <div className="mx-auto max-w-3xl text-center">
+          <h2 className="text-xl font-bold text-[var(--text)] md:text-2xl">
+            More than a habit tracker
+          </h2>
+          <p className="mx-auto mt-3 mb-10 max-w-lg text-sm text-[var(--text-secondary)]">
+            Most apps focus on one thing. Life Pulse connects your whole picture — across six life areas.
+          </p>
+          <div className="mx-auto grid max-w-2xl gap-3 text-left md:grid-cols-3 md:gap-4">
+            <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4">
+              <p className="text-xs font-semibold text-[var(--text)]">No notifications</p>
+              <p className="mt-1 text-xs text-[var(--text-muted)]">No pings, badges, or alerts. You show up when you choose.</p>
+            </div>
+            <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4">
+              <p className="text-xs font-semibold text-[var(--text)]">Your data stays private</p>
+              <p className="mt-1 text-xs text-[var(--text-muted)]">No sharing, no algorithm. Each account is fully isolated.</p>
+            </div>
+            <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4">
+              <p className="text-xs font-semibold text-[var(--text)]">Weekly rhythm, not daily grind</p>
+              <p className="mt-1 text-xs text-[var(--text-muted)]">Plan weekly, reflect weekly. Progress compounds naturally.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ── Final CTA ── */}
       <section className="border-t border-[var(--border)] px-5 py-24 text-center md:px-8 md:py-32">
         <h2 className="text-2xl font-bold text-[var(--text)] md:text-3xl">
@@ -359,6 +385,9 @@ export default function Home() {
         >
           Create your account
         </Link>
+        <p className="mt-4 text-xs text-[var(--text-muted)]">
+          Private beta &middot; your feedback shapes what comes next
+        </p>
       </section>
 
       {/* ── Footer ── */}

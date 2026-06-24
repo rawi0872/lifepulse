@@ -250,7 +250,7 @@ export default function OnboardingPage() {
 
       const { data: existing } = await supabase
         .from("realms")
-        .select("name")
+        .select("name, id")
         .eq("user_id", user.id);
 
       if (!existing || existing.length === 0) {
@@ -263,12 +263,74 @@ export default function OnboardingPage() {
         }));
 
         if (realmsToInsert.length > 0) {
-          const { error: rErr } = await supabase.from("realms").insert(realmsToInsert);
+          const { error: rErr } = await supabase.from("realms").insert(realmsToInsert).select();
           if (rErr) {
             setError("Failed to create life areas. Please try again.");
             setSaving(false);
             return;
           }
+        }
+      }
+
+      // ── Create starter data for new users (idempotent) ──────────────────────
+      const { data: existingHabits } = await supabase
+        .from("habits")
+        .select("id")
+        .eq("user_id", user.id)
+        .limit(1);
+
+      if (!existingHabits || existingHabits.length === 0) {
+        const { data: realms } = await supabase
+          .from("realms")
+          .select("id, name")
+          .eq("user_id", user.id);
+
+        const bodyRealm = realms?.find((r) => r.name === "Body") ?? realms?.[0];
+        const mindRealm = realms?.find((r) => r.name === "Mind") ?? realms?.[0];
+        const careerRealm = realms?.find((r) => r.name === "Career") ?? realms?.[0];
+
+        const starterHabits = [];
+        if (bodyRealm) {
+          const { data: existingLogs } = await supabase
+            .from("habit_logs")
+            .select("id")
+            .eq("user_id", user.id)
+            .limit(1);
+          if (!existingLogs || existingLogs.length === 0) {
+            starterHabits.push(
+              { user_id: user.id, realm_id: bodyRealm.id, title: "Morning stretch", frequency: "daily" },
+              { user_id: user.id, realm_id: bodyRealm.id, title: "Walk 10 minutes", frequency: "daily" },
+            );
+          }
+        }
+        if (mindRealm) {
+          starterHabits.push(
+            { user_id: user.id, realm_id: mindRealm.id, title: "Read 10 pages", frequency: "daily" },
+          );
+        }
+        if (careerRealm) {
+          starterHabits.push(
+            { user_id: user.id, realm_id: careerRealm.id, title: "Review today's priorities", frequency: "weekdays" },
+          );
+        }
+
+        if (starterHabits.length > 0) {
+          await supabase.from("habits").insert(starterHabits).select();
+        }
+
+        const { data: existingTasks } = await supabase
+          .from("tasks")
+          .select("id")
+          .eq("user_id", user.id)
+          .limit(1);
+
+        if (!existingTasks || existingTasks.length === 0) {
+          const today = new Date().toISOString().slice(0, 10);
+          await supabase.from("tasks").insert([
+            { user_id: user.id, title: "Explore the Today dashboard", status: "todo", priority: "high", due_date: today },
+            { user_id: user.id, title: "Set up a habit on the Habits page", status: "todo", priority: "medium", due_date: today },
+            { user_id: user.id, title: "Log your first Body Pulse check-in", status: "todo", priority: "medium", due_date: today },
+          ]);
         }
       }
 
@@ -392,9 +454,13 @@ export default function OnboardingPage() {
           {step === 0 && (
             <div className="animate-fade-in flex flex-col gap-8">
               {/* Intro section */}
-              <div className="max-w-2xl">
+              <div className="max-w-2xl space-y-4">
                 <p className="text-sm leading-relaxed text-[var(--text-secondary)]">
-                  A complete view of what matters most — habits, tasks, projects, finance, and reflection — in one place.
+                  A complete Life OS for tracking your goals, habits, health, mind, money, passions, knowledge,
+                  and weekly progress — all in one private dashboard.
+                </p>
+                <p className="text-xs text-[var(--text-muted)] bg-[var(--surface)] rounded-lg border border-[var(--border)] px-4 py-2.5">
+                  This is a private beta. Your honest feedback shapes what comes next.
                 </p>
               </div>
 

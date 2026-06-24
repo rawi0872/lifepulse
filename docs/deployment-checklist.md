@@ -174,7 +174,19 @@ Add both of the following:
 - Production smoke test: 3 new Knowledge sections, post-logout redirect includes /knowledge + /passions ✅
 - 27 routes (26 existing + /knowledge) ✅
 - 24 app tables (21 existing + knowledge_items, knowledge_collections, knowledge_collection_items)
-- Recommended next phase: Invite 2–5 private beta testers
+- Recommended next phase: First-time user experience and final app polish
+
+### Phase 9D QA (June 24, 2026)
+- Landing page: improved hero positioning ("Life OS"), added "More than a habit tracker" section, added beta note ✅
+- Onboarding: starter data creation (idempotent — sample habits + tasks for new users), beta note in welcome step ✅
+- Empty states: improved across Passions (6 states) and Knowledge (3 states) with titles, descriptions, and CTAs ✅
+- EmptyState component: added `title` prop support ✅
+- Mobile polish: audited layout, tab bars, and nav — no changes needed (already functional) ✅
+- PWA: created manifest.json, added apple-web-app + theme-color metadata to layout ✅
+- Beta prep: Settings "Private Beta" card, improved feedback dialog placeholder, beta notes on landing + onboarding ✅
+- 27 routes (unchanged) ✅
+- 24 app tables (unchanged) ✅
+- Recommended next action: Invite 2–5 private beta testers
 
 ### Vercel Preview Deployments
 - Vercel preview deployments get random URLs (e.g. `project-xxxxx.vercel.app`). Auth redirects to these URLs will fail if they are not whitelisted in Supabase.
@@ -304,4 +316,4 @@ The smoke test covers: profiles, realms, habits, habit_logs, tasks, xp_events, j
 
 ---
 
-*Life Pulse — Last updated: June 24, 2026 (Phase 9C — Pre-Beta Bug Fixes + Knowledge System)*
+*Life Pulse — Last updated: June 24, 2026 (Phase 9D — First-Time User Experience and Final App Polish)*

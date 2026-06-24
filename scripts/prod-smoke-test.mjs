@@ -926,6 +926,13 @@ async function main() {
         } else {
           await durationInput.fill("30");
 
+          // Fill focus area with unique text to verify session appears after save
+          const focusInput = page.locator('[data-testid="passion-session-focus-input"]');
+          const uniqueFocus = `Session Smoke ${Date.now()}`;
+          if (await focusInput.isVisible({ timeout: 3000 })) {
+            await focusInput.fill(uniqueFocus);
+          }
+
           // Select the first passion
           const firstPassionOption = passionSelect.locator('option:not([value=""])').first();
           const passionValue = await firstPassionOption.getAttribute("value");
@@ -938,12 +945,13 @@ async function main() {
             await logBtn.click();
             await page.waitForTimeout(3000);
 
-            // Verify session was logged by checking for "30 min" in the Recent Sessions list
-            const sessionVisible = await page.locator("text=30 min").isVisible({ timeout: 5000 });
+            // Verify session was logged by checking for unique focus text in sessions list
+            const sessionsList = page.locator('[data-testid="passion-sessions-list"]');
+            const sessionVisible = await sessionsList.locator(`text=${uniqueFocus}`).isVisible({ timeout: 5000 });
             if (sessionVisible) {
               pass("Passions Sessions - logged session (verified in list)");
             } else {
-              fail("Passions Sessions - logged session", '"30 min" not found in Recent Sessions list');
+              fail("Passions Sessions - logged session", `"${uniqueFocus}" not found in sessions list`);
             }
           }
         }
@@ -1086,11 +1094,18 @@ async function main() {
           await saveBtn.click();
           await page.waitForTimeout(3000);
 
+          // Navigate to Recent Items tab where the saved item will be listed
+          const recentTab = page.locator('button:has-text("Recent Items")');
+          if (await recentTab.isVisible({ timeout: 3000 })) {
+            await recentTab.click();
+            await page.waitForTimeout(1000);
+          }
+
           const itemVisible = await page.locator(`text=${itemTitle}`).isVisible({ timeout: 5000 });
           if (itemVisible) {
             pass("Knowledge Add - saved item (verified in Recent Items tab)");
           } else {
-            fail("Knowledge Add - saved item", `item "${itemTitle}" not found`);
+            fail("Knowledge Add - saved item", `item "${itemTitle}" not found in Recent Items tab`);
           }
         }
       }

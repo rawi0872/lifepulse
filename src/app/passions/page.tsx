@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { DashboardNav } from "@/components/DashboardNav";
@@ -262,7 +263,7 @@ function PassionContent() {
 
             {activePassions.length === 0 && (
               <PulseCard title="Passions" accent="accent">
-                <EmptyState message="No passions yet. Add your first one!" />
+                <EmptyState title="Passions" message="No passions yet. Hobbies and skills you actively practice — music, sports, coding, art, or anything you want to grow in." action={<Link href="/passions" className="inline-flex items-center gap-1 text-xs font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">Add your first passion &rarr;</Link>} />
               </PulseCard>
             )}
 
@@ -378,7 +379,7 @@ function PassionContent() {
 
             {passions.length === 0 && (
               <PulseCard title="Your Passions" accent="accent">
-                <EmptyState message="No passions yet. Add one above!" />
+                <EmptyState title="My Passions" message="No passions created yet." action={<Link href="/passions" className="inline-flex items-center gap-1 text-xs font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">Add a passion &rarr;</Link>} />
               </PulseCard>
             )}
 
@@ -452,7 +453,7 @@ function PassionContent() {
           <div className="space-y-6">
             {passions.length === 0 ? (
               <PulseCard title="Log Session" accent="accent">
-                <EmptyState message="Add a passion first to log sessions." />
+                <EmptyState title="No passions yet" message="Create a passion first, then log sessions to track your practice time and progress." action={<Link href="/passions" className="inline-flex items-center gap-1 text-xs font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">Add a passion &rarr;</Link>} />
               </PulseCard>
             ) : (
               <PulseCard title="Log Session" accent="accent">
@@ -470,6 +471,7 @@ function PassionContent() {
                     className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none" />
                   <input type="text" placeholder="Focus area" value={sessionForm.focus}
                     onChange={(e) => setSessionForm((f) => ({ ...f, focus: e.target.value }))}
+                    data-testid="passion-session-focus-input"
                     className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none" />
                   <div className="flex flex-col gap-1">
                     <label className="text-[10px] font-medium text-[var(--text-muted)]">Enjoyment (1-5)</label>
@@ -502,13 +504,13 @@ function PassionContent() {
 
             {sessions.length === 0 && (
               <PulseCard title="Recent Sessions" accent="accent">
-                <EmptyState message="No sessions logged yet." />
+                <EmptyState title="Recent Sessions" message="No sessions logged yet. Log your first practice session to start tracking time spent on your passions." action={<Link href="/passions" className="inline-flex items-center gap-1 text-xs font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">Log a session &rarr;</Link>} />
               </PulseCard>
             )}
 
             {sessions.length > 0 && (
               <PulseCard title="Recent Sessions" accent="accent" description={`${sessions.length} total`}>
-                <div className="divide-y divide-[var(--border)]">
+                <div data-testid="passion-sessions-list" className="divide-y divide-[var(--border)]">
                   {sessions.map((s) => {
                     const p = passionMap[s.passion_id];
                     return (
@@ -545,7 +547,7 @@ function PassionContent() {
           <div className="space-y-6">
             {passions.length === 0 ? (
               <PulseCard title="Add Milestone" accent="success">
-                <EmptyState message="Add a passion first to set milestones." />
+                <EmptyState title="No passions yet" message="Create a passion first, then set milestones to mark progress on your journey." action={<Link href="/passions" className="inline-flex items-center gap-1 text-xs font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">Add a passion &rarr;</Link>} />
               </PulseCard>
             ) : (
               <PulseCard title="Add Milestone" accent="success">
@@ -579,7 +581,7 @@ function PassionContent() {
 
             {milestones.length === 0 && (
               <PulseCard title="Milestones" accent="success">
-                <EmptyState message="No milestones yet." />
+                <EmptyState title="Milestones" message="No milestones yet. Set your first milestone to mark an achievement on your journey." action={<Link href="/passions" className="inline-flex items-center gap-1 text-xs font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">Add a milestone &rarr;</Link>} />
               </PulseCard>
             )}
 

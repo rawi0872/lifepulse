@@ -1093,8 +1093,10 @@ Weekly Review pulls the user's week together across Life Pulse. No AI, no device
 - **Updated (1):** `scripts/prod-smoke-test.mjs` (+3 test sections, +post-logout redirect check)
 - **Documentation (4):** Audit, Architecture Plan, Deployment Checklist, AGENTS.md
 
+### Files Changed (Phase 9D)
+- **Created (1):** `public/manifest.json`
+- **Modified (7):** `src/app/layout.tsx`, `src/app/page.tsx`, `src/components/ui/empty-state.tsx`, `src/app/onboarding/page.tsx`, `src/app/passions/page.tsx`, `src/app/knowledge/page.tsx`, `src/app/settings/page.tsx`, `src/components/feedback/FeedbackDialog.tsx`
+- **Documentation (3):** Audit, Deployment Checklist, this document
+
 ### Recommended Next Phase
-**Phase 10A — Rule-Based Coach Engine:**
-- Personalized daily recommendations based on user data patterns
-- Still no AI — extend the rule system with configurable thresholds
-- Could power a dedicated Coach tab or inline Today suggestions
+**Invite 2–5 private beta testers — no new major features until feedback is collected.**

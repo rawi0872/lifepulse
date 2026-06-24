@@ -15,11 +15,21 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Life Pulse",
-  description: "Your personal operating system",
+  description: "Your personal operating system for tracking goals, habits, health, mind, money, passions, and weekly progress.",
+  manifest: "/manifest.json",
   icons: {
     icon: "/icon.svg",
     shortcut: "/icon.svg",
     apple: "/icon.svg",
+  },
+  appleWebApp: {
+    capable: true,
+    title: "Life Pulse",
+    statusBarStyle: "black-translucent",
+  },
+  other: {
+    "theme-color": "#0a0a0b",
+    "mobile-web-app-capable": "yes",
   },
 };
 

@@ -1644,5 +1644,92 @@ A beta-readiness sweep across the entire app, focusing on reliability, copy cons
 - No device/wearable integration (never planned)
 
 ### Recommended Next Action
-After Phase 9C passes production smoke test with 0 failures:
+After Phase 9D validation passes:
+> **Invite 2–5 private beta testers.**
+
+---
+
+## 27. Phase 9D Completion Note — First-Time User Experience and Final App Polish
+
+### What Was Done
+
+#### 1. First-Time User Journey Audit
+- Landing page: hero section now positions Life Pulse as a "Life OS" with clear value proposition
+- Onboarding: welcome step now explains the full scope (goals, habits, health, mind, money, passions, knowledge, weekly progress)
+- Today: starter data (sample habits + tasks) created during onboarding so new users see a non-empty dashboard
+- Empty states across all pages: updated with titles, descriptions, and clear CTAs
+
+#### 2. Landing Page Improvements
+- Hero copy updated: "Your personal Life OS for daily progress"
+- Subtitle describes full scope: goals, habits, health, mind, money, passions, knowledge, weekly progress
+- New "More than a habit tracker" section: explains what makes Life Pulse different (no notifications, data privacy, weekly rhythm)
+- Final CTA includes private beta notice
+- "Built around your data" section retained as-is
+
+#### 3. Onboarding Improvements
+- Welcome step (step 0): updated introduction text, added private beta notice
+- **Starter data creation:** Added idempotent starter data generation in `handleComplete()`:
+  - Creates 2-4 sample habits (Morning stretch, Walk 10 minutes, Read 10 pages, Review today's priorities) based on selected realms
+  - Creates 3 sample tasks (Explore the Today dashboard, Set up a habit, Log your first Body Pulse check-in)
+  - All checks are guarded: only creates if user has no existing habits/tasks
+  - Uses `supabase.from("habits").select("id").limit(1)` to avoid duplicate creation
+  - Starter habits are created under appropriate realms (Body, Mind, Career) based on user's selected life areas
+
+#### 4. Empty-State Polish
+- **EmptyState component:** Added `title` prop for section headers in empty states
+- Updated empty states across 7 pages:
+  - **Passions (6 states):** Overview, My Passions, Sessions (no passions), Sessions (no sessions), Milestones (no passions), Milestones (no milestones) — all now have titles, explanatory descriptions, and CTAs
+  - **Knowledge (3 states):** Overview, Collections, Recent Items — all now explain what each section is for with CTAs
+- Existing empty states in Body, Mind, Journal, Projects left as-is (they already had good messaging)
+
+#### 5. Mobile Polish Audit
+- DashboardNav: bottom nav has `pb-20` (80px) padding to prevent content hiding behind mobile nav bar
+- All tab bars use `flex-1` distribution with short labels — no overflow on narrow screens
+- Card layouts use responsive grid classes (`grid-cols-1 md:grid-cols-3`, etc.)
+- No changes needed to existing mobile layout — already functional
+
+#### 6. PWA / App-Like Polish
+- **Created:** `public/manifest.json` — basic PWA manifest (standalone display, theme color, icons)
+- **Updated:** `src/app/layout.tsx` — added:
+  - `manifest: "/manifest.json"` metadata
+  - `appleWebApp` metadata (capable, title, statusBarStyle)
+  - `theme-color` and `mobile-web-app-capable` meta tags
+- Icon SVG already exists at `src/app/icon.svg` — no changes needed
+
+#### 7. Beta Tester Preparation
+- **Settings page:** Added "Private Beta" card with explanatory text and "Give feedback" link
+- **Feedback dialog:** Updated placeholder text to "What felt confusing, broken, useful, or missing?"
+- **Landing page:** Final CTA now shows "Private beta · your feedback shapes what comes next"
+- **Onboarding:** Welcome step shows private beta notice
+
+### Build/Lint Verification
+- `npm run lint` ✅ — 0 errors, 6 warnings (pre-existing, unchanged)
+- `npm run build` ✅ — 27 routes, clean compile
+
+### Files Changed
+
+| File | Change |
+|------|--------|
+| `src/app/layout.tsx` | **Updated** — added manifest, appleWebApp, theme-color, mobile-web-app-capable metadata |
+| `public/manifest.json` | **Created** — basic PWA manifest |
+| `src/app/page.tsx` | **Updated** — improved hero copy, added "More than a habit tracker" section, added beta note to CTA |
+| `src/components/ui/empty-state.tsx` | **Updated** — added `title` prop support |
+| `src/app/onboarding/page.tsx` | **Updated** — added idempotent starter data creation (habits + tasks), updated welcome copy with beta note |
+| `src/app/passions/page.tsx` | **Updated** — added Link import, improved 6 empty states with titles + descriptions + CTAs |
+| `src/app/knowledge/page.tsx` | **Updated** — improved 3 empty states with titles + descriptions + CTAs |
+| `src/app/settings/page.tsx` | **Updated** — added Private Beta card with feedback link |
+| `src/components/feedback/FeedbackDialog.tsx` | **Updated** — improved placeholder text for beta context |
+| `docs/LIFE_PULSE_CURRENT_STATE_AUDIT.md` | **Updated** — Phase 9D summary |
+| `docs/deployment-checklist.md` | **Updated** — Phase 9D QA section |
+| `docs/LIFE_OS_ARCHITECTURE_PLAN.md` | **Updated** — Phase 9D summary |
+
+### Remaining Non-Blockers
+- Knowledge collection-item linking not yet exposed in UI
+- No search/filter for knowledge items
+- No file uploads or embeddings (design intent)
+- No AI coach (never planned)
+- No device/wearable integration (never planned)
+- Production smoke test run requires deployment to Vercel
+
+### Recommended Next Action
 > **Invite 2–5 private beta testers.**
