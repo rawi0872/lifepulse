@@ -32,6 +32,9 @@ git push origin private-beta-v1
 - [ ] `npm run test:prod` passes (requires `.env.test.local` with valid test credentials)
 - [ ] Toast system functional (verify on all dashboard pages)
 - [ ] Custom favicon present (`/icon.svg` — Life Pulse pulse/heartbeat)
+- [ ] Favicon rewrite configured (`/favicon.ico → /icon.svg` in next.config.ts)
+- [ ] Metadata icons: icon, shortcut, and apple-touch-icon all set to `/icon.svg`
+- [ ] Passions form placeholder uses "Passion name" (not bare "Name") for test compatibility
 
 ---
 
@@ -145,6 +148,19 @@ Add both of the following:
 - 26 routes total (25 existing + /weekly-review) ✅
 - 21 app tables (unchanged from Phase 8B — no new tables)
 - Recommended next phase: Phase 10A — Rule-Based Coach Engine
+
+### Phase 9B QA (June 24, 2026)
+- Passions form placeholder uses "Passion name" (not bare "Name") — tests pass ✅
+- Passions add button uses "Save Passion" (not "Add Passion") — matches smoke test selector ✅
+- Asset 404s fixed: /favicon.ico rewrite → /icon.svg in next.config.ts ✅
+- Metadata icons complete: icon, shortcut, and apple-touch-icon all point to /icon.svg ✅
+- Signup/onboarding flow audited — friendly error messages, validation, realm selection all work ✅
+- Mobile navigation polished — 5-tab bottom bar (Today, Goals, Body, Journal, More) + "More" bottom sheet with all routes ✅
+- Feedback system verified — categories, rating, message submit to beta_feedback table ✅
+- Copy polished across empty states, placeholders, buttons ✅
+- Documentation updated for Phase 9B (state audit, deployment checklist, AGENTS.md) ✅
+- Build: 0 errors, 6 pre-existing lint warnings (unchanged) ✅
+- 26 routes (unchanged — no new routes in Phase 9B)
 
 ### Vercel Preview Deployments
 - Vercel preview deployments get random URLs (e.g. `project-xxxxx.vercel.app`). Auth redirects to these URLs will fail if they are not whitelisted in Supabase.
@@ -274,4 +290,4 @@ The smoke test covers: profiles, realms, habits, habit_logs, tasks, xp_events, j
 
 ---
 
-*Life Pulse — Last updated: June 24, 2026 (Phase 7A — Private Beta Polish)*
+*Life Pulse — Last updated: June 24, 2026 (Phase 9B — Beta Readiness Sweep)*

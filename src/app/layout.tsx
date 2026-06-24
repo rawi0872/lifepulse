@@ -18,6 +18,8 @@ export const metadata: Metadata = {
   description: "Your personal operating system",
   icons: {
     icon: "/icon.svg",
+    shortcut: "/icon.svg",
+    apple: "/icon.svg",
   },
 };
 

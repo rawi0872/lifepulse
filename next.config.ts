@@ -47,6 +47,11 @@ const cspProd = `
 `;
 
 const nextConfig: NextConfig = {
+  async rewrites() {
+    return [
+      { source: "/favicon.ico", destination: "/icon.svg" },
+    ];
+  },
   headers: async () => {
     const isDev = process.env.NODE_ENV === "development";
     return [

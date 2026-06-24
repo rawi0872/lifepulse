@@ -1,11 +1,11 @@
 # LIFE PULSE — Current State Audit
 
 **Date:** June 24, 2026
-**Commit:** `4fa6b98` (Phase 0 base; Phases 1–8B applied; Phase 9A Weekly Review on top)
+**Commit:** `4fa6b98` (Phase 0 base; Phases 1–9B applied)
 **Branch:** `master` (no remote configured)
 **Build status:** ✅ Clean (0 lint errors, 0 build errors)
-**Working tree:** Clean — Phase 9A Weekly Review foundation complete
-**Architecture Plan:** `docs/LIFE_OS_ARCHITECTURE_PLAN.md` (updated for Phase 9A)
+**Working tree:** Clean — Phase 9B Beta Readiness Sweep complete
+**Architecture Plan:** `docs/LIFE_OS_ARCHITECTURE_PLAN.md` (updated for Phase 9B)
 
 ---
 
@@ -1501,3 +1501,56 @@ A Weekly Review system that pulls the user's week together across Life Pulse.
 - No new database tables — Weekly Review reads existing tables; reflection saves to journal_entries
 - No external dependencies added
 - No existing routes broken
+
+---
+
+## 25. Phase 9B Completion Note — Beta Readiness Sweep
+
+### What Was Polished
+
+A beta-readiness sweep across the entire app, focusing on reliability, copy consistency, and test compatibility.
+
+#### Smoke Test Fixes
+- **Passions form:** Placeholder changed from `"Name"` to `"Passion name"`, button text changed from `"Add Passion"` to `"Save Passion"` — matches smoke test selectors, eliminates 2 skips
+- **Expected result:** Smoke test should now pass 59/59 (no skips)
+
+#### Asset 404 Fixes
+- **`/favicon.ico` rewrite:** Added rewrite in `next.config.ts` redirecting `/favicon.ico` → `/icon.svg` — eliminates browser 404 for default favicon request
+- **Metadata icons:** Added `shortcut` and `apple` icon entries in layout metadata, all pointing to `/icon.svg`
+
+#### Route Audit
+- All 26 routes verified on desktop sidebar and mobile nav
+- Mobile: 5-tab bottom bar (Today, Goals, Body, Journal) + "More" bottom sheet with all remaining routes
+- No broken or missing navigation links
+
+#### Copy Polish
+- **Devices page:** Verified "Coming Soon" placeholder with manual-first messaging, future providers, planned data types, privacy section
+- **Weekly Review:** Heading uses "Reflection Prompts" for stable test selectors
+- **Passions:** Placeholder and button text aligned with test expectations
+- **Signup:** `friendlyAuthError()` handles 7 error types with user-safe messages
+
+#### Documentation
+- **State audit:** Updated for Phase 9B
+- **Deployment checklist:** Added Phase 9B QA section with favicon rewrite, metadata icons, and passion form fix
+- **AGENTS.md:** Already has dynamic smoke test count, no change needed
+
+### Build/Lint Verification
+- `npm run lint` ✅ — 0 errors, warnings unchanged (6 pre-existing)
+- `npm run build` ✅ — Compiled successfully, 26 routes (unchanged)
+
+### Files Changed
+
+| File | Change |
+|------|--------|
+| `src/app/passions/page.tsx` | **Updated** — placeholder "Name" → "Passion name", button "Add Passion" → "Save Passion" |
+| `src/app/layout.tsx` | **Updated** — added shortcut + apple icon metadata entries pointing to /icon.svg |
+| `next.config.ts` | **Updated** — added rewrite `/favicon.ico` → `/icon.svg` |
+| `docs/LIFE_PULSE_CURRENT_STATE_AUDIT.md` | **Updated** — Phase 9B summary |
+| `docs/deployment-checklist.md` | **Updated** — Phase 9B QA section |
+
+### What Was Intentionally Not Changed
+- No new features added
+- No new database tables
+- No external dependencies added
+- No existing routes modified in behavior
+- No major refactoring

@@ -323,7 +323,7 @@ function PassionContent() {
           <div className="space-y-6">
             <PulseCard title="Add Passion" accent="accent">
               <div className="grid grid-cols-2 gap-3 p-4">
-                <input type="text" placeholder="Name" value={passionForm.name}
+                <input type="text" placeholder="Passion name" value={passionForm.name}
                   onChange={(e) => setPassionForm((f) => ({ ...f, name: e.target.value }))}
                   className="col-span-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none focus:border-[var(--accent)]" />
                 <div className="flex flex-col gap-1">
@@ -353,7 +353,7 @@ function PassionContent() {
                 <div className="col-span-2 flex justify-end">
                   <button onClick={handleSavePassion} disabled={saving || !passionForm.name.trim()}
                     className="rounded-lg bg-[var(--accent)] px-4 py-2 text-xs font-medium text-[var(--text-on-accent)] transition-all hover:opacity-90 disabled:opacity-40">
-                    {saving ? "Saving..." : "Add Passion"}
+                    {saving ? "Saving..." : "Save Passion"}
                   </button>
                 </div>
               </div>
