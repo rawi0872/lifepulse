@@ -24,6 +24,7 @@ import { MomentumGrid } from "@/components/insights/MomentumGrid";
 import { WeeklyConsistencyCard } from "@/components/insights/WeeklyConsistencyCard";
 import { HabitStreaksCard } from "@/components/insights/HabitStreaksCard";
 import { RealmLevelList } from "@/components/insights/RealmLevelList";
+import { BodyProInsights } from "@/components/insights/BodyProInsights";
 
 interface RealmXp {
   name: string;
@@ -479,6 +480,10 @@ export default function InsightsPage() {
             </div>
           </>
         )}
+
+        <div className="mb-6">
+          <BodyProInsights />
+        </div>
 
         {/* Weekly consistency */}
         <h2 className="mb-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">

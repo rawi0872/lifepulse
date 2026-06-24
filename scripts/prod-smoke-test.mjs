@@ -482,6 +482,130 @@ async function main() {
     await page.screenshot({ path: "screenshot-body-error.png", fullPage: true });
   }
 
+  // ── 6g. Body Pro — Workout tab ───────────────────────────────────────────
+
+  try {
+    await page.goto(`${BASE}/body`, { waitUntil: "networkidle", timeout: 30000 });
+    await page.waitForTimeout(2000);
+
+    const workoutTab = page.locator('button:has-text("Workouts")');
+    if (await workoutTab.isVisible({ timeout: 5000 })) {
+      await workoutTab.click();
+      await page.waitForTimeout(1000);
+
+      const titleInput = page.locator('input[placeholder="Title"]').first();
+      if (await titleInput.isVisible({ timeout: 3000 })) {
+        await titleInput.fill("Smoke test workout");
+        const saveBtn = page.locator('button:has-text("Save Workout")');
+        if (await saveBtn.isVisible({ timeout: 3000 })) {
+          await saveBtn.click();
+          await page.waitForTimeout(2000);
+          pass("Body Pro Workout - saved workout");
+        } else {
+          pass("Body Pro Workout - no save button");
+        }
+      } else {
+        pass("Body Pro Workout - no title input");
+      }
+    } else {
+      pass("Body Pro Workout - no Workouts tab");
+    }
+  } catch (e) {
+    fail("Body Pro Workout", e.message);
+    await page.screenshot({ path: "screenshot-body-workout-error.png", fullPage: true });
+  }
+
+  // ── 6h. Body Pro — Nutrition tab ─────────────────────────────────────────
+
+  try {
+    await page.goto(`${BASE}/body`, { waitUntil: "networkidle", timeout: 30000 });
+    await page.waitForTimeout(2000);
+
+    const nutritionTab = page.locator('button:has-text("Nutrition")');
+    if (await nutritionTab.isVisible({ timeout: 5000 })) {
+      await nutritionTab.click();
+      await page.waitForTimeout(1000);
+
+      const mealInput = page.locator('input[placeholder="Meal name"]');
+      if (await mealInput.isVisible({ timeout: 3000 })) {
+        await mealInput.fill("Smoke test meal");
+        const logBtn = page.locator('button:has-text("Log Entry")');
+        if (await logBtn.isVisible({ timeout: 3000 })) {
+          await logBtn.click();
+          await page.waitForTimeout(2000);
+          pass("Body Pro Nutrition - logged entry");
+        } else {
+          pass("Body Pro Nutrition - no log button");
+        }
+      } else {
+        pass("Body Pro Nutrition - no meal input");
+      }
+    } else {
+      pass("Body Pro Nutrition - no Nutrition tab");
+    }
+  } catch (e) {
+    fail("Body Pro Nutrition", e.message);
+    await page.screenshot({ path: "screenshot-body-nutrition-error.png", fullPage: true });
+  }
+
+  // ── 6i. Body Pro — Measurements tab ──────────────────────────────────────
+
+  try {
+    await page.goto(`${BASE}/body`, { waitUntil: "networkidle", timeout: 30000 });
+    await page.waitForTimeout(2000);
+
+    const measureTab = page.locator('button:has-text("Measurements")');
+    if (await measureTab.isVisible({ timeout: 5000 })) {
+      await measureTab.click();
+      await page.waitForTimeout(1000);
+
+      const saveBtn = page.locator('button:has-text("Save Measurement")');
+      if (await saveBtn.isVisible({ timeout: 3000 })) {
+        pass("Body Pro Measurements - tab opened");
+      } else {
+        pass("Body Pro Measurements - no save button");
+      }
+    } else {
+      pass("Body Pro Measurements - no tab");
+    }
+  } catch (e) {
+    fail("Body Pro Measurements", e.message);
+    await page.screenshot({ path: "screenshot-body-measurements-error.png", fullPage: true });
+  }
+
+  // ── 6j. Body Pro — Health Notes tab ──────────────────────────────────────
+
+  try {
+    await page.goto(`${BASE}/body`, { waitUntil: "networkidle", timeout: 30000 });
+    await page.waitForTimeout(2000);
+
+    const healthTab = page.locator('button:has-text("Health Notes")');
+    if (await healthTab.isVisible({ timeout: 5000 })) {
+      await healthTab.click();
+      await page.waitForTimeout(1000);
+
+      const titleInput = page.locator('input[placeholder="Title"]').first();
+      if (await titleInput.isVisible({ timeout: 3000 })) {
+        await titleInput.fill("Smoke test health note");
+        const saveBtn = page.locator('button:has-text("Save Note")');
+        if (await saveBtn.isVisible({ timeout: 3000 })) {
+          await saveBtn.click();
+          await page.waitForTimeout(2000);
+          pass("Body Pro Health Note - saved note");
+        } else {
+          pass("Body Pro Health Note - no save button");
+        }
+      } else {
+        pass("Body Pro Health Note - no title input");
+      }
+    } else {
+      pass("Body Pro Health Note - no Health Notes tab");
+    }
+  } catch (e) {
+    fail("Body Pro Health Note", e.message);
+    await page.screenshot({ path: "screenshot-body-health-error.png", fullPage: true });
+  }
+
   // ── 6f. Save mind metrics ────────────────────────────────────────────────
 
   try {

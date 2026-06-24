@@ -19,4 +19,5 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - Requires `.env.test.local` to be present in project root
 - `.env.test.local` is gitignored via the `.env*` rule (with `.env.example` exception)
 - `playwright-report/`, `test-results/`, and `screenshot-*.png` are gitignored
+- Smoke test count is now dynamic (previously 44, now with Body Pro tests)
 <!-- END:project-config -->

@@ -118,6 +118,8 @@ function TodayContent() {
   const [bodyEnergyToday, setBodyEnergyToday] = useState<number | null>(null);
   const [mindLoggedToday, setMindLoggedToday] = useState(false);
   const [mindMoodToday, setMindMoodToday] = useState<number | null>(null);
+  const [hasWorkoutThisWeek, setHasWorkoutThisWeek] = useState(true);
+  const [hasNutritionToday, setHasNutritionToday] = useState(true);
   const [goalPreviewGoals, setGoalPreviewGoals] = useState<{ id: string; status: string; target_date: string | null }[]>([]);
   const [goalPreviewMilestones, setGoalPreviewMilestones] = useState<{ goal_id: string; completed_at: string | null }[]>([]);
 
@@ -378,7 +380,7 @@ function TodayContent() {
           setFinanceHasTx((incomeRes.data?.length ?? 0) + (expenseRes.data?.length ?? 0) > 0);
         }
 
-        const [bodyRes, mindRes] = await Promise.all([
+        const [bodyRes, mindRes, workoutRes, nutritionRes] = await Promise.all([
           supabase
             .from("body_metrics")
             .select("energy")
@@ -391,6 +393,16 @@ function TodayContent() {
             .eq("user_id", user.id)
             .eq("entry_date", today)
             .maybeSingle(),
+          supabase
+            .from("workouts")
+            .select("id")
+            .eq("user_id", user.id)
+            .gte("workout_date", weekStart),
+          supabase
+            .from("nutrition_logs")
+            .select("id")
+            .eq("user_id", user.id)
+            .eq("log_date", today),
         ]);
 
         if (!cancelled) {
@@ -402,6 +414,8 @@ function TodayContent() {
             setMindLoggedToday(true);
             setMindMoodToday(mindRes.data.mood);
           }
+          setHasWorkoutThisWeek((workoutRes.data ?? []).length > 0);
+          setHasNutritionToday((nutritionRes.data ?? []).length > 0);
         }
 
         const { data: goalData } = await supabase
@@ -704,6 +718,8 @@ function TodayContent() {
         }
         hasJournalToday={hasJournal}
         hasContent={hasContent}
+        hasWorkoutThisWeek={hasWorkoutThisWeek}
+        hasNutritionToday={hasNutritionToday}
       />
 
       {/* Next action */}

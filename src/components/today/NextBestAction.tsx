@@ -10,10 +10,12 @@ interface NextBestActionProps {
   hasGoalWithoutLinks: boolean;
   hasJournalToday: boolean;
   hasContent: boolean;
+  hasWorkoutThisWeek: boolean;
+  hasNutritionToday: boolean;
 }
 
 interface Action {
-  type: "body" | "mind" | "task" | "goal" | "journal";
+  type: "body" | "mind" | "task" | "goal" | "journal" | "workout" | "nutrition";
   text: string;
   href: string;
 }
@@ -61,10 +63,36 @@ function getActions(props: NextBestActionProps): Action[] {
     });
   }
 
+  if (!props.hasWorkoutThisWeek) {
+    actions.push({
+      type: "workout",
+      text: "Log a workout this week.",
+      href: "/body",
+    });
+  }
+
+  if (!props.hasNutritionToday) {
+    actions.push({
+      type: "nutrition",
+      text: "Log today\u2019s nutrition and water.",
+      href: "/body",
+    });
+  }
+
   return actions.slice(0, 2);
 }
 
 const actionIcons: Record<string, React.ReactNode> = {
+  workout: (
+    <svg className="h-3.5 w-3.5 shrink-0 text-[var(--success)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  ),
+  nutrition: (
+    <svg className="h-3.5 w-3.5 shrink-0 text-[var(--success)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  ),
   body: (
     <svg className="h-3.5 w-3.5 shrink-0 text-[var(--success)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z" />
