@@ -1,7 +1,7 @@
 # Life Pulse — Life OS Architecture Plan
 
 **Date:** June 24, 2026
-**Status:** Phase 7A — Private Beta Polish and Feedback System Complete
+**Status:** Phase 8B — Passions/Hobbies Foundation Complete
 **Audience:** Developers implementing Phase 6+ features
 
 ---
@@ -33,28 +33,28 @@
 | `/privacy` | `privacy/page.tsx` | 182 | Legal | Public | No |
 | `/terms` | `terms/page.tsx` | 170 | Legal | Public | No |
 | `/devices` | `devices/page.tsx` | ~80 | Device Pulse placeholder | Intelligence | No — placeholder, no real integration |
+| `/passions` | `passions/page.tsx` | ~620 | Passions & Hobbies tracking | Life Domains | Phase 8B — 4 tabs (Overview, My Passions, Sessions, Milestones), inline CRUD |
 
 ### 1.2 Current Navigation Structure (After Phase 7A)
 
-**Desktop sidebar (unchanged):**
+**Desktop sidebar (Phase 8B):**
 ```
   Pulse           → Today's Pulse
   Growth          → Goals, Habits, Tasks, Projects
-  Life Domains    → Body, Mind, Money
+  Life Domains    → Body, Mind, Money, Passions
   Intelligence    → Journal, Insights, Devices
   System          → Settings
   Footer          → FeedbackButton
 ```
 
-**Mobile bottom nav (Phase 7A refined):**
+**Mobile bottom nav (Phase 8B):**
 - 5 fixed tabs: Today, Goals, Body, Journal, More
-- "More" opens a bottom sheet with: Mind, Habits, Tasks, Projects, Money, Insights, Devices, Settings
+- "More" opens a bottom sheet with: Mind, Passions, Habits, Tasks, Projects, Money, Insights, Devices, Settings
 - Feedback accessible via sidebar expansion or direct link
 
-**Changes from Phase 6A:**
-- Mobile nav reduced from 8+ items to 5 fixed tabs + "More" overflow bottom sheet ✅
-- FeedbackButton added to desktop sidebar footer ✅
-- 12 nav items + 1 footer across 5 groups (unchanged) ✅
+**Changes from Phase 7A:**
+- Passions added to Life Domains (desktop sidebar) ✅
+- Passions added to "More" bottom sheet (mobile nav) ✅
 
 ### 1.3 Current Data Ownership
 
@@ -77,6 +77,7 @@
 | `/mind` | Mind Pulse | High | Mind realm exists + journal, but no dedicated tracking | ✅ Phase 4B |
 | `/goals` | Goal Pulse | Medium | Projects serve as proxies | ✅ Phase 5A+5B |
 | `/devices` | Device Pulse | Low | Nothing | ✅ Phase 6A (placeholder) |
+| `/passions` | Passions & Hobbies | Medium | Nothing | ✅ Phase 8B |
 | `/coach` | AI Coach | Medium | Nothing | ❌ |
 | `/weekly-review` | Weekly Review | Medium | Nothing | ❌ |
 
@@ -996,3 +997,57 @@ unique(user_id, entry_date)
 - No `.env.test.local` or credentials committed
 - No external dependencies added
 - No React Server Components, no data caching layer
+
+---
+
+## 17. Phase 8B Completion Note — Passions/Hobbies Foundation
+
+Passions & Hobbies is a new Life Domain for tracking personal interests, creative hobbies, skill development, practice sessions, and milestones.
+
+### What Was Built
+
+#### Database (Migration 00013)
+- **`passions`** table: id, user_id, name, category, description, skill_level, target_hours_per_week, status, created_at, updated_at
+- **`passion_sessions`** table: id, passion_id (FK → passions, on delete cascade), user_id, session_date, duration_minutes, focus, notes, enjoyment, difficulty, created_at
+- **`passion_milestones`** table: id, passion_id (FK → passions, on delete cascade), user_id, title, description, target_date, completed_at, created_at
+- RLS on all tables (authenticated users CRUD own rows only)
+- Indexes on user_id + session_date and user_id + completed_at
+- `updated_at` trigger on passions (reuses existing `public.handle_updated_at()`)
+
+#### Route & UI
+- **`/passions`** — New route (620 lines), 4 tabs: Overview, My Passions, Sessions, Milestones
+- Each tab has inline form + list + CRUD (create, edit, delete)
+- Uses existing UI patterns: PulseCard, MetricCard, EmptyState, toast
+- Passion categories (8): Music, Fitness/Sport, Art, Coding, Reading, Language, Content Creation, Other
+- Skill levels (4): Beginner, Intermediate, Advanced, Expert
+
+#### Today Integration
+- **NextBestAction** — Two new rules: "Add a passion or hobby" (if no active passions) and "Log a practice session this week" (if active passions but no session this week)
+- **Today page sidebar** — Passions link with star icon, shows "View →"
+
+#### Insights Integration
+- **PassionsInsights** component — Shows active passions count, weekly sessions, weekly minutes, completed milestones
+- Placed below BodyProInsights on the insights page
+
+#### Navigation
+- **Desktop sidebar:** Passions added to Life Domains (after Money)
+- **Mobile nav:** Passions added to "More" bottom sheet (via slice expansion)
+
+### Build Verification
+- `npm run lint` ✅ — 0 errors, warnings unchanged (pre-existing)
+- `npm run build` ✅ — Compiled successfully, 25 routes (was 24, +/passions)
+- `npm run test:prod` — Tests passions page load, My Passions tab (save), Sessions tab (log)
+
+### Files Changed
+- **Created (3):** `00013_passions_hobbies.sql`, `passions/page.tsx`, `lib/passions.ts`
+- **Modified (4):** `DashboardNav.tsx`, `NextBestAction.tsx`, `today/page.tsx`, `insights/page.tsx`
+- **Components created (2):** `PassionsInsights.tsx`
+- **Updated (1):** `scripts/prod-smoke-test.mjs` (+3 test sections: page load, add passion, log session)
+- **Documentation (4):** Audit, Architecture Plan, Deployment Checklist, AGENTS.md
+
+### What Was Intentionally Not Changed
+- No AI coach integration
+- No device/wearable integration
+- No weekly review changes
+- No existing routes broken
+- No external dependencies added

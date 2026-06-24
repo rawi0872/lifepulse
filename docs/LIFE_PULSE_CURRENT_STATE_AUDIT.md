@@ -1,19 +1,19 @@
 # LIFE PULSE — Current State Audit
 
 **Date:** June 24, 2026
-**Commit:** `4fa6b98` (Phase 0 base; Phase 1 + 1.5 + 2A + 2B + 3A + 3B + 4A + 4B + 4C + 4D + 5A + 5B + 5C + 6A + 7A applied on top)
+**Commit:** `4fa6b98` (Phase 0 base; Phases 1–7A applied; Phase 8B Passions/Hobbies on top)
 **Branch:** `master` (no remote configured)
 **Build status:** ✅ Clean (0 lint errors, 0 build errors)
-**Working tree:** Clean — Phase 6A Device Pulse placeholder complete
-**Architecture Plan:** `docs/LIFE_OS_ARCHITECTURE_PLAN.md` (updated for Phase 7A)
+**Working tree:** Clean — Phase 8B Passions & Hobbies foundation complete
+**Architecture Plan:** `docs/LIFE_OS_ARCHITECTURE_PLAN.md` (updated for Phase 8B)
 
 ---
 
 ## 1. Executive Summary
 
-Life Pulse is a dark-themed, monorepo Next.js 16 web application that functions as a personal dashboard operating system. It provides authenticated users with 13 core tools: Today (command center), Habits, Tasks, Projects, Finance, Journal, Insights (analytics), Settings, Body Pulse, Mind Pulse, Goals, Devices, and an in-app feedback system. It uses Supabase for all backend needs — auth, database, RLS, and row-level security.
+Life Pulse is a dark-themed, monorepo Next.js 16 web application that functions as a personal dashboard operating system. It provides authenticated users with 14 core tools: Today (command center), Habits, Tasks, Projects, Finance, Journal, Insights (analytics), Settings, Body Pulse, Mind Pulse, Goals, Devices, Passions & Hobbies, and an in-app feedback system. It uses Supabase for all backend needs — auth, database, RLS, and row-level security.
 
-**Production readiness:** The app is feature-complete for a private beta. Build and lint pass clean. All 24 routes render. Auth flow (signup → onboarding → dashboard) is wired end-to-end. RLS is enabled on every table with FK ownership validation. The deployment checklist has been written. After GitHub push and Vercel import, the app can be deployed in minutes.
+**Production readiness:** The app is feature-complete for a private beta. Build and lint pass clean. All 25 routes render. Auth flow (signup → onboarding → dashboard) is wired end-to-end. RLS is enabled on every table with FK ownership validation. The deployment checklist has been written. After GitHub push and Vercel import, the app can be deployed in minutes.
 
 **Strongest parts:** Auth and onboarding flow, RLS security model (FK ownership helpers in 00006 migration, finance ownership in 00007), Insight radar chart, Today dashboard aggregating all data types, Finance module with budgets/trends/breakdowns, XP/level progression system with per-realm titles, Body/Mind Pulse manual entry forms with body_metrics and mind_metrics schema.
 
@@ -35,14 +35,14 @@ Life Pulse is a dark-themed, monorepo Next.js 16 web application that functions 
 - **ESLint:** ^9 with `eslint-config-next` 16.2.4
 
 ### Routing Model
-- App Router with 24 routes under `src/app/`
+- App Router with 25 routes under `src/app/`
 - All routes are server-rendered by default (dynamic), except static routes (/, /privacy, /terms) which are prerendered as static content
 - Proxy middleware (`src/proxy.ts`) handles auth gating for 13 protected routes and 2 auth routes
 
 ### Folder Structure
 ```
 src/
-├── app/                  # 24 routes + layout + globals.css
+├── app/                  # 25 routes + layout + globals.css
 │   ├── auth/callback/    # OAuth code exchange
 │   ├── finance/          # 641 lines — significantly reduced (was 867)
 │   ├── forgot-password/
@@ -119,7 +119,7 @@ src/
 
 ### Deployment Readiness
 - Build and lint pass clean
-- `next build` produces 26 pages (24 routes + `/_not-found` + proxy + layout)
+- `next build` produces 27 pages (25 routes + `/_not-found` + proxy + layout)
 - 1 static route (/) pre-rendered; all others dynamic
 - No git remote configured (branch is `master`, not `main`)
 - Deployment checklist written with sections 0–8
@@ -151,13 +151,14 @@ src/
 | `/privacy` | `src/app/privacy/page.tsx` (182 lines) | Privacy policy | Working (static) | `getSupportEmail()` from config | Reads from `NEXT_PUBLIC_SUPPORT_EMAIL` env var via `src/lib/config.ts`. Falls back to `support@lifepulse.app`. Must be set in Vercel before beta. |
 | `/terms` | `src/app/terms/page.tsx` (170 lines) | Terms of service | Working (static) | `getSupportEmail()` from config | Reads from `NEXT_PUBLIC_SUPPORT_EMAIL` env var via `src/lib/config.ts`. Falls back to `support@lifepulse.app`. Must be set in Vercel before beta. |
 | `/devices` | `src/app/devices/page.tsx` (~80 lines) | Device Pulse placeholder — provider list, future device sync hub | Working (placeholder) | None | Phase 6A — placeholder route with connected/available/future provider cards. No real device integration, no schema changes. |
+| `/passions` | `src/app/passions/page.tsx` (~620 lines) | Passions & Hobbies — 4 tabs (Overview, My Passions, Sessions, Milestones) | Working | `passions`, `passion_sessions`, `passion_milestones` | Phase 8B — inline CRUD per tab. Categories (8), skill levels (4). Uses PulseCard, MetricCard, EmptyState, toast. |
 
 ### Route Status Summary
-- **Working:** 23/24 routes
-- **Partial:** 1/24 (body/mind show empty states without habits/tasks/journal)
-- **Risky:** 0/24
-- **Placeholder:** 1/24 (/devices)
-- **Missing:** 0/24
+- **Working:** 25/26 routes
+- **Partial:** 1/26 (body/mind show empty states without habits/tasks/journal)
+- **Risky:** 0/26
+- **Placeholder:** 1/26 (/devices)
+- **Missing:** 0/26
 - **Auto-generated (not in route list):** `/_not-found` (Next.js default, excluded from audit count)
 
 ---
@@ -185,6 +186,9 @@ src/
 | `goals` | Long-term outcome tracking (title, description, why, status, priority, target_date, realm) | ✅ | ✅ (realm_id via trigger) | Phase 5A — standalone, no project/task/habit linking yet. Status: active/paused/completed/archived. |
 | `goal_milestones` | Milestones per goal (title, due_date, completed_at, sort_order) | ✅ | N/A (FK check via user_id) | Phase 5A — cascading delete with parent goal. |
 | `beta_feedback` | User-submitted beta feedback (rating 1-5, category, message, browser info) | ✅ | N/A (insert only) | Phase 7A — user_id uses `on delete set null` so feedback survives user deletion. Insert-only policy for authenticated users. |
+| `passions` | Hobbies & creative interests per user | ✅ | N/A | Phase 8B — status: active/inactive. Category from fixed list. `updated_at` trigger. |
+| `passion_sessions` | Practice/log sessions per passion | ✅ | ✅ (passion_id → passions) | Phase 8B — on delete cascade. Duration in minutes, enjoyment/difficulty 1-5. |
+| `passion_milestones` | Milestones per passion | ✅ | ✅ (passion_id → passions) | Phase 8B — on delete cascade. Optional completed_at. |
 
 ### Key Relationships
 - All tables reference `auth.users(id)` via `user_id` with `on delete cascade`
@@ -1332,13 +1336,13 @@ Prepare Life Pulse for private beta by adding an in-app feedback system, improvi
 ### ADRs Updated
 - **ADR-007**: Feedback System — Insert-only RLS for authenticated users, `on delete set null` for user_id so feedback survives user deletion
 
-### Current Page Line Counts at Phase 7A Close
+### Current Page Line Counts at Phase 8B Close
 
 | Page | Lines |
 |------|-------|
-| Today | 838 |
+| Today | 973 |
 | Onboarding | 526 |
-| Insights | 524 |
+| Insights | 529 |
 | Settings | 500 |
 | Habits | 542 |
 | Tasks | 522 |
@@ -1347,6 +1351,7 @@ Prepare Life Pulse for private beta by adding an in-app feedback system, improvi
 | Login | 135 |
 | Signup | 242 |
 | Forgot-password | 101 |
+| **Passions** | **~620** |
 
 ### Remaining Risks
 1. Finance ILS currency still hardcoded (pre-existing)
@@ -1354,3 +1359,76 @@ Prepare Life Pulse for private beta by adding an in-app feedback system, improvi
 3. Auth pages still use inline error states for form validation (acceptable)
 4. All pages still `"use client"` (pre-existing)
 5. No data caching strategy (pre-existing)
+
+---
+
+## 23. Phase 8B Completion Note — Passions/Hobbies Foundation
+
+### What Was Built
+
+Passions & Hobbies is a new Life Domain for tracking personal interests, creative hobbies, skill development, practice sessions, and milestones.
+
+#### Database (Migration \`00013_passions_hobbies.sql\`)
+- **\`passions\`** — Name, category (8 fixed), description, skill level (4 levels), target hours/week, status, timestamps
+- **\`passion_sessions\`** — FK → passions (cascade delete), date, duration_minutes, focus, notes, enjoyment (1-5), difficulty (1-5)
+- **\`passion_milestones\`** — FK → passions (cascade delete), title, description, target_date, completed_at
+- RLS on all 3 tables (authenticated users CRUD own rows)
+- Indexes on user_id + session_date (sessions) and user_id (milestones)
+- \`updated_at\` trigger on passions (reuses existing \`public.handle_updated_at()\`)
+
+#### Route & UI
+- **\`/passions\`** (~620 lines) — 4 tabs: Overview, My Passions, Sessions, Milestones
+- Each tab has inline form + list + CRUD (create, edit, delete)
+- Uses PulseCard, MetricCard, EmptyState, toast (no new UI components)
+- 8 categories: Music, Fitness/Sport, Art, Coding, Reading, Language, Content Creation, Other
+- 4 skill levels: Beginner, Intermediate, Advanced, Expert
+
+#### Today Integration
+- **NextBestAction** — Two new rules at priority below Body/Mind/tasks/goals/journal:
+  1. "Add a passion or hobby" → \`/passions\` (if no active passions)
+  2. "Log a practice session this week" → \`/passions\` (if active passions but no session this week)
+- **Today page sidebar** — Passions link with star icon after Goals link
+- Fetches passions + sessions data during Today page load (parallel with workout/nutrition queries)
+
+#### Insights Integration
+- **PassionsInsights** component — Shows active passions count, weekly sessions/minutes, completed milestones
+- Placed below BodyProInsights on insights page
+- Follows same pattern: self-contained \`useEffect\` data fetch, 3-column metric layout
+
+#### Navigation
+- **Desktop sidebar:** Passions added to Life Domains (after Money)
+- **Mobile "More" bottom sheet:** Passions added via slice expansion (index 36 shift from Phase 7A value)
+
+#### Production Smoke Test
+- 3 new test sections (6o: page load, 6p: My Passions tab + save, 6q: Sessions tab + log)
+- Screenshots on failure for each section
+
+### Build/Lint Verification
+- \`npm run lint\` ✅ — 0 errors, warnings unchanged (6 pre-existing)
+- \`npm run build\` ✅ — Compiled successfully, 25 routes (was 24, +/passions)
+- \`npm run test:prod\` — Tests passions page load, add passion, log session
+
+### Files Changed
+
+| File | Change |
+|------|--------|
+| \`supabase/migrations/00013_passions_hobbies.sql\` | **Created** — 3 tables + RLS + indexes + triggers |
+| \`src/app/passions/page.tsx\` | **Created** — ~620 lines, 4 tabs, all CRUD inline |
+| \`src/lib/passions.ts\` | **Created** — types, helpers, constants |
+| \`src/components/insights/PassionsInsights.tsx\` | **Created** — insights card (active, sessions, min, milestones) |
+| \`src/components/DashboardNav.tsx\` | **Updated** — Passions link in Life Domains, mobile "More" sheet |
+| \`src/components/today/NextBestAction.tsx\` | **Updated** — 2 passion rules (add hobby, log session) |
+| \`src/app/today/page.tsx\` | **Updated** — passions data fetch, pass props, sidebar link |
+| \`src/app/insights/page.tsx\` | **Updated** — import + render PassionsInsights |
+| \`scripts/prod-smoke-test.mjs\` | **Updated** — +3 passion test sections |
+| \`docs/LIFE_PULSE_CURRENT_STATE_AUDIT.md\` | **Updated** — Phase 8B summary |
+| \`docs/LIFE_OS_ARCHITECTURE_PLAN.md\` | **Updated** — Phase 8B completion note |
+| \`docs/deployment-checklist.md\` | **Updated** — Phase 8B QA |
+| \`AGENTS.md\` | **Updated** — smoke test description |
+
+### What Was Intentionally Not Changed
+- No AI coach integration
+- No device/wearable integration
+- No weekly review changes
+- No existing routes broken or modified in behavior
+- No external dependencies added

@@ -25,6 +25,7 @@ import { WeeklyConsistencyCard } from "@/components/insights/WeeklyConsistencyCa
 import { HabitStreaksCard } from "@/components/insights/HabitStreaksCard";
 import { RealmLevelList } from "@/components/insights/RealmLevelList";
 import { BodyProInsights } from "@/components/insights/BodyProInsights";
+import { PassionsInsights } from "@/components/insights/PassionsInsights";
 
 interface RealmXp {
   name: string;
@@ -483,6 +484,10 @@ export default function InsightsPage() {
 
         <div className="mb-6">
           <BodyProInsights />
+        </div>
+
+        <div className="mb-6">
+          <PassionsInsights />
         </div>
 
         {/* Weekly consistency */}

@@ -28,7 +28,7 @@ git push origin private-beta-v1
 - [ ] `.env.example` IS tracked — run `git ls-files .env.example` to confirm
 - [ ] No real secrets in any committed file
 - [ ] `npm run lint` passes (0 errors)
-- [ ] `npm run build` passes (24 pages compiled)
+- [ ] `npm run build` passes (25 pages compiled)
 - [ ] `npm run test:prod` passes (requires `.env.test.local` with valid test credentials)
 - [ ] Toast system functional (verify on all dashboard pages)
 - [ ] Custom favicon present (`/icon.svg` — Life Pulse pulse/heartbeat)
@@ -121,6 +121,17 @@ Add both of the following:
 - 18 app tables total (17 existing + beta_feedback)
 - 24 routes total (unchanged — no new routes in Phase 7A)
 
+### Phase 8B QA (June 24, 2026)
+- Passions migration (00013) creates 3 tables (passions, passion_sessions, passion_milestones) with RLS + indexes + updated_at trigger ✅
+- /passions route renders with 4 tabs (Overview, My Passions, Sessions, Milestones) ✅
+- All passions CRUD operations work (create, edit, delete passions; log sessions; add/complete milestones) ✅
+- Today NextBestAction shows "Add a passion" (no active passions) or "Log a practice session this week" (no session this week) ✅
+- Passions link added to desktop sidebar (Life Domains) and mobile "More" bottom sheet ✅
+- PassionsInsights card renders on /insights, shows active passions, weekly sessions/minutes, completed milestones ✅
+- Production smoke test extended with passions tests (page load, add passion, log session) ✅
+- 25 routes total (24 existing + /passions) ✅
+- 21 app tables total (18 existing + passions, passion_sessions, passion_milestones)
+
 ### Vercel Preview Deployments
 - Vercel preview deployments get random URLs (e.g. `project-xxxxx.vercel.app`). Auth redirects to these URLs will fail if they are not whitelisted in Supabase.
 - **Recommendation:** Disable auth testing on preview deployments, or add `https://*-username.vercel.app/auth/callback` as a wildcard redirect URL (Supabase supports `*` wildcards in redirect URLs). Test password reset and email confirmation only on the production domain.
@@ -192,7 +203,7 @@ After deploying, test every route and flow:
 ## 5. RLS Production Smoke Test
 
 **Before inviting testers**, run the RLS smoke test against the **production** Supabase project.
-The smoke test covers: profiles, realms, habits, habit_logs, tasks, xp_events, journal_entries, projects, finance_accounts, finance_categories, finance_transactions, finance_budgets, body_metrics, mind_metrics, goals, goal_milestones, goal_links, beta_feedback (18 tables total).
+The smoke test covers: profiles, realms, habits, habit_logs, tasks, xp_events, journal_entries, projects, finance_accounts, finance_categories, finance_transactions, finance_budgets, body_metrics, mind_metrics, goals, goal_milestones, goal_links, beta_feedback, passions, passion_sessions, passion_milestones (21 tables total).
 
 1. Create two test accounts in the production Supabase Auth (use email/password)
 2. Set these environment variables locally:
@@ -243,7 +254,7 @@ The smoke test covers: profiles, realms, habits, habit_logs, tasks, xp_events, j
 - [ ] `npm run build` passes locally (current state ✅)
 - [ ] `npm run lint` passes locally (current state ✅)
 - [ ] `npm run test:prod` passes against production (requires `.env.test.local`)
-- [ ] Build output includes all 24 routes: /, /auth/callback, /body, /devices, /finance, /forgot-password, /goals, /habits, /icon.svg, /insights, /journal, /login, /mind, /onboarding, /privacy, /projects, /reset-password, /settings, /signup, /tasks, /terms, /today
+- [ ] Build output includes all 25 routes: /, /auth/callback, /body, /devices, /finance, /forgot-password, /goals, /habits, /icon.svg, /insights, /journal, /login, /mind, /onboarding, /passions, /privacy, /projects, /reset-password, /settings, /signup, /tasks, /terms, /today
 
 ---
 

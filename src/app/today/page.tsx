@@ -120,6 +120,8 @@ function TodayContent() {
   const [mindMoodToday, setMindMoodToday] = useState<number | null>(null);
   const [hasWorkoutThisWeek, setHasWorkoutThisWeek] = useState(true);
   const [hasNutritionToday, setHasNutritionToday] = useState(true);
+  const [hasActivePassions, setHasActivePassions] = useState(true);
+  const [hasPassionSessionThisWeek, setHasPassionSessionThisWeek] = useState(true);
   const [goalPreviewGoals, setGoalPreviewGoals] = useState<{ id: string; status: string; target_date: string | null }[]>([]);
   const [goalPreviewMilestones, setGoalPreviewMilestones] = useState<{ goal_id: string; completed_at: string | null }[]>([]);
 
@@ -380,7 +382,7 @@ function TodayContent() {
           setFinanceHasTx((incomeRes.data?.length ?? 0) + (expenseRes.data?.length ?? 0) > 0);
         }
 
-        const [bodyRes, mindRes, workoutRes, nutritionRes] = await Promise.all([
+        const [bodyRes, mindRes, workoutRes, nutritionRes, passionsRes, sessionsRes] = await Promise.all([
           supabase
             .from("body_metrics")
             .select("energy")
@@ -403,6 +405,16 @@ function TodayContent() {
             .select("id")
             .eq("user_id", user.id)
             .eq("log_date", today),
+          supabase
+            .from("passions")
+            .select("id")
+            .eq("user_id", user.id)
+            .eq("status", "active"),
+          supabase
+            .from("passion_sessions")
+            .select("id")
+            .eq("user_id", user.id)
+            .gte("session_date", weekStart),
         ]);
 
         if (!cancelled) {
@@ -416,6 +428,8 @@ function TodayContent() {
           }
           setHasWorkoutThisWeek((workoutRes.data ?? []).length > 0);
           setHasNutritionToday((nutritionRes.data ?? []).length > 0);
+          setHasActivePassions((passionsRes.data ?? []).length > 0);
+          setHasPassionSessionThisWeek((sessionsRes.data ?? []).length > 0);
         }
 
         const { data: goalData } = await supabase
@@ -720,6 +734,8 @@ function TodayContent() {
         hasContent={hasContent}
         hasWorkoutThisWeek={hasWorkoutThisWeek}
         hasNutritionToday={hasNutritionToday}
+        hasActivePassions={hasActivePassions}
+        hasPassionSessionThisWeek={hasPassionSessionThisWeek}
       />
 
       {/* Next action */}
@@ -916,6 +932,17 @@ function TodayContent() {
                 );
               })()}
             </span>
+          </Link>
+
+          <Link
+            href="/passions"
+            className="flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2.5 text-xs font-medium text-[var(--text)] transition-colors hover:bg-[var(--surface)]"
+          >
+            <svg className="h-3.5 w-3.5 shrink-0 text-[var(--accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.385a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
+            </svg>
+            Passions
+            <span className="ml-auto text-[10px] text-[var(--text-muted)]">View &rarr;</span>
           </Link>
 
           <SectionHeader label="Evening Reflection" accent="warning" />

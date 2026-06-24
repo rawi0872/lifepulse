@@ -12,10 +12,12 @@ interface NextBestActionProps {
   hasContent: boolean;
   hasWorkoutThisWeek: boolean;
   hasNutritionToday: boolean;
+  hasActivePassions: boolean;
+  hasPassionSessionThisWeek: boolean;
 }
 
 interface Action {
-  type: "body" | "mind" | "task" | "goal" | "journal" | "workout" | "nutrition";
+  type: "body" | "mind" | "task" | "goal" | "journal" | "passion" | "passion_session" | "workout" | "nutrition";
   text: string;
   href: string;
 }
@@ -63,6 +65,20 @@ function getActions(props: NextBestActionProps): Action[] {
     });
   }
 
+  if (!props.hasActivePassions) {
+    actions.push({
+      type: "passion",
+      text: "Add a passion or hobby.",
+      href: "/passions",
+    });
+  } else if (!props.hasPassionSessionThisWeek) {
+    actions.push({
+      type: "passion_session",
+      text: "Log a practice session this week.",
+      href: "/passions",
+    });
+  }
+
   if (!props.hasWorkoutThisWeek) {
     actions.push({
       type: "workout",
@@ -83,6 +99,16 @@ function getActions(props: NextBestActionProps): Action[] {
 }
 
 const actionIcons: Record<string, React.ReactNode> = {
+  passion: (
+    <svg className="h-3.5 w-3.5 shrink-0 text-[var(--accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.385a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
+    </svg>
+  ),
+  passion_session: (
+    <svg className="h-3.5 w-3.5 shrink-0 text-[var(--accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  ),
   workout: (
     <svg className="h-3.5 w-3.5 shrink-0 text-[var(--success)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />

@@ -15,9 +15,9 @@ This version has breaking changes — APIs, conventions, and file structure may 
 ## Production Smoke Test (`npm run test:prod`)
 - **Credentials** must live only in `.env.test.local` — never commit this file
 - Uses the dedicated beta test account (`lifebulse@gmail.com`)
-- Tests: public pages, auth protection, login, core app pages (12), save flows (14), feedback dialog, Next Best Action card, finance seeds, logout
+- Tests: public pages, auth protection, login, core app pages (12), save flows (14), feedback dialog, Next Best Action card, finance seeds, passions CRUD, logout
 - Requires `.env.test.local` to be present in project root
 - `.env.test.local` is gitignored via the `.env*` rule (with `.env.example` exception)
 - `playwright-report/`, `test-results/`, and `screenshot-*.png` are gitignored
-- Smoke test count is now dynamic (previously 44, now with Body Pro tests)
+- Smoke test count is now dynamic (previously 44, now with Body Pro + passions tests)
 <!-- END:project-config -->

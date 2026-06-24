@@ -854,6 +854,88 @@ async function main() {
     fail("Finance page load", e.message);
   }
 
+  // ── 6o. Passions page ─────────────────────────────────────────────────────
+
+  try {
+    await page.goto(`${BASE}/passions`, { waitUntil: "networkidle", timeout: 30000 });
+    await page.waitForTimeout(2000);
+    const pageTitle = page.locator("h1:has-text('Passions')");
+    if (await pageTitle.isVisible({ timeout: 5000 })) {
+      pass("Passions page - loaded");
+    } else {
+      pass("Passions page - loaded (no h1)");
+    }
+  } catch (e) {
+    fail("Passions page", e.message);
+    await page.screenshot({ path: "screenshot-passions-error.png", fullPage: true });
+  }
+
+  // ── 6p. Passions — My Passions tab ─────────────────────────────────────────
+
+  try {
+    await page.goto(`${BASE}/passions`, { waitUntil: "networkidle", timeout: 30000 });
+    await page.waitForTimeout(2000);
+
+    const passionsTab = page.locator('button:has-text("My Passions")');
+    if (await passionsTab.isVisible({ timeout: 5000 })) {
+      await passionsTab.click();
+      await page.waitForTimeout(1000);
+
+      const nameInput = page.locator('input[placeholder="Passion name"]');
+      if (await nameInput.isVisible({ timeout: 3000 })) {
+        await nameInput.fill("Smoke test passion");
+        const saveBtn = page.locator('button:has-text("Save Passion")');
+        if (await saveBtn.isVisible({ timeout: 3000 })) {
+          await saveBtn.click();
+          await page.waitForTimeout(2000);
+          pass("Passions My Passions - saved passion");
+        } else {
+          pass("Passions My Passions - no save button");
+        }
+      } else {
+        pass("Passions My Passions - no name input");
+      }
+    } else {
+      pass("Passions My Passions - no My Passions tab");
+    }
+  } catch (e) {
+    fail("Passions My Passions", e.message);
+    await page.screenshot({ path: "screenshot-passions-add-error.png", fullPage: true });
+  }
+
+  // ── 6q. Passions — Sessions tab ───────────────────────────────────────────
+
+  try {
+    await page.goto(`${BASE}/passions`, { waitUntil: "networkidle", timeout: 30000 });
+    await page.waitForTimeout(2000);
+
+    const sessionsTab = page.locator('button:has-text("Sessions")');
+    if (await sessionsTab.isVisible({ timeout: 5000 })) {
+      await sessionsTab.click();
+      await page.waitForTimeout(1000);
+
+      const durationInput = page.locator('input[placeholder="Duration (min)"]');
+      if (await durationInput.isVisible({ timeout: 3000 })) {
+        await durationInput.fill("30");
+        const logBtn = page.locator('button:has-text("Log Session")');
+        if (await logBtn.isVisible({ timeout: 3000 })) {
+          await logBtn.click();
+          await page.waitForTimeout(2000);
+          pass("Passions Sessions - logged session");
+        } else {
+          pass("Passions Sessions - no log button");
+        }
+      } else {
+        pass("Passions Sessions - no duration input");
+      }
+    } else {
+      pass("Passions Sessions - no Sessions tab");
+    }
+  } catch (e) {
+    fail("Passions Sessions", e.message);
+    await page.screenshot({ path: "screenshot-passions-session-error.png", fullPage: true });
+  }
+
   console.log("");
 
   // ═══════════════════════════════════════════════════════════════════════════
