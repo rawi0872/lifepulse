@@ -86,13 +86,18 @@ async function pageLoads(page, url, label) {
 
 async function checkRedirect(page, url, expected, label) {
   try {
-    await page.goto(url, { waitUntil: "networkidle", timeout: 30000 });
+    const resp = await page.goto(url, { waitUntil: "domcontentloaded", timeout: 15000 });
+    const status = resp ? resp.status() : 0;
+    // Wait up to 5s for a redirect to the expected URL
+    try {
+      await page.waitForURL(`**${expected}**`, { timeout: 5000 });
+    } catch {}
     const currentUrl = page.url();
     if (currentUrl.includes(expected)) {
       pass(`${label} -> redirects to ${expected}`);
       return true;
     } else {
-      fail(`${label} - expected redirect to ${expected}, got ${currentUrl}`);
+      fail(`${label} - expected redirect to ${expected}, got ${currentUrl} (HTTP ${status})`);
       await page.screenshot({ path: `screenshot-${label.replace(/[^a-z0-9]/gi, "-")}.png`, fullPage: true });
       return false;
     }
@@ -174,6 +179,13 @@ async function main() {
   // ═══════════════════════════════════════════════════════════════════════════
 
   console.log("--- 2. Auth protection (logged-out) ---");
+
+  // Clear any lingering state from public page visits
+  await page.context().clearCookies();
+  await page.evaluate(() => {
+    try { localStorage.clear(); } catch {}
+    try { sessionStorage.clear(); } catch {}
+  });
 
   const protectedRoutes = [
     "/today",
