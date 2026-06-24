@@ -1554,3 +1554,95 @@ A beta-readiness sweep across the entire app, focusing on reliability, copy cons
 - No external dependencies added
 - No existing routes modified in behavior
 - No major refactoring
+
+---
+
+## 26. Phase 9C Completion Note — Pre-Beta Bug Fixes, Visual Polish, and Information System Foundation
+
+### What Was Done
+
+#### 1. Passions Save Bug Fixed
+**Root cause:** `handleSavePassion`, `handleSaveSession`, and `handleSaveMilestone` all inserted rows **without `user_id`**. The RLS policy `for insert with check (auth.uid() = user_id)` rejected every insert because `user_id` was NULL. The error was silently swallowed (no `console.error`).
+
+**Fix:**
+- Added `currentUser` state to the component, populated during `loadAll()`
+- All three insert handlers now pass `user_id: currentUser.id`
+- Added `console.error("Failed to save passion", error)` diagnostics for debugging
+- Added `!currentUser` guard to prevent insert when user not loaded
+
+#### 2. Smoke Test Made Honest
+- Removed `skip()` function entirely — no more fake passes or skips
+- Passion creation test now uses a unique timestamped name (`Smoke Passion ${Date.now()}`)
+- After clicking "Save Passion", verifies the name actually appears in the list
+- Sessions test: selects a passion from the dropdown, logs session, verifies "30 min" appears in Recent Sessions
+- Milestones test: adds milestone with unique name, verifies it appears in list
+- Missing required inputs now cause `fail()`, not `skip()`
+
+#### 3. Visual Polish
+- **Passions overview:** Metric cards now wrapped in gradient-bordered containers with subtle accent glow
+- **Weekly review:** All section headers now have gradient accent bars; Reflection and Plan Next Week sections upgraded from `Card` to `PulseCard` with proper titles
+- **Body page:** Architecture unchanged (componentized) but verified for consistency
+
+#### 4. Knowledge / Information System Added
+- **Migration:** `supabase/migrations/00014_knowledge_system.sql` with 3 tables:
+  - `knowledge_items` — title, type, category, source_url, summary, content, status
+  - `knowledge_collections` — name, description
+  - `knowledge_collection_items` — junction table for collection membership
+  - Full RLS with ownership policies, indexes, updated_at triggers
+- **Types:** `src/lib/knowledge.ts` — interfaces, form types, constants
+- **Route:** `src/app/knowledge/page.tsx` — 500+ lines with 4 tabs:
+  - Overview (metric cards + description of the Information System)
+  - Add Knowledge (form with title, type, category, source URL, summary, content)
+  - Collections (create + list)
+  - Recent Items (list with delete)
+- **Navigation:** Added to Intelligence group in DashboardNav (desktop sidebar + mobile More sheet)
+- **Proxy:** `/knowledge` added to `protectedRoutes`
+- **Insights:** Added "Open Knowledge" link card below Weekly Review link
+
+#### 5. Auth Protection
+- `/passions` was missing from `protectedRoutes` — added it
+- `/knowledge` added to `protectedRoutes`
+
+#### 6. Production Smoke Test
+- 3 new test sections for Knowledge (page load, add item, create collection)
+- `/knowledge` and `/passions` added to post-logout redirect check
+- Removed unused `skip()` function
+- Total test targets: verified data persistence after each create operation
+
+### Build/Lint Verification
+- `npm run lint` ✅ — 0 errors, 6 warnings (pre-existing, unchanged)
+- `npm run build` ✅ — 27 routes (was 26, +/knowledge)
+
+### Database Migrations
+- **New:** `supabase/migrations/00014_knowledge_system.sql`
+- **Manual steps:** Must be applied to production Supabase before deploying:
+  ```bash
+  supabase migration up  # applies 00014
+  ```
+
+### Files Changed
+
+| File | Change |
+|------|--------|
+| `src/app/passions/page.tsx` | **Updated** — added `currentUser` state, fixed all 3 insert handlers to pass `user_id`, added `console.error` diagnostics, improved overview metric card visuals |
+| `src/app/weekly-review/page.tsx` | **Updated** — visual polish: gradient accent bar on section headers, PulseCard for Reflection and Plan Next Week sections |
+| `src/app/knowledge/page.tsx` | **Created** — full Knowledge system page (~500 lines, 4 tabs, CRUD) |
+| `src/lib/knowledge.ts` | **Created** — types, form interfaces, constants for Knowledge system |
+| `supabase/migrations/00014_knowledge_system.sql` | **Created** — 3 tables (knowledge_items, knowledge_collections, knowledge_collection_items) + RLS + indexes + triggers |
+| `src/components/DashboardNav.tsx` | **Updated** — added "Knowledge" to Intelligence group in desktop sidebar + mobile More sheet |
+| `src/proxy.ts` | **Updated** — added `/knowledge` and `/passions` to protectedRoutes |
+| `src/app/insights/page.tsx` | **Updated** — added "Open Knowledge" link card |
+| `scripts/prod-smoke-test.mjs` | **Updated** — removed `skip()` function, rewrote passions tests to verify data persistence, added 3 Knowledge test sections, added `/knowledge` and `/passions` to post-logout redirect check |
+| `docs/LIFE_PULSE_CURRENT_STATE_AUDIT.md` | **Updated** — Phase 9C summary |
+| `docs/deployment-checklist.md` | **Updated** — Phase 9C QA section |
+
+### Remaining Non-Blockers
+- Knowledge collection-item linking not yet exposed in UI (needs collection browser + item picker)
+- No search/filter for knowledge items
+- No file uploads or embeddings (design intent)
+- No AI coach (never planned)
+- No device/wearable integration (never planned)
+
+### Recommended Next Action
+After Phase 9C passes production smoke test with 0 failures:
+> **Invite 2–5 private beta testers.**

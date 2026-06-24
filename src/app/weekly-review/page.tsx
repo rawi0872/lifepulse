@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { DashboardNav } from "@/components/DashboardNav";
+import { PulseCard } from "@/components/ui/pulse-card";
 import { Card } from "@/components/ui/card";
 import { getTodayDateString, getWeekStartDate } from "@/lib/utils";
 
@@ -231,7 +232,10 @@ function WeeklyReviewContent() {
 
       {/* ── 1. Week Summary ────────────────────────────────────────── */}
       <section className="mb-8">
-        <h2 className="mb-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Week Summary</h2>
+        <div className="mb-3 flex items-center gap-2">
+          <span className="h-4 w-1 rounded-full bg-gradient-to-b from-[var(--accent)] to-[var(--accent-strong)]" />
+          <h2 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Week Summary</h2>
+        </div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <MetricCard label="Habits done" value={data.habitCount} />
           <MetricCard label="Tasks done" value={data.taskCount} />
@@ -246,7 +250,10 @@ function WeeklyReviewContent() {
 
       {/* ── 2. Body & Mind Review ──────────────────────────────────── */}
       <section className="mb-8">
-        <h2 className="mb-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Body &amp; Mind Review</h2>
+        <div className="mb-3 flex items-center gap-2">
+          <span className="h-4 w-1 rounded-full bg-gradient-to-b from-[var(--accent)] to-[var(--accent-strong)]" />
+          <h2 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Body &amp; Mind Review</h2>
+        </div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <MetricCard label="Avg energy" value={data.avgEnergy !== null ? `${data.avgEnergy}/5` : "\u2014"} />
           <MetricCard label="Avg sleep" value={data.avgSleep !== null ? `${data.avgSleep}h` : "\u2014"} />
@@ -261,7 +268,10 @@ function WeeklyReviewContent() {
 
       {/* ── 3. Goals & Growth Review ───────────────────────────────── */}
       <section className="mb-8">
-        <h2 className="mb-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Goals &amp; Growth Review</h2>
+        <div className="mb-3 flex items-center gap-2">
+          <span className="h-4 w-1 rounded-full bg-gradient-to-b from-[var(--accent)] to-[var(--accent-strong)]" />
+          <h2 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Goals &amp; Growth Review</h2>
+        </div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <MetricCard label="Active goals" value={data.activeGoals} />
           <MetricCard label="Tasks done" value={data.taskCount} />
@@ -272,7 +282,10 @@ function WeeklyReviewContent() {
 
       {/* ── 4. Passions Review ─────────────────────────────────────── */}
       <section className="mb-8">
-        <h2 className="mb-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Passions Review</h2>
+        <div className="mb-3 flex items-center gap-2">
+          <span className="h-4 w-1 rounded-full bg-gradient-to-b from-[var(--accent)] to-[var(--accent-strong)]" />
+          <h2 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Passions Review</h2>
+        </div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <MetricCard label="Sessions" value={data.passionSessions} />
           <MetricCard label="Minutes practiced" value={data.passionMinutes} />
@@ -283,9 +296,12 @@ function WeeklyReviewContent() {
 
       {/* ── 5. Reflection Prompts ──────────────────────────────────── */}
       <section className="mb-8">
-        <h2 className="mb-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Reflection Prompts</h2>
-        <Card className="p-4">
-          <div className="space-y-4">
+        <div className="mb-3 flex items-center gap-2">
+          <span className="h-4 w-1 rounded-full bg-gradient-to-b from-[var(--accent)] to-[var(--accent-strong)]" />
+          <h2 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Reflection Prompts</h2>
+        </div>
+        <PulseCard title="Weekly Reflection" accent="accent">
+          <div className="p-4 space-y-4">
             <ReflectionField
               label="What went well this week?"
               value={reflection.wentWell}
@@ -324,13 +340,16 @@ function WeeklyReviewContent() {
               Reflection is saved as today&rsquo;s journal entry with a weekly review prefix.
             </p>
           </div>
-        </Card>
+        </PulseCard>
       </section>
 
       {/* ── Plan Next Week ─────────────────────────────────────────── */}
       <section className="mb-8">
-        <h2 className="mb-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Plan Next Week</h2>
-        <Card className="p-4">
+        <div className="mb-3 flex items-center gap-2">
+          <span className="h-4 w-1 rounded-full bg-gradient-to-b from-[var(--accent)] to-[var(--accent-strong)]" />
+          <h2 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Plan Next Week</h2>
+        </div>
+        <PulseCard title="Plan Ahead" accent="accent">
           <div className="mb-4">
             <label className="block text-xs font-medium text-[var(--text)] mb-1.5">Top focus for next week</label>
             <input
@@ -362,7 +381,7 @@ function WeeklyReviewContent() {
               )}
             </div>
           </div>
-        </Card>
+        </PulseCard>
       </section>
     </div>
   );

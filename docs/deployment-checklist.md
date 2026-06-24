@@ -28,7 +28,7 @@ git push origin private-beta-v1
 - [ ] `.env.example` IS tracked — run `git ls-files .env.example` to confirm
 - [ ] No real secrets in any committed file
 - [ ] `npm run lint` passes (0 errors)
-- [ ] `npm run build` passes (26 pages compiled)
+- [ ] `npm run build` passes (27 pages compiled)
 - [ ] `npm run test:prod` passes (requires `.env.test.local` with valid test credentials)
 - [ ] Toast system functional (verify on all dashboard pages)
 - [ ] Custom favicon present (`/icon.svg` — Life Pulse pulse/heartbeat)
@@ -162,6 +162,20 @@ Add both of the following:
 - Build: 0 errors, 6 pre-existing lint warnings (unchanged) ✅
 - 26 routes (unchanged — no new routes in Phase 9B)
 
+### Phase 9C QA (June 24, 2026)
+- Passions save bug fixed: all inserts now include `user_id` — RLS no longer rejects ✅
+- Smoke test made honest: removed `skip()`, passions tests verify data persistence (name appears in list, session appears as "30 min", milestone appears in list) ✅
+- Visual polish: passions overview gradient cards, weekly review accent section headers + PulseCard upgrades ✅
+- Knowledge system created: migration (00014), 3 tables, RLS, indexes, triggers ✅
+- Knowledge route (`/knowledge`) created with 4 tabs (Overview, Add, Collections, Recent Items) ✅
+- Knowledge added to navigation (Intelligence group, desktop + mobile More) ✅
+- `/knowledge` and `/passions` added to `protectedRoutes` in proxy middleware ✅
+- Insights page shows "Open Knowledge" link card ✅
+- Production smoke test: 3 new Knowledge sections, post-logout redirect includes /knowledge + /passions ✅
+- 27 routes (26 existing + /knowledge) ✅
+- 24 app tables (21 existing + knowledge_items, knowledge_collections, knowledge_collection_items)
+- Recommended next phase: Invite 2–5 private beta testers
+
 ### Vercel Preview Deployments
 - Vercel preview deployments get random URLs (e.g. `project-xxxxx.vercel.app`). Auth redirects to these URLs will fail if they are not whitelisted in Supabase.
 - **Recommendation:** Disable auth testing on preview deployments, or add `https://*-username.vercel.app/auth/callback` as a wildcard redirect URL (Supabase supports `*` wildcards in redirect URLs). Test password reset and email confirmation only on the production domain.
@@ -235,7 +249,7 @@ After deploying, test every route and flow:
 ## 5. RLS Production Smoke Test
 
 **Before inviting testers**, run the RLS smoke test against the **production** Supabase project.
-The smoke test covers: profiles, realms, habits, habit_logs, tasks, xp_events, journal_entries, projects, finance_accounts, finance_categories, finance_transactions, finance_budgets, body_metrics, mind_metrics, goals, goal_milestones, goal_links, beta_feedback, passions, passion_sessions, passion_milestones (21 tables total).
+The smoke test covers: profiles, realms, habits, habit_logs, tasks, xp_events, journal_entries, projects, finance_accounts, finance_categories, finance_transactions, finance_budgets, body_metrics, mind_metrics, goals, goal_milestones, goal_links, beta_feedback, passions, passion_sessions, passion_milestones, knowledge_items, knowledge_collections, knowledge_collection_items (24 tables total).
 
 1. Create two test accounts in the production Supabase Auth (use email/password)
 2. Set these environment variables locally:
@@ -286,8 +300,8 @@ The smoke test covers: profiles, realms, habits, habit_logs, tasks, xp_events, j
 - [ ] `npm run build` passes locally (current state ✅)
 - [ ] `npm run lint` passes locally (current state ✅)
 - [ ] `npm run test:prod` passes against production (requires `.env.test.local`)
-- [ ] Build output includes all 26 routes: /, /auth/callback, /body, /devices, /finance, /forgot-password, /goals, /habits, /icon.svg, /insights, /journal, /login, /mind, /onboarding, /passions, /privacy, /projects, /reset-password, /settings, /signup, /tasks, /terms, /today, /weekly-review
+- [ ] Build output includes all 27 routes: /, /auth/callback, /body, /devices, /finance, /forgot-password, /goals, /habits, /icon.svg, /insights, /journal, /knowledge, /login, /mind, /onboarding, /passions, /privacy, /projects, /reset-password, /settings, /signup, /tasks, /terms, /today, /weekly-review
 
 ---
 
-*Life Pulse — Last updated: June 24, 2026 (Phase 9B — Beta Readiness Sweep)*
+*Life Pulse — Last updated: June 24, 2026 (Phase 9C — Pre-Beta Bug Fixes + Knowledge System)*

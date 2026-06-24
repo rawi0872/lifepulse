@@ -32,6 +32,7 @@ function PassionContent() {
   const [activeTab, setActiveTab] = useState<TabId>("overview");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [currentUser, setCurrentUser] = useState<{ id: string } | null>(null);
 
   const [passions, setPassions] = useState<Passion[]>([]);
   const [sessions, setSessions] = useState<PassionSession[]>([]);
@@ -65,6 +66,7 @@ function PassionContent() {
   const loadAll = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { router.push("/login"); return; }
+    setCurrentUser(user);
 
     const [pRes, sRes, mRes] = await Promise.all([
       supabase.from("passions").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
@@ -96,16 +98,17 @@ function PassionContent() {
   // ── Passion CRUD ─────────────────────────────────────────────────────────────
 
   const handleSavePassion = async () => {
-    if (!passionForm.name.trim()) return;
+    if (!passionForm.name.trim() || !currentUser) return;
     setSaving(true);
     const { error } = await supabase.from("passions").insert({
+      user_id: currentUser.id,
       name: passionForm.name,
       category: passionForm.category || null,
       description: passionForm.description || null,
       skill_level: passionForm.skill_level || null,
       target_hours_per_week: passionForm.target_hours_per_week,
     });
-    if (error) { toast({ type: "error", title: "Failed to save passion" }); setSaving(false); return; }
+    if (error) { console.error("Failed to save passion", error); toast({ type: "error", title: "Failed to save passion" }); setSaving(false); return; }
     toast({ type: "success", title: "Passion added!" });
     setPassionForm({ name: "", category: "Other", description: "", skill_level: "Beginner", target_hours_per_week: null });
     loadAll();
@@ -144,14 +147,15 @@ function PassionContent() {
   // ── Session CRUD ─────────────────────────────────────────────────────────────
 
   const handleSaveSession = async () => {
-    if (!sessionForm.passion_id) return;
+    if (!sessionForm.passion_id || !currentUser) return;
     setSaving(true);
     const { error } = await supabase.from("passion_sessions").insert({
+      user_id: currentUser.id,
       passion_id: sessionForm.passion_id, duration_minutes: sessionForm.duration_minutes,
       focus: sessionForm.focus || null, notes: sessionForm.notes || null,
       enjoyment: sessionForm.enjoyment, difficulty: sessionForm.difficulty,
     });
-    if (error) { toast({ type: "error", title: "Failed to log session" }); setSaving(false); return; }
+    if (error) { console.error("Failed to log session", error); toast({ type: "error", title: "Failed to log session" }); setSaving(false); return; }
     toast({ type: "success", title: "Session logged!" });
     setSessionForm({ passion_id: "", duration_minutes: null, focus: "", notes: "", enjoyment: null, difficulty: null });
     loadAll();
@@ -168,13 +172,14 @@ function PassionContent() {
   // ── Milestone CRUD ───────────────────────────────────────────────────────────
 
   const handleSaveMilestone = async () => {
-    if (!milestoneForm.passion_id || !milestoneForm.title.trim()) return;
+    if (!milestoneForm.passion_id || !milestoneForm.title.trim() || !currentUser) return;
     setSaving(true);
     const { error } = await supabase.from("passion_milestones").insert({
+      user_id: currentUser.id,
       passion_id: milestoneForm.passion_id, title: milestoneForm.title,
       description: milestoneForm.description || null, target_date: milestoneForm.target_date || null,
     });
-    if (error) { toast({ type: "error", title: "Failed to add milestone" }); setSaving(false); return; }
+    if (error) { console.error("Failed to add milestone", error); toast({ type: "error", title: "Failed to add milestone" }); setSaving(false); return; }
     toast({ type: "success", title: "Milestone added!" });
     setMilestoneForm({ passion_id: "", title: "", description: "", target_date: "" });
     loadAll();
@@ -221,26 +226,38 @@ function PassionContent() {
         {activeTab === "overview" && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <MetricCard label="Active Passions" value={activePassions.length} icon={
+              <div className="relative rounded-xl border border-[var(--border)] bg-gradient-to-br from-[var(--surface)] to-[var(--bg-elevated)] p-3">
+                <div className="absolute inset-x-0 top-0 h-[2px] rounded-t-xl bg-gradient-to-r from-[var(--accent)] to-[var(--accent-strong)]" />
+                <MetricCard label="Active Passions" value={activePassions.length} icon={
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.385a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
                 </svg>
               } trend={activePassions.length > 0 ? "up" : "neutral"} active={activePassions.length > 0} />
-              <MetricCard label="Sessions / Week" value={weekSessions.length} icon={
+              </div>
+              <div className="relative rounded-xl border border-[var(--border)] bg-gradient-to-br from-[var(--surface)] to-[var(--bg-elevated)] p-3">
+                <div className="absolute inset-x-0 top-0 h-[2px] rounded-t-xl bg-gradient-to-r from-[var(--accent)] to-[var(--accent-strong)]" />
+                <MetricCard label="Sessions / Week" value={weekSessions.length} icon={
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               } trend={weekSessions.length > 0 ? "up" : "neutral"} active={weekSessions.length > 0} />
-              <MetricCard label="Practice Min" value={weekMinutes} icon={
+              </div>
+              <div className="relative rounded-xl border border-[var(--border)] bg-gradient-to-br from-[var(--surface)] to-[var(--bg-elevated)] p-3">
+                <div className="absolute inset-x-0 top-0 h-[2px] rounded-t-xl bg-gradient-to-r from-[var(--accent)] to-[var(--accent-strong)]" />
+                <MetricCard label="Practice Min" value={weekMinutes} icon={
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               } trend={weekMinutes > 0 ? "up" : "neutral"} active={weekMinutes > 0} />
-              <MetricCard label="Milestones" value={completedMilestones.length} icon={
+              </div>
+              <div className="relative rounded-xl border border-[var(--border)] bg-gradient-to-br from-[var(--surface)] to-[var(--bg-elevated)] p-3">
+                <div className="absolute inset-x-0 top-0 h-[2px] rounded-t-xl bg-gradient-to-r from-[var(--accent)] to-[var(--accent-strong)]" />
+                <MetricCard label="Milestones" value={completedMilestones.length} icon={
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               } trend={completedMilestones.length > 0 ? "up" : "neutral"} active={completedMilestones.length > 0} />
+              </div>
             </div>
 
             {activePassions.length === 0 && (

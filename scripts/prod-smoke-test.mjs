@@ -59,11 +59,6 @@ function fail(label, detail = "") {
   console.log(`  \u274c ${label}${detail ? ` - ${detail}` : ""}`);
 }
 
-function skip(label, reason = "") {
-  results.push({ label, status: "SKIP", detail: reason });
-  console.log(`  \u23ed ${label}${reason ? ` (${reason})` : ""}`);
-}
-
 function recordScreenshot(page, name) {
   screenshots.push(name);
 }
@@ -859,86 +854,155 @@ async function main() {
     fail("Finance page load", e.message);
   }
 
-  // ── 6o. Passions page ─────────────────────────────────────────────────────
+  // ── 6o. Passions — My Passions tab (create passion) ───────────────────────
 
   try {
     await page.goto(`${BASE}/passions`, { waitUntil: "networkidle", timeout: 30000 });
     await page.waitForTimeout(2000);
-    const pageTitle = page.locator("h1:has-text('Passions')");
-    if (await pageTitle.isVisible({ timeout: 5000 })) {
-      pass("Passions page - loaded");
+    const passionsPageTitle = page.locator("h1:has-text('Passions')");
+    if (!(await passionsPageTitle.isVisible({ timeout: 5000 }))) {
+      fail("Passions page - loaded", "h1 not found");
     } else {
-      pass("Passions page - loaded (no h1)");
+      pass("Passions page - loaded");
     }
-  } catch (e) {
-    fail("Passions page", e.message);
-    await page.screenshot({ path: "screenshot-passions-error.png", fullPage: true });
-  }
-
-  // ── 6p. Passions — My Passions tab ─────────────────────────────────────────
-
-  try {
-    await page.goto(`${BASE}/passions`, { waitUntil: "networkidle", timeout: 30000 });
-    await page.waitForTimeout(2000);
 
     const passionsTab = page.locator('button:has-text("My Passions")');
-    if (await passionsTab.isVisible({ timeout: 5000 })) {
+    if (!(await passionsTab.isVisible({ timeout: 5000 }))) {
+      fail("Passions My Passions - tab", "My Passions tab not found");
+    } else {
       await passionsTab.click();
       await page.waitForTimeout(1000);
 
       const nameInput = page.locator('input[placeholder="Passion name"]');
-      if (await nameInput.isVisible({ timeout: 3000 })) {
-        await nameInput.fill("Smoke test passion");
-        const saveBtn = page.locator('button:has-text("Save Passion")');
-        if (await saveBtn.isVisible({ timeout: 3000 })) {
-          await saveBtn.click();
-          await page.waitForTimeout(2000);
-          pass("Passions My Passions - saved passion");
-        } else {
-          skip("Passions My Passions - save", "Save Passion button not found");
-        }
+      if (!(await nameInput.isVisible({ timeout: 3000 }))) {
+        fail("Passions My Passions - form", "Passion name input not found");
       } else {
-        skip("Passions My Passions - form", "Passion name input not found");
+        const passionName = `Smoke Passion ${Date.now()}`;
+        await nameInput.fill(passionName);
+
+        const saveBtn = page.locator('button:has-text("Save Passion")');
+        if (!(await saveBtn.isVisible({ timeout: 3000 }))) {
+          fail("Passions My Passions - save", "Save Passion button not found");
+        } else {
+          await saveBtn.click();
+          await page.waitForTimeout(3000);
+
+          const passionVisible = await page.locator(`text=${passionName}`).isVisible({ timeout: 5000 });
+          if (passionVisible) {
+            pass("Passions My Passions - saved passion (verified in list)");
+          } else {
+            fail("Passions My Passions - saved passion", `passion "${passionName}" not found in list after save`);
+          }
+        }
       }
-    } else {
-      skip("Passions My Passions - tab", "My Passions tab not found");
     }
   } catch (e) {
     fail("Passions My Passions", e.message);
     await page.screenshot({ path: "screenshot-passions-add-error.png", fullPage: true });
   }
 
-  // ── 6q. Passions — Sessions tab ───────────────────────────────────────────
+  // ── 6p. Passions — Sessions tab ──────────────────────────────────────────
 
   try {
     await page.goto(`${BASE}/passions`, { waitUntil: "networkidle", timeout: 30000 });
     await page.waitForTimeout(2000);
 
     const sessionsTab = page.locator('button:has-text("Sessions")');
-    if (await sessionsTab.isVisible({ timeout: 5000 })) {
+    if (!(await sessionsTab.isVisible({ timeout: 5000 }))) {
+      fail("Passions Sessions - tab", "Sessions tab not found");
+    } else {
       await sessionsTab.click();
       await page.waitForTimeout(1000);
 
-      const durationInput = page.locator('input[placeholder="Duration (min)"]');
-      if (await durationInput.isVisible({ timeout: 3000 })) {
-        await durationInput.fill("30");
-        const logBtn = page.locator('button:has-text("Log Session")');
-        if (await logBtn.isVisible({ timeout: 3000 })) {
-          await logBtn.click();
-          await page.waitForTimeout(2000);
-          pass("Passions Sessions - logged session");
-        } else {
-          skip("Passions Sessions - log", "Log Session button not found");
-        }
+      // Check if the session form is available (requires at least one passion)
+      const passionSelect = page.locator('select').first();
+      const hasPassions = await passionSelect.locator('option:not([value=""])').count();
+      if (hasPassions === 0) {
+        fail("Passions Sessions - precond", "No passions exist to log a session against");
       } else {
-        skip("Passions Sessions - form", "Duration input not found");
+        const durationInput = page.locator('input[placeholder="Duration (min)"]');
+        if (!(await durationInput.isVisible({ timeout: 3000 }))) {
+          fail("Passions Sessions - form", "Duration input not found");
+        } else {
+          await durationInput.fill("30");
+
+          // Select the first passion
+          const firstPassionOption = passionSelect.locator('option:not([value=""])').first();
+          const passionValue = await firstPassionOption.getAttribute("value");
+          await passionSelect.selectOption(passionValue);
+
+          const logBtn = page.locator('button:has-text("Log Session")');
+          if (!(await logBtn.isVisible({ timeout: 3000 }))) {
+            fail("Passions Sessions - log", "Log Session button not found");
+          } else {
+            await logBtn.click();
+            await page.waitForTimeout(3000);
+
+            // Verify session was logged by checking for "30 min" in the Recent Sessions list
+            const sessionVisible = await page.locator("text=30 min").isVisible({ timeout: 5000 });
+            if (sessionVisible) {
+              pass("Passions Sessions - logged session (verified in list)");
+            } else {
+              fail("Passions Sessions - logged session", '"30 min" not found in Recent Sessions list');
+            }
+          }
+        }
       }
-    } else {
-      skip("Passions Sessions - tab", "Sessions tab not found");
     }
   } catch (e) {
     fail("Passions Sessions", e.message);
     await page.screenshot({ path: "screenshot-passions-session-error.png", fullPage: true });
+  }
+
+  // ── 6q. Passions — Milestones tab ────────────────────────────────────────
+
+  try {
+    await page.goto(`${BASE}/passions`, { waitUntil: "networkidle", timeout: 30000 });
+    await page.waitForTimeout(2000);
+
+    const milestonesTab = page.locator('button:has-text("Milestones")');
+    if (!(await milestonesTab.isVisible({ timeout: 5000 }))) {
+      fail("Passions Milestones - tab", "Milestones tab not found");
+    } else {
+      await milestonesTab.click();
+      await page.waitForTimeout(1000);
+
+      const passionSelect = page.locator('select').first();
+      const hasPassions = await passionSelect.locator('option:not([value=""])').count();
+      if (hasPassions === 0) {
+        fail("Passions Milestones - precond", "No passions exist to set a milestone against");
+      } else {
+        const titleInput = page.locator('input[placeholder="Title"]');
+        if (!(await titleInput.isVisible({ timeout: 3000 }))) {
+          fail("Passions Milestones - form", "Title input not found");
+        } else {
+          const milestoneTitle = `Smoke Milestone ${Date.now()}`;
+          await titleInput.fill(milestoneTitle);
+
+          const firstPassionOption = passionSelect.locator('option:not([value=""])').first();
+          const passionValue = await firstPassionOption.getAttribute("value");
+          await passionSelect.selectOption(passionValue);
+
+          const addBtn = page.locator('button:has-text("Add Milestone")');
+          if (!(await addBtn.isVisible({ timeout: 3000 }))) {
+            fail("Passions Milestones - add", "Add Milestone button not found");
+          } else {
+            await addBtn.click();
+            await page.waitForTimeout(3000);
+
+            const milestoneVisible = await page.locator(`text=${milestoneTitle}`).isVisible({ timeout: 5000 });
+            if (milestoneVisible) {
+              pass("Passions Milestones - added milestone (verified in list)");
+            } else {
+              fail("Passions Milestones - added milestone", `milestone "${milestoneTitle}" not found in list`);
+            }
+          }
+        }
+      }
+    }
+  } catch (e) {
+    fail("Passions Milestones", e.message);
+    await page.screenshot({ path: "screenshot-passions-milestone-error.png", fullPage: true });
   }
 
   console.log("");
@@ -978,7 +1042,108 @@ async function main() {
   // 7. LOGOUT
   // ═══════════════════════════════════════════════════════════════════════════
 
-  console.log("--- 7. Logout ---");
+  // ── 6s. Knowledge page ──────────────────────────────────────────────────
+
+  try {
+    await page.goto(`${BASE}/knowledge`, { waitUntil: "networkidle", timeout: 30000 });
+    await page.waitForTimeout(2000);
+    const knowledgeTitle = page.locator("h1:has-text('Knowledge')");
+    if (await knowledgeTitle.isVisible({ timeout: 5000 })) {
+      pass("Knowledge page - loaded");
+    } else {
+      fail("Knowledge page - loaded", "h1 not found");
+    }
+  } catch (e) {
+    fail("Knowledge page", e.message);
+    await page.screenshot({ path: "screenshot-knowledge-error.png", fullPage: true });
+  }
+
+  // ── 6t. Knowledge — Add Knowledge tab ──────────────────────────────────
+
+  try {
+    await page.goto(`${BASE}/knowledge`, { waitUntil: "networkidle", timeout: 30000 });
+    await page.waitForTimeout(2000);
+
+    const addTab = page.locator('button:has-text("Add Knowledge")');
+    if (!(await addTab.isVisible({ timeout: 5000 }))) {
+      fail("Knowledge Add - tab", "Add Knowledge tab not found");
+    } else {
+      await addTab.click();
+      await page.waitForTimeout(1000);
+
+      const titleInput = page.locator('input[placeholder="Title"]');
+      if (!(await titleInput.isVisible({ timeout: 3000 }))) {
+        fail("Knowledge Add - form", "Title input not found");
+      } else {
+        const itemTitle = `Smoke Knowledge ${Date.now()}`;
+        await titleInput.fill(itemTitle);
+        await page.waitForTimeout(500);
+
+        const saveBtn = page.locator('button:has-text("Save Knowledge")');
+        if (!(await saveBtn.isVisible({ timeout: 3000 }))) {
+          fail("Knowledge Add - save", "Save Knowledge button not found");
+        } else {
+          await saveBtn.click();
+          await page.waitForTimeout(3000);
+
+          const itemVisible = await page.locator(`text=${itemTitle}`).isVisible({ timeout: 5000 });
+          if (itemVisible) {
+            pass("Knowledge Add - saved item (verified in Recent Items tab)");
+          } else {
+            fail("Knowledge Add - saved item", `item "${itemTitle}" not found`);
+          }
+        }
+      }
+    }
+  } catch (e) {
+    fail("Knowledge Add", e.message);
+    await page.screenshot({ path: "screenshot-knowledge-add-error.png", fullPage: true });
+  }
+
+  // ── 6u. Knowledge — Collections tab ─────────────────────────────────────
+
+  try {
+    await page.goto(`${BASE}/knowledge`, { waitUntil: "networkidle", timeout: 30000 });
+    await page.waitForTimeout(2000);
+
+    const collectionsTab = page.locator('button:has-text("Collections")');
+    if (!(await collectionsTab.isVisible({ timeout: 5000 }))) {
+      fail("Knowledge Collections - tab", "Collections tab not found");
+    } else {
+      await collectionsTab.click();
+      await page.waitForTimeout(1000);
+
+      const nameInput = page.locator('input[placeholder="Collection name"]');
+      if (!(await nameInput.isVisible({ timeout: 3000 }))) {
+        fail("Knowledge Collections - form", "Collection name input not found");
+      } else {
+        const collectionName = `Smoke Collection ${Date.now()}`;
+        await nameInput.fill(collectionName);
+
+        const createBtn = page.locator('button:has-text("Create Collection")');
+        if (!(await createBtn.isVisible({ timeout: 3000 }))) {
+          fail("Knowledge Collections - create", "Create Collection button not found");
+        } else {
+          await createBtn.click();
+          await page.waitForTimeout(3000);
+
+          const collectionVisible = await page.locator(`text=${collectionName}`).isVisible({ timeout: 5000 });
+          if (collectionVisible) {
+            pass("Knowledge Collections - created collection (verified in list)");
+          } else {
+            fail("Knowledge Collections - created collection", `collection "${collectionName}" not found`);
+          }
+        }
+      }
+    }
+  } catch (e) {
+    fail("Knowledge Collections", e.message);
+    await page.screenshot({ path: "screenshot-knowledge-collection-error.png", fullPage: true });
+  }
+
+  console.log("");
+
+  // ── 7. Logout ──────────────────────────────────────────────────────────
 
   try {
     await page.goto(`${BASE}/settings`, { waitUntil: "networkidle", timeout: 30000 });
@@ -1000,7 +1165,7 @@ async function main() {
 
   // Verify protected routes redirect after logout
   console.log("   Verifying auth protection after logout...");
-  for (const route of ["/today", "/body", "/mind", "/weekly-review"]) {
+  for (const route of ["/today", "/body", "/mind", "/weekly-review", "/knowledge", "/passions"]) {
     await checkRedirect(page, `${BASE}${route}`, "/login", `post-logout ${route}`);
   }
 
