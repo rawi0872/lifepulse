@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint .",
     "test:rls": "node scripts/rls-smoke-test.mjs",
-    "test:prod": "node scripts/prod-smoke-test.mjs"
+    "test:prod": "node scripts/prod-smoke-test.mjs",
+    "test:prod:onboarding": "node scripts/onboarding-personalization-prod-test.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",
