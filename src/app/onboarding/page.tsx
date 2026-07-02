@@ -522,12 +522,21 @@ export default function OnboardingPage() {
           {step === 0 && (
             <div className="animate-fade-in flex flex-col gap-8">
               {/* Intro section */}
-              <div className="max-w-2xl space-y-4">
-                <p className="text-sm leading-relaxed text-[var(--text-secondary)]">
-                  A complete Life OS for tracking your goals, habits, health, mind, money, passions, knowledge,
-                  and weekly progress — all in one private dashboard.
-                </p>
-                <p className="text-xs text-[var(--text-muted)] bg-[var(--surface)] rounded-lg border border-[var(--border)] px-4 py-2.5">
+              <div className="max-w-2xl space-y-3">
+                <div className="relative overflow-hidden rounded-2xl border border-[var(--border-strong)] bg-[var(--surface-raised)] px-5 py-5 shadow-xl shadow-black/10">
+                  <div
+                    className="pointer-events-none absolute -right-16 -top-20 h-44 w-44 rounded-full opacity-[0.08]"
+                    style={{ background: "radial-gradient(circle, var(--accent), transparent 70%)" }}
+                  />
+                  <p className="relative z-10 mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">
+                    Your Life Pulse starts here
+                  </p>
+                  <p className="relative z-10 text-lg font-semibold leading-relaxed tracking-tight text-[var(--text)] sm:text-xl">
+                    A complete Life OS for tracking your goals, habits, health, mind, money, passions, knowledge,
+                    and weekly progress — all in one private dashboard.
+                  </p>
+                </div>
+                <p className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-xs text-[var(--text-muted)]">
                   This is a private beta. Your honest feedback shapes what comes next.
                 </p>
               </div>
