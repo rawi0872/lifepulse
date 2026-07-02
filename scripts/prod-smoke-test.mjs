@@ -252,10 +252,8 @@ async function main() {
 
     try {
       // Step 0: Welcome - click Continue
-      let stepFound = false;
       for (const text of ["Continue", "Build your personal operating system", "Welcome"]) {
         if (await waitForText(page, text, 3000)) {
-          stepFound = true;
           const continueBtn = page.locator('button:has-text("Continue")');
           if (await continueBtn.isVisible({ timeout: 3000 })) {
             await continueBtn.click();
@@ -265,7 +263,19 @@ async function main() {
         }
       }
 
-      // Step 1: Choose life areas - select a few realms
+      // Step 1: Intended use - choose the safest default setup
+      const intendedUseOption = page.locator('button:has-text("Personal life"), [role="radio"]:has-text("Personal life")');
+      if (await intendedUseOption.first().isVisible({ timeout: 5000 })) {
+        await intendedUseOption.first().click();
+        await page.waitForTimeout(300);
+        const setupContinueBtn = page.locator('button:has-text("Continue")');
+        if (await setupContinueBtn.isVisible({ timeout: 3000 })) {
+          await setupContinueBtn.click();
+          await page.waitForTimeout(1000);
+        }
+      }
+
+      // Step 2: Choose life areas - select a few realms
       // Look for realm toggle cards with checkboxes
       const realmCards = page.locator('label:has(input[type="checkbox"]), [role="checkbox"], button:has-text("Mind"), button:has-text("Body"), button:has-text("Career"), button:has-text("Finance")');
       const realmCount = await realmCards.count();
@@ -293,14 +303,14 @@ async function main() {
         await page.waitForTimeout(1000);
       }
 
-      // Step 2: Daily rhythm - may also have Continue
+      // Step 3: Daily rhythm - may also have Continue
       const continueBtn2 = page.locator('button:has-text("Continue")');
       if (await continueBtn2.isVisible({ timeout: 3000 })) {
         await continueBtn2.click();
         await page.waitForTimeout(1000);
       }
 
-      // Step 3: Final - "Enter my dashboard"
+      // Step 4: Final - "Enter my dashboard"
       const dashboardBtn = page.locator('button:has-text("Enter my dashboard"), button:has-text("Setting up")');
       if (await dashboardBtn.isVisible({ timeout: 5000 })) {
         // If it says "Setting up" it may be disabled; wait a moment

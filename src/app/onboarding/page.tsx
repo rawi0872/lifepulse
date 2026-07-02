@@ -10,6 +10,7 @@ import { StepIndicator } from "@/components/onboarding/StepIndicator";
 import { FeatureTour } from "@/components/onboarding/FeatureTour";
 import { DailyLoopGrid } from "@/components/onboarding/DailyLoopGrid";
 import { FinalSummary } from "@/components/onboarding/FinalSummary";
+import { INTENDED_USE_OPTIONS, type IntendedUse } from "@/lib/intendedUse";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -22,13 +23,18 @@ const DEFAULT_REALMS = [
   { name: "Faith", color: "#a855f7", icon: "🙏", description: "Values, discipline, spiritual growth" },
 ] as const;
 
-const STEP_LABELS = ["Welcome", "Life Areas", "Daily Loop", "Start"];
+const STEP_LABELS = ["Welcome", "Setup", "Life Areas", "Daily Loop", "Start"];
 
 const STEP_LEFT = [
   {
     title: "Build your personal operating system",
     subtitle:
       "Life Pulse turns your habits, tasks, projects, finance, and reflection into one daily command center.",
+  },
+  {
+    title: "Personalize your starting setup",
+    subtitle:
+      "Choose why you are using Life Pulse so the app can emphasize the right starting experience.",
   },
   {
     title: "Choose your life areas",
@@ -46,6 +52,57 @@ const STEP_LEFT = [
       "Your data stays tied to your account. You can edit your life areas and preferences later in Settings.",
   },
 ] as const;
+
+function IntendedUseCards({
+  selected,
+  onSelect,
+}: {
+  selected: IntendedUse | null;
+  onSelect: (value: IntendedUse) => void;
+}) {
+  return (
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      {INTENDED_USE_OPTIONS.map((option) => {
+        const isSelected = selected === option.value;
+        return (
+          <button
+            key={option.value}
+            type="button"
+            role="radio"
+            aria-checked={isSelected}
+            onClick={() => onSelect(option.value)}
+            className={cn(
+              "group relative rounded-xl border p-4 text-left transition-all duration-300 focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2",
+              isSelected
+                ? "border-[var(--accent)]/50 bg-[var(--accent-ghost)] shadow-lg shadow-[var(--accent)]/8"
+                : "border-[var(--border)] bg-[var(--surface)] hover:-translate-y-0.5 hover:border-[var(--border-strong)] hover:bg-[var(--surface-raised)] hover:shadow-md hover:shadow-black/10",
+            )}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-[var(--text)]">{option.label}</p>
+                <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">{option.description}</p>
+              </div>
+              <span
+                className={cn(
+                  "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition-all",
+                  isSelected ? "border-[var(--accent)] bg-[var(--accent)]" : "border-[var(--border-strong)]",
+                )}
+              >
+                {isSelected && <span className="h-2 w-2 rounded-full bg-white" />}
+              </span>
+            </div>
+            {option.value === "team" && (
+              <p className="mt-3 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2 text-[11px] leading-relaxed text-[var(--text-muted)]">
+                Team collaboration is an early-access direction. This setup does not create shared permissions yet.
+              </p>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 function RealmCards({
   selectedRealms,
@@ -155,6 +212,7 @@ export default function OnboardingPage() {
   const [selectedRealms, setSelectedRealms] = useState<Set<string>>(
     () => new Set(DEFAULT_REALMS.map((r) => r.name)),
   );
+  const [intendedUse, setIntendedUse] = useState<IntendedUse | null>(null);
   const [checking, setChecking] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -225,6 +283,10 @@ export default function OnboardingPage() {
   }
 
   function handleNext() {
+    if (step === 1 && !intendedUse) {
+      setError("Choose what you are using Life Pulse for to continue.");
+      return;
+    }
     setStep((s) => s + 1);
     setError(null);
   }
@@ -244,6 +306,12 @@ export default function OnboardingPage() {
       } = await supabase.auth.getUser();
       if (!user) {
         setError("Session expired. Please sign in again.");
+        setSaving(false);
+        return;
+      }
+
+      if (!intendedUse) {
+        setError("Choose what you are using Life Pulse for to finish setup.");
         setSaving(false);
         return;
       }
@@ -336,13 +404,13 @@ export default function OnboardingPage() {
 
       const { error: pErr } = await supabase
         .from("profiles")
-        .update({ onboarding_completed: true })
+        .update({ onboarding_completed: true, intended_use: intendedUse })
         .eq("user_id", user.id);
 
       if (pErr) {
         const { error: insErr } = await supabase
           .from("profiles")
-          .upsert({ user_id: user.id, onboarding_completed: true }, { onConflict: "user_id" });
+          .upsert({ user_id: user.id, onboarding_completed: true, intended_use: intendedUse }, { onConflict: "user_id" });
         if (insErr) {
           setError("Failed to save progress. Please try again.");
           setSaving(false);
@@ -372,7 +440,7 @@ export default function OnboardingPage() {
 
   // ── Render ──────────────────────────────────────────────────────────────────
 
-  const isLastStep = step === 3;
+  const isLastStep = step === 4;
 
   return (
     <div className="flex min-h-screen flex-col bg-[var(--bg)] lg:flex-row">
@@ -473,6 +541,30 @@ export default function OnboardingPage() {
 
           {step === 1 && (
             <div className="animate-fade-in flex flex-col gap-8">
+              <div className="max-w-2xl space-y-3">
+                <div>
+                  <h2 className="text-lg font-semibold text-[var(--text)]">What are you using Life Pulse for?</h2>
+                  <p className="mt-1 text-sm leading-relaxed text-[var(--text-secondary)]">
+                    Choose the starting setup that best fits why you&apos;re here. You can change this later.
+                  </p>
+                </div>
+                <p className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-xs leading-relaxed text-[var(--text-muted)]">
+                  This only personalizes your starting experience. It does not lock your account into one mode.
+                </p>
+              </div>
+
+              <IntendedUseCards selected={intendedUse} onSelect={(value) => { setIntendedUse(value); setError(null); }} />
+
+              {error && (
+                <div className="rounded-lg border border-[var(--danger-soft)] bg-[var(--danger-soft)] px-4 py-3 text-sm text-[var(--danger)]" role="alert">
+                  {error}
+                </div>
+              )}
+            </div>
+          )}
+
+          {step === 2 && (
+            <div className="animate-fade-in flex flex-col gap-8">
               <div className="max-w-2xl">
                 <p className="text-sm leading-relaxed text-[var(--text-secondary)]">
                   These are the areas your progress will be organized around. You can change them later, or create new ones.
@@ -493,7 +585,7 @@ export default function OnboardingPage() {
             </div>
           )}
 
-          {step === 2 && (
+          {step === 3 && (
             <div className="animate-fade-in flex flex-col gap-8">
               <div className="max-w-2xl">
                 <p className="mb-6 text-sm leading-relaxed text-[var(--text-secondary)]">
@@ -507,7 +599,7 @@ export default function OnboardingPage() {
             </div>
           )}
 
-          {step === 3 && (
+          {step === 4 && (
             <div className="animate-fade-in flex flex-col gap-8">
               {/* Completion header */}
               <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
@@ -576,8 +668,8 @@ export default function OnboardingPage() {
                 </Button>
               )}
             </div>
-            <Button onClick={handleNext} disabled={saving || (step === 1 && selectedRealms.size === 0)}>
-              {step === 1 && selectedRealms.size === 0 ? "Select an area" : "Continue"}
+            <Button onClick={handleNext} disabled={saving || (step === 1 && !intendedUse) || (step === 2 && selectedRealms.size === 0)}>
+              {step === 1 && !intendedUse ? "Choose setup" : step === 2 && selectedRealms.size === 0 ? "Select an area" : "Continue"}
             </Button>
           </div>
         )}

@@ -25,6 +25,7 @@ import { BodyPulseSection } from "@/components/today/BodyPulseSection";
 import { MindPulseSection } from "@/components/today/MindPulseSection";
 import { FinanceOverview } from "@/components/today/FinanceOverview";
 import { NextBestAction } from "@/components/today/NextBestAction";
+import { resolveIntendedUse, TODAY_COPY, type IntendedUse } from "@/lib/intendedUse";
 
 interface RealmInfo {
   name: string;
@@ -75,6 +76,7 @@ function TodayContent() {
   const [todayXp, setTodayXp] = useState(0);
   const [totalXp, setTotalXp] = useState(0);
   const [firstName, setFirstName] = useState("");
+  const [intendedUse, setIntendedUse] = useState<IntendedUse>("personal");
   const [hasJournal, setHasJournal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -262,7 +264,7 @@ function TodayContent() {
         const [profileRes, habitsRes, tasksRes, journalRes, projectTasksRes] = await Promise.all([
           supabase
             .from("profiles")
-            .select("first_name")
+            .select("first_name, intended_use")
             .eq("user_id", user.id)
             .single(),
           supabase
@@ -293,7 +295,10 @@ function TodayContent() {
 
         if (cancelled) return;
 
-        if (profileRes.data) setFirstName(profileRes.data.first_name ?? "");
+        if (profileRes.data) {
+          setFirstName(profileRes.data.first_name ?? "");
+          setIntendedUse(resolveIntendedUse(profileRes.data.intended_use));
+        }
         if (journalRes.data) setHasJournal(true);
         if (projectTasksRes.data) setProjectTasks(projectTasksRes.data as ProjectTask[]);
 
@@ -655,6 +660,7 @@ function TodayContent() {
 
   const allDone = completedHabitCount === dueHabits.length && doneTaskCount === tasks.length && dueHabits.length > 0 && tasks.length > 0 && hasJournal;
   const hasContent = habits.length > 0 || tasks.length > 0;
+  const copy = TODAY_COPY[intendedUse];
 
   if (loading) {
     return (
@@ -686,7 +692,7 @@ function TodayContent() {
   return (
     <div className="mx-auto max-w-5xl px-5 py-8 animate-fade-in">
 
-      <TodaysPulseHeader firstName={firstName} totalXp={totalXp} todayXp={todayXp} />
+      <TodaysPulseHeader firstName={firstName} totalXp={totalXp} todayXp={todayXp} subtitle={copy.subtitle} />
 
       {error && (
         <div className="mb-6 rounded-lg border border-[var(--danger)]/30 bg-[var(--danger)]/10 px-4 py-3 text-sm text-[var(--danger)]">
@@ -712,6 +718,7 @@ function TodayContent() {
         quickCapture={quickCapture}
         quickType={quickType}
         quickSaving={quickSaving}
+        focusPrompt={copy.focusPrompt}
         onPriorityInputChange={setPriorityInput}
         onAddPriority={addPriorityItem}
         onTogglePriority={togglePriorityItem}
@@ -811,9 +818,9 @@ function TodayContent() {
       {!hasContent && (
         <Card variant="elevated" className="mb-6 overflow-hidden">
           <div className="border-b border-[var(--border)] px-5 py-4">
-            <h2 className="text-base font-semibold text-[var(--text)]">Welcome to your Life OS</h2>
+            <h2 className="text-base font-semibold text-[var(--text)]">{copy.emptyTitle}</h2>
             <p className="mt-1 text-sm text-[var(--text-secondary)]">
-              This is your daily command center. Add a habit or task to get started.
+              {copy.emptyBody}
             </p>
           </div>
           <div className="flex items-center gap-4 px-5 py-3">

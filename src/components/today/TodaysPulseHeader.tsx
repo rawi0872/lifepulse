@@ -15,9 +15,10 @@ interface TodaysPulseHeaderProps {
   firstName: string;
   totalXp: number;
   todayXp: number;
+  subtitle: string;
 }
 
-export function TodaysPulseHeader({ firstName, totalXp, todayXp }: TodaysPulseHeaderProps) {
+export function TodaysPulseHeader({ firstName, totalXp, todayXp, subtitle }: TodaysPulseHeaderProps) {
   const { level, progressPercent } = getLevelInfo(totalXp);
 
   return (
@@ -30,7 +31,7 @@ export function TodaysPulseHeader({ firstName, totalXp, todayXp }: TodaysPulseHe
             </span>
             <div className="h-1 w-1 rounded-full bg-[var(--accent)]/40" />
             <span className="text-[10px] text-[var(--text-muted)] tracking-wider">
-              Life OS &middot; Mission Control
+              {subtitle}
             </span>
           </div>
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-[var(--text)]">

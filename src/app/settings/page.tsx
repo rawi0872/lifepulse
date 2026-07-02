@@ -12,14 +12,17 @@ import { ColorPicker } from "@/components/ColorPicker";
 import { InfoTip } from "@/components/InfoTip";
 import { HelpPopover } from "@/components/HelpPopover";
 import { useToast } from "@/hooks/use-toast";
+import { INTENDED_USE_OPTIONS, resolveIntendedUse, type IntendedUse } from "@/lib/intendedUse";
 
 export default function SettingsPage() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [birthDate, setBirthDate] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [intendedUse, setIntendedUse] = useState<IntendedUse>("personal");
   const [email, setEmail] = useState("");
   const [saving, setSaving] = useState(false);
+  const [savingSetup, setSavingSetup] = useState(false);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -51,7 +54,7 @@ export default function SettingsPage() {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("first_name, last_name, birth_date, display_name")
+        .select("first_name, last_name, birth_date, display_name, intended_use")
         .eq("user_id", user.id)
         .single();
 
@@ -61,6 +64,7 @@ export default function SettingsPage() {
         setLastName(profile.last_name ?? "");
         setBirthDate(profile.birth_date ?? "");
         setDisplayName(profile.display_name ?? "");
+        setIntendedUse(resolveIntendedUse(profile.intended_use));
       }
 
       const { data: realmData } = await supabase
@@ -102,6 +106,30 @@ export default function SettingsPage() {
     }
 
     toast({ type: "success", title: "Profile saved." });
+  }
+
+  async function saveSetupPreference() {
+    setSavingSetup(true);
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      setSavingSetup(false);
+      return;
+    }
+
+    const { error: updateError } = await supabase
+      .from("profiles")
+      .update({ intended_use: intendedUse })
+      .eq("user_id", user.id);
+
+    setSavingSetup(false);
+
+    if (updateError) {
+      toast({ type: "error", title: "Failed to save setup preference. Please try again." });
+      return;
+    }
+
+    toast({ type: "success", title: "Setup preference saved." });
   }
 
   async function handleLogout() {
@@ -320,6 +348,38 @@ export default function SettingsPage() {
                   {saving ? "Saving..." : "Save"}
                 </Button>
               </div>
+            </div>
+          </div>
+        </Card>
+
+        {/* Life Pulse setup */}
+        <Card className="mb-4 border-[var(--border-strong)]">
+          <div className="p-5">
+            <h3 className="mb-1 text-sm font-semibold text-[var(--text)]">Life Pulse setup</h3>
+            <p className="mb-4 text-xs leading-relaxed text-[var(--text-muted)]">
+              You can change this anytime. It adjusts Life Pulse&apos;s emphasis without deleting your data.
+            </p>
+
+            <label className="mb-1.5 block text-xs font-medium text-[var(--text-muted)]">Starting mode</label>
+            <select
+              value={intendedUse}
+              onChange={(e) => setIntendedUse(resolveIntendedUse(e.target.value))}
+              className="w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface-soft)] px-3 py-2 text-sm text-[var(--text)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none"
+            >
+              {INTENDED_USE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <p className="mt-2 text-xs text-[var(--text-muted)]">
+              This does not create or delete workspaces, permissions, CRM data, or modules.
+            </p>
+
+            <div className="mt-4 flex justify-end">
+              <Button size="sm" onClick={saveSetupPreference} disabled={savingSetup}>
+                {savingSetup ? "Saving..." : "Save setup"}
+              </Button>
             </div>
           </div>
         </Card>
