@@ -14,9 +14,11 @@ import { HelpPopover } from "@/components/HelpPopover";
 import { useToast } from "@/hooks/use-toast";
 import { INTENDED_USE_OPTIONS, resolveIntendedUse, type IntendedUse } from "@/lib/intendedUse";
 import {
+  getModulesByCategory,
   getModuleCategoryLabel,
   getModuleStatusLabel,
   getRecommendedModules,
+  type ModuleCategory,
   type ModuleStatus,
 } from "@/lib/modules";
 
@@ -25,6 +27,8 @@ const moduleStatusStyles: Record<ModuleStatus, string> = {
   preview: "border-[var(--accent)]/30 bg-[var(--accent-soft)] text-[var(--accent)]",
   planned: "border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)]",
 };
+
+const moduleCategoryOrder: readonly ModuleCategory[] = ["core", "personal", "business", "team", "devices", "ai"];
 
 export default function SettingsPage() {
   const [firstName, setFirstName] = useState("");
@@ -259,6 +263,7 @@ export default function SettingsPage() {
 
   const initials = (firstName?.[0] ?? "") + (lastName?.[0] ?? "");
   const recommendedModules = getRecommendedModules(intendedUse);
+  const modulesByCategory = getModulesByCategory();
 
   if (loading) {
     return (
@@ -417,22 +422,64 @@ export default function SettingsPage() {
               </span>
             </div>
 
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              {recommendedModules.map((module) => (
-                <div key={module.key} className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2.5">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <p className="text-sm font-medium text-[var(--text)]">{module.label}</p>
-                      <p className="mt-0.5 text-[10px] uppercase tracking-[0.12em] text-[var(--text-muted)]">
-                        {getModuleCategoryLabel(module.category)}
-                      </p>
-                    </div>
-                    <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-medium ${moduleStatusStyles[module.status]}`}>
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+              <h4 className="text-xs font-semibold text-[var(--text)]">Recommended for your starting mode</h4>
+              <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
+                These are the areas Life Pulse emphasizes based on your current setup. Nothing is locked.
+              </p>
+
+              <div className="mt-3 flex flex-wrap gap-2">
+                {recommendedModules.map((module) => (
+                  <span
+                    key={module.key}
+                    className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1.5 text-xs text-[var(--text)]"
+                  >
+                    {module.label}
+                    <span className={`rounded-full border px-1.5 py-0.5 text-[9px] font-medium ${moduleStatusStyles[module.status]}`}>
                       {getModuleStatusLabel(module.status)}
                     </span>
-                  </div>
-                </div>
-              ))}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+              <h4 className="text-xs font-semibold text-[var(--text)]">Full ecosystem roadmap</h4>
+              <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
+                This shows where Life Pulse is heading. Planned modules are not active yet.
+              </p>
+
+              <div className="mt-4 space-y-4">
+                {moduleCategoryOrder.map((category) => (
+                  <section key={category}>
+                    <h5 className="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
+                      {getModuleCategoryLabel(category)}
+                    </h5>
+                    <div className="space-y-2">
+                      {modulesByCategory[category].map((module) => (
+                        <div
+                          key={module.key}
+                          className={`rounded-lg border px-3 py-2.5 ${
+                            module.status === "planned"
+                              ? "border-[var(--border)] bg-[var(--surface)]/60"
+                              : "border-[var(--border)] bg-[var(--surface)]"
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <p className="text-sm font-medium text-[var(--text)]">{module.label}</p>
+                              <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">{module.description}</p>
+                            </div>
+                            <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-medium ${moduleStatusStyles[module.status]}`}>
+                              {getModuleStatusLabel(module.status)}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                ))}
+              </div>
             </div>
 
             <p className="mt-4 text-xs leading-relaxed text-[var(--text-muted)]">

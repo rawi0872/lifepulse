@@ -33,8 +33,19 @@ const EMAIL = env.LIFE_PULSE_TEST_EMAIL;
 const PASSWORD = env.LIFE_PULSE_TEST_PASSWORD;
 const ERROR_SCREENSHOT_PATH = "screenshot-settings-modules-prod-error.png";
 
-const requiredModuleLabels = ["Today", "Tasks", "Habits", "Journal", "Coach"];
-const conditionalModuleLabels = ["Devices", "Business", "Team", "Smartocaster"];
+const requiredModuleLabels = [
+  "Today",
+  "Tasks",
+  "Habits",
+  "Journal",
+  "Coach",
+  "Devices",
+  "Business",
+  "Team",
+  "Smartocaster",
+  "Wearables",
+  "Morning Briefing",
+];
 
 function requireConfig() {
   const missing = [];
@@ -56,10 +67,6 @@ function requireConfig() {
 
 function pass(label) {
   console.log(`  PASS ${label}`);
-}
-
-function info(label) {
-  console.log(`  INFO ${label}`);
 }
 
 async function failWithDiagnostics(page, error) {
@@ -118,6 +125,9 @@ async function main() {
     await expectBodyText(page, "Life Pulse setup");
     await expectBodyText(page, "Life Pulse modules");
     await expectBodyText(page, "Your starting mode recommends modules, but nothing is locked.");
+    await expectBodyText(page, "Recommended for your starting mode");
+    await expectBodyText(page, "Full ecosystem roadmap");
+    await expectBodyText(page, "This shows where Life Pulse is heading. Planned modules are not active yet.");
     await expectBodyText(page, "Available");
     await expectBodyText(page, "Preview");
     await expectBodyText(page, "Planned");
@@ -127,13 +137,6 @@ async function main() {
     }
 
     const bodyText = await page.locator("body").innerText({ timeout: 10000 });
-    for (const label of conditionalModuleLabels) {
-      if (bodyText.includes(label)) {
-        pass(`Found planned/conditional module label: ${label}`);
-      } else {
-        info(`Module label not rendered for current starting mode: ${label}`);
-      }
-    }
 
     if (bodyText.includes("Application error") || bodyText.includes("Failed to")) {
       throw new Error("Settings page loaded with an error state.");
