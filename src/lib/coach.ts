@@ -70,9 +70,8 @@ export function sortByPriority(insights: CoachInsight[]): CoachInsight[] {
   );
 }
 
-let insightCounter = 0;
-
 function insight(
+  counter: { n: number },
   title: string,
   message: string,
   category: CoachCategory,
@@ -83,7 +82,7 @@ function insight(
   ruleName: string
 ): CoachInsight {
   return {
-    id: `coach-${++insightCounter}`,
+    id: `coach-${++counter.n}`,
     title,
     message,
     category,
@@ -96,12 +95,24 @@ function insight(
 }
 
 export function getCoachInsights(data: CoachData): CoachInsight[] {
-  insightCounter = 0;
+  // counter is local — no shared mutable module state
+  const counter = { n: 0 };
   const results: CoachInsight[] = [];
 
+  // Helper that closes over the local counter
+  const mk = (
+    title: string,
+    message: string,
+    category: CoachCategory,
+    priority: CoachPriority,
+    actionLabel: string,
+    actionHref: string,
+    reason: string,
+    ruleName: string
+  ) => insight(counter, title, message, category, priority, actionLabel, actionHref, reason, ruleName);
   if (!data.bodyLoggedToday) {
     results.push(
-      insight(
+      mk(
         "Log your Body Pulse",
         "Consider logging today\u2019s energy, sleep, and overall body check-in to keep your Body Pulse streak going.",
         "body",
@@ -116,7 +127,7 @@ export function getCoachInsights(data: CoachData): CoachInsight[] {
 
   if (!data.mindLoggedToday) {
     results.push(
-      insight(
+      mk(
         "Check in with Mind Pulse",
         "A useful next step could be noting your mood and focus levels for today.",
         "mind",
@@ -131,7 +142,7 @@ export function getCoachInsights(data: CoachData): CoachInsight[] {
 
   if (data.hasHighPriorityTasks) {
     results.push(
-      insight(
+      mk(
         "Focus on a high-priority task",
         "You have high-priority tasks waiting. Consider tackling one now.",
         "tasks",
@@ -146,7 +157,7 @@ export function getCoachInsights(data: CoachData): CoachInsight[] {
 
   if (data.hasGoalWithoutLinks) {
     results.push(
-      insight(
+      mk(
         "Connect your goal to action",
         "Consider linking your goal to a project, task, or habit to make progress measurable.",
         "goals",
@@ -161,7 +172,7 @@ export function getCoachInsights(data: CoachData): CoachInsight[] {
 
   if (!data.hasJournalToday && data.hasContent) {
     results.push(
-      insight(
+      mk(
         "Write a short reflection",
         "A brief journal entry at the end of the day can help you process what happened.",
         "general",
@@ -176,7 +187,7 @@ export function getCoachInsights(data: CoachData): CoachInsight[] {
 
   if (!data.hasActivePassions) {
     results.push(
-      insight(
+      mk(
         "Add a passion or hobby",
         "Consider adding an activity you enjoy outside of work and responsibilities.",
         "passions",
@@ -185,11 +196,11 @@ export function getCoachInsights(data: CoachData): CoachInsight[] {
         "/passions",
         "No passions or hobbies registered",
         "no_passions"
-    )
+      )
     );
   } else if (!data.hasPassionSessionThisWeek) {
     results.push(
-      insight(
+      mk(
         "Log a passion practice session",
         "Spending even 15 minutes on a passion activity can improve your sense of balance.",
         "passions",
@@ -204,7 +215,7 @@ export function getCoachInsights(data: CoachData): CoachInsight[] {
 
   if (!data.hasWorkoutThisWeek) {
     results.push(
-      insight(
+      mk(
         "Log a workout this week",
         "Consider planning or logging one workout session for this week.",
         "body",
@@ -219,7 +230,7 @@ export function getCoachInsights(data: CoachData): CoachInsight[] {
 
   if (!data.hasNutritionToday) {
     results.push(
-      insight(
+      mk(
         "Log today\u2019s nutrition",
         "If you haven\u2019t already, consider noting what you ate and your water intake.",
         "body",
@@ -234,7 +245,7 @@ export function getCoachInsights(data: CoachData): CoachInsight[] {
 
   if (data.dayOfWeek === 1) {
     results.push(
-      insight(
+      mk(
         "Plan your week ahead",
         "Mondays are a good time to set intentions and plan your week.",
         "weekly_review",
@@ -247,7 +258,7 @@ export function getCoachInsights(data: CoachData): CoachInsight[] {
     );
   } else if (data.dayOfWeek >= 4 && data.dayOfWeek <= 6) {
     results.push(
-      insight(
+      mk(
         "Review your week",
         "Late week is a good time to reflect on what went well and what to adjust.",
         "weekly_review",
@@ -262,7 +273,7 @@ export function getCoachInsights(data: CoachData): CoachInsight[] {
 
   if (!data.hasFinanceData) {
     results.push(
-      insight(
+      mk(
         "Add your first transaction",
         "Consider adding a transaction or category to start tracking your finances.",
         "finance",
@@ -277,7 +288,7 @@ export function getCoachInsights(data: CoachData): CoachInsight[] {
 
   if (!data.hasKnowledgeItems) {
     results.push(
-      insight(
+      mk(
         "Save an important idea or resource",
         "Consider capturing a useful resource, article, or idea in your Knowledge system.",
         "knowledge",
@@ -290,7 +301,7 @@ export function getCoachInsights(data: CoachData): CoachInsight[] {
     );
   } else if (!data.hasKnowledgeCollections) {
     results.push(
-      insight(
+      mk(
         "Create a knowledge collection",
         "Group related knowledge items into collections to keep things organized.",
         "knowledge",
