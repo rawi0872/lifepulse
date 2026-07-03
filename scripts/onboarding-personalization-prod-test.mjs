@@ -178,6 +178,14 @@ async function completeOnboarding(page) {
 
   await page.locator('button:has-text("Personal life")').first().click();
   pass("Selected Personal life");
+  await waitForVisibleText(page, "Recommended starting areas");
+  await waitForBodyToContain(page, "Life Pulse will emphasize these areas first");
+  for (const moduleLabel of ["Today", "Habits", "Journal", "Goals"]) {
+    await waitForVisibleText(page, moduleLabel);
+  }
+  await waitForBodyToContain(page, "Available");
+  await waitForBodyToContain(page, "Preview");
+  pass("Personal setup module recommendation preview is visible");
   await clickContinue(page);
 
   await waitForVisibleText(page, "These are the areas your progress will be organized around");
