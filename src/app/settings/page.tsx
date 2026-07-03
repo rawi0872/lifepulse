@@ -13,6 +13,18 @@ import { InfoTip } from "@/components/InfoTip";
 import { HelpPopover } from "@/components/HelpPopover";
 import { useToast } from "@/hooks/use-toast";
 import { INTENDED_USE_OPTIONS, resolveIntendedUse, type IntendedUse } from "@/lib/intendedUse";
+import {
+  getModuleCategoryLabel,
+  getModuleStatusLabel,
+  getRecommendedModules,
+  type ModuleStatus,
+} from "@/lib/modules";
+
+const moduleStatusStyles: Record<ModuleStatus, string> = {
+  available: "border-[var(--success)]/30 bg-[var(--success-soft)] text-[var(--success)]",
+  preview: "border-[var(--accent)]/30 bg-[var(--accent-soft)] text-[var(--accent)]",
+  planned: "border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)]",
+};
 
 export default function SettingsPage() {
   const [firstName, setFirstName] = useState("");
@@ -246,6 +258,7 @@ export default function SettingsPage() {
   }
 
   const initials = (firstName?.[0] ?? "") + (lastName?.[0] ?? "");
+  const recommendedModules = getRecommendedModules(intendedUse);
 
   if (loading) {
     return (
@@ -381,6 +394,50 @@ export default function SettingsPage() {
                 {savingSetup ? "Saving..." : "Save setup"}
               </Button>
             </div>
+          </div>
+        </Card>
+
+        {/* Module configuration foundation */}
+        <Card className="mb-4 border-[var(--border-strong)]">
+          <div className="p-5">
+            <h3 className="mb-1 text-sm font-semibold text-[var(--text)]">Life Pulse modules</h3>
+            <p className="mb-4 text-xs leading-relaxed text-[var(--text-muted)]">
+              Your starting mode recommends modules, but nothing is locked. Available modules work today. Preview modules are early or lightweight. Planned modules show where the ecosystem is heading.
+            </p>
+
+            <div className="mb-3 flex flex-wrap gap-2">
+              <span className="inline-flex items-center rounded-full border border-[var(--success)]/30 bg-[var(--success-soft)] px-2 py-1 text-[10px] font-medium text-[var(--success)]">
+                Available
+              </span>
+              <span className="inline-flex items-center rounded-full border border-[var(--accent)]/30 bg-[var(--accent-soft)] px-2 py-1 text-[10px] font-medium text-[var(--accent)]">
+                Preview
+              </span>
+              <span className="inline-flex items-center rounded-full border border-[var(--border)] bg-[var(--surface)] px-2 py-1 text-[10px] font-medium text-[var(--text-muted)]">
+                Planned
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {recommendedModules.map((module) => (
+                <div key={module.key} className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-medium text-[var(--text)]">{module.label}</p>
+                      <p className="mt-0.5 text-[10px] uppercase tracking-[0.12em] text-[var(--text-muted)]">
+                        {getModuleCategoryLabel(module.category)}
+                      </p>
+                    </div>
+                    <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-medium ${moduleStatusStyles[module.status]}`}>
+                      {getModuleStatusLabel(module.status)}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <p className="mt-4 text-xs leading-relaxed text-[var(--text-muted)]">
+              Planned modules are not active yet. This does not create workspaces, team permissions, CRM tools, device sync, AI memory, or database module preferences.
+            </p>
           </div>
         </Card>
 
