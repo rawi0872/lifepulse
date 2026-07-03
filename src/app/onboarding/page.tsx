@@ -11,6 +11,7 @@ import { FeatureTour } from "@/components/onboarding/FeatureTour";
 import { DailyLoopGrid } from "@/components/onboarding/DailyLoopGrid";
 import { FinalSummary } from "@/components/onboarding/FinalSummary";
 import { INTENDED_USE_OPTIONS, type IntendedUse } from "@/lib/intendedUse";
+import { getModuleStatusLabel, getRecommendedModules, type ModuleKey, type ModuleStatus } from "@/lib/modules";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -24,6 +25,19 @@ const DEFAULT_REALMS = [
 ] as const;
 
 const STEP_LABELS = ["Welcome", "Setup", "Life Areas", "Daily Loop", "Start"];
+
+const MODULE_PREVIEW_KEYS: Record<IntendedUse, readonly ModuleKey[]> = {
+  personal: ["today", "habits", "journal", "goals", "body", "mind", "coach", "weeklyReview"],
+  business: ["today", "tasks", "projects", "goals", "finance", "knowledge", "business", "clients"],
+  team: ["today", "tasks", "projects", "goals", "knowledge", "team", "members", "decisions"],
+  mixed: ["today", "tasks", "habits", "journal", "projects", "finance", "business", "clients"],
+};
+
+const moduleStatusStyles: Record<ModuleStatus, string> = {
+  available: "border-[var(--success)]/30 bg-[var(--success-soft)] text-[var(--success)]",
+  preview: "border-[var(--accent)]/30 bg-[var(--accent-soft)] text-[var(--accent)]",
+  planned: "border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)]",
+};
 
 const STEP_LEFT = [
   {
@@ -101,6 +115,43 @@ function IntendedUseCards({
         );
       })}
     </div>
+  );
+}
+
+function ModuleRecommendationPreview({ intendedUse }: { intendedUse: IntendedUse }) {
+  const modulesByKey = new Map(getRecommendedModules(intendedUse).map((module) => [module.key, module]));
+  const previewModules = MODULE_PREVIEW_KEYS[intendedUse]
+    .map((key) => modulesByKey.get(key))
+    .filter((module): module is NonNullable<typeof module> => Boolean(module));
+
+  return (
+    <section className="max-w-2xl rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-4 animate-fade-in">
+      <div className="mb-3">
+        <h3 className="text-sm font-semibold text-[var(--text)]">Recommended starting areas</h3>
+        <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
+          Life Pulse will emphasize these areas first. Nothing is locked, and planned modules are roadmap items only.
+        </p>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {previewModules.map((module) => (
+          <span
+            key={module.key}
+            className={cn(
+              "inline-flex items-center gap-2 rounded-full border px-2.5 py-1.5 text-xs transition-colors",
+              module.status === "planned"
+                ? "border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)]"
+                : "border-[var(--border)] bg-[var(--surface)] text-[var(--text)]",
+            )}
+          >
+            {module.label}
+            <span className={`rounded-full border px-1.5 py-0.5 text-[9px] font-medium ${moduleStatusStyles[module.status]}`}>
+              {getModuleStatusLabel(module.status)}
+            </span>
+          </span>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -565,6 +616,8 @@ export default function OnboardingPage() {
               </div>
 
               <IntendedUseCards selected={intendedUse} onSelect={(value) => { setIntendedUse(value); setError(null); }} />
+
+              {intendedUse && <ModuleRecommendationPreview intendedUse={intendedUse} />}
 
               {error && (
                 <div className="rounded-lg border border-[var(--danger-soft)] bg-[var(--danger-soft)] px-4 py-3 text-sm text-[var(--danger)]" role="alert">
