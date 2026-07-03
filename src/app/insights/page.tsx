@@ -8,6 +8,7 @@ import { DashboardNav } from "@/components/DashboardNav";
 import { Card } from "@/components/ui/card";
 import { getTodayDateString, getWeekStartDate } from "@/lib/utils";
 import { getLevelInfo, getOverallTitle } from "@/lib/levels";
+import { formatMoney } from "@/lib/config";
 import { HelpPopover } from "@/components/HelpPopover";
 import { getCurrentStreak, getBestStreak } from "@/lib/streaks";
 import {
@@ -452,21 +453,21 @@ export default function InsightsPage() {
               <Card variant="default" className="flex flex-col p-4 min-h-[100px]">
                 <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Income</p>
                 <p className="mt-2 text-2xl font-bold text-green-400">
-                  {new Intl.NumberFormat("en-US", { style: "currency", currency: "ILS", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(financeIncome)}
+                  {formatMoney(financeIncome)}
                 </p>
                 <p className="mt-auto pt-2 text-[10px] text-[var(--text-muted)]">This month</p>
               </Card>
               <Card variant="default" className="flex flex-col p-4 min-h-[100px]">
                 <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Expenses</p>
                 <p className="mt-2 text-2xl font-bold text-red-400">
-                  {new Intl.NumberFormat("en-US", { style: "currency", currency: "ILS", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(financeExpense)}
+                  {formatMoney(financeExpense)}
                 </p>
                 <p className="mt-auto pt-2 text-[10px] text-[var(--text-muted)]">This month</p>
               </Card>
               <Card variant="default" className="flex flex-col p-4 min-h-[100px]">
                 <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Net</p>
                 <p className={`mt-2 text-2xl font-bold ${financeNet >= 0 ? "text-green-400" : "text-red-400"}`}>
-                  {new Intl.NumberFormat("en-US", { style: "currency", currency: "ILS", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(financeNet)}
+                  {formatMoney(financeNet)}
                 </p>
                 <p className="mt-auto pt-2 text-[10px] text-[var(--text-muted)]">Cashflow</p>
               </Card>

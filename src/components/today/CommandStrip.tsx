@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { MetricCard } from "@/components/ui/metric-card";
+import { formatMoney } from "@/lib/config";
 
 interface CommandStripProps {
   completedHabitCount: number;
@@ -69,7 +70,7 @@ export function CommandStrip({
       <Link href="/finance" className="contents">
         <MetricCard
           label="Money"
-          value={financeHasTx && financeNet !== null ? new Intl.NumberFormat("en-US", { style: "currency", currency: "ILS", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(financeNet) : "\u2014"}
+          value={financeHasTx && financeNet !== null ? formatMoney(financeNet) : "\u2014"}
           active={financeHasTx}
           trend={financeNet !== null && financeNet < 0 ? "down" : financeNet !== null && financeNet >= 0 ? "up" : undefined}
           icon={

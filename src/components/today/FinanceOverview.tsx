@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { formatMoney } from "@/lib/config";
 
 interface FinanceOverviewProps {
   financeNet: number | null;
@@ -16,7 +17,7 @@ export function FinanceOverview({ financeNet, financeHasTx }: FinanceOverviewPro
       >
         <span className="text-xs font-medium text-[var(--text-muted)]">Money this month</span>
         <span className={`text-xs font-semibold ${financeNet >= 0 ? "text-[var(--success)]" : "text-[var(--danger)]"}`}>
-          {new Intl.NumberFormat("en-US", { style: "currency", currency: "ILS", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(financeNet)}
+          {formatMoney(financeNet)}
         </span>
       </Link>
     );

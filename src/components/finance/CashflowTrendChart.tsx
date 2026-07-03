@@ -86,7 +86,7 @@ export function CashflowTrendChart({ data }: CashflowTrendChartProps) {
                 className="text-[10px]"
                 fill="var(--text-muted)"
               >
-                {formatCurrency(i * yStepSize, "ILS").replace(/\.00$/, "")}
+                {formatCurrency(i * yStepSize).replace(/\.00$/, "")}
               </text>
             </g>
           );

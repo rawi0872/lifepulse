@@ -9,19 +9,10 @@ import type {
   FinanceAnalytics,
   AccountBalance,
 } from "./types";
+import { formatMoney, getAppCurrency } from "@/lib/config";
 
-export function formatCurrency(amount: number, currency = "ILS"): string {
-  if (typeof amount !== "number" || isNaN(amount)) return "₪0.00";
-  try {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency,
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(amount);
-  } catch {
-    return `₪${amount.toFixed(2)}`;
-  }
+export function formatCurrency(amount: number, currency = getAppCurrency()): string {
+  return formatMoney(amount, 2, currency);
 }
 
 export function getMonthRange(date: Date): { start: string; end: string; label: string } {
