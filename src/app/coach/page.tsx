@@ -123,13 +123,16 @@ function CoachContent() {
 
   const topPriority = getHighestPriority(insights);
 
-  const areaBreakdowns: { label: string; icon: string; category: string; ok: boolean }[] = [
-    { label: "Body", icon: "\u{1F3CB}", category: "body", ok: true },
-    { label: "Mind", icon: "\u{1F9E0}", category: "mind", ok: true },
-    { label: "Goals", icon: "\u{1F3AF}", category: "goals", ok: true },
-    { label: "Passions", icon: "\u{2B50}", category: "passions", ok: true },
-    { label: "Knowledge", icon: "\u{1F4DA}", category: "knowledge", ok: true },
-    { label: "Finance", icon: "\u{1F4B0}", category: "finance", ok: true },
+  const areaBreakdowns: { label: string; icon: string; category: string }[] = [
+    { label: "Body", icon: "\u{1F3CB}", category: "body" },
+    { label: "Mind", icon: "\u{1F9E0}", category: "mind" },
+    { label: "Tasks", icon: "\u2713", category: "tasks" },
+    { label: "Goals", icon: "\u{1F3AF}", category: "goals" },
+    { label: "Reflection", icon: "\u270E", category: "general" },
+    { label: "Passions", icon: "\u{2B50}", category: "passions" },
+    { label: "Knowledge", icon: "\u{1F4DA}", category: "knowledge" },
+    { label: "Finance", icon: "\u{1F4B0}", category: "finance" },
+    { label: "Weekly Review", icon: "\u21BB", category: "weekly_review" },
   ];
 
   const categoryHasIssues = (cat: string) => insights.some((i) => i.category === cat);
@@ -138,9 +141,9 @@ function CoachContent() {
     <div className="mx-auto max-w-4xl px-5 py-8 animate-fade-in">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[var(--text)]">Coach</h1>
+        <h1 className="text-2xl font-bold text-[var(--text)]">Life Pulse Coach</h1>
         <p className="mt-1 text-sm text-[var(--text-muted)]">
-          Rule-based recommendations based on your logged data.{" "}
+          Transparent, rule-based recommendations from your current Life Pulse signals.{" "}
           {topPriority && (
             <span className="text-[var(--accent)]">
               Highest priority: {topPriority}
@@ -186,18 +189,54 @@ function CoachContent() {
       </div>
 
       <p className="mb-6 text-xs text-[var(--text-muted)]">
-        Coach is currently rule-based. It analyzes your logged data against simple rules.
-        AI-powered summaries are not yet enabled.
+        Coach is currently rule-based. It checks logged activity, missing check-ins,
+        weekly rhythm, and time-sensitive patterns. No AI summaries, AI memory, or
+        external APIs are enabled.
       </p>
+
+      <section className="mb-8">
+        <div className="mb-3 flex items-center gap-2">
+          <span className="h-4 w-1 rounded-full bg-gradient-to-b from-[var(--accent)] to-[var(--accent-strong)]" />
+          <h2 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">
+            Connected workflow
+          </h2>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <Link
+            href="/today"
+            className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-4 transition-colors hover:bg-[var(--surface)]"
+          >
+            <p className="text-sm font-semibold text-[var(--text)]">Open Today</p>
+            <p className="mt-1 text-xs text-[var(--text-muted)]">Turn recommendations into today&apos;s priorities.</p>
+          </Link>
+          <Link
+            href="/weekly-review"
+            className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-4 transition-colors hover:bg-[var(--surface)]"
+          >
+            <p className="text-sm font-semibold text-[var(--text)]">Run Weekly Review</p>
+            <p className="mt-1 text-xs text-[var(--text-muted)]">Reflect and choose next week&apos;s focus.</p>
+          </Link>
+          <Link
+            href="/insights"
+            className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-4 transition-colors hover:bg-[var(--surface)]"
+          >
+            <p className="text-sm font-semibold text-[var(--text)]">Open Insights</p>
+            <p className="mt-1 text-xs text-[var(--text-muted)]">See the patterns behind your recommendations.</p>
+          </Link>
+        </div>
+      </section>
 
       {/* 2. Recommended Next Actions */}
       <section className="mb-8">
         <div className="mb-3 flex items-center gap-2">
           <span className="h-4 w-1 rounded-full bg-gradient-to-b from-[var(--accent)] to-[var(--accent-strong)]" />
           <h2 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">
-            Recommended Next Actions
+            Recommended next actions
           </h2>
         </div>
+        <p className="mb-3 text-xs text-[var(--text-muted)]">
+          Start with the highest-priority action, then use Today to turn it into a concrete plan.
+        </p>
 
         {insights.length === 0 ? (
           <Card variant="subtle" className="border-dashed border-[var(--border)]">
@@ -207,7 +246,7 @@ function CoachContent() {
               </svg>
               <p className="text-sm text-[var(--text-muted)]">All areas look good!</p>
               <p className="mt-1 text-xs text-[var(--text-muted)]">
-                No recommendations right now. Keep up the momentum.
+                No recommendations right now. Review Today, run a Weekly Review, or keep logging habits, tasks, and check-ins.
               </p>
             </div>
           </Card>
@@ -249,20 +288,23 @@ function CoachContent() {
         )}
       </section>
 
-      {/* 3. Area Breakdown */}
+      {/* 3. Signal Breakdown */}
       <section className="mb-8">
         <div className="mb-3 flex items-center gap-2">
           <span className="h-4 w-1 rounded-full bg-gradient-to-b from-[var(--accent)] to-[var(--accent-strong)]" />
           <h2 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">
-            Area Breakdown
+            Signal breakdown
           </h2>
         </div>
+        <p className="mb-3 text-xs text-[var(--text-muted)]">
+          See which parts of your ecosystem are generating recommendations.
+        </p>
 
         {!hasContent && (
           <Card variant="subtle" className="mb-4 border-dashed border-[var(--border)]">
             <div className="p-4 text-center">
               <p className="text-xs text-[var(--text-muted)]">
-                Start by adding a habit or task. The Coach will analyze your data once you have some.
+                Start by adding habits, tasks, check-ins, or a weekly review. Coach will analyze your logged data once you have some.
               </p>
             </div>
           </Card>
@@ -322,20 +364,19 @@ function CoachContent() {
         <div className="mb-3 flex items-center gap-2">
           <span className="h-4 w-1 rounded-full bg-gradient-to-b from-[var(--accent)] to-[var(--accent-strong)]" />
           <h2 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">
-            How Coach Works
+            Transparent rule engine
           </h2>
         </div>
-        <PulseCard title="Rule-Based Engine" accent="none" variant="subtle">
+        <PulseCard title="Rule-based guidance" accent="none" variant="subtle">
           <div className="px-4 py-3 space-y-2">
             <p className="text-xs text-[var(--text-secondary)]">
               Life Pulse Coach currently uses simple rules based on your logged data.
-              It checks what is missing, incomplete, or time-sensitive and suggests a
-              helpful next action. No AI or external APIs are used.
+              It checks logged activity, missing check-ins, weekly rhythm, and
+              time-sensitive patterns to suggest a helpful next action.
             </p>
             <p className="text-xs text-[var(--text-muted)]">
-              AI-powered summaries and personalized coaching will be considered in a
-              future phase. For now, everything is transparent, deterministic, and
-              based only on your data.
+              No AI summaries, AI memory, or external APIs are enabled. For now,
+              everything is transparent, deterministic, and based only on your data.
             </p>
             <div className="pt-1">
               <p className="text-[10px] font-medium text-[var(--text-muted)]">
