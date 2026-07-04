@@ -32,7 +32,7 @@ export function BodyProInsights() {
 
       const [workoutRes, nutritionRes, measurementRes, healthRes] = await Promise.all([
         supabase.from("workouts").select("duration_minutes").eq("user_id", user.id).gte("workout_date", weekStart),
-        supabase.from("nutrition_logs").select("calories, protein_g").eq("user_id", user.id).gte("log_date", sevenDaysAgo).lte("log_date", todayStr),
+        supabase.from("nutrition_logs").select("log_date, calories, protein_g").eq("user_id", user.id).gte("log_date", sevenDaysAgo).lte("log_date", todayStr),
         supabase.from("body_measurements").select("weight_kg").eq("user_id", user.id).order("measurement_date", { ascending: false }).limit(1),
         supabase.from("health_notes").select("id", { count: "exact", head: true }).eq("user_id", user.id),
       ]);
