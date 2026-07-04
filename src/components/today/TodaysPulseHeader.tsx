@@ -27,7 +27,7 @@ export function TodaysPulseHeader({ firstName, totalXp, todayXp, subtitle }: Tod
         <div>
           <div className="flex items-center gap-2">
             <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--accent)]">
-              Today&apos;s Pulse
+              Today Command Center
             </span>
             <div className="h-1 w-1 rounded-full bg-[var(--accent)]/40" />
             <span className="text-[10px] text-[var(--text-muted)] tracking-wider">
@@ -39,8 +39,8 @@ export function TodaysPulseHeader({ firstName, totalXp, todayXp, subtitle }: Tod
           </h1>
           <div className="mt-0.5 flex items-center gap-2 text-sm text-[var(--text-muted)]">
             {formatDate(new Date())}
-            <HelpPopover title="Today's Pulse">
-              <p>This is your Life OS command center. Set priorities, complete habits and tasks, then reflect in the evening to keep your life in motion.</p>
+            <HelpPopover title="Today Command Center">
+              <p>Use Today to choose priorities, capture incoming work, complete the next actions, and keep your active Life Pulse areas visible.</p>
             </HelpPopover>
           </div>
           <div className="mt-1.5 flex items-center gap-3">

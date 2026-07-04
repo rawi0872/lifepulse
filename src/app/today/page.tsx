@@ -25,7 +25,9 @@ import { BodyPulseSection } from "@/components/today/BodyPulseSection";
 import { MindPulseSection } from "@/components/today/MindPulseSection";
 import { FinanceOverview } from "@/components/today/FinanceOverview";
 import { NextBestAction } from "@/components/today/NextBestAction";
+import { TodayEcosystemStrip } from "@/components/today/TodayEcosystemStrip";
 import { resolveIntendedUse, TODAY_COPY, type IntendedUse } from "@/lib/intendedUse";
+import { getRecommendedModules } from "@/lib/modules";
 
 interface RealmInfo {
   name: string;
@@ -661,6 +663,9 @@ function TodayContent() {
   const allDone = completedHabitCount === dueHabits.length && doneTaskCount === tasks.length && dueHabits.length > 0 && tasks.length > 0 && hasJournal;
   const hasContent = habits.length > 0 || tasks.length > 0;
   const copy = TODAY_COPY[intendedUse];
+  const ecosystemModules = getRecommendedModules(intendedUse)
+    .filter((module) => module.href && module.status !== "planned")
+    .slice(0, 8);
 
   if (loading) {
     return (
@@ -711,6 +716,8 @@ function TodayContent() {
         financeHasTx={financeHasTx}
       />
 
+      <TodayEcosystemStrip modules={ecosystemModules} />
+
       <MissionControl
         priorities={priorities}
         priorityInput={priorityInput}
@@ -760,7 +767,7 @@ function TodayContent() {
               </svg>
             </button>
             <div className="flex-1 min-w-0">
-              <p className="text-[10px] font-medium tracking-wider text-[var(--accent)]">&rarr; Next action</p>
+              <p className="text-[10px] font-medium tracking-wider text-[var(--accent)]">Project next action</p>
               <p className="text-sm font-medium text-[var(--text)] truncate">{suggestedTask.title}</p>
               <div className="flex items-center gap-2 mt-0.5">
                 <span className="text-[10px] text-[var(--text-muted)]">From: {suggestedTask.projects.title}</span>
@@ -790,7 +797,7 @@ function TodayContent() {
       ) : hasContent ? (
         <Card variant="subtle" className="mb-4 border-dashed border-[var(--border)]">
           <div className="px-4 py-3">
-            <p className="text-[10px] font-medium text-[var(--text-muted)]">No next action</p>
+            <p className="text-[10px] font-medium text-[var(--text-muted)]">No project action queued</p>
             <p className="mt-0.5 text-xs text-[var(--text-muted)]">
               No project action waiting.{' '}
               <Link href="/tasks" className="text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">
@@ -840,7 +847,17 @@ function TodayContent() {
         </Card>
       )}
 
-      {/* Main grid */}
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">
+            Daily execution
+          </p>
+          <p className="mt-0.5 text-xs text-[var(--text-muted)]">
+            Complete the habits, tasks, and context checks that keep today moving.
+          </p>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
         <div className="space-y-6 md:col-span-2">
           <BodyPulseSection
@@ -862,6 +879,8 @@ function TodayContent() {
         </div>
 
         <div className="space-y-4">
+          <SectionHeader label="Life Pulse context" />
+
           <XpDisplay
             totalXp={totalXp}
             todayXp={todayXp}
