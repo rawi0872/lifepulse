@@ -12,6 +12,8 @@ export function BodyProInsights() {
     weeklyMinutes: number;
     avgDailyProtein: number | null;
     avgDailyCalories: number | null;
+    nutritionDays: number;
+    totalWaterMl: number;
     latestWeight: number | null;
     healthNoteCount: number;
   } | null>(null);
@@ -32,7 +34,7 @@ export function BodyProInsights() {
 
       const [workoutRes, nutritionRes, measurementRes, healthRes] = await Promise.all([
         supabase.from("workouts").select("duration_minutes").eq("user_id", user.id).gte("workout_date", weekStart),
-        supabase.from("nutrition_logs").select("log_date, calories, protein_g").eq("user_id", user.id).gte("log_date", sevenDaysAgo).lte("log_date", todayStr),
+        supabase.from("nutrition_logs").select("log_date, calories, protein_g, water_ml").eq("user_id", user.id).gte("log_date", sevenDaysAgo).lte("log_date", todayStr),
         supabase.from("body_measurements").select("weight_kg").eq("user_id", user.id).order("measurement_date", { ascending: false }).limit(1),
         supabase.from("health_notes").select("id", { count: "exact", head: true }).eq("user_id", user.id),
       ]);
@@ -40,17 +42,20 @@ export function BodyProInsights() {
       if (cancelled) return;
 
       const workouts = (workoutRes.data ?? []) as { duration_minutes?: number | null }[];
-      const nutritionLogs = (nutritionRes.data ?? []) as { calories?: number | null; protein_g?: number | null; log_date?: string }[];
+      const nutritionLogs = (nutritionRes.data ?? []) as { calories?: number | null; protein_g?: number | null; water_ml?: number | null; log_date?: string }[];
 
-      const daysWithData = new Set(nutritionLogs.map((l) => l.log_date ?? "")).size;
+      const daysWithData = new Set(nutritionLogs.map((l) => l.log_date).filter(Boolean)).size;
       const totalCalories = nutritionLogs.reduce((s, l) => s + (l.calories ?? 0), 0);
       const totalProtein = nutritionLogs.reduce((s, l) => s + (l.protein_g ?? 0), 0);
+      const totalWater = nutritionLogs.reduce((s, l) => s + (l.water_ml ?? 0), 0);
 
       setData({
         weeklyWorkouts: workouts.length,
         weeklyMinutes: workouts.reduce((s, w) => s + (w.duration_minutes ?? 0), 0),
         avgDailyCalories: daysWithData > 0 ? Math.round(totalCalories / daysWithData) : null,
         avgDailyProtein: daysWithData > 0 ? Math.round((totalProtein / daysWithData) * 10) / 10 : null,
+        nutritionDays: daysWithData,
+        totalWaterMl: totalWater,
         latestWeight: ((measurementRes.data ?? []) as { weight_kg?: number | null }[])[0]?.weight_kg ?? null,
         healthNoteCount: healthRes.count ?? 0,
       });
@@ -61,6 +66,8 @@ export function BodyProInsights() {
   }, [supabase]);
 
   if (!data) return null;
+
+  const waterLiters = Math.round((data.totalWaterMl / 1000) * 10) / 10;
 
   return (
     <Card className="p-4">
@@ -91,6 +98,25 @@ export function BodyProInsights() {
           </p>
           <p className="text-[10px] text-[var(--text-muted)]">Weight kg</p>
           <p className="text-[9px] text-[var(--text-muted)]">{data.healthNoteCount} health notes</p>
+        </div>
+      </div>
+      <div className="mt-4 grid grid-cols-3 gap-3 border-t border-[var(--border)] pt-3">
+        <div className="text-center">
+          <p className="text-sm font-bold text-[var(--text)]">{data.nutritionDays} / 7</p>
+          <p className="text-[10px] text-[var(--text-muted)]">Nutrition days</p>
+          <p className="text-[9px] text-[var(--text-muted)]">Days with at least one meal or water log.</p>
+        </div>
+        <div className="text-center">
+          <p className="text-sm font-bold text-[var(--text)]">{formatNumber(waterLiters, 1)} L</p>
+          <p className="text-[10px] text-[var(--text-muted)]">Water logged</p>
+          <p className="text-[9px] text-[var(--text-muted)]">Total water recorded in recent nutrition logs.</p>
+        </div>
+        <div className="text-center">
+          <p className="text-sm font-bold text-[var(--text)]">
+            {data.avgDailyProtein !== null ? `${formatNumber(data.avgDailyProtein, 0)} g/day` : "No logs yet"}
+          </p>
+          <p className="text-[10px] text-[var(--text-muted)]">Protein avg</p>
+          <p className="text-[9px] text-[var(--text-muted)]">Average across days with nutrition logs.</p>
         </div>
       </div>
     </Card>
