@@ -12,7 +12,8 @@
     "test:prod:onboarding": "node scripts/onboarding-personalization-prod-test.mjs",
     "test:prod:settings-modules": "node scripts/settings-modules-prod-test.mjs",
     "test:prod:today": "node scripts/today-command-center-prod-test.mjs",
-    "test:prod:weekly-insights": "node scripts/weekly-insights-prod-test.mjs"
+    "test:prod:weekly-insights": "node scripts/weekly-insights-prod-test.mjs",
+    "test:prod:coach": "node scripts/coach-prod-test.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",
