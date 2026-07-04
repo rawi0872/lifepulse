@@ -13,7 +13,8 @@
     "test:prod:settings-modules": "node scripts/settings-modules-prod-test.mjs",
     "test:prod:today": "node scripts/today-command-center-prod-test.mjs",
     "test:prod:weekly-insights": "node scripts/weekly-insights-prod-test.mjs",
-    "test:prod:coach": "node scripts/coach-prod-test.mjs"
+    "test:prod:coach": "node scripts/coach-prod-test.mjs",
+    "test:prod:navigation": "node scripts/navigation-prod-test.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",
