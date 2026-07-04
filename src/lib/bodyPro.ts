@@ -1,3 +1,27 @@
+export const ACTIVITY_LEVELS = ["sedentary", "light", "moderate", "active", "very_active"] as const;
+
+export type ActivityLevel = (typeof ACTIVITY_LEVELS)[number];
+
+export interface BodyProfile {
+  id: string;
+  user_id: string;
+  height_cm: number | null;
+  target_weight_kg: number | null;
+  activity_level: ActivityLevel | null;
+  body_goal: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BodyProfileFormData {
+  height_cm: number | null;
+  target_weight_kg: number | null;
+  activity_level: ActivityLevel | null;
+  body_goal: string;
+  notes: string;
+}
+
 export interface Workout {
   id: string;
   user_id: string;

@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { BodyMetricsForm } from "@/components/body/BodyMetricsForm";
 import { BodyMetricsAverages } from "@/components/body/BodyMetricsAverages";
 import { BodyMetricsSummary } from "@/components/body/BodyMetricsSummary";
+import { BodyProfileCard } from "@/components/body/BodyProfileCard";
 import type { BodyMetrics, BodyMetricsFormData } from "@/lib/bodyMetrics";
 import { formatNumber, type NutritionLog, type HealthNote } from "@/lib/bodyPro";
 
@@ -45,6 +46,8 @@ export function BodyProOverview({
 
   return (
     <div className="space-y-6">
+      <BodyProfileCard />
+
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <MetricCard
           label="Workouts / Week"
