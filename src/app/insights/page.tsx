@@ -233,9 +233,9 @@ export default function InsightsPage() {
     <DashboardNav>
       <div className="mx-auto max-w-4xl px-5 py-8 animate-fade-in">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-[var(--text)]">Insights</h1>
+          <h1 className="text-2xl font-bold text-[var(--text)]">Life Pulse Insights</h1>
           <p className="mt-1 text-sm text-[var(--text-muted)]">
-            Your progress, levels, and consistency at a glance.
+            Patterns across your activity, consistency, and active life areas.
           </p>
         </div>
 
@@ -247,6 +247,48 @@ export default function InsightsPage() {
           xpNeededForNext={levelInfo.xpNeededForNext}
           totalXp={totalXp}
         />
+
+        <section className="mb-6">
+          <h2 className="mb-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">
+            Pattern snapshot
+          </h2>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <Card variant="subtle" className="flex flex-col p-4 min-h-[100px]">
+              <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Strongest area</p>
+              <p className="mt-2 text-lg font-bold text-[var(--text)] truncate">
+                {strongest ? `${strongest.icon} ${strongest.name}` : "\u2014"}
+              </p>
+              <p className="mt-auto pt-2 text-[10px] text-[var(--text-muted)]">
+                {strongest ? `${Math.round(strongest.score)}% signal` : "No area signal yet"}
+              </p>
+            </Card>
+            <Card variant="subtle" className="flex flex-col p-4 min-h-[100px]">
+              <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Needs attention</p>
+              <p className="mt-2 text-lg font-bold text-[var(--text)] truncate">
+                {weakest ? `${weakest.icon} ${weakest.name}` : "\u2014"}
+              </p>
+              <p className="mt-auto pt-2 text-[10px] text-[var(--text-muted)]">
+                {weakest ? `${Math.round(weakest.score)}% signal` : "No gap visible yet"}
+              </p>
+            </Card>
+            <Card variant="subtle" className="flex flex-col p-4 min-h-[100px]">
+              <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Balance</p>
+              <p className="mt-2 text-2xl font-bold text-[var(--accent)]">
+                {balanceScore !== null ? `${balanceScore}%` : "\u2014"}
+              </p>
+              <p className="mt-auto pt-2 text-[10px] text-[var(--text-muted)]">Across active areas</p>
+            </Card>
+            <Card variant="subtle" className="flex flex-col p-4 min-h-[100px]">
+              <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Task completion</p>
+              <p className="mt-2 text-2xl font-bold text-[var(--text)]">
+                {taskCount > 0 ? `${taskCompletionRate}%` : "\u2014"}
+              </p>
+              <p className="mt-auto pt-2 text-[10px] text-[var(--text-muted)]">
+                {taskCount > 0 ? `${doneTaskCount} of ${taskCount} done` : "No tasks yet"}
+              </p>
+            </Card>
+          </div>
+        </section>
 
         {/* Life Balance Map */}
         {(() => {
@@ -260,7 +302,7 @@ export default function InsightsPage() {
                   <div onClick={(e) => e.stopPropagation()}>
                     <HelpPopover title="How the map works">
                       <p>Each angle represents one of your life areas. The farther a point extends outward, the more energy that area has received through completed habits, tasks, and projects.</p>
-                      <p className="mt-1.5">A balanced shape means you are spreading your attention across multiple areas. Lopsided shapes show where your focus is concentrated.</p>
+                      <p className="mt-1.5">Your Life Balance Map shows where energy is accumulating and where attention may be thin.</p>
                     </HelpPopover>
                   </div>
                 </h2>
@@ -316,7 +358,7 @@ export default function InsightsPage() {
                         {hasAnyXp ? (
                           <div className="flex flex-col gap-4">
                             <p className="text-xs text-[var(--text-muted)]">
-                              See which areas of your life are getting the most energy — and which ones need attention.
+                              Your Life Balance Map shows where energy is accumulating and where attention may be thin.
                             </p>
 
                             <div className="grid grid-cols-2 gap-3">
@@ -411,7 +453,7 @@ export default function InsightsPage() {
                         ) : (
                           <div className="flex flex-col gap-2">
                             <p className="text-xs text-[var(--text-muted)]">
-                              See which areas of your life are getting the most energy — and which ones need attention.
+                              Your Life Balance Map shows where energy is accumulating and where attention may be thin.
                             </p>
                             <div className="rounded-lg border border-dashed border-[var(--border)] bg-[var(--surface-soft)] p-4 text-center">
                               <p className="text-xs text-[var(--text-muted)]">
@@ -431,7 +473,7 @@ export default function InsightsPage() {
 
         {/* Momentum */}
         <h2 className="mb-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">
-          Momentum
+          Current momentum
         </h2>
         <MomentumGrid
           todayXp={todayXp}
@@ -447,7 +489,7 @@ export default function InsightsPage() {
         {financeHasData && (
           <>
             <h2 className="mb-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">
-              Finance
+              Finance signal
             </h2>
             <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
               <Card variant="default" className="flex flex-col p-4 min-h-[100px]">
@@ -501,7 +543,7 @@ export default function InsightsPage() {
               <svg className="h-4 w-4 text-[var(--accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
               </svg>
-              Open Weekly Review
+              Run Weekly Review
             </span>
             <span className="text-[var(--text-muted)]">&rarr;</span>
           </Link>
@@ -525,7 +567,7 @@ export default function InsightsPage() {
               <svg className="h-4 w-4 text-[var(--accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />
               </svg>
-              Open Coach
+              Review recommended next actions
             </span>
             <span className="text-[var(--text-muted)]">See recommended next actions &rarr;</span>
           </Link>
@@ -533,7 +575,7 @@ export default function InsightsPage() {
 
         {/* Weekly consistency */}
         <h2 className="mb-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">
-          Weekly consistency
+          Consistency pattern
         </h2>
 
         <WeeklyConsistencyCard
@@ -545,7 +587,7 @@ export default function InsightsPage() {
 
         {/* Habit streaks */}
         <h2 className="mb-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">
-          Habit streaks
+          Streak health
         </h2>
 
         <HabitStreaksCard

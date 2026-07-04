@@ -225,6 +225,9 @@ function WeeklyReviewContent() {
       <div className="mb-6">
         <h1 className="text-xl font-bold text-[var(--text)]">Weekly Review</h1>
         <p className="mt-1 text-sm text-[var(--text-muted)]">
+          Reset, reflect, and choose what deserves attention next week.
+        </p>
+        <p className="mt-1 text-sm text-[var(--text-muted)]">
           {dayLabels[0]} &ndash; {dayLabels[6]}
           {isWeekend && <span className="ml-2 text-xs text-[var(--accent)]">Weekend &mdash; good time to reflect</span>}
         </p>
@@ -234,8 +237,11 @@ function WeeklyReviewContent() {
       <section className="mb-8">
         <div className="mb-3 flex items-center gap-2">
           <span className="h-4 w-1 rounded-full bg-gradient-to-b from-[var(--accent)] to-[var(--accent-strong)]" />
-          <h2 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Week Summary</h2>
+          <h2 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">This week at a glance</h2>
         </div>
+        <p className="mb-3 text-xs text-[var(--text-muted)]">
+          A quick read on what moved, what stayed quiet, and where your rhythm showed up.
+        </p>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <MetricCard label="Habits done" value={data.habitCount} />
           <MetricCard label="Tasks done" value={data.taskCount} />
@@ -252,8 +258,11 @@ function WeeklyReviewContent() {
       <section className="mb-8">
         <div className="mb-3 flex items-center gap-2">
           <span className="h-4 w-1 rounded-full bg-gradient-to-b from-[var(--accent)] to-[var(--accent-strong)]" />
-          <h2 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Body &amp; Mind Review</h2>
+          <h2 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Body and mind signals</h2>
         </div>
+        <p className="mb-3 text-xs text-[var(--text-muted)]">
+          Energy, sleep, mood, focus, and recovery patterns from this week.
+        </p>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <MetricCard label="Avg energy" value={data.avgEnergy !== null ? `${data.avgEnergy}/5` : "\u2014"} />
           <MetricCard label="Avg sleep" value={data.avgSleep !== null ? `${data.avgSleep}h` : "\u2014"} />
@@ -270,8 +279,11 @@ function WeeklyReviewContent() {
       <section className="mb-8">
         <div className="mb-3 flex items-center gap-2">
           <span className="h-4 w-1 rounded-full bg-gradient-to-b from-[var(--accent)] to-[var(--accent-strong)]" />
-          <h2 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Goals &amp; Growth Review</h2>
+          <h2 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Execution and progress</h2>
         </div>
+        <p className="mb-3 text-xs text-[var(--text-muted)]">
+          Tasks, projects, habits, goals, and milestones that moved forward.
+        </p>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <MetricCard label="Active goals" value={data.activeGoals} />
           <MetricCard label="Tasks done" value={data.taskCount} />
@@ -284,8 +296,11 @@ function WeeklyReviewContent() {
       <section className="mb-8">
         <div className="mb-3 flex items-center gap-2">
           <span className="h-4 w-1 rounded-full bg-gradient-to-b from-[var(--accent)] to-[var(--accent-strong)]" />
-          <h2 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Passions Review</h2>
+          <h2 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Creative and personal energy</h2>
         </div>
+        <p className="mb-3 text-xs text-[var(--text-muted)]">
+          Practice, passions, and personal momentum outside the normal task loop.
+        </p>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <MetricCard label="Sessions" value={data.passionSessions} />
           <MetricCard label="Minutes practiced" value={data.passionMinutes} />
@@ -298,8 +313,11 @@ function WeeklyReviewContent() {
       <section className="mb-8">
         <div className="mb-3 flex items-center gap-2">
           <span className="h-4 w-1 rounded-full bg-gradient-to-b from-[var(--accent)] to-[var(--accent-strong)]" />
-          <h2 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Reflection Prompts</h2>
+          <h2 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Weekly reset</h2>
         </div>
+        <p className="mb-3 text-xs text-[var(--text-muted)]">
+          Name what worked, what slipped, and what next week needs.
+        </p>
         <PulseCard title="Weekly Reflection" accent="accent">
           <div className="p-4 space-y-4">
             <ReflectionField
@@ -347,8 +365,11 @@ function WeeklyReviewContent() {
       <section className="mb-8">
         <div className="mb-3 flex items-center gap-2">
           <span className="h-4 w-1 rounded-full bg-gradient-to-b from-[var(--accent)] to-[var(--accent-strong)]" />
-          <h2 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Plan Next Week</h2>
+          <h2 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Next week focus</h2>
         </div>
+        <p className="mb-3 text-xs text-[var(--text-muted)]">
+          Use your current signals to choose a realistic next step.
+        </p>
         <PulseCard title="Plan Ahead" accent="accent">
           <div className="mb-4">
             <label className="block text-xs font-medium text-[var(--text)] mb-1.5">Top focus for next week</label>
