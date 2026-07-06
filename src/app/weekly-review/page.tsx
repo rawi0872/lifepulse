@@ -39,6 +39,9 @@ interface WeekData {
   avgFocus: number | null;
   avgStress: number | null;
   nutritionCount: number;
+  nutritionDays: number;
+  waterMl: number;
+  avgProteinPerNutritionDay: number | null;
   latestWeight: number | null;
   activeGoals: number;
   completedMilestones: number;
@@ -98,7 +101,7 @@ function WeeklyReviewContent() {
       supabase.from("journal_entries").select("id").eq("user_id", user.id).gte("entry_date", weekStart).lte("entry_date", weekEnd),
       supabase.from("body_metrics").select("energy, sleep_hours").eq("user_id", user.id).gte("entry_date", weekStart).lte("entry_date", weekEnd),
       supabase.from("mind_metrics").select("mood, focus, stress").eq("user_id", user.id).gte("entry_date", weekStart).lte("entry_date", weekEnd),
-      supabase.from("nutrition_logs").select("id").eq("user_id", user.id).gte("log_date", weekStart).lte("log_date", weekEnd),
+      supabase.from("nutrition_logs").select("id, log_date, protein_g, water_ml").eq("user_id", user.id).gte("log_date", weekStart).lte("log_date", weekEnd),
       supabase.from("body_measurements").select("weight_kg").eq("user_id", user.id).order("measurement_date", { ascending: false }).limit(1),
       supabase.from("passions").select("id, name").eq("user_id", user.id).eq("status", "active"),
       supabase.from("passion_sessions").select("duration_minutes, passion_id").eq("user_id", user.id).gte("session_date", weekStart).lte("session_date", weekEnd),
@@ -109,6 +112,7 @@ function WeeklyReviewContent() {
 
     const bodyMetrics = (bodyRes.data ?? []) as { energy?: number | null; sleep_hours?: number | null }[];
     const mindMetrics = (mindRes.data ?? []) as { mood?: number | null; focus?: number | null; stress?: number | null }[];
+    const nutritionLogs = (nutritionRes.data ?? []) as { log_date?: string | null; protein_g?: number | null; water_ml?: number | null }[];
     const sessions = (sessionsRes.data ?? []) as { duration_minutes?: number | null; passion_id?: string }[];
     const passions = (passionsRes.data ?? []) as { id: string; name: string }[];
     const passionMap = new Map(passions.map((p) => [p.id, p.name]));
@@ -133,6 +137,10 @@ function WeeklyReviewContent() {
       return nums.length > 0 ? Math.round((nums.reduce((s, v) => s + v, 0) / nums.length) * 10) / 10 : null;
     };
 
+    const nutritionDays = new Set(nutritionLogs.map((n) => n.log_date).filter(Boolean)).size;
+    const totalProtein = nutritionLogs.reduce((sum, n) => sum + (n.protein_g ?? 0), 0);
+    const waterMl = nutritionLogs.reduce((sum, n) => sum + (n.water_ml ?? 0), 0);
+
     setData({
       weekDates,
       habitCount: (habitsRes.data ?? []).length,
@@ -149,7 +157,10 @@ function WeeklyReviewContent() {
       avgMood: avg(mindMetrics.map((m) => m.mood)),
       avgFocus: avg(mindMetrics.map((m) => m.focus)),
       avgStress: avg(mindMetrics.map((m) => m.stress)),
-      nutritionCount: (nutritionRes.data ?? []).length,
+      nutritionCount: nutritionLogs.length,
+      nutritionDays,
+      waterMl,
+      avgProteinPerNutritionDay: nutritionDays > 0 ? Math.round(totalProtein / nutritionDays) : null,
       latestWeight: ((measurementRes.data ?? []) as { weight_kg?: number | null }[])[0]?.weight_kg ?? null,
       activeGoals: (goalsRes.data ?? []).length,
       completedMilestones: (milestonesRes.data ?? []).length,
@@ -271,6 +282,9 @@ function WeeklyReviewContent() {
           <MetricCard label="Avg stress" value={data.avgStress !== null ? `${data.avgStress}/5` : "\u2014"} />
           <MetricCard label="Workouts" value={data.workoutCount} sub={`${data.workoutMinutes} min`} />
           <MetricCard label="Nutrition logs" value={data.nutritionCount} />
+          <MetricCard label="Nutrition days" value={`${data.nutritionDays} / 7`} />
+          <MetricCard label="Water logged" value={`${Math.round((data.waterMl / 1000) * 10) / 10} L`} />
+          <MetricCard label="Protein avg" value={data.avgProteinPerNutritionDay !== null ? `${data.avgProteinPerNutritionDay} g/day` : "\u2014"} />
           <MetricCard label="Latest weight" value={data.latestWeight !== null ? `${data.latestWeight} kg` : "\u2014"} />
         </div>
       </section>
