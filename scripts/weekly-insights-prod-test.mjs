@@ -51,6 +51,9 @@ const requiredInsightsText = [
   "Current momentum",
   "Consistency pattern",
   "Streak health",
+  "Nutrition days",
+  "Water logged",
+  "Protein avg",
 ];
 
 function requireConfig() {
