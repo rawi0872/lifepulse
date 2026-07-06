@@ -48,15 +48,15 @@ function CoachContent() {
         nutritionRes, passionsRes, sessionsRes, financeRes,
         knowledgeRes, collectionsRes,
       ] = await Promise.all([
-        supabase.from("body_metrics").select("id").eq("user_id", user.id).eq("entry_date", today).maybeSingle(),
+        supabase.from("body_metrics").select("id, entry_date").eq("user_id", user.id).gte("entry_date", weekStart).lte("entry_date", today),
         supabase.from("mind_metrics").select("id").eq("user_id", user.id).eq("entry_date", today).maybeSingle(),
         supabase.from("tasks").select("id,priority,status,realm_id").eq("user_id", user.id),
         supabase.from("goals").select("id,status").eq("user_id", user.id),
         supabase.from("goal_milestones").select("goal_id,completed_at").eq("user_id", user.id),
         supabase.from("journal_entries").select("id").eq("user_id", user.id).eq("entry_date", today).maybeSingle(),
         supabase.from("habits").select("id").eq("user_id", user.id),
-        supabase.from("workouts").select("id").eq("user_id", user.id).gte("workout_date", weekStart),
-        supabase.from("nutrition_logs").select("id").eq("user_id", user.id).eq("log_date", today),
+        supabase.from("workouts").select("id, duration_minutes").eq("user_id", user.id).gte("workout_date", weekStart).lte("workout_date", today),
+        supabase.from("nutrition_logs").select("id, log_date").eq("user_id", user.id).gte("log_date", weekStart).lte("log_date", today),
         supabase.from("passions").select("id").eq("user_id", user.id),
         supabase.from("passion_sessions").select("id").eq("user_id", user.id).gte("session_date", weekStart),
         supabase.from("finance_transactions").select("id").eq("user_id", user.id).limit(1),
@@ -74,12 +74,16 @@ function CoachContent() {
         (t: { priority?: string; status?: string }) => t.priority === "high" && t.status === "todo"
       );
       const hasActivePassions = (passionsRes.data ?? []).length > 0;
+      const bodyMetrics = (bodyRes.data ?? []) as { entry_date?: string | null }[];
+      const workouts = (workoutRes.data ?? []) as { duration_minutes?: number | null }[];
+      const nutritionLogs = (nutritionRes.data ?? []) as { log_date?: string | null }[];
+      const nutritionDaysThisWeek = new Set(nutritionLogs.map((n) => n.log_date).filter(Boolean)).size;
 
       const coachData: CoachData = {
-        bodyLoggedToday: bodyRes.data !== null,
+        bodyLoggedToday: bodyMetrics.some((b) => b.entry_date === today),
         mindLoggedToday: mindRes.data !== null,
-        hasWorkoutThisWeek: (workoutRes.data ?? []).length > 0,
-        hasNutritionToday: (nutritionRes.data ?? []).length > 0,
+        hasWorkoutThisWeek: workouts.length > 0,
+        hasNutritionToday: nutritionLogs.some((n) => n.log_date === today),
         hasHighPriorityTasks,
         hasGoalWithoutLinks,
         hasJournalToday: journalRes.data !== null,
@@ -90,6 +94,10 @@ function CoachContent() {
         hasFinanceData: (financeRes.data ?? []).length > 0,
         hasKnowledgeItems: (knowledgeRes.data ?? []).length > 0,
         hasKnowledgeCollections: (collectionsRes.data ?? []).length > 0,
+        bodyCheckInsThisWeek: bodyMetrics.length,
+        nutritionDaysThisWeek,
+        workoutCountThisWeek: workouts.length,
+        workoutMinutesThisWeek: workouts.reduce((sum, workout) => sum + (workout.duration_minutes ?? 0), 0),
       };
 
       if (!cancelled) {

@@ -39,6 +39,10 @@ export interface CoachData {
   hasFinanceData: boolean;
   hasKnowledgeItems: boolean;
   hasKnowledgeCollections: boolean;
+  bodyCheckInsThisWeek?: number;
+  nutritionDaysThisWeek?: number;
+  workoutCountThisWeek?: number;
+  workoutMinutesThisWeek?: number;
 }
 
 const CATEGORY_LABELS: Record<CoachCategory, string> = {
@@ -243,6 +247,8 @@ export function getCoachInsights(data: CoachData): CoachInsight[] {
     );
   }
 
+  const hasWeeklyReviewTimingRule = data.dayOfWeek === 1 || (data.dayOfWeek >= 4 && data.dayOfWeek <= 6);
+
   if (data.dayOfWeek === 1) {
     results.push(
       mk(
@@ -267,6 +273,31 @@ export function getCoachInsights(data: CoachData): CoachInsight[] {
         "/weekly-review",
         "It\u2019s late in the week \u2014 consider a review",
         "weekly_review_reminder"
+      )
+    );
+  }
+
+  const hasWeeklyBodySignalData =
+    data.bodyCheckInsThisWeek !== undefined &&
+    data.nutritionDaysThisWeek !== undefined &&
+    data.workoutCountThisWeek !== undefined &&
+    data.workoutMinutesThisWeek !== undefined;
+  const hasWeeklyBodySignals =
+    (data.bodyCheckInsThisWeek ?? 0) > 0 ||
+    (data.nutritionDaysThisWeek ?? 0) > 0 ||
+    (data.workoutCountThisWeek ?? 0) > 0;
+
+  if (hasWeeklyBodySignalData && hasWeeklyBodySignals && !hasWeeklyReviewTimingRule) {
+    results.push(
+      mk(
+        "Review this week\u2019s body rhythm",
+        "You have body, nutrition, or movement data logged this week. Weekly Review can help you reflect on the pattern.",
+        "weekly_review",
+        "low",
+        "Open Weekly Review",
+        "/weekly-review",
+        "Body or nutrition signals logged this week",
+        "weekly_body_signals_review"
       )
     );
   }
