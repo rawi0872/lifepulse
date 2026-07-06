@@ -40,6 +40,9 @@ const requiredWeeklyReviewText = [
   "Body and mind signals",
   "Execution and progress",
   "Creative and personal energy",
+  "Nutrition days",
+  "Water logged",
+  "Protein avg",
   "Weekly reset",
   "Next week focus",
 ];
