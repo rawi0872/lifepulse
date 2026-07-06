@@ -113,8 +113,8 @@ export function getCoachInsights(data: CoachData): CoachInsight[] {
   if (!data.bodyLoggedToday) {
     results.push(
       mk(
-        "Log your Body Pulse",
-        "Consider logging today\u2019s energy, sleep, and overall body check-in to keep your Body Pulse streak going.",
+        "Add body context",
+        "A quick body check-in can add energy, sleep, or recovery context to this week\u2019s reflection.",
         "body",
         "high",
         "Log Body Pulse",
@@ -216,8 +216,8 @@ export function getCoachInsights(data: CoachData): CoachInsight[] {
   if (!data.hasWorkoutThisWeek) {
     results.push(
       mk(
-        "Log a workout this week",
-        "Consider planning or logging one workout session for this week.",
+        "Log movement this week",
+        "If movement happened this week, logging it can make your weekly rhythm easier to review.",
         "body",
         "medium",
         "Log Workout",
@@ -232,7 +232,7 @@ export function getCoachInsights(data: CoachData): CoachInsight[] {
     results.push(
       mk(
         "Log today\u2019s nutrition",
-        "If you haven\u2019t already, consider noting what you ate and your water intake.",
+        "Add a simple nutrition or water entry if you want today reflected in Coach and Weekly Review.",
         "body",
         "medium",
         "Log Nutrition",
