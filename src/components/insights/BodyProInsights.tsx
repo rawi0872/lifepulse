@@ -4,6 +4,13 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Card } from "@/components/ui/card";
 import { formatNumber } from "@/lib/bodyPro";
+import { getTodayDateString, getWeekStartDate } from "@/lib/utils";
+
+function getLocalDateDaysAgo(daysAgo: number): string {
+  const today = new Date();
+  const date = new Date(today.getFullYear(), today.getMonth(), today.getDate() - daysAgo);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
 
 export function BodyProInsights() {
   const supabase = createClient();
@@ -25,12 +32,9 @@ export function BodyProInsights() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const today = new Date();
-      const day = today.getDay();
-      const diff = today.getDate() - day + (day === 0 ? -6 : 1);
-      const weekStart = new Date(today.setDate(diff)).toISOString().slice(0, 10);
-      const todayStr = new Date().toISOString().slice(0, 10);
-      const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+      const weekStart = getWeekStartDate();
+      const todayStr = getTodayDateString();
+      const sevenDaysAgo = getLocalDateDaysAgo(7);
 
       const [workoutRes, nutritionRes, measurementRes, healthRes] = await Promise.all([
         supabase.from("workouts").select("duration_minutes").eq("user_id", user.id).gte("workout_date", weekStart),
