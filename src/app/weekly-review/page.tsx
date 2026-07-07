@@ -8,6 +8,7 @@ import { DashboardNav } from "@/components/DashboardNav";
 import { PulseCard } from "@/components/ui/pulse-card";
 import { Card } from "@/components/ui/card";
 import { getTodayDateString, getWeekStartDate } from "@/lib/utils";
+import { formatCurrency } from "@/components/finance/financeUtils";
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -46,6 +47,12 @@ interface WeekData {
   activeGoals: number;
   completedMilestones: number;
   activeProjects: number;
+  financeTransactionCount: number;
+  financeIncome: number;
+  financeExpenses: number;
+  financeNet: number;
+  financeCurrency: string | null;
+  financeHasMixedCurrencies: boolean;
   bodyLoggedToday: boolean;
   mindLoggedToday: boolean;
   hasWorkoutThisWeek: boolean;
@@ -93,7 +100,7 @@ function WeeklyReviewContent() {
     const [
       habitsRes, tasksRes, workoutsRes, journalRes,
       bodyRes, mindRes, nutritionRes, measurementRes,
-      passionsRes, sessionsRes, goalsRes, milestonesRes, projectsRes,
+      passionsRes, sessionsRes, goalsRes, milestonesRes, projectsRes, financeRes,
     ] = await Promise.all([
       supabase.from("habit_logs").select("id").eq("user_id", user.id).gte("completed_date", weekStart).lte("completed_date", weekEnd),
       supabase.from("tasks").select("id").eq("user_id", user.id).eq("status", "done"),
@@ -108,6 +115,11 @@ function WeeklyReviewContent() {
       supabase.from("goals").select("id").eq("user_id", user.id).eq("status", "active"),
       supabase.from("goal_milestones").select("id").eq("user_id", user.id).not("completed_at", "is", null),
       supabase.from("projects").select("id").eq("user_id", user.id).eq("status", "active"),
+      supabase.from("finance_transactions")
+        .select("amount, type, transaction_date, account_id, finance_accounts(currency)")
+        .eq("user_id", user.id)
+        .gte("transaction_date", weekStart)
+        .lte("transaction_date", weekEnd),
     ]);
 
     const bodyMetrics = (bodyRes.data ?? []) as { energy?: number | null; sleep_hours?: number | null }[];
@@ -140,6 +152,30 @@ function WeeklyReviewContent() {
     const nutritionDays = new Set(nutritionLogs.map((n) => n.log_date).filter(Boolean)).size;
     const totalProtein = nutritionLogs.reduce((sum, n) => sum + (n.protein_g ?? 0), 0);
     const waterMl = nutritionLogs.reduce((sum, n) => sum + (n.water_ml ?? 0), 0);
+    const financeTransactions = (financeRes.data ?? []) as {
+      amount?: number | string | null;
+      type?: string | null;
+      finance_accounts?: { currency?: string | null } | { currency?: string | null }[] | null;
+    }[];
+
+    let financeIncome = 0;
+    let financeExpenses = 0;
+    const financeCurrencies = new Set<string>();
+
+    for (const tx of financeTransactions) {
+      const amount = Number(tx.amount);
+      if (!Number.isFinite(amount)) continue;
+
+      if (tx.type === "income") financeIncome += amount;
+      if (tx.type === "expense") financeExpenses += amount;
+
+      const account = Array.isArray(tx.finance_accounts) ? tx.finance_accounts[0] : tx.finance_accounts;
+      if (account?.currency) financeCurrencies.add(account.currency);
+    }
+
+    const financeCurrencyList = Array.from(financeCurrencies);
+    const financeHasMixedCurrencies = financeCurrencyList.length > 1;
+    const financeCurrency = financeCurrencyList.length === 1 ? financeCurrencyList[0] : null;
 
     setData({
       weekDates,
@@ -165,6 +201,12 @@ function WeeklyReviewContent() {
       activeGoals: (goalsRes.data ?? []).length,
       completedMilestones: (milestonesRes.data ?? []).length,
       activeProjects: (projectsRes.data ?? []).length,
+      financeTransactionCount: financeTransactions.length,
+      financeIncome,
+      financeExpenses,
+      financeNet: financeIncome - financeExpenses,
+      financeCurrency,
+      financeHasMixedCurrencies,
       bodyLoggedToday: bodyMetrics.length > 0,
       mindLoggedToday: mindMetrics.length > 0,
       hasWorkoutThisWeek: (workoutsRes.data ?? []).length > 0,
@@ -323,6 +365,39 @@ function WeeklyReviewContent() {
         </div>
       </section>
 
+      {data.financeTransactionCount > 0 && (
+        <section className="mb-8">
+          <div className="mb-3 flex items-center gap-2">
+            <span className="h-4 w-1 rounded-full bg-gradient-to-b from-[var(--accent)] to-[var(--accent-strong)]" />
+            <h2 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Money reflection</h2>
+          </div>
+          <p className="mb-3 text-xs text-[var(--text-muted)]">
+            A read-only summary of manually logged finance activity for this week.
+          </p>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <MetricCard label="Transactions this week" value={data.financeTransactionCount} />
+            <MetricCard
+              label="Logged income"
+              value={formatFinanceReviewAmount(data.financeIncome, data)}
+              sub={data.financeHasMixedCurrencies ? "Review detailed amounts in Finance" : undefined}
+            />
+            <MetricCard
+              label="Logged expenses"
+              value={formatFinanceReviewAmount(data.financeExpenses, data)}
+              sub={data.financeHasMixedCurrencies ? "Review detailed amounts in Finance" : undefined}
+            />
+            <MetricCard
+              label="Net logged"
+              value={formatFinanceReviewAmount(data.financeNet, data)}
+              sub={data.financeHasMixedCurrencies ? "Review detailed amounts in Finance" : undefined}
+            />
+          </div>
+          <p className="mt-3 text-center text-[10px] text-[var(--text-muted)]">
+            Manual tracker. Not financial advice. No bank connection.
+          </p>
+        </section>
+      )}
+
       {/* ── 5. Reflection Prompts ──────────────────────────────────── */}
       <section className="mb-8">
         <div className="mb-3 flex items-center gap-2">
@@ -434,6 +509,11 @@ function WeeklyReviewContent() {
       </section>
     </div>
   );
+}
+
+function formatFinanceReviewAmount(amount: number, data: WeekData): string {
+  if (data.financeHasMixedCurrencies) return "Mixed currencies";
+  return formatCurrency(amount, data.financeCurrency ?? undefined);
 }
 
 function MetricCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
