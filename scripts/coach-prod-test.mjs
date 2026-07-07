@@ -50,6 +50,25 @@ const requiredTransparencyText = [
   "external APIs are enabled",
 ];
 
+const forbiddenFinancePhrases = [
+  "you earn",
+  "you should",
+  "financial advisor",
+  "prediction",
+  "forecast",
+  "getting better",
+  "getting worse",
+  "spend less",
+  "save more",
+];
+
+const financeCoachNudgeTitle = "Review this week's money activity";
+const financeCoachSafeText = [
+  "logged finance transactions this week",
+  "Weekly Review can help you reflect on the pattern",
+  "Open Weekly Review",
+];
+
 function requireConfig() {
   const missing = [];
   if (!EMAIL) missing.push("LIFE_PULSE_TEST_EMAIL");
@@ -70,6 +89,10 @@ function requireConfig() {
 
 function pass(label) {
   console.log(`  PASS ${label}`);
+}
+
+function info(label) {
+  console.log(`  INFO ${label}`);
 }
 
 async function failWithDiagnostics(page, error) {
@@ -142,6 +165,22 @@ async function main() {
     const bodyText = await page.locator("body").innerText({ timeout: 10000 });
     if (bodyText.includes("Application error") || bodyText.includes("Failed to load")) {
       throw new Error("Coach page loaded with an error state.");
+    }
+
+    const lowerBodyText = bodyText.toLowerCase();
+    for (const phrase of forbiddenFinancePhrases) {
+      expect(lowerBodyText).not.toContain(phrase);
+      pass(`Forbidden finance phrase absent: ${phrase}`);
+    }
+
+    if (bodyText.includes(financeCoachNudgeTitle)) {
+      pass(`Finance Coach nudge visible: ${financeCoachNudgeTitle}`);
+      for (const text of financeCoachSafeText) {
+        expect(bodyText).toContain(text);
+        pass(`Finance Coach safe copy present: ${text}`);
+      }
+    } else {
+      info("Finance Coach nudge is data/day dependent and not visible for this account state.");
     }
 
     console.log("");
