@@ -43,6 +43,7 @@ export interface CoachData {
   nutritionDaysThisWeek?: number;
   workoutCountThisWeek?: number;
   workoutMinutesThisWeek?: number;
+  financeTransactionsThisWeek?: number;
 }
 
 const CATEGORY_LABELS: Record<CoachCategory, string> = {
@@ -298,6 +299,21 @@ export function getCoachInsights(data: CoachData): CoachInsight[] {
         "/weekly-review",
         "Body or nutrition signals logged this week",
         "weekly_body_signals_review"
+      )
+    );
+  }
+
+  if ((data.financeTransactionsThisWeek ?? 0) > 0 && !hasWeeklyReviewTimingRule) {
+    results.push(
+      mk(
+        "Review this week's money activity",
+        "You have logged finance transactions this week. Weekly Review can help you reflect on the pattern.",
+        "weekly_review",
+        "low",
+        "Open Weekly Review",
+        "/weekly-review",
+        "Finance transactions logged this week",
+        "weekly_finance_activity_review"
       )
     );
   }

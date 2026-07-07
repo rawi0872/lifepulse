@@ -45,7 +45,7 @@ function CoachContent() {
       const [
         bodyRes, mindRes, tasksRes, goalsRes, goalMsRes,
         journalRes, habitsRes, workoutRes,
-        nutritionRes, passionsRes, sessionsRes, financeRes,
+        nutritionRes, passionsRes, sessionsRes, financeRes, financeWeekRes,
         knowledgeRes, collectionsRes,
       ] = await Promise.all([
         supabase.from("body_metrics").select("id, entry_date").eq("user_id", user.id).gte("entry_date", weekStart).lte("entry_date", today),
@@ -60,6 +60,7 @@ function CoachContent() {
         supabase.from("passions").select("id").eq("user_id", user.id),
         supabase.from("passion_sessions").select("id").eq("user_id", user.id).gte("session_date", weekStart),
         supabase.from("finance_transactions").select("id").eq("user_id", user.id).limit(1),
+        supabase.from("finance_transactions").select("id").eq("user_id", user.id).gte("transaction_date", weekStart).lte("transaction_date", today),
         supabase.from("knowledge_items").select("id").eq("user_id", user.id).limit(1),
         supabase.from("knowledge_collections").select("id").eq("user_id", user.id).limit(1),
       ]);
@@ -98,6 +99,7 @@ function CoachContent() {
         nutritionDaysThisWeek,
         workoutCountThisWeek: workouts.length,
         workoutMinutesThisWeek: workouts.reduce((sum, workout) => sum + (workout.duration_minutes ?? 0), 0),
+        financeTransactionsThisWeek: (financeWeekRes.data ?? []).length,
       };
 
       if (!cancelled) {
