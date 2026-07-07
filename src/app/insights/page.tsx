@@ -53,8 +53,10 @@ export default function InsightsPage() {
   const [financeIncome, setFinanceIncome] = useState(0);
   const [financeExpense, setFinanceExpense] = useState(0);
   const [financeNet, setFinanceNet] = useState(0);
+  const [financeTransactionCount, setFinanceTransactionCount] = useState(0);
+  const [financeCurrency, setFinanceCurrency] = useState<string | null>(null);
+  const [financeHasMixedCurrencies, setFinanceHasMixedCurrencies] = useState(false);
   const [financeHasData, setFinanceHasData] = useState(false);
-  const [financeBudgetTotal, setFinanceBudgetTotal] = useState(0);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
@@ -115,23 +117,41 @@ export default function InsightsPage() {
       const lastDay = new Date(Number(year), Number(month), 0).getDate();
       const monthEnd = `${year}-${month}-${String(lastDay).padStart(2, "0")}`;
 
-      const [incomeRes, expenseRes, budgetsRes] = await Promise.all([
-        supabase.from("finance_transactions").select("amount").eq("user_id", user.id).eq("type", "income")
-          .gte("transaction_date", monthStart).lte("transaction_date", monthEnd),
-        supabase.from("finance_transactions").select("amount").eq("user_id", user.id).eq("type", "expense")
-          .gte("transaction_date", monthStart).lte("transaction_date", monthEnd),
-        supabase.from("finance_budgets").select("amount")
-          .eq("user_id", user.id).eq("month", `${year}-${month}-01`),
-      ]);
+      const financeRes = await supabase.from("finance_transactions")
+        .select("amount, type, transaction_date, account_id, finance_accounts(currency)")
+        .eq("user_id", user.id)
+        .gte("transaction_date", monthStart)
+        .lte("transaction_date", monthEnd);
 
       if (!cancelled) {
-        const inc = (incomeRes.data ?? []).reduce((s: number, r: { amount: number }) => s + Number(r.amount), 0);
-        const exp = (expenseRes.data ?? []).reduce((s: number, r: { amount: number }) => s + Number(r.amount), 0);
+        const financeTransactions = (financeRes.data ?? []) as {
+          amount?: number | string | null;
+          type?: string | null;
+          finance_accounts?: { currency?: string | null } | { currency?: string | null }[] | null;
+        }[];
+        let inc = 0;
+        let exp = 0;
+        const currencies = new Set<string>();
+
+        for (const tx of financeTransactions) {
+          const amount = Number(tx.amount);
+          if (!Number.isFinite(amount)) continue;
+
+          if (tx.type === "income") inc += amount;
+          if (tx.type === "expense") exp += amount;
+
+          const account = Array.isArray(tx.finance_accounts) ? tx.finance_accounts[0] : tx.finance_accounts;
+          if (account?.currency) currencies.add(account.currency);
+        }
+
+        const currencyList = Array.from(currencies);
         setFinanceIncome(inc);
         setFinanceExpense(exp);
         setFinanceNet(inc - exp);
-        setFinanceHasData(inc > 0 || exp > 0);
-        setFinanceBudgetTotal((budgetsRes.data ?? []).reduce((s: number, b: { amount: number }) => s + Number(b.amount), 0));
+        setFinanceTransactionCount(financeTransactions.length);
+        setFinanceCurrency(currencyList.length === 1 ? currencyList[0] : null);
+        setFinanceHasMixedCurrencies(currencyList.length > 1);
+        setFinanceHasData(financeTransactions.length > 0);
       }
 
       if (habitLogsRes.data) {
@@ -493,36 +513,43 @@ export default function InsightsPage() {
             </h2>
             <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
               <Card variant="default" className="flex flex-col p-4 min-h-[100px]">
-                <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Income</p>
-                <p className="mt-2 text-2xl font-bold text-green-400">
-                  {formatMoney(financeIncome)}
-                </p>
-                <p className="mt-auto pt-2 text-[10px] text-[var(--text-muted)]">This month</p>
-              </Card>
-              <Card variant="default" className="flex flex-col p-4 min-h-[100px]">
-                <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Expenses</p>
-                <p className="mt-2 text-2xl font-bold text-red-400">
-                  {formatMoney(financeExpense)}
-                </p>
-                <p className="mt-auto pt-2 text-[10px] text-[var(--text-muted)]">This month</p>
-              </Card>
-              <Card variant="default" className="flex flex-col p-4 min-h-[100px]">
-                <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Net</p>
-                <p className={`mt-2 text-2xl font-bold ${financeNet >= 0 ? "text-green-400" : "text-red-400"}`}>
-                  {formatMoney(financeNet)}
-                </p>
-                <p className="mt-auto pt-2 text-[10px] text-[var(--text-muted)]">Cashflow</p>
-              </Card>
-              <Card variant="default" className="flex flex-col p-4 min-h-[100px]">
-                <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Budget</p>
-                <p className={`mt-2 text-2xl font-bold ${financeBudgetTotal > 0 ? "text-[var(--text)]" : "text-[var(--text-muted)]"}`}>
-                  {financeBudgetTotal > 0 ? `${Math.min(100, Math.round((financeExpense / financeBudgetTotal) * 100))}%` : "\u2014"}
+                <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Logged income</p>
+                <p className="mt-2 text-2xl font-bold text-[var(--text)]">
+                  {formatFinanceSignalAmount(financeIncome, financeCurrency, financeHasMixedCurrencies)}
                 </p>
                 <p className="mt-auto pt-2 text-[10px] text-[var(--text-muted)]">
-                  {financeBudgetTotal > 0 ? "Used" : "No budgets"}
+                  {financeHasMixedCurrencies ? "Review detailed amounts in Finance" : "This month"}
                 </p>
               </Card>
+              <Card variant="default" className="flex flex-col p-4 min-h-[100px]">
+                <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Logged expenses</p>
+                <p className="mt-2 text-2xl font-bold text-[var(--text)]">
+                  {formatFinanceSignalAmount(financeExpense, financeCurrency, financeHasMixedCurrencies)}
+                </p>
+                <p className="mt-auto pt-2 text-[10px] text-[var(--text-muted)]">
+                  {financeHasMixedCurrencies ? "Review detailed amounts in Finance" : "This month"}
+                </p>
+              </Card>
+              <Card variant="default" className="flex flex-col p-4 min-h-[100px]">
+                <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Net logged</p>
+                <p className="mt-2 text-2xl font-bold text-[var(--text)]">
+                  {formatFinanceSignalAmount(financeNet, financeCurrency, financeHasMixedCurrencies)}
+                </p>
+                <p className="mt-auto pt-2 text-[10px] text-[var(--text-muted)]">
+                  {financeHasMixedCurrencies ? "Review detailed amounts in Finance" : "This month"}
+                </p>
+              </Card>
+              <Card variant="default" className="flex flex-col p-4 min-h-[100px]">
+                <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Transactions this month</p>
+                <p className="mt-2 text-2xl font-bold text-[var(--text)]">
+                  {financeTransactionCount}
+                </p>
+                <p className="mt-auto pt-2 text-[10px] text-[var(--text-muted)]">Manual tracker</p>
+              </Card>
             </div>
+            <p className="mb-6 text-center text-[10px] text-[var(--text-muted)]">
+              Manual tracker. Not financial advice. No bank connection.
+            </p>
           </>
         )}
 
@@ -614,4 +641,9 @@ export default function InsightsPage() {
       </div>
     </DashboardNav>
   );
+}
+
+function formatFinanceSignalAmount(amount: number, currency: string | null, hasMixedCurrencies: boolean): string {
+  if (hasMixedCurrencies) return "Mixed currencies";
+  return formatMoney(amount, 2, currency ?? undefined);
 }
