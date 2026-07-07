@@ -59,6 +59,25 @@ const requiredInsightsText = [
   "Protein avg",
 ];
 
+const conditionalWeeklyFinanceText = [
+  "Money reflection",
+  "Transactions this week",
+  "Logged income",
+  "Logged expenses",
+  "Net logged",
+  "Manual tracker. Not financial advice. No bank connection.",
+];
+
+const riskyWeeklyFinanceText = [
+  "you earn",
+  "you should",
+  "financial advisor",
+  "prediction",
+  "forecast",
+  "getting better",
+  "getting worse",
+];
+
 function requireConfig() {
   const missing = [];
   if (!EMAIL) missing.push("LIFE_PULSE_TEST_EMAIL");
@@ -106,6 +125,11 @@ async function expectBodyText(page, text, timeout = 15000) {
   pass(`Found text: ${text}`);
 }
 
+function assertBodyDoesNotContain(bodyText, text) {
+  expect(bodyText.toLowerCase()).not.toContain(text.toLowerCase());
+  pass(`Did not find risky Weekly Review finance text: ${text}`);
+}
+
 async function assertAuthenticatedRoute(page, routeName) {
   if (page.url().includes("/login")) {
     const bodyText = await page.locator("body").innerText({ timeout: 10000 }).catch(() => "<unavailable>");
@@ -146,6 +170,21 @@ async function main() {
 
     for (const text of requiredWeeklyReviewText) {
       await expectBodyText(page, text);
+    }
+
+    const weeklyReviewBodyText = await page.locator("body").innerText({ timeout: 10000 });
+    const moneyReflectionVisible = weeklyReviewBodyText.includes("Money reflection");
+    for (const text of riskyWeeklyFinanceText) {
+      assertBodyDoesNotContain(weeklyReviewBodyText, text);
+    }
+
+    if (moneyReflectionVisible) {
+      pass("Money reflection section is visible");
+      for (const text of conditionalWeeklyFinanceText) {
+        await expectBodyText(page, text);
+      }
+    } else {
+      skip("Money reflection section is data-dependent and not visible for this account/week");
     }
 
     await expect(page.getByRole("button", { name: "Save to Journal" })).toBeVisible({ timeout: 15000 });
