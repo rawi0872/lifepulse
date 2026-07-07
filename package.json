@@ -15,7 +15,8 @@
     "test:prod:weekly-insights": "node scripts/weekly-insights-prod-test.mjs",
     "test:prod:coach": "node scripts/coach-prod-test.mjs",
     "test:prod:navigation": "node scripts/navigation-prod-test.mjs",
-    "test:prod:body-profile": "node scripts/body-profile-prod-test.mjs"
+    "test:prod:body-profile": "node scripts/body-profile-prod-test.mjs",
+    "test:prod:finance": "node scripts/finance-prod-test.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",
