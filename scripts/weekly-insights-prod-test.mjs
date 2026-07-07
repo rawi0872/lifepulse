@@ -68,7 +68,16 @@ const conditionalWeeklyFinanceText = [
   "Manual tracker. Not financial advice. No bank connection.",
 ];
 
-const riskyWeeklyFinanceText = [
+const conditionalInsightsFinanceText = [
+  "Finance signal",
+  "Logged income",
+  "Logged expenses",
+  "Net logged",
+  "Transactions this month",
+  "Manual tracker. Not financial advice. No bank connection.",
+];
+
+const riskyFinanceText = [
   "you earn",
   "you should",
   "financial advisor",
@@ -127,7 +136,7 @@ async function expectBodyText(page, text, timeout = 15000) {
 
 function assertBodyDoesNotContain(bodyText, text) {
   expect(bodyText.toLowerCase()).not.toContain(text.toLowerCase());
-  pass(`Did not find risky Weekly Review finance text: ${text}`);
+  pass(`Did not find risky finance text: ${text}`);
 }
 
 async function assertAuthenticatedRoute(page, routeName) {
@@ -174,7 +183,7 @@ async function main() {
 
     const weeklyReviewBodyText = await page.locator("body").innerText({ timeout: 10000 });
     const moneyReflectionVisible = weeklyReviewBodyText.includes("Money reflection");
-    for (const text of riskyWeeklyFinanceText) {
+    for (const text of riskyFinanceText) {
       assertBodyDoesNotContain(weeklyReviewBodyText, text);
     }
 
@@ -200,15 +209,22 @@ async function main() {
       await expectBodyText(page, text);
     }
 
+    const insightsBodyText = await page.locator("body").innerText({ timeout: 10000 });
+    for (const text of riskyFinanceText) {
+      assertBodyDoesNotContain(insightsBodyText, text);
+    }
+
     const financeSignalCount = await page.getByText("Finance signal", { exact: true }).count();
     if (financeSignalCount > 0) {
       pass("Finance signal section is visible");
+      for (const text of conditionalInsightsFinanceText) {
+        await expectBodyText(page, text);
+      }
     } else {
       skip("Finance signal section is not visible for this account/data state");
     }
 
-    const bodyText = await page.locator("body").innerText({ timeout: 10000 });
-    if (bodyText.includes("Application error") || bodyText.includes("Failed to load")) {
+    if (insightsBodyText.includes("Application error") || insightsBodyText.includes("Failed to load")) {
       throw new Error("Weekly Review or Insights loaded with an error state.");
     }
 
