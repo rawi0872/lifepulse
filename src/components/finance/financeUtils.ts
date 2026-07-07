@@ -293,15 +293,15 @@ export function computeInsights(analytics: FinanceAnalytics, monthLabel: string)
       insights.push({
         type: "positive",
         icon: "↑",
-        title: "Net cashflow improved",
-        description: `Up ${analytics.netDelta}% vs last month. You're spending less than you earn.`,
+        title: "Net cashflow increased",
+        description: `Up ${analytics.netDelta}% vs last month. Logged income is above logged expenses this month.`,
       });
     } else if (analytics.currentMonthNet < 0) {
       insights.push({
         type: "warning",
         icon: "!",
-        title: "Spending exceeds income",
-        description: `You're spending ${formatCurrency(Math.abs(analytics.currentMonthNet))} more than you earn this month.`,
+        title: "Logged expenses above income",
+        description: `Logged expenses are ${formatCurrency(Math.abs(analytics.currentMonthNet))} above logged income this month.`,
       });
     }
   }
@@ -348,8 +348,8 @@ export function computeInsights(analytics: FinanceAnalytics, monthLabel: string)
     insights.push({
       type: "negative",
       icon: "!",
-      title: `${overBudget.length} budget${overBudget.length > 1 ? "s" : ""} exceeded`,
-      description: overBudget.map((b) => `${b.categoryName} exceeded by ${formatCurrency(b.spent - b.budgetAmount)}`).join(", "),
+      title: `${overBudget.length} budget${overBudget.length > 1 ? "s" : ""} over logged amount`,
+      description: overBudget.map((b) => `${b.categoryName} is ${formatCurrency(b.spent - b.budgetAmount)} over the logged monthly amount`).join(", "),
     });
   }
 

@@ -472,7 +472,7 @@ export default function FinancePage() {
                 <h3 className="mb-4 text-sm font-medium text-[var(--text-secondary)]">
                   Cashflow Trend
                   <HelpPopover title="Cashflow Trend" className="ml-1">
-                    <p>This shows income and expenses over the last 6 months so you can see whether your money flow is improving or getting worse.</p>
+                    <p>This shows manually logged income and expenses over the last 6 months so you can review how your money flow changed.</p>
                     <p className="mt-1.5 text-[var(--text-muted)]">Income line (blue) shows money in. Expenses line (red) shows money out. Net = income minus expenses.</p>
                   </HelpPopover>
                 </h3>
@@ -482,7 +482,7 @@ export default function FinancePage() {
                 <h3 className="mb-4 text-sm font-medium text-[var(--text-secondary)]">
                   Expense Breakdown
                   <HelpPopover title="Expense Breakdown" className="ml-1">
-                    <p>This shows where your spending went during the selected month, grouped by category.</p>
+                    <p>This shows where logged expenses went during the selected month, grouped by category.</p>
                     <p className="mt-1.5 text-[var(--text-muted)]">Percentages are based on monthly expenses only. Income transactions are not included. Larger slices mean more money spent in that category.</p>
                   </HelpPopover>
                 </h3>
@@ -495,7 +495,7 @@ export default function FinancePage() {
                 <h3 className="mb-3 text-sm font-medium text-[var(--text-secondary)]">
                   Smart Insights
                   <HelpPopover title="Smart Insights" className="ml-1">
-                    <p>These insights are calculated from your real finance data. They highlight spending patterns, budget risks, and changes from last month.</p>
+                    <p>These insights are calculated from manually logged finance data. They highlight logged spending patterns, budget usage, and changes from last month.</p>
                   </HelpPopover>
                 </h3>
                 <FinanceInsights insights={insights} />
@@ -549,7 +549,7 @@ export default function FinancePage() {
           <h3 className="mb-3 text-sm font-medium text-[var(--text-secondary)]">
             Recent Transactions
             <HelpPopover title="Recent Transactions" className="ml-1">
-              <p>Transactions are the money moves you add manually. Income increases your monthly income, and expenses increase your monthly spending.</p>
+              <p>Transactions are the money moves you add manually. Income adds to logged monthly income, and expenses add to logged monthly expenses.</p>
               <p className="mt-1.5 text-[var(--text-muted)]">&quot;All&quot; shows everything. &quot;Income&quot; and &quot;Expense&quot; show only that transaction type.</p>
             </HelpPopover>
           </h3>
@@ -566,8 +566,8 @@ export default function FinancePage() {
             <h3 className="text-sm font-medium text-[var(--text-secondary)]">
               Budget Health
               <HelpPopover title="Budget Health" className="ml-1">
-                <p>Budgets help you set a monthly spending limit for a category. Life Pulse compares your spending in that category against the budget.</p>
-                <p className="mt-1.5 text-[var(--text-muted)]">On track = spending is still safe. Near limit = spending is getting close to the budget. Over budget = spending passed the limit.</p>
+                <p>Budgets help you record a monthly amount for a category. Life Pulse compares logged expenses in that category against the budget.</p>
+                <p className="mt-1.5 text-[var(--text-muted)]">On track = logged expenses are below the budget. Near limit = logged expenses are close to the budget. Over budget = logged expenses passed the budget.</p>
                 <p className="mt-1.5">Budgets only use expense categories.</p>
               </HelpPopover>
             </h3>
