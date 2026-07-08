@@ -42,6 +42,32 @@ const requiredCommandCenterText = [
 
 const requiredEcosystemLinks = ["Today", "Tasks", "Habits", "Journal"];
 
+const requiredMemoryLoopText = [
+  "Memory loop",
+  "Today reflection",
+  "Knowledge this week",
+  "Weekly memory review",
+  "Private manual memory. No AI summaries or external processing.",
+];
+
+const riskyTodayMemoryText = [
+  "AI memory",
+  "vector",
+  "embeddings",
+  "document upload",
+  "file parsing",
+  "public sharing",
+  "external AI processing",
+  "emotional analysis",
+  "mental health analysis",
+  "diagnosis",
+  "prediction",
+  "forecast",
+  "getting better",
+  "getting worse",
+  "therapy",
+];
+
 function requireConfig() {
   const missing = [];
   if (!EMAIL) missing.push("LIFE_PULSE_TEST_EMAIL");
@@ -146,6 +172,26 @@ async function main() {
     const bodyText = await page.locator("body").innerText({ timeout: 10000 });
     if (bodyText.includes("Application error") || bodyText.includes("Failed to load dashboard")) {
       throw new Error("Today page loaded with an error state.");
+    }
+
+    for (const text of requiredMemoryLoopText) {
+      await expectBodyText(page, text);
+    }
+
+    if (bodyText.includes("Captured today")) {
+      pass("Today reflection state visible: Captured today");
+    } else if (bodyText.includes("Not captured yet")) {
+      pass("Today reflection state visible: Not captured yet");
+    } else {
+      throw new Error("Memory loop did not show a Today reflection state.");
+    }
+
+    await expect(page.getByText("Open Weekly Review", { exact: true })).toBeVisible({ timeout: 15000 });
+    pass("Weekly Review action text is visible but not clicked");
+
+    for (const text of riskyTodayMemoryText) {
+      expect(bodyText.toLowerCase()).not.toContain(text.toLowerCase());
+      pass(`Did not find risky Today memory text: ${text}`);
     }
 
     console.log("");
