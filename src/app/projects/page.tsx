@@ -123,6 +123,24 @@ const [linkedProjectIds, setLinkedProjectIds] = useState<Set<string>>(new Set())
     return map;
   }, [linkedTasks]);
 
+  function getTaskContext(tasks: LinkedTask[]) {
+    const openTasks = tasks.filter((task) => task.status !== "done");
+    const completedTasks = tasks.filter((task) => task.status === "done");
+    const nextTask = [...openTasks].sort((a, b) => {
+      if (a.due_date && b.due_date) return a.due_date.localeCompare(b.due_date);
+      if (a.due_date) return -1;
+      if (b.due_date) return 1;
+      return 0;
+    })[0] ?? null;
+
+    return {
+      totalTasks: tasks.length,
+      openTasks: openTasks.length,
+      completedTasks: completedTasks.length,
+      nextTask,
+    };
+  }
+
   function resetForm() {
     setTitle("");
     setDescription("");
@@ -426,30 +444,33 @@ const [linkedProjectIds, setLinkedProjectIds] = useState<Set<string>>(new Set())
                   <div className={`flex flex-col gap-3 ${isPrimary ? "" : "opacity-60 hover:opacity-100 transition-opacity"}`}>
                     {groupProjects.map((project) => {
                       const tasks = tasksByProject[project.id] ?? [];
+                      const taskContext = getTaskContext(tasks);
 
                       return (
-                        <ProjectCard
-                          key={project.id}
-                          project={project}
-                          isPrimary={isPrimary}
-                          isLinked={linkedProjectIds.has(project.id)}
-                          tasks={tasks}
-                          tasksByProject={tasksByProject}
-                          projects={projects}
-                          addingTaskTo={addingTaskTo}
-                          newTaskTitle={newTaskTitle}
-                          newTaskDue={newTaskDue}
-                          newTaskPriority={newTaskPriority}
-                          onEdit={openEdit}
-                          onDelete={remove}
-                          onToggleTask={toggleTaskStatus}
-                          onStartAddTask={setAddingTaskTo}
-                          onCancelAddTask={() => { setAddingTaskTo(null); setNewTaskTitle(""); }}
-                          onNewTaskTitleChange={setNewTaskTitle}
-                          onNewTaskDueChange={setNewTaskDue}
-                          onNewTaskPriorityChange={setNewTaskPriority}
-                          onAddTask={addInlineTask}
-                        />
+                        <div key={project.id} className="space-y-2">
+                          <ProjectTaskContext context={taskContext} />
+                          <ProjectCard
+                            project={project}
+                            isPrimary={isPrimary}
+                            isLinked={linkedProjectIds.has(project.id)}
+                            tasks={tasks}
+                            tasksByProject={tasksByProject}
+                            projects={projects}
+                            addingTaskTo={addingTaskTo}
+                            newTaskTitle={newTaskTitle}
+                            newTaskDue={newTaskDue}
+                            newTaskPriority={newTaskPriority}
+                            onEdit={openEdit}
+                            onDelete={remove}
+                            onToggleTask={toggleTaskStatus}
+                            onStartAddTask={setAddingTaskTo}
+                            onCancelAddTask={() => { setAddingTaskTo(null); setNewTaskTitle(""); }}
+                            onNewTaskTitleChange={setNewTaskTitle}
+                            onNewTaskDueChange={setNewTaskDue}
+                            onNewTaskPriorityChange={setNewTaskPriority}
+                            onAddTask={addInlineTask}
+                          />
+                        </div>
                       );
                     })}
                   </div>
@@ -460,5 +481,43 @@ const [linkedProjectIds, setLinkedProjectIds] = useState<Set<string>>(new Set())
         )}
       </div>
     </DashboardNav>
+  );
+}
+
+function ProjectTaskContext({
+  context,
+}: {
+  context: {
+    totalTasks: number;
+    openTasks: number;
+    completedTasks: number;
+    nextTask: LinkedTask | null;
+  };
+}) {
+  return (
+    <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2.5">
+      {context.totalTasks === 0 ? (
+        <p className="text-xs text-[var(--text-muted)]">No linked tasks yet</p>
+      ) : (
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap gap-2 text-[10px] text-[var(--text-muted)]">
+            <span>Linked tasks: {context.totalTasks}</span>
+            <span>Open tasks: {context.openTasks}</span>
+            <span>Completed tasks: {context.completedTasks}</span>
+          </div>
+          <div className="min-w-0 text-xs text-[var(--text-muted)] sm:max-w-[55%]">
+            <span className="font-medium text-[var(--text-secondary)]">Next task: </span>
+            {context.nextTask ? (
+              <span>
+                <span className="truncate text-[var(--text)]">{context.nextTask.title}</span>
+                {context.nextTask.due_date && <span> &middot; due {context.nextTask.due_date}</span>}
+              </span>
+            ) : (
+              <span>No open tasks</span>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
