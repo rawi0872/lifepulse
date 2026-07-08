@@ -78,6 +78,19 @@ const conditionalWeeklyMemoryText = [
   "Private manual memory. No AI summaries or external processing.",
 ];
 
+const conditionalWeeklyGoalAlignmentText = [
+  "Goal alignment",
+  "Active goals",
+  "Goals with action links",
+  "Goals without action links",
+  "Action links",
+];
+
+const conditionalWeeklyGoalAlignmentStatusText = [
+  "Some active goals are not connected to projects, tasks, or habits yet.",
+  "Your active goals are connected to action.",
+];
+
 const conditionalInsightsFinanceText = [
   "Finance signal",
   "Logged income",
@@ -115,6 +128,17 @@ const riskyWeeklyMemoryText = [
   "file parsing",
   "public sharing",
   "external AI processing",
+];
+
+const riskyWeeklyGoalAlignmentText = [
+  "goal health",
+  "success score",
+  "failure",
+  "bad goal",
+  "AI planning",
+  "automatic generation",
+  "prediction",
+  "forecast",
 ];
 
 const riskyInsightsMemoryText = [
@@ -191,6 +215,11 @@ function assertWeeklyReviewDoesNotContain(bodyText, text) {
   pass(`Did not find risky Weekly Review memory text: ${text}`);
 }
 
+function assertWeeklyGoalAlignmentDoesNotContain(bodyText, text) {
+  expect(bodyText.toLowerCase()).not.toContain(text.toLowerCase());
+  pass(`Did not find risky Weekly Review goal alignment text: ${text}`);
+}
+
 function assertInsightsDoesNotContain(bodyText, text) {
   expect(bodyText.toLowerCase()).not.toContain(text.toLowerCase());
   pass(`Did not find risky Insights memory text: ${text}`);
@@ -241,11 +270,15 @@ async function main() {
     const weeklyReviewBodyText = await page.locator("body").innerText({ timeout: 10000 });
     const moneyReflectionVisible = weeklyReviewBodyText.includes("Money reflection");
     const memoryLearningVisible = weeklyReviewBodyText.includes("Memory and learning");
+    const goalAlignmentVisible = weeklyReviewBodyText.includes("Goal alignment");
     for (const text of riskyFinanceText) {
       assertBodyDoesNotContain(weeklyReviewBodyText, text);
     }
     for (const text of riskyWeeklyMemoryText) {
       assertWeeklyReviewDoesNotContain(weeklyReviewBodyText, text);
+    }
+    for (const text of riskyWeeklyGoalAlignmentText) {
+      assertWeeklyGoalAlignmentDoesNotContain(weeklyReviewBodyText, text);
     }
 
     if (moneyReflectionVisible) {
@@ -264,6 +297,22 @@ async function main() {
       }
     } else {
       skip("Memory and learning section is data-dependent and not visible for this account/week state");
+    }
+
+    if (goalAlignmentVisible) {
+      pass("Goal alignment section is visible");
+      for (const text of conditionalWeeklyGoalAlignmentText) {
+        await expectBodyText(page, text);
+      }
+
+      const statusText = conditionalWeeklyGoalAlignmentStatusText.find((text) => weeklyReviewBodyText.includes(text));
+      if (statusText) {
+        pass(`Found Goal alignment status text: ${statusText}`);
+      } else {
+        skip("Goal alignment status text is not visible; metrics are present");
+      }
+    } else {
+      skip("Goal alignment section is data-dependent and not visible for this account/goal state");
     }
 
     await expect(page.getByRole("button", { name: "Save to Journal" })).toBeVisible({ timeout: 15000 });
