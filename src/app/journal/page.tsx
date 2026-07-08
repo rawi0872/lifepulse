@@ -30,6 +30,9 @@ const REFLECTION_PROMPTS = [
 
 export default function JournalPage() {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedMood, setSelectedMood] = useState("");
+  const [selectedEnergy, setSelectedEnergy] = useState("");
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const supabase = createClient();
@@ -72,6 +75,19 @@ export default function JournalPage() {
       day: "numeric",
     }).format(d);
   }
+
+  const normalizedSearch = searchQuery.trim().toLowerCase();
+  const filteredEntries = entries.filter((entry) => {
+    const moodLabel = entry.mood != null ? MOOD_LABELS[entry.mood - 1] ?? "" : "";
+    const matchesMood = !selectedMood || String(entry.mood ?? "") === selectedMood;
+    const matchesEnergy = !selectedEnergy || String(entry.energy ?? "") === selectedEnergy;
+    const searchableText = [entry.content, moodLabel, entry.entry_date, formatEntryDate(entry.entry_date)]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+    const matchesSearch = !normalizedSearch || searchableText.includes(normalizedSearch);
+    return matchesMood && matchesEnergy && matchesSearch;
+  });
 
   if (loading) {
     return (
@@ -170,7 +186,48 @@ export default function JournalPage() {
               </Card>
             )}
 
-            {entries.map((entry) => (
+            <Card variant="subtle" className="border-[var(--border)]">
+              <div className="p-4">
+                <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto]">
+                  <input
+                    type="search"
+                    placeholder="Search reflections..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none focus:border-[var(--accent)]"
+                  />
+                  <select
+                    value={selectedMood}
+                    onChange={(e) => setSelectedMood(e.target.value)}
+                    className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)] outline-none focus:border-[var(--accent)]"
+                  >
+                    <option value="">All moods</option>
+                    {MOOD_LABELS.map((label, index) => <option key={label} value={String(index + 1)}>{label}</option>)}
+                  </select>
+                  <select
+                    value={selectedEnergy}
+                    onChange={(e) => setSelectedEnergy(e.target.value)}
+                    className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)] outline-none focus:border-[var(--accent)]"
+                  >
+                    <option value="">All energy levels</option>
+                    {[1, 2, 3, 4, 5].map((level) => <option key={level} value={String(level)}>{level}/5</option>)}
+                  </select>
+                </div>
+                <div className="mt-3 flex flex-col gap-1 text-[10px] text-[var(--text-muted)] sm:flex-row sm:items-center sm:justify-between">
+                  <span>Showing {filteredEntries.length} of {entries.length} reflections</span>
+                  <span>Private manual reflection library. No AI summaries or external processing.</span>
+                </div>
+              </div>
+            </Card>
+
+            {filteredEntries.length === 0 ? (
+              <Card variant="subtle" className="border-[var(--border)]">
+                <div className="px-6 py-10 text-center">
+                  <p className="text-sm font-medium text-[var(--text)]">No matching reflections found.</p>
+                  <p className="mt-1 text-xs text-[var(--text-muted)]">Try changing the search or filters.</p>
+                </div>
+              </Card>
+            ) : filteredEntries.map((entry) => (
               <Card key={entry.id} className="border-[var(--border-strong)] overflow-hidden hover:border-[var(--border-strong)]">
                 <div className="relative p-5">
                   <div className="absolute left-0 top-0 bottom-0 w-px bg-[var(--accent)]/20" />
