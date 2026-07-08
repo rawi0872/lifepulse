@@ -36,6 +36,9 @@ function KnowledgeContent() {
 
   const [items, setItems] = useState<KnowledgeItem[]>([]);
   const [collections, setCollections] = useState<KnowledgeCollection[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedType, setSelectedType] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("");
 
   const [itemForm, setItemForm] = useState<KnowledgeItemFormData>({
     title: "", type: "note", category: "", source_url: "", summary: "", content: "",
@@ -116,6 +119,18 @@ function KnowledgeContent() {
     toast({ type: "success", title: "Collection deleted" });
     setCollections((prev) => prev.filter((c) => c.id !== id));
   };
+
+  const normalizedSearch = searchQuery.trim().toLowerCase();
+  const filteredItems = items.filter((item) => {
+    const matchesType = !selectedType || item.type === selectedType;
+    const matchesCategory = !selectedCategory || item.category === selectedCategory;
+    const searchableText = [item.title, item.type, item.category, item.summary, item.content]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+    const matchesSearch = !normalizedSearch || searchableText.includes(normalizedSearch);
+    return matchesType && matchesCategory && matchesSearch;
+  });
 
   if (loading) return null;
 
@@ -282,23 +297,62 @@ function KnowledgeContent() {
               </PulseCard>
             ) : (
               <PulseCard title="Recent Items" accent="accent" description={`${items.length} total`}>
-                <div className="divide-y divide-[var(--border)]">
-                  {items.map((item) => (
-                    <div key={item.id} className="group flex items-center justify-between px-4 py-3">
-                      <div className="flex flex-col gap-0.5 flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-medium text-[var(--text)] truncate">{item.title}</span>
-                          <span className="shrink-0 rounded-full bg-[var(--surface-soft)] px-2 py-0.5 text-[9px] font-medium text-[var(--text-muted)]">{item.type}</span>
-                          {item.category && <span className="shrink-0 text-[9px] text-[var(--text-muted)]">{item.category}</span>}
-                        </div>
-                        {item.summary && <span className="text-[10px] text-[var(--text-muted)] truncate">{item.summary}</span>}
-                        <span className="text-[9px] text-[var(--text-muted)]">{new Date(item.created_at).toLocaleDateString()}</span>
-                      </div>
-                      <button onClick={() => handleDeleteItem(item.id)}
-                        className="shrink-0 text-[10px] text-[var(--danger)] opacity-0 group-hover:opacity-100 transition-opacity">Delete</button>
-                    </div>
-                  ))}
+                <div className="border-b border-[var(--border)] px-4 py-4">
+                  <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto]">
+                    <input
+                      type="search"
+                      placeholder="Search knowledge..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none focus:border-[var(--accent)]"
+                    />
+                    <select
+                      value={selectedType}
+                      onChange={(e) => setSelectedType(e.target.value)}
+                      className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)] outline-none focus:border-[var(--accent)]"
+                    >
+                      <option value="">All types</option>
+                      {KNOWLEDGE_TYPES.map((type) => <option key={type} value={type}>{type}</option>)}
+                    </select>
+                    <select
+                      value={selectedCategory}
+                      onChange={(e) => setSelectedCategory(e.target.value)}
+                      className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)] outline-none focus:border-[var(--accent)]"
+                    >
+                      <option value="">All categories</option>
+                      {KNOWLEDGE_CATEGORIES.map((category) => <option key={category} value={category}>{category}</option>)}
+                    </select>
+                  </div>
+                  <div className="mt-3 flex flex-col gap-1 text-[10px] text-[var(--text-muted)] sm:flex-row sm:items-center sm:justify-between">
+                    <span>Showing {filteredItems.length} of {items.length} items</span>
+                    <span>Private manual knowledge library. No AI summaries or external processing.</span>
+                  </div>
                 </div>
+
+                {filteredItems.length === 0 ? (
+                  <div className="px-4 py-8 text-center">
+                    <p className="text-sm font-medium text-[var(--text)]">No matching knowledge found.</p>
+                    <p className="mt-1 text-xs text-[var(--text-muted)]">Try changing the search or filters.</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-[var(--border)]">
+                    {filteredItems.map((item) => (
+                      <div key={item.id} className="group flex items-center justify-between px-4 py-3">
+                        <div className="flex flex-col gap-0.5 flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-medium text-[var(--text)] truncate">{item.title}</span>
+                            <span className="shrink-0 rounded-full bg-[var(--surface-soft)] px-2 py-0.5 text-[9px] font-medium text-[var(--text-muted)]">{item.type}</span>
+                            {item.category && <span className="shrink-0 text-[9px] text-[var(--text-muted)]">{item.category}</span>}
+                          </div>
+                          {item.summary && <span className="text-[10px] text-[var(--text-muted)] truncate">{item.summary}</span>}
+                          <span className="text-[9px] text-[var(--text-muted)]">{new Date(item.created_at).toLocaleDateString()}</span>
+                        </div>
+                        <button onClick={() => handleDeleteItem(item.id)}
+                          className="shrink-0 text-[10px] text-[var(--danger)] opacity-0 group-hover:opacity-100 transition-opacity">Delete</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </PulseCard>
             )}
           </div>
