@@ -147,6 +147,28 @@ async function main() {
       await expectBodyText(page, text);
     }
 
+    await page.getByRole("button", { name: "Add Knowledge" }).click();
+    pass("Opened Add Knowledge tab");
+
+    await expect(page.getByTestId("knowledge-item-title-input")).toBeVisible({ timeout: 15000 });
+    pass("Add Knowledge form is visible");
+    await expectBodyText(page, "Collection");
+    await expectBodyText(page, "No collection");
+
+    const addKnowledgeBodyText = await page.locator("body").innerText({ timeout: 10000 });
+    if (addKnowledgeBodyText.includes("Create a collection first if you want to organize this item.")) {
+      pass("Collection helper copy is visible");
+    } else {
+      const collectionOptions = await page.locator("select").last().locator("option").count();
+      if (collectionOptions > 1) {
+        info("Collection dropdown has existing collection options available.");
+        await page.locator("select").last().selectOption({ index: 1 });
+        pass("Changed collection dropdown selection without submitting data");
+      } else {
+        info("Collection helper copy is not visible and no existing collection option was detected.");
+      }
+    }
+
     await page.getByRole("button", { name: "Recent Items" }).click();
     pass("Opened Recent Items tab");
 
