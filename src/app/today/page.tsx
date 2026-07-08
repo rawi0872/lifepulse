@@ -129,7 +129,7 @@ function TodayContent() {
   const [hasPassionSessionThisWeek, setHasPassionSessionThisWeek] = useState(true);
   const [goalPreviewGoals, setGoalPreviewGoals] = useState<{ id: string; status: string; target_date: string | null }[]>([]);
   const [goalPreviewMilestones, setGoalPreviewMilestones] = useState<{ goal_id: string; completed_at: string | null }[]>([]);
-  const [goalPreviewLinks, setGoalPreviewLinks] = useState<{ goal_id: string | null }[]>([]);
+  const [goalPreviewLinks, setGoalPreviewLinks] = useState<{ goal_id: string | null; linked_type: string | null }[]>([]);
 
   const router = useRouter();
   const supabase = createClient();
@@ -159,6 +159,15 @@ function TodayContent() {
   const linkedGoalIds = new Set(goalPreviewLinks.map((link) => link.goal_id).filter(Boolean));
   const activeGoalPreviews = goalPreviewGoals.filter((g) => g.status === "active");
   const hasGoalWithoutLinks = activeGoalPreviews.length > 0 && activeGoalPreviews.some((goal) => !linkedGoalIds.has(goal.id));
+  const activeGoalIds = new Set(activeGoalPreviews.map((goal) => goal.id));
+  const activeGoalLinks = goalPreviewLinks.filter((link) => link.goal_id && activeGoalIds.has(link.goal_id));
+  const activeGoalsCount = activeGoalPreviews.length;
+  const linkedGoalsCount = new Set(activeGoalLinks.map((link) => link.goal_id).filter(Boolean)).size;
+  const unlinkedGoalsCount = activeGoalsCount - linkedGoalsCount;
+  const projectLinksCount = activeGoalLinks.filter((link) => link.linked_type === "project").length;
+  const taskLinksCount = activeGoalLinks.filter((link) => link.linked_type === "task").length;
+  const habitLinksCount = activeGoalLinks.filter((link) => link.linked_type === "habit").length;
+  const actionLinksCount = projectLinksCount + taskLinksCount + habitLinksCount;
 
   function savePriorities(items: Priority[]) {
     localStorage.setItem("lifepulse_priorities", JSON.stringify({ date: today, items }));
@@ -463,7 +472,7 @@ function TodayContent() {
           .eq("user_id", user.id);
         const { data: goalLinkData } = await supabase
           .from("goal_links")
-          .select("goal_id")
+          .select("goal_id, linked_type")
           .eq("user_id", user.id);
         if (!cancelled && goalData) {
           setGoalPreviewGoals(goalData);
@@ -769,6 +778,45 @@ function TodayContent() {
         dayOfWeek={todayDow}
       />
 
+      {activeGoalsCount > 0 && (
+        <Card className="mb-4 overflow-hidden">
+          <div className="border-b border-[var(--border)] px-4 py-2.5">
+            <p className="text-[10px] font-medium tracking-wider text-[var(--text-muted)]">
+              Execution bridge
+            </p>
+            <p className="mt-1 text-xs text-[var(--text-muted)]">
+              Connect today&apos;s actions to the goals they support.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-0 divide-x divide-y divide-[var(--border)] sm:grid-cols-4 sm:divide-y-0">
+            <ExecutionBridgeMetric label="Active goals" value={activeGoalsCount} />
+            <ExecutionBridgeMetric label="Goals with action links" value={linkedGoalsCount} />
+            <ExecutionBridgeMetric label="Goals without action links" value={unlinkedGoalsCount} />
+            <ExecutionBridgeMetric
+              label="Action links"
+              value={actionLinksCount}
+              sub={`${projectLinksCount} projects / ${taskLinksCount} tasks / ${habitLinksCount} habits`}
+            />
+          </div>
+          <div className="border-t border-[var(--border)] px-4 py-3">
+            <p className="text-xs text-[var(--text-muted)]">
+              {unlinkedGoalsCount > 0
+                ? "Some active goals are not connected to projects, tasks, or habits yet."
+                : "Your active goals are connected to action."}
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2 text-xs">
+              <Link href="/goals" className="text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">Open Goals</Link>
+              <span className="text-[var(--text-muted)]">/</span>
+              <Link href="/projects" className="text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">Open Projects</Link>
+              <span className="text-[var(--text-muted)]">/</span>
+              <Link href="/tasks" className="text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">Open Tasks</Link>
+              <span className="text-[var(--text-muted)]">/</span>
+              <Link href="/habits" className="text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">Open Habits</Link>
+            </div>
+          </div>
+        </Card>
+      )}
+
       {/* Next action */}
       {suggestedTask && suggestedTask.projects ? (
         <Card className="mb-4">
@@ -1047,7 +1095,17 @@ function TodayContent() {
     </div>
   );
 }
- 
+
+function ExecutionBridgeMetric({ label, value, sub }: { label: string; value: number; sub?: string }) {
+  return (
+    <div className="p-3 text-center">
+      <p className="text-lg font-bold text-[var(--text)]">{value}</p>
+      <p className="text-[10px] text-[var(--text-muted)]">{label}</p>
+      {sub && <p className="mt-0.5 text-[9px] text-[var(--text-muted)]">{sub}</p>}
+    </div>
+  );
+}
+
 export default function TodayPage() {
   return (
     <DashboardNav>
