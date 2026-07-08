@@ -129,6 +129,7 @@ function TodayContent() {
   const [hasPassionSessionThisWeek, setHasPassionSessionThisWeek] = useState(true);
   const [goalPreviewGoals, setGoalPreviewGoals] = useState<{ id: string; status: string; target_date: string | null }[]>([]);
   const [goalPreviewMilestones, setGoalPreviewMilestones] = useState<{ goal_id: string; completed_at: string | null }[]>([]);
+  const [goalPreviewLinks, setGoalPreviewLinks] = useState<{ goal_id: string | null }[]>([]);
 
   const router = useRouter();
   const supabase = createClient();
@@ -155,6 +156,9 @@ function TodayContent() {
   const [suggestedHidden, setSuggestedHidden] = useState(false);
   const todoProjectTasks = projectTasks.filter((t) => t.status === "todo");
   const suggestedTask = !suggestedHidden ? (todoProjectTasks[0] ?? null) : null;
+  const linkedGoalIds = new Set(goalPreviewLinks.map((link) => link.goal_id).filter(Boolean));
+  const activeGoalPreviews = goalPreviewGoals.filter((g) => g.status === "active");
+  const hasGoalWithoutLinks = activeGoalPreviews.length > 0 && activeGoalPreviews.some((goal) => !linkedGoalIds.has(goal.id));
 
   function savePriorities(items: Priority[]) {
     localStorage.setItem("lifepulse_priorities", JSON.stringify({ date: today, items }));
@@ -457,9 +461,14 @@ function TodayContent() {
           .from("goal_milestones")
           .select("goal_id, completed_at")
           .eq("user_id", user.id);
+        const { data: goalLinkData } = await supabase
+          .from("goal_links")
+          .select("goal_id")
+          .eq("user_id", user.id);
         if (!cancelled && goalData) {
           setGoalPreviewGoals(goalData);
           if (goalMsData) setGoalPreviewMilestones(goalMsData);
+          if (goalLinkData) setGoalPreviewLinks(goalLinkData);
         }
       } catch {
         setError("Failed to load dashboard.");
@@ -750,10 +759,7 @@ function TodayContent() {
         hasBodyLogged={bodyLoggedToday}
         hasMindLogged={mindLoggedToday}
         hasHighPriorityTasks={tasks.some((t) => t.priority === "high" && t.status === "todo")}
-        hasGoalWithoutLinks={
-          goalPreviewGoals.some((g) => g.status === "active") &&
-          goalPreviewMilestones.filter((m) => m.completed_at).length === 0
-        }
+        hasGoalWithoutLinks={hasGoalWithoutLinks}
         hasJournalToday={hasJournal}
         hasContent={hasContent}
         hasWorkoutThisWeek={hasWorkoutThisWeek}

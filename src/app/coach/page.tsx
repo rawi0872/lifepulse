@@ -53,7 +53,7 @@ function CoachContent() {
       const dayOfWeek = new Date().getDay();
 
       const [
-        bodyRes, mindRes, tasksRes, goalsRes, goalMsRes,
+        bodyRes, mindRes, tasksRes, goalsRes, goalLinksRes,
         journalRes, habitsRes, workoutRes,
         nutritionRes, passionsRes, sessionsRes, financeRes, financeWeekRes,
         knowledgeRes, collectionsRes, journalWeekRes, knowledgeWeekRes,
@@ -62,7 +62,7 @@ function CoachContent() {
         supabase.from("mind_metrics").select("id").eq("user_id", user.id).eq("entry_date", today).maybeSingle(),
         supabase.from("tasks").select("id,priority,status,realm_id").eq("user_id", user.id),
         supabase.from("goals").select("id,status").eq("user_id", user.id),
-        supabase.from("goal_milestones").select("goal_id,completed_at").eq("user_id", user.id),
+        supabase.from("goal_links").select("goal_id").eq("user_id", user.id),
         supabase.from("journal_entries").select("id").eq("user_id", user.id).eq("entry_date", today).maybeSingle(),
         supabase.from("habits").select("id").eq("user_id", user.id),
         supabase.from("workouts").select("id, duration_minutes").eq("user_id", user.id).gte("workout_date", weekStart).lte("workout_date", today),
@@ -79,9 +79,9 @@ function CoachContent() {
 
       if (cancelled) return;
 
-      const hasGoals = (goalsRes.data ?? []).length > 0;
-      const hasMilestones = (goalMsRes.data ?? []).length > 0;
-      const hasGoalWithoutLinks = hasGoals && !hasMilestones;
+      const activeGoals = (goalsRes.data ?? []).filter((g: { status?: string }) => g.status === "active");
+      const linkedGoalIds = new Set((goalLinksRes.data ?? []).map((link: { goal_id?: string | null }) => link.goal_id).filter(Boolean));
+      const hasGoalWithoutLinks = activeGoals.length > 0 && activeGoals.some((goal: { id?: string }) => !linkedGoalIds.has(goal.id));
       const hasContent = (habitsRes.data ?? []).length > 0 || (tasksRes.data ?? []).length > 0;
       const hasHighPriorityTasks = (tasksRes.data ?? []).some(
         (t: { priority?: string; status?: string }) => t.priority === "high" && t.status === "todo"
