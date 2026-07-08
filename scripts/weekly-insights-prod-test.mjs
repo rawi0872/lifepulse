@@ -87,6 +87,16 @@ const conditionalInsightsFinanceText = [
   "Manual tracker. Not financial advice. No bank connection.",
 ];
 
+const conditionalInsightsMemoryText = [
+  "Memory signal",
+  "A private, read-only view of reflection and knowledge activity captured manually.",
+  "Journal entries this month",
+  "Knowledge items this month",
+  "Latest knowledge",
+  "Most used type",
+  "Private manual memory. No AI summaries or external processing.",
+];
+
 const riskyFinanceText = [
   "you earn",
   "you should",
@@ -105,6 +115,23 @@ const riskyWeeklyMemoryText = [
   "file parsing",
   "public sharing",
   "external AI processing",
+];
+
+const riskyInsightsMemoryText = [
+  "AI memory",
+  "vector",
+  "embeddings",
+  "document upload",
+  "file parsing",
+  "public sharing",
+  "external AI processing",
+  "emotional analysis",
+  "mental health analysis",
+  "diagnosis",
+  "prediction",
+  "forecast",
+  "getting better",
+  "getting worse",
 ];
 
 function requireConfig() {
@@ -162,6 +189,11 @@ function assertBodyDoesNotContain(bodyText, text) {
 function assertWeeklyReviewDoesNotContain(bodyText, text) {
   expect(bodyText.toLowerCase()).not.toContain(text.toLowerCase());
   pass(`Did not find risky Weekly Review memory text: ${text}`);
+}
+
+function assertInsightsDoesNotContain(bodyText, text) {
+  expect(bodyText.toLowerCase()).not.toContain(text.toLowerCase());
+  pass(`Did not find risky Insights memory text: ${text}`);
 }
 
 async function assertAuthenticatedRoute(page, routeName) {
@@ -251,6 +283,9 @@ async function main() {
     for (const text of riskyFinanceText) {
       assertBodyDoesNotContain(insightsBodyText, text);
     }
+    for (const text of riskyInsightsMemoryText) {
+      assertInsightsDoesNotContain(insightsBodyText, text);
+    }
 
     const financeSignalCount = await page.getByText("Finance signal", { exact: true }).count();
     if (financeSignalCount > 0) {
@@ -260,6 +295,16 @@ async function main() {
       }
     } else {
       skip("Finance signal section is not visible for this account/data state");
+    }
+
+    const memorySignalCount = await page.getByText("Memory signal", { exact: true }).count();
+    if (memorySignalCount > 0) {
+      pass("Memory signal section is visible");
+      for (const text of conditionalInsightsMemoryText) {
+        await expectBodyText(page, text);
+      }
+    } else {
+      skip("Memory signal section is data-dependent and not visible for this account/month state");
     }
 
     if (insightsBodyText.includes("Application error") || insightsBodyText.includes("Failed to load")) {
