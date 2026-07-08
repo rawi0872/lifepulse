@@ -57,6 +57,11 @@ export default function InsightsPage() {
   const [financeCurrency, setFinanceCurrency] = useState<string | null>(null);
   const [financeHasMixedCurrencies, setFinanceHasMixedCurrencies] = useState(false);
   const [financeHasData, setFinanceHasData] = useState(false);
+  const [journalEntriesThisMonth, setJournalEntriesThisMonth] = useState(0);
+  const [knowledgeItemsThisMonth, setKnowledgeItemsThisMonth] = useState(0);
+  const [latestKnowledgeTitle, setLatestKnowledgeTitle] = useState<string | null>(null);
+  const [latestKnowledgeType, setLatestKnowledgeType] = useState<string | null>(null);
+  const [topKnowledgeType, setTopKnowledgeType] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
@@ -70,6 +75,14 @@ export default function InsightsPage() {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push("/login"); return; }
+
+      const year = today.slice(0, 4);
+      const month = today.slice(5, 7);
+      const monthStart = `${year}-${month}-01`;
+      const lastDay = new Date(Number(year), Number(month), 0).getDate();
+      const monthEnd = `${year}-${month}-${String(lastDay).padStart(2, "0")}`;
+      const knowledgeMonthStart = toLocalDateBoundaryIso(monthStart, "start");
+      const knowledgeMonthEnd = toLocalDateBoundaryIso(monthEnd, "end");
 
       const [xpRes, todayXpRes, habitsRes, tasksRes, realmsRes, journalRes, habitLogsRes, projectsRes] = await Promise.all([
         supabase.from("xp_events").select("amount,source_type,source_id").eq("user_id", user.id),
@@ -111,17 +124,24 @@ export default function InsightsPage() {
         setActiveProjectCount(projectsRes.data.filter((p: { status: string }) => p.status === "active").length);
       }
 
-      const year = today.slice(0, 4);
-      const month = today.slice(5, 7);
-      const monthStart = `${year}-${month}-01`;
-      const lastDay = new Date(Number(year), Number(month), 0).getDate();
-      const monthEnd = `${year}-${month}-${String(lastDay).padStart(2, "0")}`;
-
-      const financeRes = await supabase.from("finance_transactions")
-        .select("amount, type, transaction_date, account_id, finance_accounts(currency)")
-        .eq("user_id", user.id)
-        .gte("transaction_date", monthStart)
-        .lte("transaction_date", monthEnd);
+      const [financeRes, journalMemoryRes, knowledgeMemoryRes] = await Promise.all([
+        supabase.from("finance_transactions")
+          .select("amount, type, transaction_date, account_id, finance_accounts(currency)")
+          .eq("user_id", user.id)
+          .gte("transaction_date", monthStart)
+          .lte("transaction_date", monthEnd),
+        supabase.from("journal_entries")
+          .select("id, entry_date, mood, energy")
+          .eq("user_id", user.id)
+          .gte("entry_date", monthStart)
+          .lte("entry_date", monthEnd),
+        supabase.from("knowledge_items")
+          .select("id, title, type, category, created_at")
+          .eq("user_id", user.id)
+          .gte("created_at", knowledgeMonthStart)
+          .lte("created_at", knowledgeMonthEnd)
+          .order("created_at", { ascending: false }),
+      ]);
 
       if (!cancelled) {
         const financeTransactions = (financeRes.data ?? []) as {
@@ -152,6 +172,16 @@ export default function InsightsPage() {
         setFinanceCurrency(currencyList.length === 1 ? currencyList[0] : null);
         setFinanceHasMixedCurrencies(currencyList.length > 1);
         setFinanceHasData(financeTransactions.length > 0);
+
+        const journalMemoryEntries = (journalMemoryRes.data ?? []) as { id: string; entry_date?: string | null; mood?: string | null; energy?: number | null }[];
+        const knowledgeMemoryItems = (knowledgeMemoryRes.data ?? []) as { title?: string | null; type?: string | null; category?: string | null }[];
+        const latestKnowledge = knowledgeMemoryItems[0];
+
+        setJournalEntriesThisMonth(journalMemoryEntries.length);
+        setKnowledgeItemsThisMonth(knowledgeMemoryItems.length);
+        setLatestKnowledgeTitle(makeMemoryLabel(latestKnowledge?.title ?? null));
+        setLatestKnowledgeType(makeMemoryLabel(latestKnowledge?.type ?? null));
+        setTopKnowledgeType(getTopValue(knowledgeMemoryItems.map((item) => item.type ?? null)));
       }
 
       if (habitLogsRes.data) {
@@ -505,6 +535,43 @@ export default function InsightsPage() {
           journalCount={journalCount}
         />
 
+        {/* Memory */}
+        {(journalEntriesThisMonth > 0 || knowledgeItemsThisMonth > 0) && (
+          <>
+            <h2 className="mb-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">
+              Memory signal
+            </h2>
+            <p className="mb-3 text-xs text-[var(--text-muted)]">
+              A private, read-only view of reflection and knowledge activity captured manually.
+            </p>
+            <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <Card variant="default" className="flex flex-col p-4 min-h-[100px]">
+                <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Journal entries this month</p>
+                <p className="mt-2 text-2xl font-bold text-[var(--text)]">{journalEntriesThisMonth}</p>
+                <p className="mt-auto pt-2 text-[10px] text-[var(--text-muted)]">Reflection activity</p>
+              </Card>
+              <Card variant="default" className="flex flex-col p-4 min-h-[100px]">
+                <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Knowledge items this month</p>
+                <p className="mt-2 text-2xl font-bold text-[var(--text)]">{knowledgeItemsThisMonth}</p>
+                <p className="mt-auto pt-2 text-[10px] text-[var(--text-muted)]">Knowledge activity</p>
+              </Card>
+              <Card variant="default" className="flex flex-col p-4 min-h-[100px]">
+                <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Latest knowledge</p>
+                <p className="mt-2 truncate text-lg font-bold text-[var(--text)]">{latestKnowledgeTitle ?? "—"}</p>
+                <p className="mt-auto pt-2 text-[10px] text-[var(--text-muted)]">{latestKnowledgeType ?? "This month"}</p>
+              </Card>
+              <Card variant="default" className="flex flex-col p-4 min-h-[100px]">
+                <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Most used type</p>
+                <p className="mt-2 truncate text-lg font-bold text-[var(--text)]">{topKnowledgeType ?? "—"}</p>
+                <p className="mt-auto pt-2 text-[10px] text-[var(--text-muted)]">This month</p>
+              </Card>
+            </div>
+            <p className="mb-6 text-center text-[10px] text-[var(--text-muted)]">
+              Private manual memory. No AI summaries or external processing.
+            </p>
+          </>
+        )}
+
         {/* Finance */}
         {financeHasData && (
           <>
@@ -646,4 +713,38 @@ export default function InsightsPage() {
 function formatFinanceSignalAmount(amount: number, currency: string | null, hasMixedCurrencies: boolean): string {
   if (hasMixedCurrencies) return "Mixed currencies";
   return formatMoney(amount, 2, currency ?? undefined);
+}
+
+function toLocalDateBoundaryIso(dateString: string, boundary: "start" | "end"): string {
+  const [year, month, day] = dateString.split("-").map(Number);
+  const date = boundary === "start"
+    ? new Date(year, month - 1, day, 0, 0, 0, 0)
+    : new Date(year, month - 1, day, 23, 59, 59, 999);
+  return date.toISOString();
+}
+
+function makeMemoryLabel(value: string | null): string | null {
+  const text = value?.replace(/\s+/g, " ").trim();
+  if (!text) return null;
+  return text.length > 48 ? `${text.slice(0, 45)}...` : text;
+}
+
+function getTopValue(values: (string | null)[]): string | null {
+  const counts = new Map<string, number>();
+  for (const value of values) {
+    const label = makeMemoryLabel(value);
+    if (!label) continue;
+    counts.set(label, (counts.get(label) ?? 0) + 1);
+  }
+
+  let topValue: string | null = null;
+  let topCount = 0;
+  for (const [value, count] of counts) {
+    if (count > topCount) {
+      topValue = value;
+      topCount = count;
+    }
+  }
+
+  return topValue;
 }
