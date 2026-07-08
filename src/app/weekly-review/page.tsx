@@ -43,6 +43,11 @@ interface WeekData {
   nutritionDays: number;
   waterMl: number;
   avgProteinPerNutritionDay: number | null;
+  weeklyJournalEntries: number;
+  weeklyKnowledgeItems: number;
+  latestJournalReflection: string | null;
+  latestKnowledgeTitle: string | null;
+  latestKnowledgeType: string | null;
   latestWeight: number | null;
   activeGoals: number;
   completedMilestones: number;
@@ -96,11 +101,14 @@ function WeeklyReviewContent() {
     if (!user) { router.push("/login"); return; }
 
     const weekEnd = weekDates[6];
+    const knowledgeWeekStart = toLocalDateBoundaryIso(weekStart, "start");
+    const knowledgeWeekEnd = toLocalDateBoundaryIso(weekEnd, "end");
 
     const [
       habitsRes, tasksRes, workoutsRes, journalRes,
       bodyRes, mindRes, nutritionRes, measurementRes,
       passionsRes, sessionsRes, goalsRes, milestonesRes, projectsRes, financeRes,
+      journalMemoryRes, knowledgeMemoryRes,
     ] = await Promise.all([
       supabase.from("habit_logs").select("id").eq("user_id", user.id).gte("completed_date", weekStart).lte("completed_date", weekEnd),
       supabase.from("tasks").select("id").eq("user_id", user.id).eq("status", "done"),
@@ -120,6 +128,18 @@ function WeeklyReviewContent() {
         .eq("user_id", user.id)
         .gte("transaction_date", weekStart)
         .lte("transaction_date", weekEnd),
+      supabase.from("journal_entries")
+        .select("id, entry_date, content")
+        .eq("user_id", user.id)
+        .gte("entry_date", weekStart)
+        .lte("entry_date", weekEnd)
+        .order("entry_date", { ascending: false }),
+      supabase.from("knowledge_items")
+        .select("id, title, type, created_at")
+        .eq("user_id", user.id)
+        .gte("created_at", knowledgeWeekStart)
+        .lte("created_at", knowledgeWeekEnd)
+        .order("created_at", { ascending: false }),
     ]);
 
     const bodyMetrics = (bodyRes.data ?? []) as { energy?: number | null; sleep_hours?: number | null }[];
@@ -152,6 +172,10 @@ function WeeklyReviewContent() {
     const nutritionDays = new Set(nutritionLogs.map((n) => n.log_date).filter(Boolean)).size;
     const totalProtein = nutritionLogs.reduce((sum, n) => sum + (n.protein_g ?? 0), 0);
     const waterMl = nutritionLogs.reduce((sum, n) => sum + (n.water_ml ?? 0), 0);
+    const journalMemoryEntries = (journalMemoryRes.data ?? []) as { content?: string | null }[];
+    const knowledgeMemoryItems = (knowledgeMemoryRes.data ?? []) as { title?: string | null; type?: string | null }[];
+    const latestJournalReflection = makeMemorySnippet(journalMemoryEntries[0]?.content ?? null);
+    const latestKnowledge = knowledgeMemoryItems[0];
     const financeTransactions = (financeRes.data ?? []) as {
       amount?: number | string | null;
       type?: string | null;
@@ -197,6 +221,11 @@ function WeeklyReviewContent() {
       nutritionDays,
       waterMl,
       avgProteinPerNutritionDay: nutritionDays > 0 ? Math.round(totalProtein / nutritionDays) : null,
+      weeklyJournalEntries: journalMemoryEntries.length,
+      weeklyKnowledgeItems: knowledgeMemoryItems.length,
+      latestJournalReflection,
+      latestKnowledgeTitle: latestKnowledge?.title ?? null,
+      latestKnowledgeType: latestKnowledge?.type ?? null,
       latestWeight: ((measurementRes.data ?? []) as { weight_kg?: number | null }[])[0]?.weight_kg ?? null,
       activeGoals: (goalsRes.data ?? []).length,
       completedMilestones: (milestonesRes.data ?? []).length,
@@ -306,6 +335,31 @@ function WeeklyReviewContent() {
           <MetricCard label="Nutrition logs" value={data.nutritionCount} />
         </div>
       </section>
+
+      {(data.weeklyJournalEntries > 0 || data.weeklyKnowledgeItems > 0) && (
+        <section className="mb-8">
+          <div className="mb-3 flex items-center gap-2">
+            <span className="h-4 w-1 rounded-full bg-gradient-to-b from-[var(--accent)] to-[var(--accent-strong)]" />
+            <h2 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Memory and learning</h2>
+          </div>
+          <p className="mb-3 text-xs text-[var(--text-muted)]">
+            A read-only view of reflections and knowledge captured this week.
+          </p>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <MetricCard label="Journal entries" value={data.weeklyJournalEntries} />
+            <MetricCard label="Knowledge items" value={data.weeklyKnowledgeItems} />
+            <MetricCard label="Latest reflection" value={data.latestJournalReflection ?? "—"} />
+            <MetricCard
+              label="Latest knowledge"
+              value={data.latestKnowledgeTitle ?? "—"}
+              sub={data.latestKnowledgeType ?? undefined}
+            />
+          </div>
+          <p className="mt-3 text-center text-[10px] text-[var(--text-muted)]">
+            Private manual memory. No AI summaries or external processing.
+          </p>
+        </section>
+      )}
 
       {/* ── 2. Body & Mind Review ──────────────────────────────────── */}
       <section className="mb-8">
@@ -514,6 +568,20 @@ function WeeklyReviewContent() {
 function formatFinanceReviewAmount(amount: number, data: WeekData): string {
   if (data.financeHasMixedCurrencies) return "Mixed currencies";
   return formatCurrency(amount, data.financeCurrency ?? undefined);
+}
+
+function toLocalDateBoundaryIso(dateString: string, boundary: "start" | "end"): string {
+  const [year, month, day] = dateString.split("-").map(Number);
+  const date = boundary === "start"
+    ? new Date(year, month - 1, day, 0, 0, 0, 0)
+    : new Date(year, month - 1, day, 23, 59, 59, 999);
+  return date.toISOString();
+}
+
+function makeMemorySnippet(content: string | null): string | null {
+  const text = content?.replace(/\s+/g, " ").trim();
+  if (!text) return null;
+  return text.length > 72 ? `${text.slice(0, 69)}...` : text;
 }
 
 function MetricCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
