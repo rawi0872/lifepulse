@@ -68,6 +68,16 @@ const conditionalWeeklyFinanceText = [
   "Manual tracker. Not financial advice. No bank connection.",
 ];
 
+const conditionalWeeklyMemoryText = [
+  "Memory and learning",
+  "A read-only view of reflections and knowledge captured this week.",
+  "Journal entries",
+  "Knowledge items",
+  "Latest reflection",
+  "Latest knowledge",
+  "Private manual memory. No AI summaries or external processing.",
+];
+
 const conditionalInsightsFinanceText = [
   "Finance signal",
   "Logged income",
@@ -85,6 +95,16 @@ const riskyFinanceText = [
   "forecast",
   "getting better",
   "getting worse",
+];
+
+const riskyWeeklyMemoryText = [
+  "AI memory",
+  "vector",
+  "embeddings",
+  "document upload",
+  "file parsing",
+  "public sharing",
+  "external AI processing",
 ];
 
 function requireConfig() {
@@ -139,6 +159,11 @@ function assertBodyDoesNotContain(bodyText, text) {
   pass(`Did not find risky finance text: ${text}`);
 }
 
+function assertWeeklyReviewDoesNotContain(bodyText, text) {
+  expect(bodyText.toLowerCase()).not.toContain(text.toLowerCase());
+  pass(`Did not find risky Weekly Review memory text: ${text}`);
+}
+
 async function assertAuthenticatedRoute(page, routeName) {
   if (page.url().includes("/login")) {
     const bodyText = await page.locator("body").innerText({ timeout: 10000 }).catch(() => "<unavailable>");
@@ -183,8 +208,12 @@ async function main() {
 
     const weeklyReviewBodyText = await page.locator("body").innerText({ timeout: 10000 });
     const moneyReflectionVisible = weeklyReviewBodyText.includes("Money reflection");
+    const memoryLearningVisible = weeklyReviewBodyText.includes("Memory and learning");
     for (const text of riskyFinanceText) {
       assertBodyDoesNotContain(weeklyReviewBodyText, text);
+    }
+    for (const text of riskyWeeklyMemoryText) {
+      assertWeeklyReviewDoesNotContain(weeklyReviewBodyText, text);
     }
 
     if (moneyReflectionVisible) {
@@ -194,6 +223,15 @@ async function main() {
       }
     } else {
       skip("Money reflection section is data-dependent and not visible for this account/week");
+    }
+
+    if (memoryLearningVisible) {
+      pass("Memory and learning section is visible");
+      for (const text of conditionalWeeklyMemoryText) {
+        await expectBodyText(page, text);
+      }
+    } else {
+      skip("Memory and learning section is data-dependent and not visible for this account/week state");
     }
 
     await expect(page.getByRole("button", { name: "Save to Journal" })).toBeVisible({ timeout: 15000 });
