@@ -14,6 +14,7 @@
     "test:prod:today": "node scripts/today-command-center-prod-test.mjs",
     "test:prod:weekly-insights": "node scripts/weekly-insights-prod-test.mjs",
     "test:prod:coach": "node scripts/coach-prod-test.mjs",
+    "test:prod:knowledge": "node scripts/knowledge-prod-test.mjs",
     "test:prod:navigation": "node scripts/navigation-prod-test.mjs",
     "test:prod:body-profile": "node scripts/body-profile-prod-test.mjs",
     "test:prod:finance": "node scripts/finance-prod-test.mjs"
