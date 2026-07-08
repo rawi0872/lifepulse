@@ -50,6 +50,23 @@ const requiredMemoryLoopText = [
   "Private manual memory. No AI summaries or external processing.",
 ];
 
+const conditionalExecutionBridgeText = [
+  "Execution bridge",
+  "Active goals",
+  "Goals with action links",
+  "Goals without action links",
+  "Action links",
+  "Open Goals",
+  "Open Projects",
+  "Open Tasks",
+  "Open Habits",
+];
+
+const conditionalExecutionBridgeStatusText = [
+  "Some active goals are not connected to projects, tasks, or habits yet.",
+  "Your active goals are connected to action.",
+];
+
 const riskyTodayMemoryText = [
   "AI memory",
   "vector",
@@ -66,6 +83,18 @@ const riskyTodayMemoryText = [
   "getting better",
   "getting worse",
   "therapy",
+];
+
+const riskyExecutionBridgeText = [
+  "goal health",
+  "success score",
+  "bad goal",
+  "AI planning",
+  "automatic generation",
+  "prediction",
+  "forecast",
+  "getting better",
+  "getting worse",
 ];
 
 function requireConfig() {
@@ -174,6 +203,23 @@ async function main() {
       throw new Error("Today page loaded with an error state.");
     }
 
+    const executionBridgeVisible = bodyText.includes("Execution bridge");
+    if (executionBridgeVisible) {
+      pass("Execution bridge section is visible");
+      for (const text of conditionalExecutionBridgeText) {
+        await expectBodyText(page, text);
+      }
+
+      const statusText = conditionalExecutionBridgeStatusText.find((text) => bodyText.includes(text));
+      if (statusText) {
+        pass(`Found Execution bridge status text: ${statusText}`);
+      } else {
+        skip("Execution bridge status text is not visible; metrics are present");
+      }
+    } else {
+      skip("Execution bridge section is data-dependent and not visible for this account/goal state");
+    }
+
     for (const text of requiredMemoryLoopText) {
       await expectBodyText(page, text);
     }
@@ -192,6 +238,11 @@ async function main() {
     for (const text of riskyTodayMemoryText) {
       expect(bodyText.toLowerCase()).not.toContain(text.toLowerCase());
       pass(`Did not find risky Today memory text: ${text}`);
+    }
+
+    for (const text of riskyExecutionBridgeText) {
+      expect(bodyText.toLowerCase()).not.toContain(text.toLowerCase());
+      pass(`Did not find risky Today execution bridge text: ${text}`);
     }
 
     console.log("");
