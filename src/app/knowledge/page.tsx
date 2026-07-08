@@ -43,6 +43,7 @@ function KnowledgeContent() {
   const [itemForm, setItemForm] = useState<KnowledgeItemFormData>({
     title: "", type: "note", category: "", source_url: "", summary: "", content: "",
   });
+  const [selectedCollectionId, setSelectedCollectionId] = useState("");
   const [collectionForm, setCollectionForm] = useState<KnowledgeCollectionFormData>({
     name: "", description: "",
   });
@@ -75,7 +76,7 @@ function KnowledgeContent() {
   const handleSaveItem = async () => {
     if (!itemForm.title.trim() || !currentUser) return;
     setSaving(true);
-    const { error } = await supabase.from("knowledge_items").insert({
+    const { data: savedItem, error } = await supabase.from("knowledge_items").insert({
       user_id: currentUser.id,
       title: itemForm.title.trim(),
       type: itemForm.type,
@@ -83,10 +84,27 @@ function KnowledgeContent() {
       source_url: itemForm.source_url || null,
       summary: itemForm.summary || null,
       content: itemForm.content || null,
-    });
+    }).select("id").single();
     if (error) { console.error("Failed to save knowledge item", error); toast({ type: "error", title: "Failed to save" }); setSaving(false); return; }
-    toast({ type: "success", title: "Knowledge saved!" });
+
+    let assignmentFailed = false;
+    const selectedCollection = collections.find((collection) => collection.id === selectedCollectionId);
+    if (savedItem?.id && selectedCollection) {
+      const { error: linkError } = await supabase.from("knowledge_collection_items").insert({
+        user_id: currentUser.id,
+        collection_id: selectedCollection.id,
+        item_id: savedItem.id,
+      });
+      if (linkError) {
+        assignmentFailed = true;
+        console.error("Failed to assign knowledge item to collection", linkError);
+        toast({ type: "error", title: "Knowledge item saved, but collection assignment failed." });
+      }
+    }
+
+    if (!assignmentFailed) toast({ type: "success", title: "Knowledge saved!" });
     setItemForm({ title: "", type: "note", category: "", source_url: "", summary: "", content: "" });
+    setSelectedCollectionId("");
     loadAll();
     setSaving(false);
   };
@@ -221,6 +239,17 @@ function KnowledgeContent() {
                     <option value="">None</option>
                     {KNOWLEDGE_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
                   </select>
+                </div>
+                <div className="col-span-2 flex flex-col gap-1">
+                  <label className="text-[10px] font-medium text-[var(--text-muted)]">Collection</label>
+                  <select value={selectedCollectionId} onChange={(e) => setSelectedCollectionId(e.target.value)}
+                    className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)] outline-none">
+                    <option value="">No collection</option>
+                    {collections.map((collection) => <option key={collection.id} value={collection.id}>{collection.name}</option>)}
+                  </select>
+                  {collections.length === 0 && (
+                    <p className="text-[10px] text-[var(--text-muted)]">Create a collection first if you want to organize this item.</p>
+                  )}
                 </div>
                 <input type="url" placeholder="Source URL (optional)" value={itemForm.source_url}
                   onChange={(e) => setItemForm((f) => ({ ...f, source_url: e.target.value }))}
