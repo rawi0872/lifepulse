@@ -62,11 +62,39 @@ const forbiddenFinancePhrases = [
   "save more",
 ];
 
+const forbiddenCoachMemoryPhrases = [
+  "vector",
+  "embeddings",
+  "document upload",
+  "file parsing",
+  "public sharing",
+  "emotional analysis",
+  "mental health analysis",
+  "diagnosis",
+  "prediction",
+  "forecast",
+  "getting better",
+  "getting worse",
+  "therapy",
+  "AI is reading",
+  "AI remembers",
+  "AI-generated summary",
+  "automatic AI summary",
+  "external AI processing",
+];
+
 const financeCoachNudgeTitle = "Review this week's money activity";
 const financeCoachSafeText = [
   "logged finance transactions this week",
   "Weekly Review can help you reflect on the pattern",
   "Open Weekly Review",
+];
+
+const memoryCoachNudgeTitle = "Capture one lesson from this week";
+const memoryCoachSafeText = [
+  "You have reflection activity this week",
+  "Save one useful lesson or idea in Knowledge so it does not get lost",
+  "Open Knowledge",
 ];
 
 function requireConfig() {
@@ -173,6 +201,11 @@ async function main() {
       pass(`Forbidden finance phrase absent: ${phrase}`);
     }
 
+    for (const phrase of forbiddenCoachMemoryPhrases) {
+      expect(lowerBodyText).not.toContain(phrase.toLowerCase());
+      pass(`Forbidden Coach memory phrase absent: ${phrase}`);
+    }
+
     if (bodyText.includes(financeCoachNudgeTitle)) {
       pass(`Finance Coach nudge visible: ${financeCoachNudgeTitle}`);
       for (const text of financeCoachSafeText) {
@@ -181,6 +214,16 @@ async function main() {
       }
     } else {
       info("Finance Coach nudge is data/day dependent and not visible for this account state.");
+    }
+
+    if (bodyText.includes(memoryCoachNudgeTitle)) {
+      pass(`Coach memory nudge visible: ${memoryCoachNudgeTitle}`);
+      for (const text of memoryCoachSafeText) {
+        expect(bodyText).toContain(text);
+        pass(`Coach memory safe copy present: ${text}`);
+      }
+    } else {
+      info("Coach memory nudge is data-dependent and not visible for this account/week state.");
     }
 
     console.log("");
