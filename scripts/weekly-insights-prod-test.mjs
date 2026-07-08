@@ -110,6 +110,19 @@ const conditionalInsightsMemoryText = [
   "Private manual memory. No AI summaries or external processing.",
 ];
 
+const conditionalInsightsExecutionAlignmentText = [
+  "Execution alignment",
+  "Active goals",
+  "Goals with action links",
+  "Goals without action links",
+  "Action links",
+];
+
+const conditionalInsightsExecutionAlignmentStatusText = [
+  "Some active goals are not connected to projects, tasks, or habits yet.",
+  "Your active goals are connected to action.",
+];
+
 const riskyFinanceText = [
   "you earn",
   "you should",
@@ -152,6 +165,19 @@ const riskyInsightsMemoryText = [
   "emotional analysis",
   "mental health analysis",
   "diagnosis",
+  "prediction",
+  "forecast",
+  "getting better",
+  "getting worse",
+];
+
+const riskyInsightsExecutionAlignmentText = [
+  "goal health",
+  "success score",
+  "failure",
+  "bad goal",
+  "AI planning",
+  "automatic generation",
   "prediction",
   "forecast",
   "getting better",
@@ -223,6 +249,11 @@ function assertWeeklyGoalAlignmentDoesNotContain(bodyText, text) {
 function assertInsightsDoesNotContain(bodyText, text) {
   expect(bodyText.toLowerCase()).not.toContain(text.toLowerCase());
   pass(`Did not find risky Insights memory text: ${text}`);
+}
+
+function assertInsightsExecutionAlignmentDoesNotContain(bodyText, text) {
+  expect(bodyText.toLowerCase()).not.toContain(text.toLowerCase());
+  pass(`Did not find risky Insights execution alignment text: ${text}`);
 }
 
 async function assertAuthenticatedRoute(page, routeName) {
@@ -334,6 +365,26 @@ async function main() {
     }
     for (const text of riskyInsightsMemoryText) {
       assertInsightsDoesNotContain(insightsBodyText, text);
+    }
+    for (const text of riskyInsightsExecutionAlignmentText) {
+      assertInsightsExecutionAlignmentDoesNotContain(insightsBodyText, text);
+    }
+
+    const executionAlignmentCount = await page.getByText("Execution alignment", { exact: true }).count();
+    if (executionAlignmentCount > 0) {
+      pass("Execution alignment section is visible");
+      for (const text of conditionalInsightsExecutionAlignmentText) {
+        await expectBodyText(page, text);
+      }
+
+      const statusText = conditionalInsightsExecutionAlignmentStatusText.find((text) => insightsBodyText.includes(text));
+      if (statusText) {
+        pass(`Found Execution alignment status text: ${statusText}`);
+      } else {
+        skip("Execution alignment status text is not visible; metrics are present");
+      }
+    } else {
+      skip("Execution alignment section is data-dependent and not visible for this account/goal state");
     }
 
     const financeSignalCount = await page.getByText("Finance signal", { exact: true }).count();
