@@ -50,6 +50,12 @@ interface WeekData {
   latestKnowledgeType: string | null;
   latestWeight: number | null;
   activeGoals: number;
+  linkedGoals: number;
+  unlinkedGoals: number;
+  actionLinks: number;
+  projectLinks: number;
+  taskLinks: number;
+  habitLinks: number;
   completedMilestones: number;
   activeProjects: number;
   financeTransactionCount: number;
@@ -108,7 +114,7 @@ function WeeklyReviewContent() {
       habitsRes, tasksRes, workoutsRes, journalRes,
       bodyRes, mindRes, nutritionRes, measurementRes,
       passionsRes, sessionsRes, goalsRes, milestonesRes, projectsRes, financeRes,
-      journalMemoryRes, knowledgeMemoryRes,
+      journalMemoryRes, knowledgeMemoryRes, goalLinksRes,
     ] = await Promise.all([
       supabase.from("habit_logs").select("id").eq("user_id", user.id).gte("completed_date", weekStart).lte("completed_date", weekEnd),
       supabase.from("tasks").select("id").eq("user_id", user.id).eq("status", "done"),
@@ -140,6 +146,9 @@ function WeeklyReviewContent() {
         .gte("created_at", knowledgeWeekStart)
         .lte("created_at", knowledgeWeekEnd)
         .order("created_at", { ascending: false }),
+      supabase.from("goal_links")
+        .select("goal_id, linked_type")
+        .eq("user_id", user.id),
     ]);
 
     const bodyMetrics = (bodyRes.data ?? []) as { energy?: number | null; sleep_hours?: number | null }[];
@@ -200,6 +209,13 @@ function WeeklyReviewContent() {
     const financeCurrencyList = Array.from(financeCurrencies);
     const financeHasMixedCurrencies = financeCurrencyList.length > 1;
     const financeCurrency = financeCurrencyList.length === 1 ? financeCurrencyList[0] : null;
+    const activeGoals = (goalsRes.data ?? []) as { id: string }[];
+    const activeGoalIds = new Set(activeGoals.map((goal) => goal.id));
+    const activeGoalLinks = ((goalLinksRes.data ?? []) as { goal_id?: string | null; linked_type?: string | null }[])
+      .filter((link) => link.goal_id && activeGoalIds.has(link.goal_id));
+    const linkedGoalIds = new Set(activeGoalLinks.map((link) => link.goal_id).filter(Boolean));
+    const linkedGoals = linkedGoalIds.size;
+    const unlinkedGoals = activeGoals.length - linkedGoals;
 
     setData({
       weekDates,
@@ -227,7 +243,13 @@ function WeeklyReviewContent() {
       latestKnowledgeTitle: latestKnowledge?.title ?? null,
       latestKnowledgeType: latestKnowledge?.type ?? null,
       latestWeight: ((measurementRes.data ?? []) as { weight_kg?: number | null }[])[0]?.weight_kg ?? null,
-      activeGoals: (goalsRes.data ?? []).length,
+      activeGoals: activeGoals.length,
+      linkedGoals,
+      unlinkedGoals,
+      actionLinks: activeGoalLinks.length,
+      projectLinks: activeGoalLinks.filter((link) => link.linked_type === "project").length,
+      taskLinks: activeGoalLinks.filter((link) => link.linked_type === "task").length,
+      habitLinks: activeGoalLinks.filter((link) => link.linked_type === "habit").length,
       completedMilestones: (milestonesRes.data ?? []).length,
       activeProjects: (projectsRes.data ?? []).length,
       financeTransactionCount: financeTransactions.length,
@@ -401,6 +423,33 @@ function WeeklyReviewContent() {
           <MetricCard label="Habits done" value={data.habitCount} />
         </div>
       </section>
+
+      {data.activeGoals > 0 && (
+        <section className="mb-8">
+          <div className="mb-3 flex items-center gap-2">
+            <span className="h-4 w-1 rounded-full bg-gradient-to-b from-[var(--accent)] to-[var(--accent-strong)]" />
+            <h2 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Goal alignment</h2>
+          </div>
+          <p className="mb-3 text-xs text-[var(--text-muted)]">
+            A read-only view of whether active goals are connected to projects, tasks, or habits.
+          </p>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <MetricCard label="Active goals" value={data.activeGoals} />
+            <MetricCard label="Goals with action links" value={data.linkedGoals} />
+            <MetricCard label="Goals without action links" value={data.unlinkedGoals} />
+            <MetricCard
+              label="Action links"
+              value={data.actionLinks}
+              sub={`${data.projectLinks} projects / ${data.taskLinks} tasks / ${data.habitLinks} habits`}
+            />
+          </div>
+          <p className="mt-3 text-center text-[10px] text-[var(--text-muted)]">
+            {data.unlinkedGoals > 0
+              ? "Some active goals are not connected to projects, tasks, or habits yet."
+              : "Your active goals are connected to action."}
+          </p>
+        </section>
+      )}
 
       {/* ── 4. Passions Review ─────────────────────────────────────── */}
       <section className="mb-8">
