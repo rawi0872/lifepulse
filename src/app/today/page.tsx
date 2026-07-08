@@ -80,6 +80,7 @@ function TodayContent() {
   const [firstName, setFirstName] = useState("");
   const [intendedUse, setIntendedUse] = useState<IntendedUse>("personal");
   const [hasJournal, setHasJournal] = useState(false);
+  const [weeklyKnowledgeItems, setWeeklyKnowledgeItems] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -134,6 +135,8 @@ function TodayContent() {
   const { toast } = useToast();
   const today = getTodayDateString();
   const weekStart = getWeekStartDate();
+  const knowledgeWeekStart = toLocalDateBoundaryIso(weekStart, "start");
+  const knowledgeWeekEnd = toLocalDateBoundaryIso(today, "end");
   const todayDow = getTodayDayOfWeek();
 
   const dueHabits = habits.filter((h) => {
@@ -389,7 +392,7 @@ function TodayContent() {
           setFinanceHasTx((incomeRes.data?.length ?? 0) + (expenseRes.data?.length ?? 0) > 0);
         }
 
-        const [bodyRes, mindRes, workoutRes, nutritionRes, passionsRes, sessionsRes] = await Promise.all([
+        const [bodyRes, mindRes, workoutRes, nutritionRes, passionsRes, sessionsRes, knowledgeWeekRes] = await Promise.all([
           supabase
             .from("body_metrics")
             .select("energy")
@@ -422,6 +425,12 @@ function TodayContent() {
             .select("id")
             .eq("user_id", user.id)
             .gte("session_date", weekStart),
+          supabase
+            .from("knowledge_items")
+            .select("id, created_at")
+            .eq("user_id", user.id)
+            .gte("created_at", knowledgeWeekStart)
+            .lte("created_at", knowledgeWeekEnd),
         ]);
 
         if (!cancelled) {
@@ -437,6 +446,7 @@ function TodayContent() {
           setHasNutritionToday((nutritionRes.data ?? []).length > 0);
           setHasActivePassions((passionsRes.data ?? []).length > 0);
           setHasPassionSessionThisWeek((sessionsRes.data ?? []).length > 0);
+          setWeeklyKnowledgeItems((knowledgeWeekRes.data ?? []).length);
         }
 
         const { data: goalData } = await supabase
@@ -972,9 +982,50 @@ function TodayContent() {
             <span className="ml-auto text-[10px] text-[var(--text-muted)]">View &rarr;</span>
           </Link>
 
+          <Card variant="subtle" className="border-[var(--border)]">
+            <div className="p-4">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Memory loop</p>
+              <p className="mt-1 text-xs text-[var(--text-muted)]">
+                Close the day by turning reflection into reusable knowledge.
+              </p>
+              <div className="mt-3 space-y-2.5">
+                <div className="flex items-center justify-between gap-3 rounded-lg bg-[var(--surface)] px-3 py-2">
+                  <div>
+                    <p className="text-xs font-medium text-[var(--text)]">Today reflection</p>
+                    <p className="text-[10px] text-[var(--text-muted)]">{hasJournal ? "Captured today" : "Not captured yet"}</p>
+                  </div>
+                  <a href="#evening-reflection" className="shrink-0 text-[10px] font-medium text-[var(--accent)] hover:text-[var(--accent-strong)]">
+                    Evening Reflection
+                  </a>
+                </div>
+                <div className="flex items-center justify-between gap-3 rounded-lg bg-[var(--surface)] px-3 py-2">
+                  <div>
+                    <p className="text-xs font-medium text-[var(--text)]">Knowledge this week</p>
+                    <p className="text-[10px] text-[var(--text-muted)]">{weeklyKnowledgeItems} items captured this week</p>
+                  </div>
+                  <Link href="/knowledge" className="shrink-0 text-[10px] font-medium text-[var(--accent)] hover:text-[var(--accent-strong)]">
+                    Open Knowledge
+                  </Link>
+                </div>
+                <div className="flex items-center justify-between gap-3 rounded-lg bg-[var(--surface)] px-3 py-2">
+                  <div>
+                    <p className="text-xs font-medium text-[var(--text)]">Weekly memory review</p>
+                    <p className="text-[10px] text-[var(--text-muted)]">Review reflections and knowledge from the week.</p>
+                  </div>
+                  <Link href="/weekly-review" className="shrink-0 text-[10px] font-medium text-[var(--accent)] hover:text-[var(--accent-strong)]">
+                    Open Weekly Review
+                  </Link>
+                </div>
+              </div>
+              <p className="mt-3 text-[10px] text-[var(--text-muted)]">
+                Private manual memory. No AI summaries or external processing.
+              </p>
+            </div>
+          </Card>
+
           <SectionHeader label="Evening Reflection" accent="warning" />
 
-          <section>
+          <section id="evening-reflection">
             <JournalSection
               stats={{
                 habitsDone: completedHabitCount,
@@ -997,4 +1048,12 @@ export default function TodayPage() {
       <TodayContent />
     </DashboardNav>
   );
+}
+
+function toLocalDateBoundaryIso(dateString: string, boundary: "start" | "end"): string {
+  const [year, month, day] = dateString.split("-").map(Number);
+  const date = boundary === "start"
+    ? new Date(year, month - 1, day, 0, 0, 0, 0)
+    : new Date(year, month - 1, day, 23, 59, 59, 999);
+  return date.toISOString();
 }
