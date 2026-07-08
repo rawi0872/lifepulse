@@ -36,6 +36,7 @@ function KnowledgeContent() {
 
   const [items, setItems] = useState<KnowledgeItem[]>([]);
   const [collections, setCollections] = useState<KnowledgeCollection[]>([]);
+  const [itemCollectionNames, setItemCollectionNames] = useState<Record<string, string[]>>({});
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedType, setSelectedType] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
@@ -58,8 +59,32 @@ function KnowledgeContent() {
       supabase.from("knowledge_collections").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
     ]);
 
-    setItems((iRes.data ?? []) as KnowledgeItem[]);
-    setCollections((cRes.data ?? []) as KnowledgeCollection[]);
+    const loadedItems = (iRes.data ?? []) as KnowledgeItem[];
+    const loadedCollections = (cRes.data ?? []) as KnowledgeCollection[];
+    const collectionNameById = new Map(loadedCollections.map((collection) => [collection.id, collection.name]));
+    const collectionNamesByItem: Record<string, string[]> = {};
+
+    if (loadedItems.length > 0) {
+      const { data: linkData, error: linkError } = await supabase.from("knowledge_collection_items")
+        .select("item_id, collection_id")
+        .eq("user_id", user.id)
+        .in("item_id", loadedItems.map((item) => item.id));
+
+      if (linkError) {
+        console.error("Failed to load knowledge item collection labels", linkError);
+      } else {
+        for (const link of (linkData ?? []) as { item_id?: string | null; collection_id?: string | null }[]) {
+          if (!link.item_id || !link.collection_id) continue;
+          const collectionName = collectionNameById.get(link.collection_id);
+          if (!collectionName) continue;
+          collectionNamesByItem[link.item_id] = [...(collectionNamesByItem[link.item_id] ?? []), collectionName];
+        }
+      }
+    }
+
+    setItems(loadedItems);
+    setCollections(loadedCollections);
+    setItemCollectionNames(collectionNamesByItem);
     setLoading(false);
   }, [supabase, router]);
 
@@ -374,6 +399,15 @@ function KnowledgeContent() {
                             {item.category && <span className="shrink-0 text-[9px] text-[var(--text-muted)]">{item.category}</span>}
                           </div>
                           {item.summary && <span className="text-[10px] text-[var(--text-muted)] truncate">{item.summary}</span>}
+                          {(itemCollectionNames[item.id] ?? []).length > 0 && (
+                            <div className="flex flex-wrap gap-1 pt-0.5">
+                              {itemCollectionNames[item.id].map((collectionName) => (
+                                <span key={collectionName} className="rounded-full bg-[var(--surface-soft)] px-2 py-0.5 text-[9px] text-[var(--text-muted)]">
+                                  {collectionName}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                           <span className="text-[9px] text-[var(--text-muted)]">{new Date(item.created_at).toLocaleDateString()}</span>
                         </div>
                         <button onClick={() => handleDeleteItem(item.id)}
