@@ -50,6 +50,12 @@ export default function InsightsPage() {
   const [activeStreaks, setActiveStreaks] = useState(0);
   const [bestEverStreak, setBestEverStreak] = useState(0);
   const [activeProjectCount, setActiveProjectCount] = useState(0);
+  const [activeGoalsCount, setActiveGoalsCount] = useState(0);
+  const [linkedGoalsCount, setLinkedGoalsCount] = useState(0);
+  const [unlinkedGoalsCount, setUnlinkedGoalsCount] = useState(0);
+  const [projectLinksCount, setProjectLinksCount] = useState(0);
+  const [taskLinksCount, setTaskLinksCount] = useState(0);
+  const [habitLinksCount, setHabitLinksCount] = useState(0);
   const [financeIncome, setFinanceIncome] = useState(0);
   const [financeExpense, setFinanceExpense] = useState(0);
   const [financeNet, setFinanceNet] = useState(0);
@@ -84,7 +90,7 @@ export default function InsightsPage() {
       const knowledgeMonthStart = toLocalDateBoundaryIso(monthStart, "start");
       const knowledgeMonthEnd = toLocalDateBoundaryIso(monthEnd, "end");
 
-      const [xpRes, todayXpRes, habitsRes, tasksRes, realmsRes, journalRes, habitLogsRes, projectsRes] = await Promise.all([
+      const [xpRes, todayXpRes, habitsRes, tasksRes, realmsRes, journalRes, habitLogsRes, projectsRes, goalsRes, goalLinksRes] = await Promise.all([
         supabase.from("xp_events").select("amount,source_type,source_id").eq("user_id", user.id),
         supabase.from("xp_events").select("amount").eq("user_id", user.id).gte("created_at", `${today}T00:00:00`),
         supabase.from("habits").select("id,frequency,days_of_week,times_per_week,realm_id").eq("user_id", user.id),
@@ -93,6 +99,8 @@ export default function InsightsPage() {
         supabase.from("journal_entries").select("id").eq("user_id", user.id),
         supabase.from("habit_logs").select("id,habit_id,completed_date").eq("user_id", user.id),
         supabase.from("projects").select("status").eq("user_id", user.id),
+        supabase.from("goals").select("id,status").eq("user_id", user.id),
+        supabase.from("goal_links").select("goal_id, linked_type").eq("user_id", user.id),
       ]);
 
       if (cancelled) return;
@@ -122,6 +130,21 @@ export default function InsightsPage() {
 
       if (projectsRes.data) {
         setActiveProjectCount(projectsRes.data.filter((p: { status: string }) => p.status === "active").length);
+      }
+
+      if (goalsRes.data) {
+        const activeGoals = goalsRes.data.filter((goal: { status?: string }) => goal.status === "active") as { id: string }[];
+        const activeGoalIds = new Set(activeGoals.map((goal) => goal.id));
+        const activeGoalLinks = ((goalLinksRes.data ?? []) as { goal_id?: string | null; linked_type?: string | null }[])
+          .filter((link) => link.goal_id && activeGoalIds.has(link.goal_id));
+        const linkedGoalIds = new Set(activeGoalLinks.map((link) => link.goal_id).filter(Boolean));
+
+        setActiveGoalsCount(activeGoals.length);
+        setLinkedGoalsCount(linkedGoalIds.size);
+        setUnlinkedGoalsCount(activeGoals.length - linkedGoalIds.size);
+        setProjectLinksCount(activeGoalLinks.filter((link) => link.linked_type === "project").length);
+        setTaskLinksCount(activeGoalLinks.filter((link) => link.linked_type === "task").length);
+        setHabitLinksCount(activeGoalLinks.filter((link) => link.linked_type === "habit").length);
       }
 
       const [financeRes, journalMemoryRes, knowledgeMemoryRes] = await Promise.all([
@@ -534,6 +557,46 @@ export default function InsightsPage() {
           taskCompletionRate={taskCompletionRate}
           journalCount={journalCount}
         />
+
+        {activeGoalsCount > 0 && (
+          <>
+            <h2 className="mb-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">
+              Execution alignment
+            </h2>
+            <p className="mb-3 text-xs text-[var(--text-muted)]">
+              A read-only view of whether active goals are connected to projects, tasks, or habits.
+            </p>
+            <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <Card variant="default" className="flex flex-col p-4 min-h-[100px]">
+                <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Active goals</p>
+                <p className="mt-2 text-2xl font-bold text-[var(--text)]">{activeGoalsCount}</p>
+                <p className="mt-auto pt-2 text-[10px] text-[var(--text-muted)]">Currently active</p>
+              </Card>
+              <Card variant="default" className="flex flex-col p-4 min-h-[100px]">
+                <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Goals with action links</p>
+                <p className="mt-2 text-2xl font-bold text-[var(--text)]">{linkedGoalsCount}</p>
+                <p className="mt-auto pt-2 text-[10px] text-[var(--text-muted)]">Connected to action</p>
+              </Card>
+              <Card variant="default" className="flex flex-col p-4 min-h-[100px]">
+                <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Goals without action links</p>
+                <p className="mt-2 text-2xl font-bold text-[var(--text)]">{unlinkedGoalsCount}</p>
+                <p className="mt-auto pt-2 text-[10px] text-[var(--text-muted)]">No action link yet</p>
+              </Card>
+              <Card variant="default" className="flex flex-col p-4 min-h-[100px]">
+                <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Action links</p>
+                <p className="mt-2 text-2xl font-bold text-[var(--text)]">{projectLinksCount + taskLinksCount + habitLinksCount}</p>
+                <p className="mt-auto pt-2 text-[10px] text-[var(--text-muted)]">
+                  {projectLinksCount} projects / {taskLinksCount} tasks / {habitLinksCount} habits
+                </p>
+              </Card>
+            </div>
+            <p className="mb-6 text-center text-[10px] text-[var(--text-muted)]">
+              {unlinkedGoalsCount > 0
+                ? "Some active goals are not connected to projects, tasks, or habits yet."
+                : "Your active goals are connected to action."}
+            </p>
+          </>
+        )}
 
         {/* Memory */}
         {(journalEntriesThisMonth > 0 || knowledgeItemsThisMonth > 0) && (
