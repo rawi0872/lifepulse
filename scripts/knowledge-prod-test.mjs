@@ -155,12 +155,18 @@ async function main() {
     await expectBodyText(page, "Collection");
     await expectBodyText(page, "No collection");
 
+    const collectionOptionNames = [];
     const addKnowledgeBodyText = await page.locator("body").innerText({ timeout: 10000 });
     if (addKnowledgeBodyText.includes("Create a collection first if you want to organize this item.")) {
       pass("Collection helper copy is visible");
     } else {
-      const collectionOptions = await page.locator("select").last().locator("option").count();
+      const collectionOptionLocator = page.locator("select").last().locator("option");
+      const collectionOptions = await collectionOptionLocator.count();
       if (collectionOptions > 1) {
+        for (let i = 1; i < collectionOptions; i++) {
+          const optionText = await collectionOptionLocator.nth(i).innerText();
+          if (optionText.trim()) collectionOptionNames.push(optionText.trim());
+        }
         info("Collection dropdown has existing collection options available.");
         await page.locator("select").last().selectOption({ index: 1 });
         pass("Changed collection dropdown selection without submitting data");
@@ -185,6 +191,13 @@ async function main() {
 
       for (const text of requiredSearchFilterText) {
         await expectBodyText(page, text);
+      }
+
+      const visibleCollectionBadges = collectionOptionNames.filter((name) => bodyText.includes(name));
+      if (visibleCollectionBadges.length > 0) {
+        pass(`Collection badge text visible in Recent Items: ${visibleCollectionBadges.join(", ")}`);
+      } else {
+        info("Collection badge display is data-dependent and not visible for this account/item state.");
       }
 
       const searchInput = page.getByPlaceholder("Search knowledge...");
