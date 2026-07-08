@@ -44,6 +44,8 @@ export interface CoachData {
   workoutCountThisWeek?: number;
   workoutMinutesThisWeek?: number;
   financeTransactionsThisWeek?: number;
+  weeklyJournalEntries?: number;
+  weeklyKnowledgeItems?: number;
 }
 
 const CATEGORY_LABELS: Record<CoachCategory, string> = {
@@ -314,6 +316,25 @@ export function getCoachInsights(data: CoachData): CoachInsight[] {
         "/weekly-review",
         "Finance transactions logged this week",
         "weekly_finance_activity_review"
+      )
+    );
+  }
+
+  if (
+    (data.weeklyJournalEntries ?? 0) > 0 &&
+    (data.weeklyKnowledgeItems ?? 0) === 0 &&
+    data.hasKnowledgeItems
+  ) {
+    results.push(
+      mk(
+        "Capture one lesson from this week",
+        "You have reflection activity this week. Save one useful lesson or idea in Knowledge so it does not get lost.",
+        "knowledge",
+        "low",
+        "Open Knowledge",
+        "/knowledge",
+        "Journal activity exists this week, but no knowledge item was added this week",
+        "weekly_memory_lesson_capture"
       )
     );
   }

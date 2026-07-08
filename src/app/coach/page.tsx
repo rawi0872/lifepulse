@@ -24,6 +24,14 @@ export default function CoachPage() {
   );
 }
 
+function toLocalDateBoundaryIso(dateString: string, boundary: "start" | "end"): string {
+  const [year, month, day] = dateString.split("-").map(Number);
+  const date = boundary === "start"
+    ? new Date(year, month - 1, day, 0, 0, 0, 0)
+    : new Date(year, month - 1, day, 23, 59, 59, 999);
+  return date.toISOString();
+}
+
 function CoachContent() {
   const router = useRouter();
   const supabase = createClient();
@@ -40,13 +48,15 @@ function CoachContent() {
 
       const today = getTodayDateString();
       const weekStart = getWeekStartDate();
+      const knowledgeWeekStart = toLocalDateBoundaryIso(weekStart, "start");
+      const knowledgeWeekEnd = toLocalDateBoundaryIso(today, "end");
       const dayOfWeek = new Date().getDay();
 
       const [
         bodyRes, mindRes, tasksRes, goalsRes, goalMsRes,
         journalRes, habitsRes, workoutRes,
         nutritionRes, passionsRes, sessionsRes, financeRes, financeWeekRes,
-        knowledgeRes, collectionsRes,
+        knowledgeRes, collectionsRes, journalWeekRes, knowledgeWeekRes,
       ] = await Promise.all([
         supabase.from("body_metrics").select("id, entry_date").eq("user_id", user.id).gte("entry_date", weekStart).lte("entry_date", today),
         supabase.from("mind_metrics").select("id").eq("user_id", user.id).eq("entry_date", today).maybeSingle(),
@@ -63,6 +73,8 @@ function CoachContent() {
         supabase.from("finance_transactions").select("id").eq("user_id", user.id).gte("transaction_date", weekStart).lte("transaction_date", today),
         supabase.from("knowledge_items").select("id").eq("user_id", user.id).limit(1),
         supabase.from("knowledge_collections").select("id").eq("user_id", user.id).limit(1),
+        supabase.from("journal_entries").select("id, entry_date").eq("user_id", user.id).gte("entry_date", weekStart).lte("entry_date", today),
+        supabase.from("knowledge_items").select("id, created_at").eq("user_id", user.id).gte("created_at", knowledgeWeekStart).lte("created_at", knowledgeWeekEnd),
       ]);
 
       if (cancelled) return;
@@ -100,6 +112,8 @@ function CoachContent() {
         workoutCountThisWeek: workouts.length,
         workoutMinutesThisWeek: workouts.reduce((sum, workout) => sum + (workout.duration_minutes ?? 0), 0),
         financeTransactionsThisWeek: (financeWeekRes.data ?? []).length,
+        weeklyJournalEntries: (journalWeekRes.data ?? []).length,
+        weeklyKnowledgeItems: (knowledgeWeekRes.data ?? []).length,
       };
 
       if (!cancelled) {
