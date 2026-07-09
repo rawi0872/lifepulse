@@ -28,6 +28,12 @@ interface Project {
   title: string;
 }
 
+interface TaskProjectContext {
+  id: string;
+  title: string;
+  status: string | null;
+}
+
 interface Task {
   id: string;
   title: string;
@@ -62,6 +68,7 @@ export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [realms, setRealms] = useState<Realm[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [taskProjects, setTaskProjects] = useState<TaskProjectContext[]>([]);
   const [filter, setFilter] = useState<"today" | "upcoming" | "all" | "done">("all");
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -83,7 +90,7 @@ export default function TasksPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push("/login"); return; }
 
-      const [tasksRes, realmsRes, projectsRes] = await Promise.all([
+      const [tasksRes, realmsRes, projectsRes, taskProjectsRes] = await Promise.all([
         supabase
           .from("tasks")
           .select("*, realms(name, color, icon), projects(title)")
@@ -100,12 +107,17 @@ export default function TasksPage() {
           .eq("user_id", user.id)
           .eq("status", "active")
           .order("created_at", { ascending: false }),
+        supabase
+          .from("projects")
+          .select("id, title, status")
+          .eq("user_id", user.id),
       ]);
 
       if (cancelled) return;
       if (tasksRes.data) setTasks(tasksRes.data as Task[]);
       if (realmsRes.data) setRealms(realmsRes.data as Realm[]);
       if (projectsRes.data) setProjects(projectsRes.data as Project[]);
+      if (taskProjectsRes.data) setTaskProjects(taskProjectsRes.data as TaskProjectContext[]);
       setLoading(false);
     }
 
@@ -242,6 +254,13 @@ export default function TasksPage() {
       return 0;
     });
   }, [tasks]);
+
+  const taskProjectsById = useMemo(() => {
+    return taskProjects.reduce<Record<string, TaskProjectContext>>((map, project) => {
+      map[project.id] = project;
+      return map;
+    }, {});
+  }, [taskProjects]);
 
   const filteredTasks = sortedTasks.filter((t) => {
     const td = todayStr;
@@ -447,6 +466,9 @@ export default function TasksPage() {
             {filteredTasks.map((task) => {
               const isDone = task.status === "done";
               const dueLabel = getDueDateLabel(task.due_date);
+              const linkedProjectTitle = task.project_id
+                ? taskProjectsById[task.project_id]?.title ?? task.projects?.title
+                : null;
               return (
                 <Card
                   key={task.id}
@@ -481,9 +503,9 @@ export default function TasksPage() {
                           {task.realms.icon} {task.realms.name}
                         </span>
                       )}
-                      {task.projects && (
+                      {linkedProjectTitle && (
                         <span className="inline-block rounded-full px-2 py-0.5 text-[10px] bg-[var(--surface)] text-[var(--text-muted)]">
-                          {task.projects.title}
+                          Project: {linkedProjectTitle}
                         </span>
                       )}
                       <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
