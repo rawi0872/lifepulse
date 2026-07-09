@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { DashboardNav } from "@/components/DashboardNav";
@@ -33,6 +33,18 @@ interface Habit {
   realms: Realm | null;
 }
 
+interface GoalLink {
+  goal_id: string;
+  linked_type: string;
+  linked_id: string;
+}
+
+interface LinkedGoal {
+  id: string;
+  title: string;
+  status: string | null;
+}
+
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const HABIT_TEMPLATES = [
@@ -50,6 +62,8 @@ const HABIT_TEMPLATES = [
 export default function HabitsPage() {
   const [habits, setHabits] = useState<Habit[]>([]);
   const [realms, setRealms] = useState<Realm[]>([]);
+  const [goalLinks, setGoalLinks] = useState<GoalLink[]>([]);
+  const [linkedGoals, setLinkedGoals] = useState<LinkedGoal[]>([]);
   const [todayCompleted, setTodayCompleted] = useState<Set<string>>(new Set());
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -84,7 +98,7 @@ export default function HabitsPage() {
     if (!user) { router.push("/login"); return; }
     if (cancelledRef.current) return;
 
-    const [habitsRes, realmsRes, logsRes] = await Promise.all([
+    const [habitsRes, realmsRes, logsRes, goalLinksRes, goalsRes] = await Promise.all([
       supabase
         .from("habits")
         .select("*, realms(name, color, icon)")
@@ -98,6 +112,15 @@ export default function HabitsPage() {
       supabase
         .from("habit_logs")
         .select("habit_id, completed_date")
+        .eq("user_id", user.id),
+      supabase
+        .from("goal_links")
+        .select("goal_id, linked_type, linked_id")
+        .eq("user_id", user.id)
+        .eq("linked_type", "habit"),
+      supabase
+        .from("goals")
+        .select("id, title, status")
         .eq("user_id", user.id),
     ]);
 
@@ -129,6 +152,8 @@ export default function HabitsPage() {
       setWeeklyProgress(wMap);
     }
     if (realmsRes.data) setRealms(realmsRes.data as Realm[]);
+    if (goalLinksRes.data) setGoalLinks(goalLinksRes.data as GoalLink[]);
+    if (goalsRes.data) setLinkedGoals(goalsRes.data as LinkedGoal[]);
     setLoading(false);
   }
 
@@ -237,6 +262,38 @@ export default function HabitsPage() {
     if (h.frequency === "times_per_week")
       return `${h.times_per_week ?? "?"}×/week`;
     return h.frequency;
+  };
+
+  const goalsById = useMemo(() => {
+    return linkedGoals.reduce<Record<string, LinkedGoal>>((map, goal) => {
+      map[goal.id] = goal;
+      return map;
+    }, {});
+  }, [linkedGoals]);
+
+  const goalsByHabitId = useMemo(() => {
+    return goalLinks.reduce<Record<string, LinkedGoal[]>>((map, link) => {
+      if (link.linked_type !== "habit") return map;
+      const goal = goalsById[link.goal_id];
+      if (!goal) return map;
+      if (!map[link.linked_id]) map[link.linked_id] = [];
+      map[link.linked_id].push(goal);
+      return map;
+    }, {});
+  }, [goalLinks, goalsById]);
+
+  const getHabitGoalContext = (habitId: string) => {
+    const goals = goalsByHabitId[habitId] ?? [];
+    if (goals.length === 0) return "No linked goals yet";
+
+    const activeGoals = goals.filter((goal) => goal.status === "active");
+    const displayGoals = activeGoals.length > 0 ? activeGoals : goals;
+    const goalTitles = displayGoals.slice(0, 2).map((goal) => goal.title).join(" · ");
+    const remainingCount = displayGoals.length - 2;
+
+    if (displayGoals.length === 1) return `Goal: ${goalTitles}`;
+    if (goalTitles) return `Supports goals: ${goalTitles}${remainingCount > 0 ? ` +${remainingCount}` : ""}`;
+    return `Supports: ${goals.length} goals`;
   };
 
   if (loading) {
@@ -453,6 +510,7 @@ export default function HabitsPage() {
                                 <span className="text-xs text-[var(--text-muted)]">Best: {b}</span>
                               )}
                             </div>
+                            <p className="mt-1 text-[10px] text-[var(--text-muted)]">{getHabitGoalContext(habit.id)}</p>
                             {habit.frequency === "times_per_week" && wp && (
                               <div className="mt-1.5 h-1 w-full max-w-24 overflow-hidden rounded-full bg-[var(--surface)]">
                                 <div
@@ -494,6 +552,7 @@ export default function HabitsPage() {
                         <div className="flex-1">
                           <p className="text-sm font-medium text-[var(--text)]">{habit.title}</p>
                           <p className="text-xs text-[var(--text-muted)] mt-0.5">{frequencyLabel(habit)}</p>
+                          <p className="mt-1 text-[10px] text-[var(--text-muted)]">{getHabitGoalContext(habit.id)}</p>
                         </div>
                         <div className="flex gap-1">
                           <button
