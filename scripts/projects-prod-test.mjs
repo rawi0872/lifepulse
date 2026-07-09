@@ -45,6 +45,12 @@ const projectTaskContextText = [
   "Next task",
 ];
 
+const projectGoalContextText = [
+  "Goal:",
+  "Supports goals:",
+  "No linked goals yet",
+];
+
 const riskyProjectText = [
   "project health",
   "success score",
@@ -162,9 +168,14 @@ async function main() {
       pass("Project sections are visible");
       const hasTaskContext = projectTaskContextText.some((text) => bodyText.includes(text));
       const hasNoLinkedTasks = bodyText.includes("No linked tasks yet");
+      const hasGoalContext = projectGoalContextText.some((text) => bodyText.includes(text));
 
       if (!hasTaskContext && !hasNoLinkedTasks) {
         throw new Error("Project cards are visible, but no task context labels were found.");
+      }
+
+      if (!hasGoalContext) {
+        throw new Error("Project cards are visible, but no goal context text was found.");
       }
 
       if (hasTaskContext) {
@@ -173,8 +184,14 @@ async function main() {
       if (hasNoLinkedTasks) {
         pass("Project no-linked-tasks state is visible");
       }
+      if (bodyText.includes("Goal:") || bodyText.includes("Supports goals:")) {
+        pass("Project linked-goal context is visible");
+      }
+      if (bodyText.includes("No linked goals yet")) {
+        pass("Project no-linked-goals state is visible");
+      }
     } else {
-      skip("Projects task context is data-dependent and not visible for this account/project state");
+      skip("Projects task and goal context are data-dependent and not visible for this account/project state");
     }
 
     console.log("");
