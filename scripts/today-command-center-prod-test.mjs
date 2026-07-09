@@ -86,8 +86,11 @@ const riskyTodayMemoryText = [
 ];
 
 const riskyExecutionBridgeText = [
+  "task health",
   "goal health",
   "success score",
+  "failure",
+  "bad task",
   "bad goal",
   "AI planning",
   "automatic generation",
@@ -95,6 +98,12 @@ const riskyExecutionBridgeText = [
   "forecast",
   "getting better",
   "getting worse",
+];
+
+const todayTaskGoalContextText = [
+  "Goal:",
+  "Supports goals:",
+  "Supports ",
 ];
 
 function requireConfig() {
@@ -201,6 +210,31 @@ async function main() {
     const bodyText = await page.locator("body").innerText({ timeout: 10000 });
     if (bodyText.includes("Application error") || bodyText.includes("Failed to load dashboard")) {
       throw new Error("Today page loaded with an error state.");
+    }
+
+    const mindPulse = page.locator("section", { hasText: "Mind Pulse" }).first();
+    await expect(mindPulse).toBeVisible({ timeout: 15000 });
+    pass("Mind Pulse task section is visible");
+
+    const mindPulseText = await mindPulse.innerText({ timeout: 10000 });
+    const taskRowsVisible = !mindPulseText.includes("No tasks for today.");
+    if (taskRowsVisible) {
+      pass("Today task rows are visible");
+
+      if (mindPulseText.includes("Project:")) {
+        pass("Today task project context is visible");
+      } else {
+        skip("Today task project context is data-dependent and not visible for this account/task state");
+      }
+
+      if (todayTaskGoalContextText.some((text) => mindPulseText.includes(text))) {
+        pass("Today task direct goal context is visible");
+      } else {
+        skip("Today task goal context is data-dependent and not visible for this account/task state");
+      }
+    } else {
+      skip("Today task execution context is data-dependent and not visible because task rows are not visible");
+      skip("Today task goal context is data-dependent and not visible because task rows are not visible");
     }
 
     const executionBridgeVisible = bodyText.includes("Execution bridge");
