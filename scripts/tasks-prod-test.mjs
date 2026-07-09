@@ -54,6 +54,12 @@ const riskyTaskText = [
   "getting worse",
 ];
 
+const taskGoalContextText = [
+  "Goal:",
+  "Supports goals:",
+  "Supports ",
+];
+
 function requireConfig() {
   const missing = [];
   if (!EMAIL) missing.push("LIFE_PULSE_TEST_EMAIL");
@@ -154,7 +160,8 @@ async function main() {
 
     const editButtons = await page.getByRole("button", { name: "Edit" }).count();
     const deleteButtons = await page.getByRole("button", { name: "Delete" }).count();
-    if (editButtons > 0 || deleteButtons > 0) {
+    const hasTaskRows = editButtons > 0 || deleteButtons > 0;
+    if (hasTaskRows) {
       pass(`Task rows are visible: ${Math.max(editButtons, deleteButtons)} detected`);
     } else if (bodyText.includes("No tasks for now") || bodyText.includes("No tasks match this filter")) {
       skip("Task rows are data-dependent and not visible for this account/task state");
@@ -171,6 +178,15 @@ async function main() {
       info("Project context is read-only; no task/project action buttons were clicked.");
     } else {
       skip("Tasks project context is data-dependent and not visible for this account/task state");
+    }
+
+    const goalContextVisible = taskGoalContextText.some((text) => bodyText.includes(text));
+    if (hasTaskRows && goalContextVisible) {
+      pass("Tasks direct goal context is visible");
+    } else if (hasTaskRows) {
+      skip("Tasks goal context is data-dependent and not visible for this account/task state");
+    } else {
+      skip("Tasks goal context is data-dependent and not visible because task rows are not visible");
     }
 
     const finalBodyText = await page.locator("body").innerText({ timeout: 10000 });
