@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { DashboardNav } from "@/components/DashboardNav";
@@ -19,6 +19,25 @@ interface RealmInfo {
   name: string;
   color: string;
   icon: string;
+}
+
+interface GoalActionLinkCounts {
+  projects: number;
+  tasks: number;
+  habits: number;
+  total: number;
+}
+
+const emptyActionLinkCounts: GoalActionLinkCounts = {
+  projects: 0,
+  tasks: 0,
+  habits: 0,
+  total: 0,
+};
+
+function formatActionLinkCount(count: number, singular: string, plural: string) {
+  if (count === 0) return null;
+  return `${count} ${count === 1 ? singular : plural}`;
 }
 
 function GoalsContent() {
@@ -127,6 +146,18 @@ function GoalsContent() {
   const completedGoalCount = completedGoals.length;
   const milestoneDoneCount = milestones.filter((m) => m.completed_at).length;
   const upcomingDates = goals.filter((g) => g.target_date && g.status !== "completed" && g.status !== "archived").length;
+
+  const actionLinksByGoal = useMemo(() => {
+    return links.reduce<Record<string, GoalActionLinkCounts>>((map, link) => {
+      if (!map[link.goal_id]) map[link.goal_id] = { ...emptyActionLinkCounts };
+      const counts = map[link.goal_id];
+      counts.total += 1;
+      if (link.linked_type === "project") counts.projects += 1;
+      if (link.linked_type === "task") counts.tasks += 1;
+      if (link.linked_type === "habit") counts.habits += 1;
+      return map;
+    }, {});
+  }, [links]);
 
   const getMilestonesForGoal = (goalId: string) =>
     milestones.filter((m) => m.goal_id === goalId);
@@ -316,6 +347,12 @@ function GoalsContent() {
             const isExpanded = expandedGoalId === goal.id;
             const goalMilestones = getMilestonesForGoal(goal.id);
             const nextMs = getNextMilestone(goal.id);
+            const actionLinkCounts = actionLinksByGoal[goal.id] ?? emptyActionLinkCounts;
+            const actionLinkSummary = [
+              formatActionLinkCount(actionLinkCounts.projects, "project", "projects"),
+              formatActionLinkCount(actionLinkCounts.tasks, "task", "tasks"),
+              formatActionLinkCount(actionLinkCounts.habits, "habit", "habits"),
+            ].filter(Boolean).join(" · ");
             return (
               <div key={goal.id}>
                 <GoalCard
@@ -326,6 +363,15 @@ function GoalsContent() {
                   onDelete={handleDelete}
                   onComplete={handleComplete}
                 />
+                <div className="mt-1 rounded-md border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2 text-[10px] text-[var(--text-muted)]">
+                  {actionLinkCounts.total > 0 ? (
+                    <span>
+                      <span className="font-medium text-[var(--text-secondary)]">Supports:</span> {actionLinkSummary}
+                    </span>
+                  ) : (
+                    <span>No action links yet</span>
+                  )}
+                </div>
                 {(() => {
                   const goalLinks = links.filter((l) => l.goal_id === goal.id);
                   const hasMs = goalMilestones.length > 0;
