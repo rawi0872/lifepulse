@@ -43,9 +43,23 @@ interface LinkedTask {
   project_id: string;
 }
 
+interface GoalLink {
+  goal_id: string;
+  linked_type: string;
+  linked_id: string;
+}
+
+interface LinkedGoal {
+  id: string;
+  title: string;
+  status: string | null;
+}
+
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [linkedTasks, setLinkedTasks] = useState<LinkedTask[]>([]);
+  const [goalLinks, setGoalLinks] = useState<GoalLink[]>([]);
+  const [linkedGoals, setLinkedGoals] = useState<LinkedGoal[]>([]);
   const [realms, setRealms] = useState<Realm[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -78,7 +92,7 @@ const [linkedProjectIds, setLinkedProjectIds] = useState<Set<string>>(new Set())
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push("/login"); return; }
 
-      const [projectsRes, tasksRes, realmsRes, linksRes] = await Promise.all([
+      const [projectsRes, tasksRes, realmsRes, linksRes, goalsRes] = await Promise.all([
         supabase
           .from("projects")
           .select("*, realms(name, color, icon)")
@@ -96,16 +110,24 @@ const [linkedProjectIds, setLinkedProjectIds] = useState<Set<string>>(new Set())
           .order("sort_order"),
         supabase
           .from("goal_links")
-          .select("linked_id")
+          .select("goal_id, linked_type, linked_id")
           .eq("user_id", user.id)
           .eq("linked_type", "project"),
+        supabase
+          .from("goals")
+          .select("id, title, status")
+          .eq("user_id", user.id),
       ]);
 
       if (cancelled) return;
       if (projectsRes.data) setProjects(projectsRes.data as Project[]);
       if (tasksRes.data) setLinkedTasks(tasksRes.data as LinkedTask[]);
       if (realmsRes.data) setRealms(realmsRes.data as Realm[]);
-      if (linksRes.data) setLinkedProjectIds(new Set(linksRes.data.map((l: { linked_id: string }) => l.linked_id)));
+      if (linksRes.data) {
+        setGoalLinks(linksRes.data as GoalLink[]);
+        setLinkedProjectIds(new Set(linksRes.data.map((l: { linked_id: string }) => l.linked_id)));
+      }
+      if (goalsRes.data) setLinkedGoals(goalsRes.data as LinkedGoal[]);
       setLoading(false);
     }
 
@@ -122,6 +144,24 @@ const [linkedProjectIds, setLinkedProjectIds] = useState<Set<string>>(new Set())
     }
     return map;
   }, [linkedTasks]);
+
+  const goalsById = useMemo(() => {
+    return linkedGoals.reduce<Record<string, LinkedGoal>>((map, goal) => {
+      map[goal.id] = goal;
+      return map;
+    }, {});
+  }, [linkedGoals]);
+
+  const goalsByProjectId = useMemo(() => {
+    return goalLinks.reduce<Record<string, LinkedGoal[]>>((map, link) => {
+      if (link.linked_type !== "project") return map;
+      const goal = goalsById[link.goal_id];
+      if (!goal) return map;
+      if (!map[link.linked_id]) map[link.linked_id] = [];
+      map[link.linked_id].push(goal);
+      return map;
+    }, {});
+  }, [goalLinks, goalsById]);
 
   function getTaskContext(tasks: LinkedTask[]) {
     const openTasks = tasks.filter((task) => task.status !== "done");
@@ -195,15 +235,20 @@ const [linkedProjectIds, setLinkedProjectIds] = useState<Set<string>>(new Set())
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const [projectsRes, tasksRes, linksRes] = await Promise.all([
+    const [projectsRes, tasksRes, linksRes, goalsRes] = await Promise.all([
       supabase.from("projects").select("*, realms(name, color, icon)").eq("user_id", user.id).order("created_at", { ascending: false }),
       supabase.from("tasks").select("id, title, status, priority, due_date, project_id").eq("user_id", user.id).not("project_id", "is", null),
-      supabase.from("goal_links").select("linked_id").eq("user_id", user.id).eq("linked_type", "project"),
+      supabase.from("goal_links").select("goal_id, linked_type, linked_id").eq("user_id", user.id).eq("linked_type", "project"),
+      supabase.from("goals").select("id, title, status").eq("user_id", user.id),
     ]);
 
     if (projectsRes.data) setProjects(projectsRes.data as Project[]);
     if (tasksRes.data) setLinkedTasks(tasksRes.data as LinkedTask[]);
-    if (linksRes.data) setLinkedProjectIds(new Set(linksRes.data.map((l: { linked_id: string }) => l.linked_id)));
+    if (linksRes.data) {
+      setGoalLinks(linksRes.data as GoalLink[]);
+      setLinkedProjectIds(new Set(linksRes.data.map((l: { linked_id: string }) => l.linked_id)));
+    }
+    if (goalsRes.data) setLinkedGoals(goalsRes.data as LinkedGoal[]);
   }
 
   async function remove(id: string) {
@@ -445,9 +490,11 @@ const [linkedProjectIds, setLinkedProjectIds] = useState<Set<string>>(new Set())
                     {groupProjects.map((project) => {
                       const tasks = tasksByProject[project.id] ?? [];
                       const taskContext = getTaskContext(tasks);
+                      const linkedProjectGoals = goalsByProjectId[project.id] ?? [];
 
                       return (
                         <div key={project.id} className="space-y-2">
+                          <ProjectGoalContext goals={linkedProjectGoals} />
                           <ProjectTaskContext context={taskContext} />
                           <ProjectCard
                             project={project}
@@ -518,6 +565,30 @@ function ProjectTaskContext({
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function ProjectGoalContext({ goals }: { goals: LinkedGoal[] }) {
+  if (goals.length === 0) {
+    return (
+      <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2.5">
+        <p className="text-xs text-[var(--text-muted)]">No linked goals yet</p>
+      </div>
+    );
+  }
+
+  const activeGoals = goals.filter((goal) => goal.status === "active");
+  const displayGoals = activeGoals.length > 0 ? activeGoals : goals;
+  const goalTitles = displayGoals.slice(0, 2).map((goal) => goal.title).join(" · ");
+  const remainingCount = displayGoals.length - 2;
+  const label = displayGoals.length === 1
+    ? `Goal: ${goalTitles}`
+    : `Supports goals: ${goalTitles}${remainingCount > 0 ? ` +${remainingCount}` : ""}`;
+
+  return (
+    <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2.5">
+      <p className="text-xs text-[var(--text-muted)]">{label}</p>
     </div>
   );
 }
