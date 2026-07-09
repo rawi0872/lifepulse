@@ -34,6 +34,18 @@ interface TaskProjectContext {
   status: string | null;
 }
 
+interface GoalLink {
+  goal_id: string;
+  linked_type: string;
+  linked_id: string;
+}
+
+interface LinkedGoal {
+  id: string;
+  title: string;
+  status: string | null;
+}
+
 interface Task {
   id: string;
   title: string;
@@ -69,6 +81,8 @@ export default function TasksPage() {
   const [realms, setRealms] = useState<Realm[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [taskProjects, setTaskProjects] = useState<TaskProjectContext[]>([]);
+  const [goalLinks, setGoalLinks] = useState<GoalLink[]>([]);
+  const [linkedGoals, setLinkedGoals] = useState<LinkedGoal[]>([]);
   const [filter, setFilter] = useState<"today" | "upcoming" | "all" | "done">("all");
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -90,7 +104,7 @@ export default function TasksPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push("/login"); return; }
 
-      const [tasksRes, realmsRes, projectsRes, taskProjectsRes] = await Promise.all([
+      const [tasksRes, realmsRes, projectsRes, taskProjectsRes, goalLinksRes, goalsRes] = await Promise.all([
         supabase
           .from("tasks")
           .select("*, realms(name, color, icon), projects(title)")
@@ -111,6 +125,15 @@ export default function TasksPage() {
           .from("projects")
           .select("id, title, status")
           .eq("user_id", user.id),
+        supabase
+          .from("goal_links")
+          .select("goal_id, linked_type, linked_id")
+          .eq("user_id", user.id)
+          .eq("linked_type", "task"),
+        supabase
+          .from("goals")
+          .select("id, title, status")
+          .eq("user_id", user.id),
       ]);
 
       if (cancelled) return;
@@ -118,6 +141,8 @@ export default function TasksPage() {
       if (realmsRes.data) setRealms(realmsRes.data as Realm[]);
       if (projectsRes.data) setProjects(projectsRes.data as Project[]);
       if (taskProjectsRes.data) setTaskProjects(taskProjectsRes.data as TaskProjectContext[]);
+      if (goalLinksRes.data) setGoalLinks(goalLinksRes.data as GoalLink[]);
+      if (goalsRes.data) setLinkedGoals(goalsRes.data as LinkedGoal[]);
       setLoading(false);
     }
 
@@ -194,13 +219,26 @@ export default function TasksPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { data } = await supabase
-      .from("tasks")
-      .select("*, realms(name, color, icon), projects(title)")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
+    const [tasksRes, goalLinksRes, goalsRes] = await Promise.all([
+      supabase
+        .from("tasks")
+        .select("*, realms(name, color, icon), projects(title)")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("goal_links")
+        .select("goal_id, linked_type, linked_id")
+        .eq("user_id", user.id)
+        .eq("linked_type", "task"),
+      supabase
+        .from("goals")
+        .select("id, title, status")
+        .eq("user_id", user.id),
+    ]);
 
-    if (data) setTasks(data as Task[]);
+    if (tasksRes.data) setTasks(tasksRes.data as Task[]);
+    if (goalLinksRes.data) setGoalLinks(goalLinksRes.data as GoalLink[]);
+    if (goalsRes.data) setLinkedGoals(goalsRes.data as LinkedGoal[]);
   }
 
   async function remove(id: string) {
@@ -261,6 +299,38 @@ export default function TasksPage() {
       return map;
     }, {});
   }, [taskProjects]);
+
+  const goalsById = useMemo(() => {
+    return linkedGoals.reduce<Record<string, LinkedGoal>>((map, goal) => {
+      map[goal.id] = goal;
+      return map;
+    }, {});
+  }, [linkedGoals]);
+
+  const goalsByTaskId = useMemo(() => {
+    return goalLinks.reduce<Record<string, LinkedGoal[]>>((map, link) => {
+      if (link.linked_type !== "task") return map;
+      const goal = goalsById[link.goal_id];
+      if (!goal) return map;
+      if (!map[link.linked_id]) map[link.linked_id] = [];
+      map[link.linked_id].push(goal);
+      return map;
+    }, {});
+  }, [goalLinks, goalsById]);
+
+  const getTaskGoalContext = (taskId: string) => {
+    const goals = goalsByTaskId[taskId] ?? [];
+    if (goals.length === 0) return null;
+
+    const activeGoals = goals.filter((goal) => goal.status === "active");
+    const displayGoals = activeGoals.length > 0 ? activeGoals : goals;
+    const goalTitles = displayGoals.slice(0, 2).map((goal) => goal.title).join(" · ");
+    const remainingCount = displayGoals.length - 2;
+
+    if (displayGoals.length === 1) return `Goal: ${goalTitles}`;
+    if (goalTitles) return `Supports goals: ${goalTitles}${remainingCount > 0 ? ` +${remainingCount}` : ""}`;
+    return `Supports ${goals.length} goals`;
+  };
 
   const filteredTasks = sortedTasks.filter((t) => {
     const td = todayStr;
@@ -469,6 +539,7 @@ export default function TasksPage() {
               const linkedProjectTitle = task.project_id
                 ? taskProjectsById[task.project_id]?.title ?? task.projects?.title
                 : null;
+              const linkedGoalContext = getTaskGoalContext(task.id);
               return (
                 <Card
                   key={task.id}
@@ -506,6 +577,11 @@ export default function TasksPage() {
                       {linkedProjectTitle && (
                         <span className="inline-block rounded-full px-2 py-0.5 text-[10px] bg-[var(--surface)] text-[var(--text-muted)]">
                           Project: {linkedProjectTitle}
+                        </span>
+                      )}
+                      {linkedGoalContext && (
+                        <span className="inline-block rounded-full px-2 py-0.5 text-[10px] bg-[var(--accent-soft)] text-[var(--accent)]">
+                          {linkedGoalContext}
                         </span>
                       )}
                       <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
