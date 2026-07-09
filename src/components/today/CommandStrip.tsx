@@ -26,7 +26,7 @@ export function CommandStrip({
   financeHasTx,
 }: CommandStripProps) {
   return (
-    <div className="mb-6 grid grid-cols-3 sm:grid-cols-5 gap-2">
+    <div className="mb-6 grid grid-cols-2 gap-2 sm:grid-cols-5">
       <MetricCard
         label="Habits"
         value={`${completedHabitCount}/${dueHabitsLength}`}

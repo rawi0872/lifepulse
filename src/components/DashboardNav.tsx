@@ -316,7 +316,7 @@ export function DashboardNav({ children }: { children: React.ReactNode }) {
       {moreOpen && (
         <div className="fixed inset-0 z-[55] md:hidden">
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setMoreOpen(false)} />
-          <div className="fixed bottom-0 left-0 right-0 z-10 max-h-[70vh] overflow-y-auto rounded-t-2xl border border-[var(--border)] bg-[var(--bg-elevated)] p-4 pb-8 shadow-2xl animate-slide-up">
+          <div className="fixed bottom-0 left-0 right-0 z-10 max-h-[75vh] overflow-y-auto rounded-t-2xl border border-[var(--border)] bg-[var(--bg-elevated)] p-4 pb-8 shadow-2xl animate-slide-up">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="text-sm font-semibold text-[var(--text)]">More</h2>
               <button
@@ -329,7 +329,7 @@ export function DashboardNav({ children }: { children: React.ReactNode }) {
                 </svg>
               </button>
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {mobileMoreItems.map((item) => {
                 const active = isActive(item.href);
                 return (
@@ -337,7 +337,7 @@ export function DashboardNav({ children }: { children: React.ReactNode }) {
                     key={item.href}
                     href={item.href}
                     onClick={() => setMoreOpen(false)}
-                    className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
+                    className={`flex min-w-0 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
                       active
                         ? "text-[var(--accent)] bg-[var(--accent-ghost)]"
                         : "text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-white/[0.03]"
@@ -346,7 +346,7 @@ export function DashboardNav({ children }: { children: React.ReactNode }) {
                     <span className={`shrink-0 ${active ? "text-[var(--accent)]" : "text-[var(--text-muted)]"}`}>
                       {item.icon}
                     </span>
-                    {item.label}
+                    <span className="min-w-0 truncate">{item.label}</span>
                   </Link>
                 );
               })}

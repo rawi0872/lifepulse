@@ -84,7 +84,7 @@ export function MeasurementSection({ todayDate = getTodayDate() }: MeasurementSe
     <div className="space-y-6">
       {latest && (
         <PulseCard title="Latest" accent="success">
-          <div className="grid grid-cols-3 gap-2 p-4 text-center">
+          <div className="grid grid-cols-1 gap-2 p-4 text-center sm:grid-cols-3">
             {latest.weight_kg !== null && (
               <div>
                 <p className="text-lg font-bold text-[var(--text)]">{formatNumber(latest.weight_kg, 1)}</p>
@@ -108,7 +108,7 @@ export function MeasurementSection({ todayDate = getTodayDate() }: MeasurementSe
       )}
 
       <PulseCard title="Log Measurement" accent="success">
-        <div className="grid grid-cols-3 gap-3 p-4">
+        <div className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3">
           <div className="flex flex-col gap-1">
             <label className="text-[10px] font-medium text-[var(--text-muted)]">Weight (kg)</label>
             <input
@@ -163,7 +163,7 @@ export function MeasurementSection({ todayDate = getTodayDate() }: MeasurementSe
               className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none"
             />
           </div>
-          <div className="col-span-3 flex justify-end">
+          <div className="flex justify-end sm:col-span-2 lg:col-span-3">
             <button
               onClick={handleSave}
               disabled={saving}

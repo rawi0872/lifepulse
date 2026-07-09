@@ -81,7 +81,7 @@ export function BodyProInsights() {
         </svg>
         <p className="text-[10px] font-medium tracking-wider text-[var(--text-muted)]">Body Pulse Pro</p>
       </div>
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <div className="text-center">
           <p className="text-lg font-bold text-[var(--text)]">{formatNumber(data.weeklyWorkouts)}</p>
           <p className="text-[10px] text-[var(--text-muted)]">Workouts / wk</p>
@@ -104,7 +104,7 @@ export function BodyProInsights() {
           <p className="text-[9px] text-[var(--text-muted)]">{data.healthNoteCount} health notes</p>
         </div>
       </div>
-      <div className="mt-4 grid grid-cols-3 gap-3 border-t border-[var(--border)] pt-3">
+      <div className="mt-4 grid grid-cols-1 gap-3 border-t border-[var(--border)] pt-3 sm:grid-cols-3">
         <div className="text-center">
           <p className="text-sm font-bold text-[var(--text)]">{data.nutritionDays} / 7</p>
           <p className="text-[10px] text-[var(--text-muted)]">Nutrition days</p>

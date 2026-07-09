@@ -819,8 +819,8 @@ function TodayContent() {
             <div key={i} className="h-16 animate-pulse rounded-lg bg-[var(--surface)]" />
           ))}
         </div>
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-          <div className="md:col-span-2">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2">
             <div className="mb-6 h-64 animate-pulse rounded-xl bg-[var(--surface)]" />
             <div className="h-48 animate-pulse rounded-xl bg-[var(--surface)]" />
           </div>
@@ -945,7 +945,7 @@ function TodayContent() {
             <div className="flex-1 min-w-0">
               <p className="text-[10px] font-medium tracking-wider text-[var(--accent)]">Project next action</p>
               <p className="text-sm font-medium text-[var(--text)] truncate">{suggestedTask.title}</p>
-              <div className="flex items-center gap-2 mt-0.5">
+              <div className="mt-0.5 flex flex-wrap items-center gap-2">
                 <span className="text-[10px] text-[var(--text-muted)]">From: {suggestedTask.projects.title}</span>
                 {suggestedTaskGoalContext && (
                   <span className="text-[10px] text-[var(--accent)]">{suggestedTaskGoalContext}</span>
@@ -1037,8 +1037,8 @@ function TodayContent() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-        <div className="space-y-6 md:col-span-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="space-y-6 lg:col-span-2">
           <BodyPulseSection
             dueHabits={dueHabits}
             completedHabitIds={completedHabitIds}

@@ -52,7 +52,7 @@ export function MissionControl({
             What matters today
           </label>
           {priorities.length === 0 ? (
-            <div className="mt-2 flex gap-2">
+            <div className="mt-2 flex flex-col gap-2 sm:flex-row">
               <input
                 value={priorityInput}
                 onChange={(e) => onPriorityInputChange(e.target.value)}
@@ -61,7 +61,7 @@ export function MissionControl({
                 maxLength={200}
                 className="flex-1 rounded-lg border border-[var(--border-strong)] bg-[var(--surface-soft)] px-3 py-2 text-sm text-[var(--text)] placeholder-[var(--text-muted)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none"
               />
-              <Button onClick={onAddPriority} disabled={!priorityInput.trim()} size="sm">
+              <Button onClick={onAddPriority} disabled={!priorityInput.trim()} size="sm" className="w-full sm:w-auto">
                 Set
               </Button>
             </div>
@@ -108,7 +108,7 @@ export function MissionControl({
               {priorities.length < 3 && (
                 <div className="mt-1">
                   {addingPriority ? (
-                    <div className="flex gap-2">
+                    <div className="flex flex-col gap-2 sm:flex-row">
                       <input
                         autoFocus
                         value={priorityInput}
@@ -149,7 +149,7 @@ export function MissionControl({
           <label className="text-xs font-medium text-[var(--text-secondary)]">
             Quick capture
           </label>
-          <div className="mt-2 flex gap-2">
+            <div className="mt-2 flex flex-col gap-2 sm:flex-row">
             <div className="relative flex-1">
               <input
                 value={quickCapture}
@@ -171,7 +171,7 @@ export function MissionControl({
                 </span>
               </div>
             </div>
-            <Button onClick={onQuickCapture} disabled={!quickCapture.trim() || quickSaving}>
+            <Button onClick={onQuickCapture} disabled={!quickCapture.trim() || quickSaving} className="w-full sm:w-auto">
               {quickSaving ? "..." : "Add"}
             </Button>
           </div>

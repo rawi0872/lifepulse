@@ -22,7 +22,8 @@
     "test:prod:habits": "node scripts/habits-prod-test.mjs",
     "test:prod:navigation": "node scripts/navigation-prod-test.mjs",
     "test:prod:body-profile": "node scripts/body-profile-prod-test.mjs",
-    "test:prod:finance": "node scripts/finance-prod-test.mjs"
+    "test:prod:finance": "node scripts/finance-prod-test.mjs",
+    "test:prod:mobile-tablet": "node scripts/mobile-tablet-prod-test.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",

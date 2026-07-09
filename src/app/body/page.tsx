@@ -186,12 +186,12 @@ function BodyContent() {
         </div>
 
         {/* Tab Bar */}
-        <div className="mb-6 flex gap-1 rounded-xl bg-[var(--surface-soft)] p-1">
+        <div className="mb-6 flex gap-1 overflow-x-auto rounded-xl bg-[var(--surface-soft)] p-1">
           {TABS.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 rounded-lg px-3 py-2 text-center text-xs font-medium transition-all ${
+              className={`shrink-0 whitespace-nowrap rounded-lg px-3 py-2 text-center text-xs font-medium transition-all sm:flex-1 ${
                 activeTab === tab.id
                   ? "bg-[var(--surface)] text-[var(--text)] shadow-sm"
                   : "text-[var(--text-muted)] hover:text-[var(--text)]"
