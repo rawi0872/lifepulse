@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
@@ -53,7 +53,9 @@ interface Task {
   due_date: string | null;
   status: string;
   completed_at: string | null;
+  project_id: string | null;
   realms: RealmInfo | null;
+  projects?: { title: string } | null;
 }
 
 interface ProjectTask {
@@ -66,6 +68,42 @@ interface ProjectTask {
   realms: RealmInfo | null;
 }
 
+interface TaskProjectContext {
+  id: string;
+  title: string;
+  status: string | null;
+}
+
+interface GoalLink {
+  goal_id: string;
+  linked_type: string;
+  linked_id: string;
+}
+
+interface LinkedGoal {
+  id: string;
+  title: string;
+  status: string | null;
+}
+
+interface TodayTaskExecutionContext {
+  projectTitle?: string;
+  goalContext?: string;
+}
+
+function formatGoalContext(goals: LinkedGoal[]): string | undefined {
+  if (goals.length === 0) return undefined;
+
+  const activeGoals = goals.filter((goal) => goal.status === "active");
+  const displayGoals = activeGoals.length > 0 ? activeGoals : goals;
+  const goalTitles = displayGoals.slice(0, 2).map((goal) => goal.title).join(" · ");
+  const remainingCount = displayGoals.length - 2;
+
+  if (displayGoals.length === 1) return `Goal: ${goalTitles}`;
+  if (goalTitles) return `Supports goals: ${goalTitles}${remainingCount > 0 ? ` +${remainingCount}` : ""}`;
+  return `Supports ${goals.length} goals`;
+}
+
 let priorityIdCounter = 0;
 
 function TodayContent() {
@@ -75,6 +113,9 @@ function TodayContent() {
   const [streakMap, setStreakMap] = useState<Record<string, number>>({});
   const [weeklyProgressMap, setWeeklyProgressMap] = useState<Record<string, { completed: number; target: number } | null>>({});
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [taskProjects, setTaskProjects] = useState<TaskProjectContext[]>([]);
+  const [taskGoalLinks, setTaskGoalLinks] = useState<GoalLink[]>([]);
+  const [linkedGoals, setLinkedGoals] = useState<LinkedGoal[]>([]);
   const [todayXp, setTodayXp] = useState(0);
   const [totalXp, setTotalXp] = useState(0);
   const [firstName, setFirstName] = useState("");
@@ -168,6 +209,45 @@ function TodayContent() {
   const taskLinksCount = activeGoalLinks.filter((link) => link.linked_type === "task").length;
   const habitLinksCount = activeGoalLinks.filter((link) => link.linked_type === "habit").length;
   const actionLinksCount = projectLinksCount + taskLinksCount + habitLinksCount;
+
+  const taskProjectsById = useMemo(() => {
+    return taskProjects.reduce<Record<string, TaskProjectContext>>((map, project) => {
+      map[project.id] = project;
+      return map;
+    }, {});
+  }, [taskProjects]);
+
+  const goalsById = useMemo(() => {
+    return linkedGoals.reduce<Record<string, LinkedGoal>>((map, goal) => {
+      map[goal.id] = goal;
+      return map;
+    }, {});
+  }, [linkedGoals]);
+
+  const goalsByTaskId = useMemo(() => {
+    return taskGoalLinks.reduce<Record<string, LinkedGoal[]>>((map, link) => {
+      if (link.linked_type !== "task") return map;
+      const goal = goalsById[link.goal_id];
+      if (!goal) return map;
+      if (!map[link.linked_id]) map[link.linked_id] = [];
+      map[link.linked_id].push(goal);
+      return map;
+    }, {});
+  }, [taskGoalLinks, goalsById]);
+
+  const taskExecutionContextById = useMemo(() => {
+    return tasks.reduce<Record<string, TodayTaskExecutionContext>>((map, task) => {
+      const projectTitle = task.project_id
+        ? taskProjectsById[task.project_id]?.title ?? task.projects?.title
+        : undefined;
+      const goalContext = formatGoalContext(goalsByTaskId[task.id] ?? []);
+      if (projectTitle || goalContext) {
+        map[task.id] = { projectTitle, goalContext };
+      }
+      return map;
+    }, {});
+  }, [tasks, taskProjectsById, goalsByTaskId]);
+  const suggestedTaskGoalContext = suggestedTask ? formatGoalContext(goalsByTaskId[suggestedTask.id] ?? []) : undefined;
 
   function savePriorities(items: Priority[]) {
     localStorage.setItem("lifepulse_priorities", JSON.stringify({ date: today, items }));
@@ -279,7 +359,7 @@ function TodayContent() {
           return;
         }
 
-        const [profileRes, habitsRes, tasksRes, journalRes, projectTasksRes] = await Promise.all([
+        const [profileRes, habitsRes, tasksRes, journalRes, projectTasksRes, taskProjectsRes, taskGoalLinksRes, taskGoalsRes] = await Promise.all([
           supabase
             .from("profiles")
             .select("first_name, intended_use")
@@ -291,7 +371,7 @@ function TodayContent() {
             .eq("user_id", user.id),
           supabase
             .from("tasks")
-            .select("*, realms(name, color, icon)")
+            .select("*, realms(name, color, icon), projects(title)")
             .eq("user_id", user.id)
             .or(`due_date.eq.${today},and(due_date.lt.${today},status.eq.todo),and(due_date.is.null,status.eq.todo)`)
             .order("due_date", { ascending: true }),
@@ -309,6 +389,19 @@ function TodayContent() {
             .eq("status", "todo")
             .order("due_date", { ascending: true })
             .limit(5),
+          supabase
+            .from("projects")
+            .select("id, title, status")
+            .eq("user_id", user.id),
+          supabase
+            .from("goal_links")
+            .select("goal_id, linked_type, linked_id")
+            .eq("user_id", user.id)
+            .eq("linked_type", "task"),
+          supabase
+            .from("goals")
+            .select("id, title, status")
+            .eq("user_id", user.id),
         ]);
 
         if (cancelled) return;
@@ -319,6 +412,9 @@ function TodayContent() {
         }
         if (journalRes.data) setHasJournal(true);
         if (projectTasksRes.data) setProjectTasks(projectTasksRes.data as ProjectTask[]);
+        if (taskProjectsRes.data) setTaskProjects(taskProjectsRes.data as TaskProjectContext[]);
+        if (taskGoalLinksRes.data) setTaskGoalLinks(taskGoalLinksRes.data as GoalLink[]);
+        if (taskGoalsRes.data) setLinkedGoals(taskGoalsRes.data as LinkedGoal[]);
 
         const [allLogsRes, xpRes, totalXpRes] = await Promise.all([
           supabase
@@ -494,10 +590,10 @@ function TodayContent() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const [tasksRes, habitsRes, projectTasksRes, allLogsRes, xpRes, totalXpRes] = await Promise.all([
+    const [tasksRes, habitsRes, projectTasksRes, allLogsRes, xpRes, totalXpRes, taskProjectsRes, taskGoalLinksRes, taskGoalsRes] = await Promise.all([
       supabase
         .from("tasks")
-        .select("*, realms(name, color, icon)")
+        .select("*, realms(name, color, icon), projects(title)")
         .eq("user_id", user.id)
         .or(`due_date.eq.${today},and(due_date.lt.${today},status.eq.todo),and(due_date.is.null,status.eq.todo)`)
         .order("due_date", { ascending: true }),
@@ -526,10 +622,26 @@ function TodayContent() {
         .from("xp_events")
         .select("amount")
         .eq("user_id", user.id),
+      supabase
+        .from("projects")
+        .select("id, title, status")
+        .eq("user_id", user.id),
+      supabase
+        .from("goal_links")
+        .select("goal_id, linked_type, linked_id")
+        .eq("user_id", user.id)
+        .eq("linked_type", "task"),
+      supabase
+        .from("goals")
+        .select("id, title, status")
+        .eq("user_id", user.id),
     ]);
 
     if (tasksRes.data) setTasks(tasksRes.data as Task[]);
     if (projectTasksRes.data) setProjectTasks(projectTasksRes.data as ProjectTask[]);
+    if (taskProjectsRes.data) setTaskProjects(taskProjectsRes.data as TaskProjectContext[]);
+    if (taskGoalLinksRes.data) setTaskGoalLinks(taskGoalLinksRes.data as GoalLink[]);
+    if (taskGoalsRes.data) setLinkedGoals(taskGoalsRes.data as LinkedGoal[]);
 
     if (habitsRes.data) {
       const habits = habitsRes.data as Habit[];
@@ -835,6 +947,9 @@ function TodayContent() {
               <p className="text-sm font-medium text-[var(--text)] truncate">{suggestedTask.title}</p>
               <div className="flex items-center gap-2 mt-0.5">
                 <span className="text-[10px] text-[var(--text-muted)]">From: {suggestedTask.projects.title}</span>
+                {suggestedTaskGoalContext && (
+                  <span className="text-[10px] text-[var(--accent)]">{suggestedTaskGoalContext}</span>
+                )}
                 {suggestedTask.realms && (
                   <span className="text-[10px]" style={{ color: suggestedTask.realms.color }}>
                     {suggestedTask.realms.icon} {suggestedTask.realms.name}
@@ -938,6 +1053,7 @@ function TodayContent() {
             tasks={tasks}
             doneTaskCount={doneTaskCount}
             tasksLength={tasks.length}
+            taskContextById={taskExecutionContextById}
             onToggleTask={toggleTask}
           />
         </div>

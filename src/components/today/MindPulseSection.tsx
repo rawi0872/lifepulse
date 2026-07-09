@@ -22,14 +22,20 @@ interface Task {
   realms: RealmInfo | null;
 }
 
+interface TaskExecutionContext {
+  projectTitle?: string;
+  goalContext?: string;
+}
+
 interface MindPulseSectionProps {
   tasks: Task[];
   doneTaskCount: number;
   tasksLength: number;
+  taskContextById?: Record<string, TaskExecutionContext>;
   onToggleTask: (taskId: string, isDone: boolean) => void;
 }
 
-export function MindPulseSection({ tasks, doneTaskCount, tasksLength, onToggleTask }: MindPulseSectionProps) {
+export function MindPulseSection({ tasks, doneTaskCount, tasksLength, taskContextById = {}, onToggleTask }: MindPulseSectionProps) {
   return (
     <section>
       <SectionHeader
@@ -54,9 +60,24 @@ export function MindPulseSection({ tasks, doneTaskCount, tasksLength, onToggleTa
         />
       ) : (
         <div className="flex flex-col gap-2">
-          {tasks.map((task) => (
-            <TaskCard key={task.id} task={task} onToggle={onToggleTask} />
-          ))}
+          {tasks.map((task) => {
+            const context = taskContextById[task.id];
+            return (
+              <div key={task.id} className="space-y-1">
+                <TaskCard task={task} onToggle={onToggleTask} />
+                {(context?.projectTitle || context?.goalContext) && (
+                  <div className="flex flex-wrap gap-1.5 pl-10 text-[10px] text-[var(--text-muted)]">
+                    {context.projectTitle && (
+                      <span className="rounded-full bg-[var(--surface)] px-2 py-0.5">Project: {context.projectTitle}</span>
+                    )}
+                    {context.goalContext && (
+                      <span className="rounded-full bg-[var(--accent-soft)] px-2 py-0.5 text-[var(--accent)]">{context.goalContext}</span>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </section>
