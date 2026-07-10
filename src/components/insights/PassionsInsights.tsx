@@ -50,26 +50,26 @@ export function PassionsInsights() {
   if (!data) return null;
 
   return (
-    <Card className="p-4">
-      <div className="mb-3 flex items-center gap-2">
+    <Card className="min-w-0 p-4">
+      <div className="mb-3 flex min-w-0 items-center gap-2">
         <svg className="h-4 w-4 text-[var(--accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.385a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
         </svg>
-        <p className="text-[10px] font-medium tracking-wider text-[var(--text-muted)]">Passions &amp; Hobbies</p>
+        <p className="min-w-0 break-words text-[10px] font-medium tracking-wider text-[var(--text-muted)]">Passions &amp; Hobbies</p>
       </div>
-      <div className="grid grid-cols-3 gap-3">
-        <div className="text-center">
-          <p className="text-lg font-bold text-[var(--text)]">{data.activePassions}</p>
-          <p className="text-[10px] text-[var(--text-muted)]">Active</p>
-          <p className="text-[9px] text-[var(--text-muted)]">{data.completedMilestones} milestones</p>
+      <div className="grid min-w-0 grid-cols-3 gap-2 sm:gap-3">
+        <div className="min-w-0 text-center">
+          <p className="break-words text-lg font-bold text-[var(--text)]">{data.activePassions}</p>
+          <p className="break-words text-[10px] text-[var(--text-muted)]">Active</p>
+          <p className="break-words text-[9px] text-[var(--text-muted)]">{data.completedMilestones} milestones</p>
         </div>
-        <div className="text-center">
-          <p className="text-lg font-bold text-[var(--text)]">{data.weeklySessions}</p>
-          <p className="text-[10px] text-[var(--text-muted)]">Sessions / wk</p>
+        <div className="min-w-0 text-center">
+          <p className="break-words text-lg font-bold text-[var(--text)]">{data.weeklySessions}</p>
+          <p className="break-words text-[10px] text-[var(--text-muted)]">Sessions / wk</p>
         </div>
-        <div className="text-center">
-          <p className="text-lg font-bold text-[var(--text)]">{data.weeklyMinutes}</p>
-          <p className="text-[10px] text-[var(--text-muted)]">Min / wk</p>
+        <div className="min-w-0 text-center">
+          <p className="break-words text-lg font-bold text-[var(--text)]">{data.weeklyMinutes}</p>
+          <p className="break-words text-[10px] text-[var(--text-muted)]">Min / wk</p>
         </div>
       </div>
     </Card>

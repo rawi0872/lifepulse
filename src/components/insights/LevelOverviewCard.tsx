@@ -19,16 +19,16 @@ export function LevelOverviewCard({
 }: LevelOverviewCardProps) {
   return (
     <Card variant="subtle" className="mb-6 border-[var(--border)]">
-      <div className="flex items-center gap-4 p-4">
+      <div className="flex min-w-0 items-center gap-3 p-4 sm:gap-4">
         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[var(--accent-soft)] to-[var(--accent-ghost)] ring-1 ring-[var(--accent)]/20">
           <div className="text-center">
             <p className="text-lg font-bold text-[var(--accent)]">{level}</p>
           </div>
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-baseline justify-between gap-3">
-            <p className="text-sm font-semibold text-[var(--text)] truncate">{overallTitle}</p>
-            <p className="text-[10px] text-[var(--text-muted)] shrink-0">{xpNeededForNext} XP to next</p>
+          <div className="flex min-w-0 flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+            <p className="min-w-0 break-words text-sm font-semibold text-[var(--text)]">{overallTitle}</p>
+            <p className="shrink-0 text-[10px] text-[var(--text-muted)]">{xpNeededForNext} XP to next</p>
           </div>
           <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-[var(--surface)] ring-1 ring-inset ring-[var(--border)]">
             <div
@@ -36,7 +36,7 @@ export function LevelOverviewCard({
               style={{ width: `${progressPercent}%` }}
             />
           </div>
-          <p className="mt-1 text-[10px] text-[var(--text-muted)]">{totalXp} total XP</p>
+          <p className="mt-1 break-words text-[10px] text-[var(--text-muted)]">{totalXp} total XP</p>
         </div>
       </div>
     </Card>

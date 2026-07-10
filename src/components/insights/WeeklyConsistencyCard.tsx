@@ -30,15 +30,15 @@ export function WeeklyConsistencyCard({
 
   return (
     <Card className="mb-6 border-[var(--border-strong)]">
-      <div className="p-5">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-sm font-semibold text-[var(--text)]">Habit consistency</h3>
+      <div className="p-4 sm:p-5">
+        <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h3 className="break-words text-sm font-semibold text-[var(--text)]">Habit consistency</h3>
             <p className="mt-0.5 text-xs text-[var(--text-muted)]">
               {weekHabitLogs} of {weekDueHabits} expected check-ins this week
             </p>
           </div>
-          <span className="text-3xl font-bold tabular-nums text-[var(--accent)]">
+          <span className="shrink-0 text-3xl font-bold tabular-nums text-[var(--accent)]">
             {weekHabitRate ?? 0}%
           </span>
         </div>
@@ -48,7 +48,7 @@ export function WeeklyConsistencyCard({
             style={{ width: `${weekHabitRate ?? 0}%` }}
           />
         </div>
-        <p className="mt-3 text-xs text-[var(--text-muted)]">
+        <p className="mt-3 break-words text-xs text-[var(--text-muted)]">
           Daily habits counted 7&times;/week. Weekly habits count based on their target.
         </p>
       </div>

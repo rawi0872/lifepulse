@@ -74,53 +74,53 @@ export function BodyProInsights() {
   const waterLiters = Math.round((data.totalWaterMl / 1000) * 10) / 10;
 
   return (
-    <Card className="p-4">
-      <div className="mb-3 flex items-center gap-2">
+    <Card className="min-w-0 p-4">
+      <div className="mb-3 flex min-w-0 items-center gap-2">
         <svg className="h-4 w-4 text-[var(--success)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z" />
         </svg>
-        <p className="text-[10px] font-medium tracking-wider text-[var(--text-muted)]">Body Pulse Pro</p>
+        <p className="min-w-0 break-words text-[10px] font-medium tracking-wider text-[var(--text-muted)]">Body Pulse Pro</p>
       </div>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <div className="text-center">
-          <p className="text-lg font-bold text-[var(--text)]">{formatNumber(data.weeklyWorkouts)}</p>
-          <p className="text-[10px] text-[var(--text-muted)]">Workouts / wk</p>
-          <p className="text-[9px] text-[var(--text-muted)]">{formatNumber(data.weeklyMinutes)} min</p>
+      <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="min-w-0 text-center">
+          <p className="break-words text-lg font-bold text-[var(--text)]">{formatNumber(data.weeklyWorkouts)}</p>
+          <p className="break-words text-[10px] text-[var(--text-muted)]">Workouts / wk</p>
+          <p className="break-words text-[9px] text-[var(--text-muted)]">{formatNumber(data.weeklyMinutes)} min</p>
         </div>
-        <div className="text-center">
-          <p className="text-lg font-bold text-[var(--text)]">
+        <div className="min-w-0 text-center">
+          <p className="break-words text-lg font-bold text-[var(--text)]">
             {data.avgDailyCalories !== null ? formatNumber(data.avgDailyCalories) : "\u2014"}
           </p>
-          <p className="text-[10px] text-[var(--text-muted)]">Avg cal / day</p>
+          <p className="break-words text-[10px] text-[var(--text-muted)]">Avg cal / day</p>
           {data.avgDailyProtein !== null && (
-            <p className="text-[9px] text-[var(--text-muted)]">{formatNumber(data.avgDailyProtein, 1)}g protein</p>
+            <p className="break-words text-[9px] text-[var(--text-muted)]">{formatNumber(data.avgDailyProtein, 1)}g protein</p>
           )}
         </div>
-        <div className="text-center">
-          <p className="text-lg font-bold text-[var(--text)]">
+        <div className="min-w-0 text-center">
+          <p className="break-words text-lg font-bold text-[var(--text)]">
             {data.latestWeight !== null ? `${formatNumber(data.latestWeight, 1)}` : "\u2014"}
           </p>
-          <p className="text-[10px] text-[var(--text-muted)]">Weight kg</p>
-          <p className="text-[9px] text-[var(--text-muted)]">{data.healthNoteCount} health notes</p>
+          <p className="break-words text-[10px] text-[var(--text-muted)]">Weight kg</p>
+          <p className="break-words text-[9px] text-[var(--text-muted)]">{data.healthNoteCount} health notes</p>
         </div>
       </div>
-      <div className="mt-4 grid grid-cols-1 gap-3 border-t border-[var(--border)] pt-3 sm:grid-cols-3">
-        <div className="text-center">
-          <p className="text-sm font-bold text-[var(--text)]">{data.nutritionDays} / 7</p>
-          <p className="text-[10px] text-[var(--text-muted)]">Nutrition days</p>
-          <p className="text-[9px] text-[var(--text-muted)]">Days with at least one meal or water log.</p>
+      <div className="mt-4 grid min-w-0 grid-cols-1 gap-3 border-t border-[var(--border)] pt-3 sm:grid-cols-3">
+        <div className="min-w-0 text-center">
+          <p className="break-words text-sm font-bold text-[var(--text)]">{data.nutritionDays} / 7</p>
+          <p className="break-words text-[10px] text-[var(--text-muted)]">Nutrition days</p>
+          <p className="break-words text-[9px] text-[var(--text-muted)]">Days with at least one meal or water log.</p>
         </div>
-        <div className="text-center">
-          <p className="text-sm font-bold text-[var(--text)]">{formatNumber(waterLiters, 1)} L</p>
-          <p className="text-[10px] text-[var(--text-muted)]">Water logged</p>
-          <p className="text-[9px] text-[var(--text-muted)]">Total water recorded in recent nutrition logs.</p>
+        <div className="min-w-0 text-center">
+          <p className="break-words text-sm font-bold text-[var(--text)]">{formatNumber(waterLiters, 1)} L</p>
+          <p className="break-words text-[10px] text-[var(--text-muted)]">Water logged</p>
+          <p className="break-words text-[9px] text-[var(--text-muted)]">Total water recorded in recent nutrition logs.</p>
         </div>
-        <div className="text-center">
-          <p className="text-sm font-bold text-[var(--text)]">
+        <div className="min-w-0 text-center">
+          <p className="break-words text-sm font-bold text-[var(--text)]">
             {data.avgDailyProtein !== null ? `${formatNumber(data.avgDailyProtein, 0)} g/day` : "No logs yet"}
           </p>
-          <p className="text-[10px] text-[var(--text-muted)]">Protein avg</p>
-          <p className="text-[9px] text-[var(--text-muted)]">Average across days with nutrition logs.</p>
+          <p className="break-words text-[10px] text-[var(--text-muted)]">Protein avg</p>
+          <p className="break-words text-[9px] text-[var(--text-muted)]">Average across days with nutrition logs.</p>
         </div>
       </div>
     </Card>

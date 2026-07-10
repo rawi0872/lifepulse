@@ -304,11 +304,11 @@ function WeeklyReviewContent() {
 
   if (loading || !data) {
     return (
-      <div className="mx-auto max-w-3xl px-4 py-8">
+      <div className="mx-auto max-w-3xl px-4 py-6 sm:py-8">
         <div className="animate-pulse space-y-4">
-          <div className="h-8 w-64 rounded bg-[var(--surface)]" />
-          <div className="h-4 w-48 rounded bg-[var(--surface)]" />
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <div className="h-8 w-48 rounded bg-[var(--surface)] sm:w-64" />
+            <div className="h-4 w-40 rounded bg-[var(--surface)] sm:w-48" />
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
             {Array.from({ length: 8 }).map((_, i) => (
               <div key={i} className="h-24 rounded-lg bg-[var(--surface)]" />
             ))}
@@ -324,29 +324,29 @@ function WeeklyReviewContent() {
   });
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8">
+    <div className="mx-auto max-w-3xl overflow-x-hidden px-4 py-6 sm:px-5 sm:py-8">
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-xl font-bold text-[var(--text)]">Weekly Review</h1>
-        <p className="mt-1 text-sm text-[var(--text-muted)]">
+      <div className="mb-6 min-w-0">
+        <h1 className="break-words text-xl font-bold text-[var(--text)] sm:text-2xl">Weekly Review</h1>
+        <p className="mt-1 break-words text-sm text-[var(--text-muted)]">
           Reset, reflect, and choose what deserves attention next week.
         </p>
-        <p className="mt-1 text-sm text-[var(--text-muted)]">
+        <p className="mt-1 break-words text-sm text-[var(--text-muted)]">
           {dayLabels[0]} &ndash; {dayLabels[6]}
-          {isWeekend && <span className="ml-2 text-xs text-[var(--accent)]">Weekend &mdash; good time to reflect</span>}
+          {isWeekend && <span className="mt-1 block text-xs text-[var(--accent)] sm:ml-2 sm:mt-0 sm:inline">Weekend &mdash; good time to reflect</span>}
         </p>
       </div>
 
       {/* ── 1. Week Summary ────────────────────────────────────────── */}
       <section className="mb-8">
-        <div className="mb-3 flex items-center gap-2">
+        <div className="mb-3 flex min-w-0 items-center gap-2">
           <span className="h-4 w-1 rounded-full bg-gradient-to-b from-[var(--accent)] to-[var(--accent-strong)]" />
-          <h2 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">This week at a glance</h2>
+          <h2 className="min-w-0 break-words text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">This week at a glance</h2>
         </div>
         <p className="mb-3 text-xs text-[var(--text-muted)]">
           A quick read on what moved, what stayed quiet, and where your rhythm showed up.
         </p>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-4">
           <MetricCard label="Habits done" value={data.habitCount} />
           <MetricCard label="Tasks done" value={data.taskCount} />
           <MetricCard label="Workouts" value={data.workoutCount} sub={`${data.workoutMinutes} min`} />
@@ -360,14 +360,14 @@ function WeeklyReviewContent() {
 
       {(data.weeklyJournalEntries > 0 || data.weeklyKnowledgeItems > 0) && (
         <section className="mb-8">
-          <div className="mb-3 flex items-center gap-2">
+          <div className="mb-3 flex min-w-0 items-center gap-2">
             <span className="h-4 w-1 rounded-full bg-gradient-to-b from-[var(--accent)] to-[var(--accent-strong)]" />
-            <h2 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Memory and learning</h2>
+            <h2 className="min-w-0 break-words text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Memory and learning</h2>
           </div>
           <p className="mb-3 text-xs text-[var(--text-muted)]">
             A read-only view of reflections and knowledge captured this week.
           </p>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-4">
             <MetricCard label="Journal entries" value={data.weeklyJournalEntries} />
             <MetricCard label="Knowledge items" value={data.weeklyKnowledgeItems} />
             <MetricCard label="Latest reflection" value={data.latestJournalReflection ?? "—"} />
@@ -385,14 +385,14 @@ function WeeklyReviewContent() {
 
       {/* ── 2. Body & Mind Review ──────────────────────────────────── */}
       <section className="mb-8">
-        <div className="mb-3 flex items-center gap-2">
+        <div className="mb-3 flex min-w-0 items-center gap-2">
           <span className="h-4 w-1 rounded-full bg-gradient-to-b from-[var(--accent)] to-[var(--accent-strong)]" />
-          <h2 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Body and mind signals</h2>
+          <h2 className="min-w-0 break-words text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Body and mind signals</h2>
         </div>
         <p className="mb-3 text-xs text-[var(--text-muted)]">
           Energy, sleep, mood, focus, and recovery patterns from this week.
         </p>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-4">
           <MetricCard label="Avg energy" value={data.avgEnergy !== null ? `${data.avgEnergy}/5` : "\u2014"} />
           <MetricCard label="Avg sleep" value={data.avgSleep !== null ? `${data.avgSleep}h` : "\u2014"} />
           <MetricCard label="Avg mood" value={data.avgMood !== null ? `${data.avgMood}/5` : "\u2014"} />
@@ -409,14 +409,14 @@ function WeeklyReviewContent() {
 
       {/* ── 3. Goals & Growth Review ───────────────────────────────── */}
       <section className="mb-8">
-        <div className="mb-3 flex items-center gap-2">
+        <div className="mb-3 flex min-w-0 items-center gap-2">
           <span className="h-4 w-1 rounded-full bg-gradient-to-b from-[var(--accent)] to-[var(--accent-strong)]" />
-          <h2 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Execution and progress</h2>
+          <h2 className="min-w-0 break-words text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Execution and progress</h2>
         </div>
         <p className="mb-3 text-xs text-[var(--text-muted)]">
           Tasks, projects, habits, goals, and milestones that moved forward.
         </p>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-4">
           <MetricCard label="Active goals" value={data.activeGoals} />
           <MetricCard label="Tasks done" value={data.taskCount} />
           <MetricCard label="Active projects" value={data.activeProjects} />
@@ -426,14 +426,14 @@ function WeeklyReviewContent() {
 
       {data.activeGoals > 0 && (
         <section className="mb-8">
-          <div className="mb-3 flex items-center gap-2">
+          <div className="mb-3 flex min-w-0 items-center gap-2">
             <span className="h-4 w-1 rounded-full bg-gradient-to-b from-[var(--accent)] to-[var(--accent-strong)]" />
-            <h2 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Goal alignment</h2>
+            <h2 className="min-w-0 break-words text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Goal alignment</h2>
           </div>
           <p className="mb-3 text-xs text-[var(--text-muted)]">
             A read-only view of whether active goals are connected to projects, tasks, or habits.
           </p>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-4">
             <MetricCard label="Active goals" value={data.activeGoals} />
             <MetricCard label="Goals with action links" value={data.linkedGoals} />
             <MetricCard label="Goals without action links" value={data.unlinkedGoals} />
@@ -453,14 +453,14 @@ function WeeklyReviewContent() {
 
       {/* ── 4. Passions Review ─────────────────────────────────────── */}
       <section className="mb-8">
-        <div className="mb-3 flex items-center gap-2">
+        <div className="mb-3 flex min-w-0 items-center gap-2">
           <span className="h-4 w-1 rounded-full bg-gradient-to-b from-[var(--accent)] to-[var(--accent-strong)]" />
-          <h2 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Creative and personal energy</h2>
+          <h2 className="min-w-0 break-words text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Creative and personal energy</h2>
         </div>
         <p className="mb-3 text-xs text-[var(--text-muted)]">
           Practice, passions, and personal momentum outside the normal task loop.
         </p>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-4">
           <MetricCard label="Sessions" value={data.passionSessions} />
           <MetricCard label="Minutes practiced" value={data.passionMinutes} />
           <MetricCard label="Most practiced" value={data.topPassion ?? "\u2014"} />
@@ -470,14 +470,14 @@ function WeeklyReviewContent() {
 
       {data.financeTransactionCount > 0 && (
         <section className="mb-8">
-          <div className="mb-3 flex items-center gap-2">
+          <div className="mb-3 flex min-w-0 items-center gap-2">
             <span className="h-4 w-1 rounded-full bg-gradient-to-b from-[var(--accent)] to-[var(--accent-strong)]" />
-            <h2 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Money reflection</h2>
+            <h2 className="min-w-0 break-words text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Money reflection</h2>
           </div>
           <p className="mb-3 text-xs text-[var(--text-muted)]">
             A read-only summary of manually logged finance activity for this week.
           </p>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-4">
             <MetricCard label="Transactions this week" value={data.financeTransactionCount} />
             <MetricCard
               label="Logged income"
@@ -503,15 +503,15 @@ function WeeklyReviewContent() {
 
       {/* ── 5. Reflection Prompts ──────────────────────────────────── */}
       <section className="mb-8">
-        <div className="mb-3 flex items-center gap-2">
+        <div className="mb-3 flex min-w-0 items-center gap-2">
           <span className="h-4 w-1 rounded-full bg-gradient-to-b from-[var(--accent)] to-[var(--accent-strong)]" />
-          <h2 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Weekly reset</h2>
+          <h2 className="min-w-0 break-words text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Weekly reset</h2>
         </div>
         <p className="mb-3 text-xs text-[var(--text-muted)]">
           Name what worked, what slipped, and what next week needs.
         </p>
         <PulseCard title="Weekly Reflection" accent="accent">
-          <div className="p-4 space-y-4">
+          <div className="space-y-4 p-3.5 sm:p-4">
             <ReflectionField
               label="What went well this week?"
               value={reflection.wentWell}
@@ -537,11 +537,11 @@ function WeeklyReviewContent() {
               value={reflection.oneWin}
               onChange={(v) => setReflection((r) => ({ ...r, oneWin: v }))}
             />
-            <div className="flex justify-end pt-2">
+            <div className="flex justify-stretch pt-2 sm:justify-end">
               <button
                 onClick={handleSaveReflection}
                 disabled={savingReflection || Object.values(reflection).every((v) => !v)}
-                className="rounded-lg bg-[var(--accent)] px-4 py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-40"
+                className="min-h-11 w-full rounded-lg bg-[var(--accent)] px-4 py-2.5 text-xs font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-40 sm:w-auto sm:min-h-0 sm:py-2"
               >
                 {savingReflection ? "Saving..." : "Save to Journal"}
               </button>
@@ -555,38 +555,38 @@ function WeeklyReviewContent() {
 
       {/* ── Plan Next Week ─────────────────────────────────────────── */}
       <section className="mb-8">
-        <div className="mb-3 flex items-center gap-2">
+        <div className="mb-3 flex min-w-0 items-center gap-2">
           <span className="h-4 w-1 rounded-full bg-gradient-to-b from-[var(--accent)] to-[var(--accent-strong)]" />
-          <h2 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Next week focus</h2>
+          <h2 className="min-w-0 break-words text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Next week focus</h2>
         </div>
         <p className="mb-3 text-xs text-[var(--text-muted)]">
           Use your current signals to choose a realistic next step.
         </p>
         <PulseCard title="Plan Ahead" accent="accent">
-          <div className="mb-4">
-            <label className="block text-xs font-medium text-[var(--text)] mb-1.5">Top focus for next week</label>
+          <div className="mb-4 min-w-0 px-3.5 pt-3.5 sm:px-4 sm:pt-4">
+            <label className="mb-1.5 block break-words text-xs font-medium text-[var(--text)]">Top focus for next week</label>
             <input
               type="text"
               value={planFocus}
               onChange={(e) => setPlanFocus(e.target.value)}
               placeholder="What is the most important thing to accomplish?"
-              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text)] placeholder-[var(--text-muted)] outline-none transition-colors focus:border-[var(--accent)]"
+              className="min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text)] placeholder-[var(--text-muted)] outline-none transition-colors focus:border-[var(--accent)] sm:min-h-0"
             />
           </div>
 
-          <div>
+          <div className="min-w-0 px-3.5 pb-3.5 sm:px-4 sm:pb-4">
             <p className="mb-2 text-xs font-medium text-[var(--text)]">Suggested actions</p>
             <div className="space-y-1.5">
               {suggestedActions(data).map((action, i) => (
                 <Link
                   key={i}
                   href={action.href}
-                  className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs text-[var(--text-secondary)] hover:text-[var(--text)] hover:bg-[var(--surface-active)] transition-colors"
+                  className="flex min-h-11 min-w-0 items-center gap-2 rounded-lg px-3 py-2.5 text-xs text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-active)] hover:text-[var(--text)] sm:min-h-0 sm:py-2"
                 >
                   <svg className="h-3.5 w-3.5 shrink-0 text-[var(--accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />
                   </svg>
-                  <span>{action.text}</span>
+                  <span className="min-w-0 break-words">{action.text}</span>
                 </Link>
               ))}
               {suggestedActions(data).length === 0 && (
@@ -599,15 +599,15 @@ function WeeklyReviewContent() {
         {/* Coach link */}
         <Link
           href="/coach"
-          className="mt-3 flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 text-xs font-medium text-[var(--text)] transition-colors hover:bg-[var(--surface)]"
+          className="mt-3 flex min-w-0 flex-col gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 text-xs font-medium text-[var(--text)] transition-colors hover:bg-[var(--surface)] sm:flex-row sm:items-center sm:justify-between"
         >
-          <span className="flex items-center gap-2">
+          <span className="flex min-w-0 items-center gap-2">
             <svg className="h-4 w-4 text-[var(--accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />
             </svg>
-            Open Coach
+            <span className="min-w-0 break-words">Open Coach</span>
           </span>
-          <span className="text-xs text-[var(--text-muted)]">See recommended next actions &rarr;</span>
+          <span className="min-w-0 break-words text-xs text-[var(--text-muted)]">See recommended next actions &rarr;</span>
         </Link>
       </section>
     </div>
@@ -636,23 +636,23 @@ function makeMemorySnippet(content: string | null): string | null {
 function MetricCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
   const displayValue = typeof value === "number" ? String(value) : value;
   return (
-    <Card className="p-3 text-center">
-      <p className="text-lg font-bold text-[var(--text)]">{displayValue}</p>
-      <p className="text-[10px] text-[var(--text-muted)]">{label}</p>
-      {sub !== undefined && <p className="text-[9px] text-[var(--text-muted)]">{sub}</p>}
+    <Card className="flex min-h-[92px] min-w-0 flex-col justify-center p-3 text-center sm:min-h-[96px]">
+      <p className="break-words text-base font-bold leading-tight text-[var(--text)] [overflow-wrap:anywhere] sm:text-lg">{displayValue}</p>
+      <p className="mt-1 break-words text-[10px] leading-snug text-[var(--text-muted)]">{label}</p>
+      {sub !== undefined && <p className="mt-0.5 break-words text-[9px] leading-snug text-[var(--text-muted)] [overflow-wrap:anywhere]">{sub}</p>}
     </Card>
   );
 }
 
 function ReflectionField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
   return (
-    <div>
-      <label className="block text-xs font-medium text-[var(--text)] mb-1">{label}</label>
+    <div className="min-w-0">
+      <label className="mb-1 block text-xs font-medium text-[var(--text)]">{label}</label>
       <textarea
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        rows={2}
-        className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text)] placeholder-[var(--text-muted)] outline-none transition-colors focus:border-[var(--accent)] resize-none"
+        rows={3}
+        className="min-h-24 w-full resize-none rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2.5 text-sm text-[var(--text)] placeholder-[var(--text-muted)] outline-none transition-colors focus:border-[var(--accent)] sm:min-h-0 sm:py-2"
       />
     </div>
   );

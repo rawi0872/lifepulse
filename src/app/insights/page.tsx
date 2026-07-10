@@ -304,10 +304,10 @@ export default function InsightsPage() {
 
   return (
     <DashboardNav>
-      <div className="mx-auto max-w-4xl px-5 py-8 animate-fade-in">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-[var(--text)]">Life Pulse Insights</h1>
-          <p className="mt-1 text-sm text-[var(--text-muted)]">
+      <div className="mx-auto max-w-4xl overflow-x-hidden px-4 py-6 animate-fade-in sm:px-5 sm:py-8">
+        <div className="mb-8 min-w-0">
+          <h1 className="break-words text-2xl font-bold text-[var(--text)]">Life Pulse Insights</h1>
+          <p className="mt-1 break-words text-sm text-[var(--text-muted)]">
             Patterns across your activity, consistency, and active life areas.
           </p>
         </div>
@@ -325,38 +325,38 @@ export default function InsightsPage() {
           <h2 className="mb-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">
             Pattern snapshot
           </h2>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <Card variant="subtle" className="flex flex-col p-4 min-h-[100px]">
-              <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Strongest area</p>
-              <p className="mt-2 text-lg font-bold text-[var(--text)] truncate">
+          <div className="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-4">
+            <Card variant="subtle" className="flex min-h-[100px] min-w-0 flex-col p-3.5 sm:p-4">
+              <p className="break-words text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Strongest area</p>
+              <p className="mt-2 break-words text-base font-bold leading-tight text-[var(--text)] sm:text-lg">
                 {strongest ? `${strongest.icon} ${strongest.name}` : "\u2014"}
               </p>
-              <p className="mt-auto pt-2 text-[10px] text-[var(--text-muted)]">
+              <p className="mt-auto break-words pt-2 text-[10px] leading-snug text-[var(--text-muted)]">
                 {strongest ? `${Math.round(strongest.score)}% signal` : "No area signal yet"}
               </p>
             </Card>
-            <Card variant="subtle" className="flex flex-col p-4 min-h-[100px]">
-              <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Needs attention</p>
-              <p className="mt-2 text-lg font-bold text-[var(--text)] truncate">
+            <Card variant="subtle" className="flex min-h-[100px] min-w-0 flex-col p-3.5 sm:p-4">
+              <p className="break-words text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Needs attention</p>
+              <p className="mt-2 break-words text-base font-bold leading-tight text-[var(--text)] sm:text-lg">
                 {weakest ? `${weakest.icon} ${weakest.name}` : "\u2014"}
               </p>
-              <p className="mt-auto pt-2 text-[10px] text-[var(--text-muted)]">
+              <p className="mt-auto break-words pt-2 text-[10px] leading-snug text-[var(--text-muted)]">
                 {weakest ? `${Math.round(weakest.score)}% signal` : "No gap visible yet"}
               </p>
             </Card>
-            <Card variant="subtle" className="flex flex-col p-4 min-h-[100px]">
-              <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Balance</p>
-              <p className="mt-2 text-2xl font-bold text-[var(--accent)]">
+            <Card variant="subtle" className="flex min-h-[100px] min-w-0 flex-col p-3.5 sm:p-4">
+              <p className="break-words text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Balance</p>
+              <p className="mt-2 break-words text-2xl font-bold text-[var(--accent)]">
                 {balanceScore !== null ? `${balanceScore}%` : "\u2014"}
               </p>
-              <p className="mt-auto pt-2 text-[10px] text-[var(--text-muted)]">Across active areas</p>
+              <p className="mt-auto break-words pt-2 text-[10px] leading-snug text-[var(--text-muted)]">Across active areas</p>
             </Card>
-            <Card variant="subtle" className="flex flex-col p-4 min-h-[100px]">
-              <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Task completion</p>
-              <p className="mt-2 text-2xl font-bold text-[var(--text)]">
+            <Card variant="subtle" className="flex min-h-[100px] min-w-0 flex-col p-3.5 sm:p-4">
+              <p className="break-words text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Task completion</p>
+              <p className="mt-2 break-words text-2xl font-bold text-[var(--text)]">
                 {taskCount > 0 ? `${taskCompletionRate}%` : "\u2014"}
               </p>
-              <p className="mt-auto pt-2 text-[10px] text-[var(--text-muted)]">
+              <p className="mt-auto break-words pt-2 text-[10px] leading-snug text-[var(--text-muted)]">
                 {taskCount > 0 ? `${doneTaskCount} of ${taskCount} done` : "No tasks yet"}
               </p>
             </Card>
@@ -369,19 +369,19 @@ export default function InsightsPage() {
 
           return (
             <div className="mb-8">
-              <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-[var(--text)]">
-                  Life Balance Map
-                  <div onClick={(e) => e.stopPropagation()}>
+              <div className="mb-4 flex min-w-0 flex-wrap items-center justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-1.5">
+                  <h2 className="min-w-0 break-words text-sm font-semibold text-[var(--text)]">Life Balance Map</h2>
+                  <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
                     <HelpPopover title="How the map works">
                       <p>Each angle represents one of your life areas. The farther a point extends outward, the more energy that area has received through completed habits, tasks, and projects.</p>
                       <p className="mt-1.5">Your Life Balance Map shows where energy is accumulating and where attention may be thin.</p>
                     </HelpPopover>
                   </div>
-                </h2>
+                </div>
                 <button
                   onClick={handleOpenDialog}
-                  className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-[0.1em] text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors"
+                  className="flex min-h-9 items-center gap-1.5 rounded-md px-2 text-[10px] font-medium uppercase tracking-[0.1em] text-[var(--text-muted)] transition-colors hover:text-[var(--text-secondary)] sm:min-h-0 sm:px-0"
                   aria-label="Open Life Balance Map details"
                 >
                   <span>Expand</span>
@@ -420,7 +420,7 @@ export default function InsightsPage() {
                   className="cursor-pointer group"
                 >
                   <Card className="overflow-hidden border-[var(--border-strong)] transition-all duration-200 group-hover:border-[var(--accent)]/20 group-hover:shadow-sm group-hover:shadow-[var(--accent)]/5">
-                    <div className="flex flex-col gap-8 p-6 sm:flex-row sm:items-center sm:p-7">
+                    <div className="flex min-w-0 flex-col gap-6 p-4 sm:flex-row sm:items-center sm:gap-8 sm:p-7">
                       {/* Chart */}
                       <div className="mx-auto w-full max-w-[260px] shrink-0 sm:mx-0 sm:max-w-[320px]">
                         <RealmRadarChart realms={scoredRealms} />
@@ -434,17 +434,17 @@ export default function InsightsPage() {
                               Your Life Balance Map shows where energy is accumulating and where attention may be thin.
                             </p>
 
-                            <div className="grid grid-cols-2 gap-3">
-                              <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3.5">
+                            <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
+                              <div className="min-w-0 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3.5">
                                 <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">
                                   Strongest
                                 </p>
                                 {strongest && (
                                   <div className="mt-1.5">
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex min-w-0 flex-wrap items-center gap-2">
                                       <span className="text-sm">{strongest.icon}</span>
-                                      <span className="text-sm font-semibold text-[var(--text)]">{strongest.name}</span>
-                                      <span className="text-[13px] font-bold tabular-nums ml-auto" style={{ color: strongest.color }}>
+                                      <span className="min-w-0 break-words text-sm font-semibold text-[var(--text)]">{strongest.name}</span>
+                                      <span className="ml-auto text-[13px] font-bold tabular-nums" style={{ color: strongest.color }}>
                                         {Math.round(strongest.score)}%
                                       </span>
                                     </div>
@@ -457,15 +457,15 @@ export default function InsightsPage() {
                                   </div>
                                 )}
                               </div>
-                              <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3.5">
+                              <div className="min-w-0 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3.5">
                                 <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">
                                   Needs attention
                                 </p>
                                 {weakest && (
                                   <div className="mt-1.5">
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex min-w-0 flex-wrap items-center gap-2">
                                       <span className="text-sm">{weakest.icon}</span>
-                                      <span className="text-sm font-semibold text-[var(--text)]">{weakest.name}</span>
+                                      <span className="min-w-0 break-words text-sm font-semibold text-[var(--text)]">{weakest.name}</span>
                                       <span className="text-[13px] font-bold tabular-nums ml-auto text-[var(--text-muted)]">
                                         {Math.round(weakest.score)}%
                                       </span>
@@ -482,11 +482,11 @@ export default function InsightsPage() {
                             </div>
 
                             {balanceScore !== null && (
-                              <div className="flex items-center gap-2.5 pl-0.5">
+                              <div className="flex min-w-0 flex-wrap items-center gap-2.5 pl-0.5">
                                 <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">
                                   Balance
                                 </span>
-                                <div className="flex items-center gap-2">
+                                    <div className="flex min-w-0 flex-wrap items-center gap-2">
                                   <span
                                     className="text-sm font-bold tabular-nums"
                                     style={{
@@ -499,7 +499,7 @@ export default function InsightsPage() {
                                   >
                                     {balanceScore}%
                                   </span>
-                                  <div className="h-1.5 w-24 overflow-hidden rounded-full bg-[var(--surface-soft)] sm:w-28">
+                                  <div className="h-1.5 min-w-20 flex-1 overflow-hidden rounded-full bg-[var(--surface-soft)] sm:w-28 sm:flex-none">
                                     <div
                                       className="h-full rounded-full transition-all"
                                       style={{
@@ -566,26 +566,26 @@ export default function InsightsPage() {
             <p className="mb-3 text-xs text-[var(--text-muted)]">
               A read-only view of whether active goals are connected to projects, tasks, or habits.
             </p>
-            <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <Card variant="default" className="flex flex-col p-4 min-h-[100px]">
-                <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Active goals</p>
+            <div className="mb-6 grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-4">
+              <Card variant="default" className="flex min-h-[100px] min-w-0 flex-col p-3.5 sm:p-4">
+                <p className="break-words text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Active goals</p>
                 <p className="mt-2 text-2xl font-bold text-[var(--text)]">{activeGoalsCount}</p>
-                <p className="mt-auto pt-2 text-[10px] text-[var(--text-muted)]">Currently active</p>
+                <p className="mt-auto break-words pt-2 text-[10px] leading-snug text-[var(--text-muted)]">Currently active</p>
               </Card>
-              <Card variant="default" className="flex flex-col p-4 min-h-[100px]">
-                <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Goals with action links</p>
+              <Card variant="default" className="flex min-h-[100px] min-w-0 flex-col p-3.5 sm:p-4">
+                <p className="break-words text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Goals with action links</p>
                 <p className="mt-2 text-2xl font-bold text-[var(--text)]">{linkedGoalsCount}</p>
-                <p className="mt-auto pt-2 text-[10px] text-[var(--text-muted)]">Connected to action</p>
+                <p className="mt-auto break-words pt-2 text-[10px] leading-snug text-[var(--text-muted)]">Connected to action</p>
               </Card>
-              <Card variant="default" className="flex flex-col p-4 min-h-[100px]">
-                <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Goals without action links</p>
+              <Card variant="default" className="flex min-h-[100px] min-w-0 flex-col p-3.5 sm:p-4">
+                <p className="break-words text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Goals without action links</p>
                 <p className="mt-2 text-2xl font-bold text-[var(--text)]">{unlinkedGoalsCount}</p>
-                <p className="mt-auto pt-2 text-[10px] text-[var(--text-muted)]">No action link yet</p>
+                <p className="mt-auto break-words pt-2 text-[10px] leading-snug text-[var(--text-muted)]">No action link yet</p>
               </Card>
-              <Card variant="default" className="flex flex-col p-4 min-h-[100px]">
-                <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Action links</p>
+              <Card variant="default" className="flex min-h-[100px] min-w-0 flex-col p-3.5 sm:p-4">
+                <p className="break-words text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Action links</p>
                 <p className="mt-2 text-2xl font-bold text-[var(--text)]">{projectLinksCount + taskLinksCount + habitLinksCount}</p>
-                <p className="mt-auto pt-2 text-[10px] text-[var(--text-muted)]">
+                <p className="mt-auto break-words pt-2 text-[10px] leading-snug text-[var(--text-muted)]">
                   {projectLinksCount} projects / {taskLinksCount} tasks / {habitLinksCount} habits
                 </p>
               </Card>
@@ -607,26 +607,26 @@ export default function InsightsPage() {
             <p className="mb-3 text-xs text-[var(--text-muted)]">
               A private, read-only view of reflection and knowledge activity captured manually.
             </p>
-            <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <Card variant="default" className="flex flex-col p-4 min-h-[100px]">
-                <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Journal entries this month</p>
+            <div className="mb-6 grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-4">
+              <Card variant="default" className="flex min-h-[100px] min-w-0 flex-col p-3.5 sm:p-4">
+                <p className="break-words text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Journal entries this month</p>
                 <p className="mt-2 text-2xl font-bold text-[var(--text)]">{journalEntriesThisMonth}</p>
-                <p className="mt-auto pt-2 text-[10px] text-[var(--text-muted)]">Reflection activity</p>
+                <p className="mt-auto break-words pt-2 text-[10px] leading-snug text-[var(--text-muted)]">Reflection activity</p>
               </Card>
-              <Card variant="default" className="flex flex-col p-4 min-h-[100px]">
-                <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Knowledge items this month</p>
+              <Card variant="default" className="flex min-h-[100px] min-w-0 flex-col p-3.5 sm:p-4">
+                <p className="break-words text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Knowledge items this month</p>
                 <p className="mt-2 text-2xl font-bold text-[var(--text)]">{knowledgeItemsThisMonth}</p>
-                <p className="mt-auto pt-2 text-[10px] text-[var(--text-muted)]">Knowledge activity</p>
+                <p className="mt-auto break-words pt-2 text-[10px] leading-snug text-[var(--text-muted)]">Knowledge activity</p>
               </Card>
-              <Card variant="default" className="flex flex-col p-4 min-h-[100px]">
-                <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Latest knowledge</p>
-                <p className="mt-2 truncate text-lg font-bold text-[var(--text)]">{latestKnowledgeTitle ?? "—"}</p>
-                <p className="mt-auto pt-2 text-[10px] text-[var(--text-muted)]">{latestKnowledgeType ?? "This month"}</p>
+              <Card variant="default" className="flex min-h-[100px] min-w-0 flex-col p-3.5 sm:p-4">
+                <p className="break-words text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Latest knowledge</p>
+                <p className="mt-2 break-words text-base font-bold leading-tight text-[var(--text)] sm:text-lg">{latestKnowledgeTitle ?? "—"}</p>
+                <p className="mt-auto break-words pt-2 text-[10px] leading-snug text-[var(--text-muted)]">{latestKnowledgeType ?? "This month"}</p>
               </Card>
-              <Card variant="default" className="flex flex-col p-4 min-h-[100px]">
-                <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Most used type</p>
-                <p className="mt-2 truncate text-lg font-bold text-[var(--text)]">{topKnowledgeType ?? "—"}</p>
-                <p className="mt-auto pt-2 text-[10px] text-[var(--text-muted)]">This month</p>
+              <Card variant="default" className="flex min-h-[100px] min-w-0 flex-col p-3.5 sm:p-4">
+                <p className="break-words text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Most used type</p>
+                <p className="mt-2 break-words text-base font-bold leading-tight text-[var(--text)] sm:text-lg">{topKnowledgeType ?? "—"}</p>
+                <p className="mt-auto break-words pt-2 text-[10px] leading-snug text-[var(--text-muted)]">This month</p>
               </Card>
             </div>
             <p className="mb-6 text-center text-[10px] text-[var(--text-muted)]">
@@ -641,40 +641,40 @@ export default function InsightsPage() {
             <h2 className="mb-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">
               Finance signal
             </h2>
-            <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <Card variant="default" className="flex flex-col p-4 min-h-[100px]">
-                <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Logged income</p>
-                <p className="mt-2 text-2xl font-bold text-[var(--text)]">
+            <div className="mb-6 grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-4">
+              <Card variant="default" className="flex min-h-[100px] min-w-0 flex-col p-3.5 sm:p-4">
+                <p className="break-words text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Logged income</p>
+                <p className="mt-2 break-words text-xl font-bold leading-tight text-[var(--text)] sm:text-2xl">
                   {formatFinanceSignalAmount(financeIncome, financeCurrency, financeHasMixedCurrencies)}
                 </p>
-                <p className="mt-auto pt-2 text-[10px] text-[var(--text-muted)]">
+                <p className="mt-auto break-words pt-2 text-[10px] leading-snug text-[var(--text-muted)]">
                   {financeHasMixedCurrencies ? "Review detailed amounts in Finance" : "This month"}
                 </p>
               </Card>
-              <Card variant="default" className="flex flex-col p-4 min-h-[100px]">
-                <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Logged expenses</p>
-                <p className="mt-2 text-2xl font-bold text-[var(--text)]">
+              <Card variant="default" className="flex min-h-[100px] min-w-0 flex-col p-3.5 sm:p-4">
+                <p className="break-words text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Logged expenses</p>
+                <p className="mt-2 break-words text-xl font-bold leading-tight text-[var(--text)] sm:text-2xl">
                   {formatFinanceSignalAmount(financeExpense, financeCurrency, financeHasMixedCurrencies)}
                 </p>
-                <p className="mt-auto pt-2 text-[10px] text-[var(--text-muted)]">
+                <p className="mt-auto break-words pt-2 text-[10px] leading-snug text-[var(--text-muted)]">
                   {financeHasMixedCurrencies ? "Review detailed amounts in Finance" : "This month"}
                 </p>
               </Card>
-              <Card variant="default" className="flex flex-col p-4 min-h-[100px]">
-                <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Net logged</p>
-                <p className="mt-2 text-2xl font-bold text-[var(--text)]">
+              <Card variant="default" className="flex min-h-[100px] min-w-0 flex-col p-3.5 sm:p-4">
+                <p className="break-words text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Net logged</p>
+                <p className="mt-2 break-words text-xl font-bold leading-tight text-[var(--text)] sm:text-2xl">
                   {formatFinanceSignalAmount(financeNet, financeCurrency, financeHasMixedCurrencies)}
                 </p>
-                <p className="mt-auto pt-2 text-[10px] text-[var(--text-muted)]">
+                <p className="mt-auto break-words pt-2 text-[10px] leading-snug text-[var(--text-muted)]">
                   {financeHasMixedCurrencies ? "Review detailed amounts in Finance" : "This month"}
                 </p>
               </Card>
-              <Card variant="default" className="flex flex-col p-4 min-h-[100px]">
-                <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Transactions this month</p>
-                <p className="mt-2 text-2xl font-bold text-[var(--text)]">
+              <Card variant="default" className="flex min-h-[100px] min-w-0 flex-col p-3.5 sm:p-4">
+                <p className="break-words text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Transactions this month</p>
+                <p className="mt-2 break-words text-2xl font-bold text-[var(--text)]">
                   {financeTransactionCount}
                 </p>
-                <p className="mt-auto pt-2 text-[10px] text-[var(--text-muted)]">Manual tracker</p>
+                <p className="mt-auto break-words pt-2 text-[10px] leading-snug text-[var(--text-muted)]">Manual tracker</p>
               </Card>
             </div>
             <p className="mb-6 text-center text-[10px] text-[var(--text-muted)]">
@@ -691,42 +691,42 @@ export default function InsightsPage() {
           <PassionsInsights />
         </div>
 
-        <div className="mb-6">
+        <div className="mb-6 space-y-2">
           <Link
             href="/weekly-review"
-            className="flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 text-xs font-medium text-[var(--text)] transition-colors hover:bg-[var(--surface)]"
+            className="flex min-h-11 min-w-0 items-center justify-between gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 text-xs font-medium text-[var(--text)] transition-colors hover:bg-[var(--surface)]"
           >
-            <span className="flex items-center gap-2">
+            <span className="flex min-w-0 items-center gap-2">
               <svg className="h-4 w-4 text-[var(--accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
               </svg>
-              Run Weekly Review
+              <span className="min-w-0 break-words">Run Weekly Review</span>
             </span>
             <span className="text-[var(--text-muted)]">&rarr;</span>
           </Link>
           <Link
             href="/knowledge"
-            className="flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 text-xs font-medium text-[var(--text)] transition-colors hover:bg-[var(--surface)]"
+            className="flex min-h-11 min-w-0 items-center justify-between gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 text-xs font-medium text-[var(--text)] transition-colors hover:bg-[var(--surface)]"
           >
-            <span className="flex items-center gap-2">
+            <span className="flex min-w-0 items-center gap-2">
               <svg className="h-4 w-4 text-[var(--accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
               </svg>
-              Open Knowledge
+              <span className="min-w-0 break-words">Open Knowledge</span>
             </span>
             <span className="text-[var(--text-muted)]">&rarr;</span>
           </Link>
           <Link
             href="/coach"
-            className="flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 text-xs font-medium text-[var(--text)] transition-colors hover:bg-[var(--surface)]"
+            className="flex min-h-11 min-w-0 flex-col gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 text-xs font-medium text-[var(--text)] transition-colors hover:bg-[var(--surface)] sm:flex-row sm:items-center sm:justify-between"
           >
-            <span className="flex items-center gap-2">
+            <span className="flex min-w-0 items-center gap-2">
               <svg className="h-4 w-4 text-[var(--accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />
               </svg>
-              Review recommended next actions
+              <span className="min-w-0 break-words">Review recommended next actions</span>
             </span>
-            <span className="text-[var(--text-muted)]">See recommended next actions &rarr;</span>
+            <span className="min-w-0 break-words text-[var(--text-muted)]">See recommended next actions &rarr;</span>
           </Link>
         </div>
 

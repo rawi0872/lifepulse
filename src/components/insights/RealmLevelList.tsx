@@ -21,17 +21,17 @@ export function RealmLevelList({ realmXp }: RealmLevelListProps) {
 
   return (
     <div className="mb-6">
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-[var(--text)]">
-          Life area levels
+      <div className="mb-3 flex min-w-0 items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-1.5">
+          <h2 className="min-w-0 break-words text-sm font-semibold text-[var(--text)]">Life area levels</h2>
           <HelpPopover title="How XP and levels work">
             <p>Completing habits and tasks earns XP. XP goes into your overall level and into the life area connected to that action.</p>
             <p className="mt-1.5">Weekly consistency shows how often you completed expected habit check-ins. Life area levels show where your progress is growing.</p>
           </HelpPopover>
-        </h2>
+        </div>
         <button
           onClick={() => router.push("/settings")}
-          className="text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors"
+          className="min-h-9 shrink-0 rounded-md px-2 text-xs text-[var(--text-muted)] transition-colors hover:text-[var(--text-secondary)] sm:min-h-0 sm:px-0"
         >
           Manage
         </button>
@@ -54,7 +54,7 @@ export function RealmLevelList({ realmXp }: RealmLevelListProps) {
             const xpRange = info.nextLevelXp - info.currentLevelXp;
             return (
               <Card key={r.name} className="overflow-hidden border-[var(--border-strong)] transition-all duration-150 hover:border-[var(--border-strong)]">
-                <div className="flex items-center gap-4 p-5">
+                <div className="flex min-w-0 items-center gap-3 p-4 sm:gap-4 sm:p-5">
                   <div
                     className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl text-xl shadow-sm bg-gradient-to-br"
                     style={{
@@ -66,12 +66,12 @@ export function RealmLevelList({ realmXp }: RealmLevelListProps) {
                     {r.icon}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-3">
+                    <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="text-sm font-semibold text-[var(--text)] truncate">{r.name}</p>
-                        <p className="text-[11px] text-[var(--text-muted)]">{title}</p>
+                        <p className="break-words text-sm font-semibold text-[var(--text)]">{r.name}</p>
+                        <p className="break-words text-[11px] text-[var(--text-muted)]">{title}</p>
                       </div>
-                      <div className="flex items-center gap-3 shrink-0">
+                      <div className="flex shrink-0 items-center gap-3">
                         <div className="text-right">
                           <p className="text-xl font-bold text-[var(--text)]">{info.level}</p>
                           <p className="text-[9px] uppercase tracking-wider text-[var(--text-muted)]">Level</p>
@@ -93,7 +93,7 @@ export function RealmLevelList({ realmXp }: RealmLevelListProps) {
                         style={{ width: `${info.progressPercent}%`, backgroundColor: r.color, boxShadow: `0 1px 3px 0 ${r.color}1A` }}
                       />
                     </div>
-                    <p className="mt-1 text-[10px] text-[var(--text-muted)]">
+                    <p className="mt-1 break-words text-[10px] text-[var(--text-muted)]">
                       {r.xp} XP &middot; {xpInLevel}/{xpRange} to next level
                     </p>
                   </div>

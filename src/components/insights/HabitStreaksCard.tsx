@@ -30,22 +30,22 @@ export function HabitStreaksCard({
 
   return (
     <Card className="mb-6 border-[var(--border-strong)]">
-      <div className="grid grid-cols-3 gap-4 p-5">
-        <div className="text-center">
-          <p className="text-3xl font-bold text-[var(--accent)]">{longestStreak}</p>
-          <p className="mt-1 text-xs text-[var(--text-muted)]">Longest current</p>
+      <div className="grid min-w-0 grid-cols-3 gap-3 p-4 sm:gap-4 sm:p-5">
+        <div className="min-w-0 text-center">
+          <p className="break-words text-2xl font-bold text-[var(--accent)] sm:text-3xl">{longestStreak}</p>
+          <p className="mt-1 break-words text-xs text-[var(--text-muted)]">Longest current</p>
         </div>
-        <div className="text-center">
-          <p className="text-3xl font-bold text-[var(--text)]">{activeStreaks}</p>
-          <p className="mt-1 text-xs text-[var(--text-muted)]">Active {activeStreaks === 1 ? "streak" : "streaks"}</p>
+        <div className="min-w-0 text-center">
+          <p className="break-words text-2xl font-bold text-[var(--text)] sm:text-3xl">{activeStreaks}</p>
+          <p className="mt-1 break-words text-xs text-[var(--text-muted)]">Active {activeStreaks === 1 ? "streak" : "streaks"}</p>
         </div>
-        <div className="text-center">
-          <p className="text-3xl font-bold text-[var(--text)]">{bestEverStreak}</p>
-          <p className="mt-1 text-xs text-[var(--text-muted)]">Best ever</p>
+        <div className="min-w-0 text-center">
+          <p className="break-words text-2xl font-bold text-[var(--text)] sm:text-3xl">{bestEverStreak}</p>
+          <p className="mt-1 break-words text-xs text-[var(--text-muted)]">Best ever</p>
         </div>
       </div>
       <div className="border-t border-[var(--border)] px-5 py-3">
-        <p className="text-xs text-[var(--text-muted)]">
+        <p className="break-words text-xs text-[var(--text-muted)]">
           Streaks count expected habit days. Rest days do not break streaks.
         </p>
       </div>

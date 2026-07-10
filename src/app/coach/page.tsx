@@ -129,11 +129,11 @@ function CoachContent() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-4xl px-5 py-8">
+      <div className="mx-auto max-w-4xl px-4 py-6 sm:px-5 sm:py-8">
         <div className="animate-pulse space-y-4">
           <div className="h-8 w-48 rounded bg-[var(--surface)]" />
-          <div className="h-4 w-72 rounded bg-[var(--surface)]" />
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <div className="h-4 w-56 rounded bg-[var(--surface)] sm:w-72" />
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
             {Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="h-24 rounded-lg bg-[var(--surface)]" />
             ))}
@@ -162,11 +162,11 @@ function CoachContent() {
   const categoryHasIssues = (cat: string) => insights.some((i) => i.category === cat);
 
   return (
-    <div className="mx-auto max-w-4xl px-5 py-8 animate-fade-in">
+    <div className="mx-auto max-w-4xl overflow-x-hidden px-4 py-6 animate-fade-in sm:px-5 sm:py-8">
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[var(--text)]">Life Pulse Coach</h1>
-        <p className="mt-1 text-sm text-[var(--text-muted)]">
+      <div className="mb-6 min-w-0">
+        <h1 className="break-words text-2xl font-bold text-[var(--text)]">Life Pulse Coach</h1>
+        <p className="mt-1 break-words text-sm text-[var(--text-muted)]">
           Transparent, rule-based recommendations from your current Life Pulse signals.{" "}
           {topPriority && (
             <span className="text-[var(--accent)]">
@@ -177,36 +177,36 @@ function CoachContent() {
       </div>
 
       {/* 1. Overview */}
-      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Card className="p-3.5">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">
+      <div className="mb-6 grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-4">
+        <Card className="flex min-h-[92px] min-w-0 flex-col justify-center p-3.5">
+          <p className="break-words text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">
             Recommendations
           </p>
-          <p className="mt-1.5 text-2xl font-bold text-[var(--text)]">
+          <p className="mt-1.5 break-words text-2xl font-bold text-[var(--text)]">
             {insights.length}
           </p>
         </Card>
-        <Card className="p-3.5">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">
+        <Card className="flex min-h-[92px] min-w-0 flex-col justify-center p-3.5">
+          <p className="break-words text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">
             Highest priority
           </p>
-          <p className="mt-1.5 text-2xl font-bold text-[var(--text)]">
+          <p className="mt-1.5 break-words text-xl font-bold leading-tight text-[var(--text)] [overflow-wrap:anywhere] sm:text-2xl">
             {topPriority ?? "\u2014"}
           </p>
         </Card>
-        <Card className="p-3.5">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">
+        <Card className="flex min-h-[92px] min-w-0 flex-col justify-center p-3.5">
+          <p className="break-words text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">
             Areas covered
           </p>
-          <p className="mt-1.5 text-2xl font-bold text-[var(--text)]">
+          <p className="mt-1.5 break-words text-2xl font-bold text-[var(--text)]">
             {new Set(insights.map((i) => i.category)).size}
           </p>
         </Card>
-        <Card className="p-3.5">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">
+        <Card className="flex min-h-[92px] min-w-0 flex-col justify-center p-3.5">
+          <p className="break-words text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">
             Engine
           </p>
-          <p className="mt-1.5 text-lg font-bold text-[var(--accent)]">
+          <p className="mt-1.5 break-words text-lg font-bold text-[var(--accent)]">
             Rules
           </p>
         </Card>
@@ -219,42 +219,42 @@ function CoachContent() {
       </p>
 
       <section className="mb-8">
-        <div className="mb-3 flex items-center gap-2">
+        <div className="mb-3 flex min-w-0 items-center gap-2">
           <span className="h-4 w-1 rounded-full bg-gradient-to-b from-[var(--accent)] to-[var(--accent-strong)]" />
-          <h2 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">
+          <h2 className="min-w-0 break-words text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">
             Connected workflow
           </h2>
         </div>
         <div className="grid gap-3 sm:grid-cols-3">
           <Link
             href="/today"
-            className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-4 transition-colors hover:bg-[var(--surface)]"
+            className="min-h-24 min-w-0 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-4 transition-colors hover:bg-[var(--surface)]"
           >
-            <p className="text-sm font-semibold text-[var(--text)]">Open Today</p>
-            <p className="mt-1 text-xs text-[var(--text-muted)]">Turn recommendations into today&apos;s priorities.</p>
+            <p className="break-words text-sm font-semibold text-[var(--text)]">Open Today</p>
+            <p className="mt-1 break-words text-xs text-[var(--text-muted)]">Turn recommendations into today&apos;s priorities.</p>
           </Link>
           <Link
             href="/weekly-review"
-            className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-4 transition-colors hover:bg-[var(--surface)]"
+            className="min-h-24 min-w-0 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-4 transition-colors hover:bg-[var(--surface)]"
           >
-            <p className="text-sm font-semibold text-[var(--text)]">Run Weekly Review</p>
-            <p className="mt-1 text-xs text-[var(--text-muted)]">Reflect and choose next week&apos;s focus.</p>
+            <p className="break-words text-sm font-semibold text-[var(--text)]">Run Weekly Review</p>
+            <p className="mt-1 break-words text-xs text-[var(--text-muted)]">Reflect and choose next week&apos;s focus.</p>
           </Link>
           <Link
             href="/insights"
-            className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-4 transition-colors hover:bg-[var(--surface)]"
+            className="min-h-24 min-w-0 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-4 transition-colors hover:bg-[var(--surface)]"
           >
-            <p className="text-sm font-semibold text-[var(--text)]">Open Insights</p>
-            <p className="mt-1 text-xs text-[var(--text-muted)]">See the patterns behind your recommendations.</p>
+            <p className="break-words text-sm font-semibold text-[var(--text)]">Open Insights</p>
+            <p className="mt-1 break-words text-xs text-[var(--text-muted)]">See the patterns behind your recommendations.</p>
           </Link>
         </div>
       </section>
 
       {/* 2. Recommended Next Actions */}
       <section className="mb-8">
-        <div className="mb-3 flex items-center gap-2">
+        <div className="mb-3 flex min-w-0 items-center gap-2">
           <span className="h-4 w-1 rounded-full bg-gradient-to-b from-[var(--accent)] to-[var(--accent-strong)]" />
-          <h2 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">
+          <h2 className="min-w-0 break-words text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">
             Recommended next actions
           </h2>
         </div>
@@ -291,18 +291,18 @@ function CoachContent() {
                 action={
                   <Link
                     href={insight.actionHref}
-                    className="rounded-md bg-[var(--accent)] px-3 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-90"
+                    className="inline-flex min-h-10 max-w-36 items-center justify-center rounded-md bg-[var(--accent)] px-3 py-2 text-center text-xs font-semibold leading-snug text-white transition-opacity hover:opacity-90 [overflow-wrap:anywhere] sm:min-h-0 sm:max-w-none sm:py-1.5"
                   >
                     {insight.actionLabel}
                   </Link>
                 }
                 variant="elevated"
               >
-                <div className="px-4 py-3">
-                  <p className="text-sm text-[var(--text-secondary)]">
+                <div className="min-w-0 px-3.5 py-3 sm:px-4">
+                  <p className="break-words text-sm leading-relaxed text-[var(--text-secondary)]">
                     {insight.message}
                   </p>
-                  <p className="mt-2 text-[10px] text-[var(--text-muted)]">
+                  <p className="mt-2 break-words text-[10px] leading-relaxed text-[var(--text-muted)]">
                     Why: {insight.reason}
                   </p>
                 </div>
@@ -314,9 +314,9 @@ function CoachContent() {
 
       {/* 3. Signal Breakdown */}
       <section className="mb-8">
-        <div className="mb-3 flex items-center gap-2">
+        <div className="mb-3 flex min-w-0 items-center gap-2">
           <span className="h-4 w-1 rounded-full bg-gradient-to-b from-[var(--accent)] to-[var(--accent-strong)]" />
-          <h2 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">
+          <h2 className="min-w-0 break-words text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">
             Signal breakdown
           </h2>
         </div>
@@ -342,21 +342,21 @@ function CoachContent() {
               <Card
                 key={area.category}
                 variant={hasIssue ? "default" : "subtle"}
-                className={`p-4 ${!hasIssue ? "border-dashed border-[var(--border)]" : ""}`}
+                className={`min-w-0 p-4 ${!hasIssue ? "border-dashed border-[var(--border)]" : ""}`}
               >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
+                <div className="mb-2 flex min-w-0 flex-wrap items-center justify-between gap-2">
+                  <div className="flex min-w-0 items-center gap-2">
                     <span className="text-sm">{area.icon}</span>
-                    <span className="text-xs font-semibold text-[var(--text)]">
+                    <span className="min-w-0 break-words text-xs font-semibold text-[var(--text)]">
                       {area.label}
                     </span>
                   </div>
                   {hasIssue ? (
-                    <span className="text-[9px] font-medium uppercase tracking-wider text-[var(--warning)]">
+                    <span className="shrink-0 rounded-full bg-[var(--warning-soft)] px-2 py-1 text-[9px] font-medium uppercase tracking-wider text-[var(--warning)]">
                       {areaInsights.length} action{areaInsights.length !== 1 ? "s" : ""}
                     </span>
                   ) : (
-                    <span className="text-[9px] font-medium uppercase tracking-wider text-[var(--success)]">
+                    <span className="shrink-0 rounded-full bg-[var(--success-soft)] px-2 py-1 text-[9px] font-medium uppercase tracking-wider text-[var(--success)]">
                       On track
                     </span>
                   )}
@@ -367,7 +367,7 @@ function CoachContent() {
                       <li key={insight.id}>
                         <Link
                           href={insight.actionHref}
-                          className="text-xs text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors"
+                          className="inline-block min-h-8 break-words text-xs leading-relaxed text-[var(--text-secondary)] transition-colors hover:text-[var(--accent)] sm:min-h-0"
                         >
                           {insight.title}
                         </Link>
@@ -385,20 +385,20 @@ function CoachContent() {
 
       {/* 4. Coach Rules Transparency */}
       <section className="mb-8">
-        <div className="mb-3 flex items-center gap-2">
+        <div className="mb-3 flex min-w-0 items-center gap-2">
           <span className="h-4 w-1 rounded-full bg-gradient-to-b from-[var(--accent)] to-[var(--accent-strong)]" />
-          <h2 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">
+          <h2 className="min-w-0 break-words text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">
             Transparent rule engine
           </h2>
         </div>
         <PulseCard title="Rule-based guidance" accent="none" variant="subtle">
-          <div className="px-4 py-3 space-y-2">
-            <p className="text-xs text-[var(--text-secondary)]">
+          <div className="space-y-2 px-3.5 py-3 sm:px-4">
+            <p className="break-words text-xs leading-relaxed text-[var(--text-secondary)]">
               Life Pulse Coach currently uses simple rules based on your logged data.
               It checks logged activity, missing check-ins, weekly rhythm, and
               time-sensitive patterns to suggest a helpful next action.
             </p>
-            <p className="text-xs text-[var(--text-muted)]">
+            <p className="break-words text-xs leading-relaxed text-[var(--text-muted)]">
               No AI summaries, AI memory, or external APIs are enabled. For now,
               everything is transparent, deterministic, and based only on your data.
             </p>
@@ -412,7 +412,7 @@ function CoachContent() {
                 ].map((area) => (
                   <span
                     key={area}
-                    className="inline-block rounded-full bg-[var(--surface)] px-2 py-0.5 text-[9px] text-[var(--text-muted)]"
+                    className="inline-block min-h-7 rounded-full bg-[var(--surface)] px-2.5 py-1.5 text-[9px] leading-tight text-[var(--text-muted)]"
                   >
                     {area}
                   </span>
