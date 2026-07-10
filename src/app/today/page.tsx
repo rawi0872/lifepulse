@@ -1025,6 +1025,18 @@ function TodayContent() {
               Create a task &rarr;
             </Link>
           </div>
+          <div className="border-t border-[var(--border)] px-5 py-4">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">
+              First 5 minutes
+            </p>
+            <ol className="mt-2 grid gap-2 text-xs leading-relaxed text-[var(--text-muted)] sm:grid-cols-2">
+              <li>1. Finish setup or review your life areas.</li>
+              <li>2. Open Today as your daily command center.</li>
+              <li>3. Add one task and one habit.</li>
+              <li>4. Write one short journal reflection.</li>
+              <li className="sm:col-span-2">5. Come back later for Weekly Review.</li>
+            </ol>
+          </div>
         </Card>
       )}
 

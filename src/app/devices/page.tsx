@@ -16,18 +16,23 @@ function DevicesContent() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" />
             </svg>
             <div>
-              <h1 className="text-sm font-semibold tracking-tight text-[var(--text)]">Device Pulse</h1>
-              <p className="text-[10px] text-[var(--text-muted)]">Connect your wearables and health data</p>
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-sm font-semibold tracking-tight text-[var(--text)]">Device Pulse</h1>
+                <span className="rounded-full border border-[var(--accent)]/30 bg-[var(--accent-soft)] px-2 py-0.5 text-[9px] font-medium uppercase tracking-[0.12em] text-[var(--accent)]">
+                  Preview
+                </span>
+              </div>
+              <p className="text-[10px] text-[var(--text-muted)]">Future connected wearables and device sync area</p>
             </div>
           </div>
         </div>
 
         {/* Coming soon notice */}
-        <PulseCard title="Coming Soon" accent="accent" description="Device sync is not available yet">
+        <PulseCard title="Preview: Device Sync" accent="accent" description="Device sync is not active yet">
           <div className="px-4 py-4">
             <p className="text-xs text-[var(--text-muted)] leading-relaxed">
-              Device Pulse will connect your wearable devices and health platforms to bring passive sensor data into Body Pulse and Mind Pulse.
-              Manual tracking via Body and Mind forms already works today.
+              Device Pulse is a preview of a future connected devices area. No wearable, health platform, or device data is imported automatically today.
+              Manual tracking via Body and Mind forms already works.
             </p>
           </div>
         </PulseCard>
@@ -38,7 +43,7 @@ function DevicesContent() {
             <div className="px-4 py-4">
               <p className="text-xs text-[var(--text-muted)] leading-relaxed">
                 You can already log sleep, energy, steps, workouts, weight, heart rate, and recovery manually on the Body Pulse page,
-                and mood, stress, focus, clarity, and motivation on the Mind Pulse page. Device sync will augment — not replace — manual entry.
+                and mood, stress, focus, clarity, and motivation on the Mind Pulse page. Future device sync will add context without replacing manual entry.
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
                 <Link
@@ -109,11 +114,11 @@ function DevicesContent() {
               <ul className="space-y-2 text-xs text-[var(--text-muted)]">
                 <li className="flex items-start gap-2">
                   <svg className="mt-0.5 h-3 w-3 shrink-0 text-[var(--accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
-                  User-controlled connections — no automatic sync
+                  User-controlled connections only when device sync exists
                 </li>
                 <li className="flex items-start gap-2">
                   <svg className="mt-0.5 h-3 w-3 shrink-0 text-[var(--accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
-                  No background wearable access yet
+                  No background wearable access today
                 </li>
                 <li className="flex items-start gap-2">
                   <svg className="mt-0.5 h-3 w-3 shrink-0 text-[var(--accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
@@ -134,7 +139,7 @@ function DevicesContent() {
 
         {/* Status notice */}
         <div className="mt-4 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-xs text-[var(--text-muted)]">
-          No devices connected. No health data sync active. Check back as the architecture evolves.
+          Preview only: no devices connected, no health device data imported, and no health data sync active.
         </div>
       </div>
     </div>

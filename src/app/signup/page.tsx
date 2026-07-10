@@ -132,7 +132,7 @@ export default function SignupPage() {
               Account created. Check your email to confirm your account, then sign in.
             </p>
             <p className="mb-8 text-xs text-[var(--text-muted)]">
-              Supabase requires email confirmation before you can enter Life Pulse.
+              Email confirmation keeps private beta access tied to your invited address.
             </p>
           </div>
 
@@ -147,10 +147,6 @@ export default function SignupPage() {
               Use another email
             </Button>
           </div>
-
-          <p className="mt-8 text-center text-xs text-[var(--text-muted)]">
-            For local development, you can disable email confirmation in Supabase Authentication settings.
-          </p>
         </div>
       </div>
     );
@@ -215,6 +211,9 @@ export default function SignupPage() {
               required
               className="mt-1.5 w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface-soft)] px-3 py-2.5 text-sm text-[var(--text)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none [color-scheme:dark]"
             />
+            <p className="mt-1.5 text-xs leading-relaxed text-[var(--text-muted)]">
+              Used to personalize your Life Pulse setup. It is not shown publicly and can be refined later in Settings.
+            </p>
           </div>
 
           <div>
