@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-// Read-only production QA for mobile and tablet browser readiness.
+// Read-only production QA for mobile, tablet, and desktop browser readiness.
 // This verifies authenticated route loads, mobile navigation basics, and horizontal overflow only.
 
 import { chromium, expect } from "@playwright/test";
@@ -36,6 +36,7 @@ const OVERFLOW_TOLERANCE_PX = 2;
 const viewports = [
   { name: "phone", width: 390, height: 844, expectsMobileNav: true },
   { name: "tablet", width: 768, height: 1024, expectsMobileNav: false },
+  { name: "desktop", width: 1280, height: 900, expectsMobileNav: false },
 ];
 
 const routes = [
@@ -50,7 +51,11 @@ const routes = [
   { path: "/insights", label: "Insights", text: ["Insights"] },
   { path: "/coach", label: "Coach", text: ["Coach"] },
   { path: "/body", label: "Body", text: ["Body"] },
+  { path: "/mind", label: "Mind", text: ["Mind Pulse", "Mind Habits", "Log Today's Mind Data"] },
   { path: "/finance", label: "Finance", text: ["Finance"] },
+  { path: "/passions", label: "Passions", text: ["Passions", "Your hobbies, skills, and creative pursuits", "Active Passions"] },
+  { path: "/settings", label: "Settings", text: ["Settings", "Profile", "Save setup"] },
+  { path: "/devices", label: "Devices", text: ["Device Pulse", "Coming Soon", "No devices connected"] },
 ];
 
 function requireConfig() {
@@ -60,7 +65,7 @@ function requireConfig() {
 
   if (missing.length > 0) {
     console.error("");
-    console.error("Mobile/tablet production QA requires the smoke-test account credentials.");
+    console.error("Mobile/tablet/desktop production QA requires the smoke-test account credentials.");
     console.error("Missing env vars:");
     for (const item of missing) console.error(`  - ${item}`);
     console.error("");
@@ -82,7 +87,7 @@ async function failWithDiagnostics(page, viewportName, label, error) {
   await page.screenshot({ path: screenshot, fullPage: true }).catch(() => undefined);
 
   console.error("");
-  console.error("Mobile/tablet production QA failed.");
+  console.error("Mobile/tablet/desktop production QA failed.");
   console.error(`Viewport: ${viewportName}`);
   console.error(`Route/check: ${label}`);
   console.error(`Current URL: ${currentUrl}`);
@@ -203,7 +208,7 @@ async function main() {
   requireConfig();
 
   console.log("");
-  console.log("=== Life Pulse Mobile/Tablet Production QA ===");
+  console.log("=== Life Pulse Mobile/Tablet/Desktop Production QA ===");
   console.log(`Base URL: ${BASE}`);
   console.log(`Test account: ${EMAIL}`);
   console.log("Read-only check: route loads, mobile navigation, and horizontal overflow only.");
@@ -222,7 +227,7 @@ async function main() {
   await browser.close();
 
   console.log("");
-  console.log("Mobile/tablet production QA passed.");
+  console.log("Mobile/tablet/desktop production QA passed.");
   console.log("");
 }
 
