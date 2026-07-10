@@ -141,11 +141,11 @@ function MindContent() {
   if (loading) return null;
 
   return (
-    <div className="animate-fade-in p-4 md:p-6">
-      <div className="mx-auto max-w-5xl">
+    <div className="animate-fade-in overflow-x-hidden px-4 py-5 md:p-6">
+      <div className="mx-auto max-w-5xl min-w-0">
         <MindPulseHeader journalCount={journalEntries.length} journalStreak={journalStreak} avgMood={avgMood} />
 
-        <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-4">
+        <div className="mb-6 grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-4">
           <MetricCard label="Journal Streak" value={journalStreak} icon={
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z" />
@@ -184,7 +184,7 @@ function MindContent() {
           />
         </div>
 
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <div className="grid min-w-0 grid-cols-1 gap-6 md:grid-cols-2">
           <div className="space-y-6">
             <MoodEnergyCard entries={journalEntries} />
             <ReflectionCard entries={journalEntries} />
@@ -210,10 +210,10 @@ function MindContent() {
               ) : (
                 <div className="divide-y divide-[var(--border)]">
                   {mindHabits.map((h) => (
-                    <div key={h.id} className="px-4 py-3">
-                      <p className="text-sm text-[var(--text)]">{h.title}</p>
+                    <div key={h.id} className="min-w-0 px-4 py-3">
+                      <p className="break-words text-sm text-[var(--text)]">{h.title}</p>
                       {/focus|meditat|mindful|read|learn|study/i.test(h.title) && (
-                        <span className="mt-0.5 inline-block rounded-full bg-[var(--accent-soft)] px-2 py-0.5 text-[9px] font-medium text-[var(--accent)]">
+                         <span className="mt-1 inline-block rounded-full bg-[var(--accent-soft)] px-2 py-1 text-[9px] font-medium text-[var(--accent)]">
                           Focus
                         </span>
                       )}

@@ -109,13 +109,13 @@ export function BodyProfileCard() {
 
   return (
     <PulseCard title="Body Profile" accent="success" description="Wellness context">
-      <div className="space-y-4 p-4">
-        <p className="text-xs text-[var(--text-muted)]">
+      <div className="min-w-0 space-y-4 p-3.5 sm:p-4">
+        <p className="break-words text-xs text-[var(--text-muted)]">
           Use this for wellness context and personal trends. Life Pulse does not provide medical advice.
         </p>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div>
+        <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="min-w-0">
             <label className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">
               Height (cm)
             </label>
@@ -126,11 +126,11 @@ export function BodyProfileCard() {
               value={height}
               onChange={(e) => setHeight(e.target.value)}
               placeholder="175"
-              className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-sm text-[var(--text)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
+               className="min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none sm:min-h-0 sm:py-1.5"
             />
           </div>
 
-          <div>
+          <div className="min-w-0">
             <label className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">
               Target weight (kg)
             </label>
@@ -141,19 +141,19 @@ export function BodyProfileCard() {
               value={targetWeight}
               onChange={(e) => setTargetWeight(e.target.value)}
               placeholder="70"
-              className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-sm text-[var(--text)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
+               className="min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none sm:min-h-0 sm:py-1.5"
             />
           </div>
         </div>
 
-        <div>
+        <div className="min-w-0">
           <label className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">
             Activity level
           </label>
           <select
             value={activityLevel}
             onChange={(e) => setActivityLevel(e.target.value as ActivityLevel | "")}
-            className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-sm text-[var(--text)] focus:border-[var(--accent)] focus:outline-none"
+            className="min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)] focus:border-[var(--accent)] focus:outline-none sm:min-h-0 sm:py-1.5"
           >
             <option value="">Not set</option>
             {ACTIVITY_LEVELS.map((level) => (
@@ -162,7 +162,7 @@ export function BodyProfileCard() {
           </select>
         </div>
 
-        <div>
+        <div className="min-w-0">
           <label className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">
             Body goal
           </label>
@@ -171,11 +171,11 @@ export function BodyProfileCard() {
             value={bodyGoal}
             onChange={(e) => setBodyGoal(e.target.value)}
             placeholder="Example: feel stronger and more consistent"
-            className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-sm text-[var(--text)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
+            className="min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none sm:min-h-0 sm:py-1.5"
           />
         </div>
 
-        <div>
+        <div className="min-w-0">
           <label className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">
             Notes
           </label>
@@ -184,7 +184,7 @@ export function BodyProfileCard() {
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Optional context for your own tracking."
             rows={2}
-            className="w-full resize-none rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-sm text-[var(--text)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
+            className="min-h-24 w-full resize-none rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none sm:min-h-0 sm:py-1.5"
           />
         </div>
 

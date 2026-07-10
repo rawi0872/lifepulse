@@ -45,19 +45,19 @@ export function AccountForm({
   if (!show) return null;
 
   return (
-    <Card className="mb-3 p-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
-        <div className="w-full sm:flex-1 sm:min-w-[150px]">
+    <Card className="mb-3 p-3.5 sm:p-4">
+      <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+        <div className="min-w-0 w-full sm:min-w-[150px] sm:flex-1">
           <label className="mb-1.5 block text-xs font-medium text-[var(--text-secondary)]">Name</label>
           <input
             value={acctName}
             onChange={(e) => onNameChange(e.target.value)}
             placeholder="Wallet, Checking, ..."
             maxLength={100}
-            className="w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)] placeholder-[var(--text-muted)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none"
+            className="min-h-11 w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] px-3 py-2.5 text-sm text-[var(--text)] placeholder-[var(--text-muted)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none sm:min-h-0 sm:py-2"
           />
         </div>
-        <div className="w-full sm:w-36">
+        <div className="min-w-0 w-full sm:w-36">
           <SimpleSelect
             label="Type"
             options={ACCOUNT_TYPES}
@@ -65,24 +65,24 @@ export function AccountForm({
             onChange={onTypeChange}
           />
         </div>
-        <div className="w-full sm:w-32">
+        <div className="min-w-0 w-full sm:w-32">
           <label className="mb-1.5 block text-xs font-medium text-[var(--text-secondary)]">Starting balance</label>
           <input
             type="number"
             step="0.01"
             value={acctBalance}
             onChange={(e) => onBalanceChange(e.target.value)}
-            className="w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)] placeholder-[var(--text-muted)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none"
+            className="min-h-11 w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] px-3 py-2.5 text-sm text-[var(--text)] placeholder-[var(--text-muted)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none sm:min-h-0 sm:py-2"
           />
         </div>
-        <div className="w-full sm:w-20">
+        <div className="min-w-0 w-full sm:w-20">
           <label className="mb-1.5 block text-xs font-medium text-[var(--text-secondary)]">Currency</label>
           <input
             value={acctCurrency}
             onChange={(e) => onCurrencyChange(e.target.value.toUpperCase())}
             maxLength={3}
             placeholder="ILS"
-            className="w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)] placeholder-[var(--text-muted)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none"
+            className="min-h-11 w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] px-3 py-2.5 text-sm text-[var(--text)] placeholder-[var(--text-muted)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none sm:min-h-0 sm:py-2"
           />
         </div>
         <div className="flex gap-2">

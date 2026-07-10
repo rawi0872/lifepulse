@@ -42,8 +42,8 @@ function buildPath(
 export function CashflowTrendChart({ data }: CashflowTrendChartProps) {
   if (!data || data.length === 0) {
     return (
-      <div className="flex h-[200px] items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface-soft)]">
-        <p className="text-sm text-[var(--text-muted)]">Add transactions across multiple months to build a useful trend.</p>
+      <div className="flex h-[200px] items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-4 text-center">
+        <p className="break-words text-sm text-[var(--text-muted)]">Add transactions across multiple months to build a useful trend.</p>
       </div>
     );
   }
@@ -59,10 +59,10 @@ export function CashflowTrendChart({ data }: CashflowTrendChartProps) {
   const expensePath = buildPath(data, (d) => d.expenses, minVal, maxVal);
 
   return (
-    <div className="w-full">
+    <div className="min-w-0 w-full overflow-hidden">
       <svg
         viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`}
-        className="w-full h-auto"
+        className="h-auto w-full"
         preserveAspectRatio="xMidYMid meet"
         role="img"
         aria-label="Cashflow trend chart"
@@ -120,7 +120,7 @@ export function CashflowTrendChart({ data }: CashflowTrendChartProps) {
           );
         })}
       </svg>
-      <div className="mt-2 flex justify-center gap-6">
+      <div className="mt-2 flex flex-wrap justify-center gap-4 sm:gap-6">
         <div className="flex items-center gap-1.5">
           <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: "var(--accent)" }} />
           <span className="text-xs text-[var(--text-secondary)]">Income</span>

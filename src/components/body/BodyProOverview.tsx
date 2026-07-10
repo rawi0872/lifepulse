@@ -45,10 +45,10 @@ export function BodyProOverview({
   const proteinToday = nutritionToday.reduce((s, n) => s + (n.protein_g ?? 0), 0);
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-6">
       <BodyProfileCard />
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-4">
         <MetricCard
           label="Workouts / Week"
           value={workoutsThisWeek}
@@ -95,7 +95,7 @@ export function BodyProOverview({
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+      <div className="grid min-w-0 grid-cols-1 gap-6 md:grid-cols-2">
         <div className="space-y-6">
           <BodyMetricsForm
             initial={{
@@ -126,17 +126,17 @@ export function BodyProOverview({
             <PulseCard title="Nutrition" accent="success" description="Today">
               <div className="divide-y divide-[var(--border)]">
                 {nutritionToday.map((n) => (
-                  <div key={n.id} className="flex items-center justify-between px-4 py-2">
-                    <span className="text-xs text-[var(--text)]">{n.meal_name || "Meal"}</span>
-                    <span className="text-xs text-[var(--text-muted)]">
+                  <div key={n.id} className="flex min-w-0 flex-col gap-1 px-4 py-2 sm:flex-row sm:items-center sm:justify-between">
+                    <span className="min-w-0 break-words text-xs text-[var(--text)]">{n.meal_name || "Meal"}</span>
+                    <span className="break-words text-xs text-[var(--text-muted)] sm:text-right">
                       {n.calories !== null && `${n.calories} cal`}
                       {n.protein_g !== null && ` · ${n.protein_g}g protein`}
                     </span>
                   </div>
                 ))}
-                <div className="flex items-center justify-between px-4 py-2 bg-[var(--surface-soft)]">
+                <div className="flex min-w-0 flex-col gap-1 bg-[var(--surface-soft)] px-4 py-2 sm:flex-row sm:items-center sm:justify-between">
                   <span className="text-xs font-medium text-[var(--text)]">Totals</span>
-                  <span className="text-xs text-[var(--text-secondary)]">
+                  <span className="break-words text-xs text-[var(--text-secondary)] sm:text-right">
                     {formatNumber(caloriesToday)} cal &middot; {formatNumber(proteinToday)}g protein &middot; {formatNumber(waterToday)}ml water
                   </span>
                 </div>
@@ -170,7 +170,7 @@ export function BodyProOverview({
                   <p className="text-xs text-[var(--text-secondary)]">{latestHealthNote.notes}</p>
                 </div>
               )}
-              <div className="border-t border-[var(--border)] px-4 py-2 flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2 border-t border-[var(--border)] px-4 py-2">
                 {latestHealthNote.severity !== null && (
                   <span className="rounded-full bg-[var(--warning-soft)] px-2 py-0.5 text-[10px] font-medium text-[var(--warning)]">
                     Severity {latestHealthNote.severity}/5
@@ -188,7 +188,7 @@ export function BodyProOverview({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+      <div className="grid min-w-0 grid-cols-1 gap-6 md:grid-cols-2">
         <PulseCard title="Body Habits" accent="success" description={`${bodyHabits.length} habits`} action={
           <Link href="/habits" className="text-[10px] font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">
             Manage
@@ -205,9 +205,9 @@ export function BodyProOverview({
           ) : (
             <div className="divide-y divide-[var(--border)]">
               {bodyHabits.map((h) => (
-                <div key={h.id} className="flex items-center justify-between px-4 py-2">
-                  <span className="text-xs text-[var(--text)]">{h.title}</span>
-                  <span className="text-[10px] text-[var(--text-muted)]">
+                <div key={h.id} className="flex min-w-0 flex-col gap-1 px-4 py-2 sm:flex-row sm:items-center sm:justify-between">
+                  <span className="min-w-0 break-words text-xs text-[var(--text)]">{h.title}</span>
+                  <span className="shrink-0 text-[10px] text-[var(--text-muted)]">
                     {h.streak > 0 ? `${h.streak}d streak` : ` ${h.completionRate}%`}
                   </span>
                 </div>

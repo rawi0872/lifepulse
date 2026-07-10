@@ -33,18 +33,18 @@ export function FinanceInsights({ insights }: FinanceInsightsProps) {
   if (!insights || insights.length === 0) return null;
 
   return (
-    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
       {insights.map((insight, i) => {
         const style = typeStyles[insight.type] || typeStyles.neutral;
         return (
           <div
             key={i}
-            className={`flex items-start gap-3 rounded-lg border ${style.border} ${style.bg} px-4 py-3`}
+             className={`flex min-w-0 items-start gap-3 rounded-lg border ${style.border} ${style.bg} px-3.5 py-3 sm:px-4`}
           >
             <span className={`mt-0.5 text-sm font-bold ${style.iconText}`}>{insight.icon}</span>
             <div className="min-w-0">
-              <p className="text-sm font-medium text-[var(--text)]">{insight.title}</p>
-              <p className="mt-0.5 text-xs text-[var(--text-muted)]">{insight.description}</p>
+              <p className="break-words text-sm font-medium text-[var(--text)]">{insight.title}</p>
+              <p className="mt-0.5 break-words text-xs text-[var(--text-muted)]">{insight.description}</p>
             </div>
           </div>
         );

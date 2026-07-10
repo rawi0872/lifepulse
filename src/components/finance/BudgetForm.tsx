@@ -30,9 +30,9 @@ export function BudgetForm({
   if (!show) return null;
 
   return (
-    <Card className="mb-3 p-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:flex-wrap">
-        <div className="w-full sm:flex-1 sm:min-w-[150px]">
+    <Card className="mb-3 p-3.5 sm:p-4">
+      <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+        <div className="min-w-0 w-full sm:min-w-[150px] sm:flex-1">
           <SimpleSelect
             label="Category"
             options={budgetCatOptions}
@@ -41,7 +41,7 @@ export function BudgetForm({
             placeholder="Select category"
           />
         </div>
-        <div className="w-full sm:w-32">
+        <div className="min-w-0 w-full sm:w-32">
           <label className="mb-1.5 block text-xs font-medium text-[var(--text-secondary)]">Monthly amount</label>
           <input
             type="number"
@@ -50,10 +50,10 @@ export function BudgetForm({
             value={budgetAmount}
             onChange={(e) => onAmountChange(e.target.value)}
             placeholder="0.00"
-            className="w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)] placeholder-[var(--text-muted)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none"
+            className="min-h-11 w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] px-3 py-2.5 text-sm text-[var(--text)] placeholder-[var(--text-muted)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none sm:min-h-0 sm:py-2"
           />
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 sm:shrink-0">
           <Button size="sm" onClick={onSave} disabled={saving || !budgetCategoryId || !budgetAmount}>
             Save
           </Button>

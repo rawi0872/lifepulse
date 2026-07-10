@@ -60,9 +60,9 @@ export function MindMetricsAverages({ recent }: Props) {
         {metricRows.map((row) => {
           const dir = trend(prev, recent[todayIdx] ?? undefined, row.key);
           return (
-            <div key={row.key} className="flex items-center justify-between px-4 py-2">
-              <span className="text-xs text-[var(--text-muted)]">{row.label}</span>
-              <span className="flex items-center text-xs font-medium text-[var(--text)]">
+            <div key={row.key} className="flex min-w-0 items-center justify-between gap-3 px-4 py-2">
+              <span className="break-words text-xs text-[var(--text-muted)]">{row.label}</span>
+              <span className="flex shrink-0 items-center text-xs font-medium text-[var(--text)]">
                 {row.value !== null ? `${row.value}${row.unit}` : "\u2014"}
                 <TrendIcon dir={dir} />
               </span>

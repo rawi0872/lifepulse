@@ -12,8 +12,8 @@ interface BudgetHealthListProps {
 export function BudgetHealthList({ budgetUsage, formatCurrency, onDelete }: BudgetHealthListProps) {
   if (budgetUsage.length === 0) {
     return (
-      <Card variant="subtle" className="p-6 text-center">
-        <p className="text-sm text-[var(--text-muted)]">
+      <Card variant="subtle" className="p-5 text-center sm:p-6">
+        <p className="break-words text-sm text-[var(--text-muted)]">
           Create a monthly budget for a spending category to see whether you are on track.
         </p>
       </Card>
@@ -45,17 +45,17 @@ export function BudgetHealthList({ budgetUsage, formatCurrency, onDelete }: Budg
             : "text-[var(--success)]";
 
         return (
-          <Card key={b.budgetId} className="px-4 py-3">
-            <div className="flex items-center justify-between mb-1.5">
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="text-sm font-medium text-[var(--text)] truncate">{b.categoryName}</span>
-                <span className={`text-[10px] font-medium ${statusColor}`}>{statusLabel}</span>
+          <Card key={b.budgetId} className="min-w-0 px-3.5 py-3 sm:px-4">
+            <div className="mb-1.5 flex min-w-0 flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                <span className="min-w-0 break-words text-sm font-medium text-[var(--text)]">{b.categoryName}</span>
+                <span className={`rounded-full bg-[var(--surface-soft)] px-2 py-0.5 text-[10px] font-medium ${statusColor}`}>{statusLabel}</span>
               </div>
-              <span className="text-xs text-[var(--text-muted)] shrink-0">
+              <span className="break-words text-xs text-[var(--text-muted)] sm:shrink-0 sm:text-right">
                 {formatCurrency(b.spent)} / {formatCurrency(b.budgetAmount)}
               </span>
             </div>
-            <div className="h-2 w-full rounded-full bg-[var(--surface)] overflow-hidden">
+            <div className="h-2 w-full overflow-hidden rounded-full bg-[var(--surface)]">
               <div
                 className="h-full rounded-full transition-all duration-300"
                 style={{
@@ -64,12 +64,12 @@ export function BudgetHealthList({ budgetUsage, formatCurrency, onDelete }: Budg
                 }}
               />
             </div>
-            <div className="mt-1 flex items-center justify-between">
+            <div className="mt-1 flex min-w-0 items-center justify-between gap-3">
               <span className="text-[10px] text-[var(--text-muted)]">{b.percentage}% used</span>
               <button
                 type="button"
                 onClick={() => onDelete(b.budgetId)}
-                className="rounded-md px-2 py-0.5 text-[10px] text-[var(--text-muted)] hover:text-[var(--danger)] hover:bg-[var(--danger-soft)] transition-colors"
+                className="min-h-8 rounded-md px-2 py-1 text-[10px] text-[var(--text-muted)] transition-colors hover:bg-[var(--danger-soft)] hover:text-[var(--danger)] sm:min-h-0 sm:py-0.5"
               >
                 Delete
               </button>

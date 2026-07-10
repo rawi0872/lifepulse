@@ -43,7 +43,7 @@ export function FinanceKpiCard({ label, value, delta, variant, isLoading, helpCo
 
   if (isLoading) {
     return (
-      <div className="min-h-[100px] rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+      <div className="min-h-[100px] min-w-0 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-3.5 sm:p-4">
         <div className="mb-2 h-3 w-16 animate-pulse rounded bg-[var(--surface)]" />
         <div className="mb-1 h-7 w-24 animate-pulse rounded bg-[var(--surface)]" />
         <div className="h-3 w-20 animate-pulse rounded bg-[var(--surface)]" />
@@ -52,8 +52,8 @@ export function FinanceKpiCard({ label, value, delta, variant, isLoading, helpCo
   }
 
   return (
-    <div className="min-h-[100px] rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-4 transition-all duration-150 hover:border-[var(--border-strong)]">
-      <p className="text-xs font-medium text-[var(--text-muted)]">
+    <div className="min-h-[100px] min-w-0 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-3.5 transition-all duration-150 hover:border-[var(--border-strong)] sm:p-4">
+      <p className="break-words text-xs font-medium text-[var(--text-muted)]">
         {label}
         {helpContent && (
           <HelpPopover title={label} className="ml-1">
@@ -61,16 +61,16 @@ export function FinanceKpiCard({ label, value, delta, variant, isLoading, helpCo
           </HelpPopover>
         )}
       </p>
-      <p className={cn("mt-1 text-xl font-semibold tracking-tight sm:text-2xl", styles.valueColor)}>{value}</p>
+      <p className={cn("mt-1 break-words text-lg font-semibold tracking-tight [overflow-wrap:anywhere] sm:text-2xl", styles.valueColor)}>{value}</p>
       {delta ? (
-        <p className={cn("mt-0.5 text-xs", delta.isPositive ? styles.deltaUp : styles.deltaDown)}>
+        <p className={cn("mt-0.5 break-words text-xs", delta.isPositive ? styles.deltaUp : styles.deltaDown)}>
           <span>
             {delta.isPositive ? "+" : ""}{delta.value}
           </span>
           <span className="ml-1 text-[var(--text-muted)]">vs last month</span>
         </p>
       ) : (
-        <p className="mt-0.5 text-xs text-[var(--text-muted)]">No previous data</p>
+        <p className="mt-0.5 break-words text-xs text-[var(--text-muted)]">No previous data</p>
       )}
     </div>
   );

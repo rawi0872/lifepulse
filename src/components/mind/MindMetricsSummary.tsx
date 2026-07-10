@@ -40,19 +40,19 @@ export function MindMetricsSummary({ recent }: MindMetricsSummaryProps) {
 
             return (
               <div key={entry.id} className="px-4 py-2.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-[var(--text-muted)]">
+                <div className="flex min-w-0 items-center justify-between gap-3">
+                  <span className="break-words text-xs font-medium text-[var(--text-muted)]">
                     {isToday ? "Today" : date.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
                   </span>
                   {isToday && (
-                    <span className="rounded-full bg-[var(--accent-soft)] px-2 py-0.5 text-[9px] font-medium text-[var(--accent)]">Logged</span>
+                     <span className="shrink-0 rounded-full bg-[var(--accent-soft)] px-2 py-1 text-[9px] font-medium text-[var(--accent)]">Logged</span>
                   )}
                 </div>
                 {parts.length > 0 && (
-                  <p className="mt-0.5 text-xs text-[var(--text-secondary)]">{parts.join(" · ")}</p>
+                  <p className="mt-0.5 break-words text-xs text-[var(--text-secondary)]">{parts.join(" · ")}</p>
                 )}
                 {entry.reflection && (
-                  <p className="mt-0.5 line-clamp-1 text-[10px] text-[var(--text-muted)]">&ldquo;{entry.reflection}&rdquo;</p>
+                  <p className="mt-0.5 break-words text-[10px] text-[var(--text-muted)] sm:line-clamp-1">&ldquo;{entry.reflection}&rdquo;</p>
                 )}
               </div>
             );

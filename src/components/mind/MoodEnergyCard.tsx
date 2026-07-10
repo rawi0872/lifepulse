@@ -35,11 +35,11 @@ export function MoodEnergyCard({ entries }: MoodEnergyCardProps) {
       ) : (
         <div className="divide-y divide-[var(--border)]">
           {recent.map((entry) => (
-            <div key={entry.id} className="flex items-center justify-between px-4 py-2.5">
-              <span className="text-xs text-[var(--text-muted)]">
+            <div key={entry.id} className="flex min-w-0 flex-col gap-2 px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between">
+              <span className="break-words text-xs text-[var(--text-muted)]">
                 {new Date(entry.created_at).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
               </span>
-              <div className="flex items-center gap-4">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
                 {entry.mood !== null && (
                   <div className="flex items-center gap-1">
                     <span className="text-[9px] uppercase tracking-wider text-[var(--text-muted)]">Mood</span>

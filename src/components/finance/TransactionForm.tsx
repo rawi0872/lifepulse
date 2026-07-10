@@ -61,10 +61,10 @@ export function TransactionForm({
   if (!show) return null;
 
   return (
-    <Card className="p-4">
-      <form onSubmit={onSave} className="space-y-3">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div>
+    <Card className="p-3.5 sm:p-4">
+      <form onSubmit={onSave} className="min-w-0 space-y-3">
+        <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="min-w-0">
             <label className="mb-1.5 block text-xs font-medium text-[var(--text-secondary)]">Title</label>
             <input
               value={txTitle}
@@ -72,10 +72,10 @@ export function TransactionForm({
               placeholder="Groceries, Salary, ..."
               required
               maxLength={200}
-              className="w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)] placeholder-[var(--text-muted)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none"
+              className="min-h-11 w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] px-3 py-2.5 text-sm text-[var(--text)] placeholder-[var(--text-muted)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none sm:min-h-0 sm:py-2"
             />
           </div>
-          <div>
+          <div className="min-w-0">
             <label className="mb-1.5 block text-xs font-medium text-[var(--text-secondary)]">Amount</label>
             <input
               type="number"
@@ -85,17 +85,17 @@ export function TransactionForm({
               onChange={(e) => onAmountChange(e.target.value)}
               placeholder="0.00"
               required
-              className="w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)] placeholder-[var(--text-muted)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none"
+              className="min-h-11 w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] px-3 py-2.5 text-sm text-[var(--text)] placeholder-[var(--text-muted)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none sm:min-h-0 sm:py-2"
             />
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex min-w-0 gap-2">
           {TRANSACTION_TYPES.map((t) => (
             <button
               key={t.value}
               type="button"
               onClick={() => { onTypeChange(t.value as "income" | "expense"); onCategoryChange(""); }}
-              className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-all ${
+              className={`min-h-11 flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-all sm:min-h-0 ${
                 txType === t.value
                   ? t.value === "income"
                     ? "bg-[var(--success-soft)] text-[var(--success)] ring-1 ring-[var(--success)]/30"
@@ -107,7 +107,7 @@ export function TransactionForm({
             </button>
           ))}
         </div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
           <SimpleSelect
             label="Category"
             options={txType === "income" ? incomeOptions : expenseOptions}
@@ -123,29 +123,29 @@ export function TransactionForm({
             placeholder="No account"
           />
         </div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div>
+        <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="min-w-0">
             <label className="mb-1.5 block text-xs font-medium text-[var(--text-secondary)]">Date</label>
             <input
               type="date"
               value={txDate}
               onChange={(e) => onDateChange(e.target.value)}
               required
-              className="w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none"
+              className="min-h-11 w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] px-3 py-2.5 text-sm text-[var(--text)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none sm:min-h-0 sm:py-2"
             />
           </div>
-          <div>
+          <div className="min-w-0">
             <label className="mb-1.5 block text-xs font-medium text-[var(--text-secondary)]">Note (optional)</label>
             <input
               value={txNote}
               onChange={(e) => onNoteChange(e.target.value)}
               placeholder="Optional note"
               maxLength={500}
-              className="w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)] placeholder-[var(--text-muted)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none"
+              className="min-h-11 w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] px-3 py-2.5 text-sm text-[var(--text)] placeholder-[var(--text-muted)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none sm:min-h-0 sm:py-2"
             />
           </div>
         </div>
-        <div className="flex justify-end gap-2 pt-1">
+        <div className="flex justify-stretch gap-2 pt-1 sm:justify-end">
           <Button type="submit" size="sm" disabled={saving}>
             {saving ? "Saving..." : editingTxId ? "Update" : "Add Transaction"}
           </Button>

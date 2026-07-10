@@ -30,8 +30,8 @@ export function TransactionList({ transactions, onEdit, onDelete, onAddNew }: Tr
 
   if (transactions.length === 0) {
     return (
-      <Card variant="subtle" className="p-6 text-center">
-        <p className="text-sm text-[var(--text-muted)] mb-3">
+      <Card variant="subtle" className="p-5 text-center sm:p-6">
+        <p className="mb-3 break-words text-sm text-[var(--text-muted)]">
           Add your first transaction to start seeing charts, trends, and insights.
         </p>
         <Button size="sm" onClick={onAddNew}>
@@ -43,13 +43,13 @@ export function TransactionList({ transactions, onEdit, onDelete, onAddNew }: Tr
 
   return (
     <div>
-      <div className="mb-3 flex gap-1.5">
+      <div className="mb-3 flex flex-wrap gap-1.5">
         {chips.map((chip) => (
           <button
             key={chip.key}
             type="button"
             onClick={() => { setFilter(chip.key); setConfirmDelete(null); }}
-            className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
+            className={`min-h-9 rounded-lg px-3 py-1.5 text-xs font-medium transition-all sm:min-h-0 ${
               filter === chip.key
                 ? "bg-[var(--accent-soft)] text-[var(--accent)] ring-1 ring-[var(--accent)]/30"
                 : "bg-[var(--surface-soft)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
@@ -69,11 +69,11 @@ export function TransactionList({ transactions, onEdit, onDelete, onAddNew }: Tr
           return (
             <Card
               key={tx.id}
-              className="flex items-center gap-3 px-4 py-3 animate-fade-in"
+              className="flex min-w-0 flex-col gap-3 px-3.5 py-3 animate-fade-in sm:flex-row sm:items-center sm:px-4"
             >
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-medium text-[var(--text)] truncate">{tx.title}</p>
+                <div className="flex min-w-0 flex-wrap items-center gap-2">
+                  <p className="min-w-0 break-words text-sm font-medium text-[var(--text)]">{tx.title}</p>
                   <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium ${
                     isExpense
                       ? "bg-[var(--danger-soft)] text-[var(--danger)]"
@@ -82,12 +82,12 @@ export function TransactionList({ transactions, onEdit, onDelete, onAddNew }: Tr
                     {catName}
                   </span>
                   {acctName && (
-                    <span className="shrink-0 text-[10px] text-[var(--text-muted)] hidden sm:inline">
+                    <span className="text-[10px] text-[var(--text-muted)] sm:shrink-0">
                       {acctName}
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-[var(--text-muted)] mt-0.5">
+                <p className="mt-0.5 break-words text-xs text-[var(--text-muted)]">
                   {new Date(tx.transaction_date).toLocaleDateString("en-US", {
                     month: "short",
                     day: "numeric",
@@ -95,32 +95,32 @@ export function TransactionList({ transactions, onEdit, onDelete, onAddNew }: Tr
                   {tx.note && <span> · {tx.note}</span>}
                 </p>
               </div>
-              <p className={`text-sm font-semibold whitespace-nowrap tabular-nums ${
+              <p className={`self-start whitespace-nowrap text-sm font-semibold tabular-nums sm:self-auto ${
                 isExpense ? "text-[var(--danger)]" : "text-[var(--success)]"
               }`}>
                 {isExpense ? "-" : "+"}{formatCurrency(Number(tx.amount))}
               </p>
-              <div className="flex gap-1 shrink-0">
+              <div className="flex shrink-0 flex-wrap gap-1">
                 <button
                   type="button"
                   onClick={() => onEdit(tx)}
-                  className="rounded-md px-2 py-1 text-xs text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface)] transition-colors"
+                  className="min-h-8 rounded-md px-2 py-1 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface)] hover:text-[var(--text)] sm:min-h-0"
                 >
                   Edit
                 </button>
                 {confirmDelete === tx.id ? (
-                  <div className="flex gap-1">
+                  <div className="flex flex-wrap gap-1">
                     <button
                       type="button"
                       onClick={() => { onDelete(tx.id); setConfirmDelete(null); }}
-                      className="rounded-md px-2 py-1 text-xs text-[var(--danger)] hover:bg-[var(--danger-soft)] transition-colors"
+                       className="min-h-8 rounded-md px-2 py-1 text-xs text-[var(--danger)] transition-colors hover:bg-[var(--danger-soft)] sm:min-h-0"
                     >
                       Confirm
                     </button>
                     <button
                       type="button"
                       onClick={() => setConfirmDelete(null)}
-                      className="rounded-md px-2 py-1 text-xs text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
+                       className="min-h-8 rounded-md px-2 py-1 text-xs text-[var(--text-muted)] transition-colors hover:text-[var(--text)] sm:min-h-0"
                     >
                       Cancel
                     </button>
@@ -129,7 +129,7 @@ export function TransactionList({ transactions, onEdit, onDelete, onAddNew }: Tr
                   <button
                     type="button"
                     onClick={() => setConfirmDelete(tx.id)}
-                    className="rounded-md px-2 py-1 text-xs text-[var(--text-muted)] hover:text-[var(--danger)] hover:bg-[var(--danger-soft)] transition-colors"
+                    className="min-h-8 rounded-md px-2 py-1 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--danger-soft)] hover:text-[var(--danger)] sm:min-h-0"
                   >
                     Delete
                   </button>

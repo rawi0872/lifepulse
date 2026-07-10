@@ -91,47 +91,47 @@ export function NutritionSection({ todayDate = getTodayDate() }: NutritionSectio
   return (
     <div className="space-y-6">
       <PulseCard title="Log Nutrition" accent="success">
-        <div className="grid grid-cols-2 gap-3 p-4">
+        <div className="grid min-w-0 grid-cols-1 gap-3 p-3.5 sm:grid-cols-2 sm:p-4">
           <input
             type="text" placeholder="Meal name"
             value={form.meal_name}
             onChange={(e) => setForm((f) => ({ ...f, meal_name: e.target.value }))}
-            className="col-span-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none focus:border-[var(--accent)]"
+            className="min-h-11 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none focus:border-[var(--accent)] sm:col-span-2 sm:min-h-0 sm:py-2"
           />
           <input
             type="number" min={0} placeholder="Calories"
             value={form.calories ?? ""}
             onChange={(e) => setForm((f) => ({ ...f, calories: e.target.value ? Number(e.target.value) : null }))}
-            className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none"
+            className="min-h-11 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none sm:min-h-0 sm:py-2"
           />
           <input
             type="number" min={0} placeholder="Water (ml)"
             value={form.water_ml ?? ""}
             onChange={(e) => setForm((f) => ({ ...f, water_ml: e.target.value ? Number(e.target.value) : null }))}
-            className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none"
+            className="min-h-11 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none sm:min-h-0 sm:py-2"
           />
           <input
             type="number" min={0} step={0.1} placeholder="Protein (g)"
             value={form.protein_g ?? ""}
             onChange={(e) => setForm((f) => ({ ...f, protein_g: e.target.value ? Number(e.target.value) : null }))}
-            className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none"
+            className="min-h-11 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none sm:min-h-0 sm:py-2"
           />
           <input
             type="number" min={0} step={0.1} placeholder="Carbs (g)"
             value={form.carbs_g ?? ""}
             onChange={(e) => setForm((f) => ({ ...f, carbs_g: e.target.value ? Number(e.target.value) : null }))}
-            className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none"
+            className="min-h-11 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none sm:min-h-0 sm:py-2"
           />
           <input
             type="number" min={0} step={0.1} placeholder="Fat (g)"
             value={form.fat_g ?? ""}
             onChange={(e) => setForm((f) => ({ ...f, fat_g: e.target.value ? Number(e.target.value) : null }))}
-            className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none"
+            className="min-h-11 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none sm:min-h-0 sm:py-2"
           />
           <button
             onClick={handleSave}
             disabled={saving}
-            className="col-span-2 rounded-lg bg-[var(--accent)] px-4 py-2 text-xs font-medium text-[var(--text-on-accent)] transition-all hover:opacity-90 disabled:opacity-40"
+            className="min-h-11 rounded-lg bg-[var(--accent)] px-4 py-2.5 text-xs font-medium text-[var(--text-on-accent)] transition-all hover:opacity-90 disabled:opacity-40 sm:col-span-2 sm:min-h-0 sm:py-2"
           >
             {saving ? "Saving..." : "Log Entry"}
           </button>
@@ -142,10 +142,10 @@ export function NutritionSection({ todayDate = getTodayDate() }: NutritionSectio
         <PulseCard title="Today's Nutrition" accent="success">
           <div className="divide-y divide-[var(--border)]">
             {todayLogs.map((l) => (
-              <div key={l.id} className="group flex items-center justify-between px-4 py-2">
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-xs text-[var(--text)]">{l.meal_name || "Meal"}</span>
-                  <span className="text-[10px] text-[var(--text-muted)]">
+              <div key={l.id} className="group flex min-w-0 items-start justify-between gap-3 px-4 py-2">
+                <div className="min-w-0 flex flex-col gap-0.5">
+                  <span className="break-words text-xs text-[var(--text)]">{l.meal_name || "Meal"}</span>
+                  <span className="break-words text-[10px] text-[var(--text-muted)]">
                     {l.calories !== null && `${l.calories} cal`}
                     {l.protein_g !== null && ` · ${l.protein_g}g protein`}
                     {l.carbs_g !== null && ` · ${l.carbs_g}g carbs`}
@@ -154,15 +154,15 @@ export function NutritionSection({ todayDate = getTodayDate() }: NutritionSectio
                 </div>
                 <button
                   onClick={() => handleDelete(l.id)}
-                  className="text-[10px] text-[var(--danger)] opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="shrink-0 text-[10px] text-[var(--danger)] opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
                 >
                   Delete
                 </button>
               </div>
             ))}
-            <div className="flex items-center justify-between bg-[var(--surface-soft)] px-4 py-2">
+            <div className="flex min-w-0 flex-col gap-1 bg-[var(--surface-soft)] px-4 py-2 sm:flex-row sm:items-center sm:justify-between">
               <span className="text-xs font-medium text-[var(--text)]">Totals</span>
-              <span className="text-xs text-[var(--text-secondary)]">
+              <span className="break-words text-xs text-[var(--text-secondary)] sm:text-right">
                 {formatNumber(totals.calories)} cal &middot; {formatNumber(totals.protein)}g protein &middot; {formatNumber(totals.water)}ml water
               </span>
             </div>
@@ -180,10 +180,10 @@ export function NutritionSection({ todayDate = getTodayDate() }: NutritionSectio
         <PulseCard title="Recent Entries" accent="success">
           <div className="divide-y divide-[var(--border)]">
             {otherLogs.slice(0, 10).map((l) => (
-              <div key={l.id} className="flex items-center justify-between px-4 py-2">
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-xs text-[var(--text)]">{l.meal_name || "Meal"}</span>
-                  <span className="text-[10px] text-[var(--text-muted)]">
+              <div key={l.id} className="flex min-w-0 flex-col gap-1 px-4 py-2 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0 flex flex-col gap-0.5">
+                  <span className="break-words text-xs text-[var(--text)]">{l.meal_name || "Meal"}</span>
+                  <span className="break-words text-[10px] text-[var(--text-muted)]">
                     {l.calories !== null && `${l.calories} cal`}
                     {l.protein_g !== null && ` · ${l.protein_g}g`}
                   </span>

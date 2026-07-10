@@ -16,8 +16,8 @@ const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 export function ExpenseBreakdownChart({ data }: ExpenseBreakdownChartProps) {
   if (!data || data.length === 0) {
     return (
-      <div className="flex h-[200px] items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface-soft)]">
-        <p className="text-sm text-[var(--text-muted)]">Add expense transactions to see your spending breakdown.</p>
+      <div className="flex h-[200px] items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-4 text-center">
+        <p className="break-words text-sm text-[var(--text-muted)]">Add expense transactions to see your spending breakdown.</p>
       </div>
     );
   }
@@ -37,10 +37,10 @@ export function ExpenseBreakdownChart({ data }: ExpenseBreakdownChartProps) {
   }
 
   return (
-    <div className="flex flex-col items-center">
+    <div className="flex min-w-0 flex-col items-center">
       <svg
         viewBox={`0 0 ${SIZE} ${SIZE}`}
-        className="w-full max-w-[180px] h-auto"
+        className="h-auto w-full max-w-[180px]"
         role="img"
         aria-label="Expense breakdown by category"
       >
@@ -74,15 +74,15 @@ export function ExpenseBreakdownChart({ data }: ExpenseBreakdownChartProps) {
 
       <div className="mt-4 w-full space-y-1.5">
         {data.map((item) => (
-          <div key={item.categoryId} className="flex items-center justify-between gap-3 px-1">
-            <div className="flex items-center gap-2 min-w-0">
+          <div key={item.categoryId} className="flex min-w-0 flex-col gap-1 px-1 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+            <div className="flex min-w-0 items-center gap-2">
               <span
                 className="h-2.5 w-2.5 shrink-0 rounded-full"
                 style={{ backgroundColor: item.color }}
               />
-              <span className="truncate text-xs text-[var(--text-secondary)]">{item.categoryName}</span>
+              <span className="min-w-0 break-words text-xs text-[var(--text-secondary)]">{item.categoryName}</span>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
               <span className="text-xs text-[var(--text-muted)]">{item.percentage}%</span>
               <span className="text-xs font-medium text-[var(--text)]">{formatCurrency(item.amount)}</span>
             </div>

@@ -351,12 +351,12 @@ export default function FinancePage() {
   if (loading) {
     return (
       <DashboardNav>
-        <div className="mx-auto max-w-5xl px-5 py-8">
+        <div className="mx-auto max-w-5xl px-4 py-6 sm:px-5 sm:py-8">
           <div className="mb-8">
             <div className="h-8 w-48 animate-pulse rounded-lg bg-[var(--surface)]" />
             <div className="mt-2 h-4 w-64 animate-pulse rounded-lg bg-[var(--surface-soft)]" />
           </div>
-          <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="mb-6 grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-4">
             {Array.from({ length: 4 }).map((_, i) => (
               <FinanceKpiCard key={i} label="" value="" delta={null} variant="income" isLoading />
             ))}
@@ -368,12 +368,12 @@ export default function FinancePage() {
 
   return (
     <DashboardNav>
-      <div className="mx-auto max-w-5xl px-5 py-8 animate-fade-in">
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-[var(--text)]">Finance</h1>
-              <p className="mt-0.5 text-sm text-[var(--text-muted)]">
+      <div className="mx-auto max-w-5xl overflow-x-hidden px-4 py-6 animate-fade-in sm:px-5 sm:py-8">
+        <div className="mb-8 min-w-0">
+          <div className="flex min-w-0 items-center justify-between">
+            <div className="min-w-0">
+              <h1 className="break-words text-2xl font-bold tracking-tight text-[var(--text)]">Finance</h1>
+              <p className="mt-0.5 break-words text-sm text-[var(--text-muted)]">
                 {hasData
                   ? `Know where your money is going ${monthRange.label.toLowerCase()}.`
                   : "Track your money moves."}
@@ -383,13 +383,13 @@ export default function FinancePage() {
               </p>
             </div>
           </div>
-          <div className="mt-3 flex items-center justify-between">
-            <h2 className="text-sm font-medium text-[var(--text-secondary)]">{monthRange.label}</h2>
-            <div className="flex gap-1">
+          <div className="mt-3 flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <h2 className="break-words text-sm font-medium text-[var(--text-secondary)]">{monthRange.label}</h2>
+            <div className="flex flex-wrap gap-1">
               <button
                 type="button"
                 onClick={() => setCurrentMonth((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1))}
-                className="rounded-lg px-2.5 py-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface)] transition-colors"
+                className="min-h-9 rounded-lg px-2.5 py-1.5 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface)] hover:text-[var(--text)] sm:min-h-0"
                 aria-label="Previous month"
               >
                 &larr; Prev
@@ -397,14 +397,14 @@ export default function FinancePage() {
               <button
                 type="button"
                 onClick={() => setCurrentMonth(new Date())}
-                className="rounded-lg px-2.5 py-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface)] transition-colors"
+                className="min-h-9 rounded-lg px-2.5 py-1.5 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface)] hover:text-[var(--text)] sm:min-h-0"
               >
                 Today
               </button>
               <button
                 type="button"
                 onClick={() => setCurrentMonth((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1))}
-                className="rounded-lg px-2.5 py-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface)] transition-colors"
+                className="min-h-9 rounded-lg px-2.5 py-1.5 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface)] hover:text-[var(--text)] sm:min-h-0"
                 aria-label="Next month"
               >
                 Next &rarr;
@@ -416,15 +416,15 @@ export default function FinancePage() {
         {!hasData && (
           <>
             <InfoTip id="finance" title="Start with one money move" className="mb-4">
-              <ol className="list-decimal list-inside space-y-1">
+              <ol className="list-inside list-decimal space-y-1 break-words">
                 <li>Add an account, like Cash.</li>
                 <li>Add one expense, like Food.</li>
                 <li>Add one income, like Gift or Salary.</li>
                 <li>Create one budget for a category you care about.</li>
               </ol>
             </InfoTip>
-            <Card className="mb-6 p-6 text-center">
-              <p className="text-sm text-[var(--text-muted)] mb-4">
+            <Card className="mb-6 p-5 text-center sm:p-6">
+              <p className="mb-4 break-words text-sm text-[var(--text-muted)]">
                 Add your first transaction to start seeing charts, trends, and insights.
               </p>
               <Button onClick={() => { resetTxForm(); setShowTxForm(true); }} size="sm">
@@ -436,7 +436,7 @@ export default function FinancePage() {
 
         {hasData && (
           <>
-            <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="mb-6 grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-4">
               <FinanceKpiCard
                 label="Income"
                 value={formatCurrency(analytics.currentMonthIncome)}
@@ -468,8 +468,8 @@ export default function FinancePage() {
             </div>
 
             <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
-              <Card className="p-5">
-                <h3 className="mb-4 text-sm font-medium text-[var(--text-secondary)]">
+              <Card className="min-w-0 p-4 sm:p-5">
+                <h3 className="mb-4 break-words text-sm font-medium text-[var(--text-secondary)]">
                   Cashflow Trend
                   <HelpPopover title="Cashflow Trend" className="ml-1">
                     <p>This shows manually logged income and expenses over the last 6 months so you can review how your money flow changed.</p>
@@ -478,8 +478,8 @@ export default function FinancePage() {
                 </h3>
                 <CashflowTrendChart data={analytics.monthlyTrendLast6Months} />
               </Card>
-              <Card className="p-5">
-                <h3 className="mb-4 text-sm font-medium text-[var(--text-secondary)]">
+              <Card className="min-w-0 p-4 sm:p-5">
+                <h3 className="mb-4 break-words text-sm font-medium text-[var(--text-secondary)]">
                   Expense Breakdown
                   <HelpPopover title="Expense Breakdown" className="ml-1">
                     <p>This shows where logged expenses went during the selected month, grouped by category.</p>
@@ -492,7 +492,7 @@ export default function FinancePage() {
 
             {insights.length > 0 && (
               <div className="mb-6">
-                <h3 className="mb-3 text-sm font-medium text-[var(--text-secondary)]">
+                <h3 className="mb-3 break-words text-sm font-medium text-[var(--text-secondary)]">
                   Smart Insights
                   <HelpPopover title="Smart Insights" className="ml-1">
                     <p>These insights are calculated from manually logged finance data. They highlight logged spending patterns, budget usage, and changes from last month.</p>
@@ -505,8 +505,8 @@ export default function FinancePage() {
         )}
 
         <div className="mb-8">
-          <div className="mb-3 flex items-center justify-between">
-            <h3 className="text-sm font-medium text-[var(--text-secondary)]">
+          <div className="mb-3 flex min-w-0 items-center justify-between gap-3">
+            <h3 className="min-w-0 break-words text-sm font-medium text-[var(--text-secondary)]">
               {editingTxId ? "Edit Transaction" : "Add Transaction"}
             </h3>
             {!showTxForm ? (
@@ -546,7 +546,7 @@ export default function FinancePage() {
         </div>
 
         <div className="mb-8">
-          <h3 className="mb-3 text-sm font-medium text-[var(--text-secondary)]">
+          <h3 className="mb-3 break-words text-sm font-medium text-[var(--text-secondary)]">
             Recent Transactions
             <HelpPopover title="Recent Transactions" className="ml-1">
               <p>Transactions are the money moves you add manually. Income adds to logged monthly income, and expenses add to logged monthly expenses.</p>
@@ -562,8 +562,8 @@ export default function FinancePage() {
         </div>
 
         <div className="mb-8">
-          <div className="mb-3 flex items-center justify-between">
-            <h3 className="text-sm font-medium text-[var(--text-secondary)]">
+          <div className="mb-3 flex min-w-0 items-center justify-between gap-3">
+            <h3 className="min-w-0 break-words text-sm font-medium text-[var(--text-secondary)]">
               Budget Health
               <HelpPopover title="Budget Health" className="ml-1">
                 <p>Budgets help you record a monthly amount for a category. Life Pulse compares logged expenses in that category against the budget.</p>
@@ -596,8 +596,8 @@ export default function FinancePage() {
         </div>
 
         <div className="mb-8">
-          <div className="mb-3 flex items-center justify-between">
-            <h3 className="text-sm font-medium text-[var(--text-secondary)]">
+          <div className="mb-3 flex min-w-0 items-center justify-between gap-3">
+            <h3 className="min-w-0 break-words text-sm font-medium text-[var(--text-secondary)]">
               Accounts
               <HelpPopover title="Accounts" className="ml-1">
                 <p>Accounts are where your money lives, like cash, bank, card, or savings.</p>
@@ -632,7 +632,7 @@ export default function FinancePage() {
           />
         </div>
 
-        <p className="text-center text-xs text-[var(--text-muted)]">
+        <p className="break-words text-center text-xs text-[var(--text-muted)]">
           Manual tracker. Not financial advice. No bank connection.
         </p>
       </div>

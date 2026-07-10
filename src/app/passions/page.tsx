@@ -199,20 +199,20 @@ function PassionContent() {
   if (loading) return null;
 
   return (
-    <div className="animate-fade-in p-4 md:p-6">
-      <div className="mx-auto max-w-5xl">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-[var(--text)]">Passions</h1>
-          <p className="text-sm text-[var(--text-muted)]">Your hobbies, skills, and creative pursuits.</p>
+    <div className="animate-fade-in overflow-x-hidden px-4 py-5 md:p-6">
+      <div className="mx-auto max-w-5xl min-w-0">
+        <div className="mb-6 min-w-0">
+          <h1 className="break-words text-2xl font-bold text-[var(--text)]">Passions</h1>
+          <p className="break-words text-sm text-[var(--text-muted)]">Your hobbies, skills, and creative pursuits.</p>
         </div>
 
         {/* Tab Bar */}
-        <div className="mb-6 flex gap-1 rounded-xl bg-[var(--surface-soft)] p-1">
+        <div className="mb-6 flex gap-1 overflow-x-auto rounded-xl bg-[var(--surface-soft)] p-1 [-webkit-overflow-scrolling:touch]">
           {TABS.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 rounded-lg px-3 py-2 text-center text-xs font-medium transition-all ${
+              className={`min-h-10 shrink-0 whitespace-nowrap rounded-lg px-3 py-2 text-center text-xs font-medium transition-all sm:min-h-0 sm:flex-1 ${
                 activeTab === tab.id
                   ? "bg-[var(--surface)] text-[var(--text)] shadow-sm"
                   : "text-[var(--text-muted)] hover:text-[var(--text)]"
@@ -226,8 +226,8 @@ function PassionContent() {
         {/* ════════════════ OVERVIEW ════════════════ */}
         {activeTab === "overview" && (
           <div className="space-y-6">
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <div className="relative rounded-xl border border-[var(--border)] bg-gradient-to-br from-[var(--surface)] to-[var(--bg-elevated)] p-3">
+             <div className="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className="relative min-w-0 rounded-xl border border-[var(--border)] bg-gradient-to-br from-[var(--surface)] to-[var(--bg-elevated)] p-3">
                 <div className="absolute inset-x-0 top-0 h-[2px] rounded-t-xl bg-gradient-to-r from-[var(--accent)] to-[var(--accent-strong)]" />
                 <MetricCard label="Active Passions" value={activePassions.length} icon={
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -235,7 +235,7 @@ function PassionContent() {
                 </svg>
               } trend={activePassions.length > 0 ? "up" : "neutral"} active={activePassions.length > 0} />
               </div>
-              <div className="relative rounded-xl border border-[var(--border)] bg-gradient-to-br from-[var(--surface)] to-[var(--bg-elevated)] p-3">
+              <div className="relative min-w-0 rounded-xl border border-[var(--border)] bg-gradient-to-br from-[var(--surface)] to-[var(--bg-elevated)] p-3">
                 <div className="absolute inset-x-0 top-0 h-[2px] rounded-t-xl bg-gradient-to-r from-[var(--accent)] to-[var(--accent-strong)]" />
                 <MetricCard label="Sessions / Week" value={weekSessions.length} icon={
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -243,7 +243,7 @@ function PassionContent() {
                 </svg>
               } trend={weekSessions.length > 0 ? "up" : "neutral"} active={weekSessions.length > 0} />
               </div>
-              <div className="relative rounded-xl border border-[var(--border)] bg-gradient-to-br from-[var(--surface)] to-[var(--bg-elevated)] p-3">
+              <div className="relative min-w-0 rounded-xl border border-[var(--border)] bg-gradient-to-br from-[var(--surface)] to-[var(--bg-elevated)] p-3">
                 <div className="absolute inset-x-0 top-0 h-[2px] rounded-t-xl bg-gradient-to-r from-[var(--accent)] to-[var(--accent-strong)]" />
                 <MetricCard label="Practice Min" value={weekMinutes} icon={
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -251,7 +251,7 @@ function PassionContent() {
                 </svg>
               } trend={weekMinutes > 0 ? "up" : "neutral"} active={weekMinutes > 0} />
               </div>
-              <div className="relative rounded-xl border border-[var(--border)] bg-gradient-to-br from-[var(--surface)] to-[var(--bg-elevated)] p-3">
+              <div className="relative min-w-0 rounded-xl border border-[var(--border)] bg-gradient-to-br from-[var(--surface)] to-[var(--bg-elevated)] p-3">
                 <div className="absolute inset-x-0 top-0 h-[2px] rounded-t-xl bg-gradient-to-r from-[var(--accent)] to-[var(--accent-strong)]" />
                 <MetricCard label="Milestones" value={completedMilestones.length} icon={
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -268,7 +268,7 @@ function PassionContent() {
             )}
 
             {activePassions.length > 0 && (
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <div className="grid min-w-0 grid-cols-1 gap-6 md:grid-cols-2">
                 <PulseCard title="Active Passions" accent="accent" description={`${activePassions.length} total`}>
                   <div className="divide-y divide-[var(--border)]">
                     {activePassions.map((p) => {
@@ -276,14 +276,14 @@ function PassionContent() {
                       const pWeekSessions = pSessions.filter((s) => s.session_date >= weekStart);
                       const pWeekMin = pWeekSessions.reduce((s, se) => s + (se.duration_minutes ?? 0), 0);
                       return (
-                        <div key={p.id} className="flex items-center justify-between px-4 py-2">
-                          <div className="flex flex-col gap-0.5">
-                            <span className="text-xs font-medium text-[var(--text)]">{p.name}</span>
-                            <span className="text-[10px] text-[var(--text-muted)]">
+                         <div key={p.id} className="flex min-w-0 flex-col gap-1 px-4 py-2 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="min-w-0 flex flex-col gap-0.5">
+                            <span className="break-words text-xs font-medium text-[var(--text)]">{p.name}</span>
+                            <span className="break-words text-[10px] text-[var(--text-muted)]">
                               {p.category ?? "Uncategorized"} &middot; {p.skill_level ?? "N/A"}
                             </span>
                           </div>
-                          <div className="text-right">
+                          <div className="shrink-0 sm:text-right">
                             <span className="text-xs font-medium text-[var(--text)]">{pWeekMin} min</span>
                             <p className="text-[9px] text-[var(--text-muted)]">{pSessions.length} total sessions</p>
                           </div>
@@ -299,10 +299,10 @@ function PassionContent() {
                       {weekSessions.slice(0, 5).map((s) => {
                         const p = passionMap[s.passion_id];
                         return (
-                          <div key={s.id} className="flex items-center justify-between px-4 py-2">
-                            <div className="flex flex-col gap-0.5">
-                              <span className="text-xs text-[var(--text)]">{p?.name ?? "Unknown"}</span>
-                              {s.focus && <span className="text-[10px] text-[var(--text-muted)]">{s.focus}</span>}
+                          <div key={s.id} className="flex min-w-0 flex-col gap-1 px-4 py-2 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="min-w-0 flex flex-col gap-0.5">
+                              <span className="break-words text-xs text-[var(--text)]">{p?.name ?? "Unknown"}</span>
+                              {s.focus && <span className="break-words text-[10px] text-[var(--text-muted)]">{s.focus}</span>}
                             </div>
                             <span className="text-xs text-[var(--text-muted)]">
                               {s.duration_minutes !== null ? `${s.duration_minutes} min` : "\u2014"}
@@ -320,9 +320,9 @@ function PassionContent() {
                       {completedMilestones.slice(0, 5).map((m) => {
                         const p = passionMap[m.passion_id];
                         return (
-                          <div key={m.id} className="flex items-center justify-between px-4 py-2">
-                            <span className="text-xs text-[var(--text)]">{p?.name ?? "Unknown"} &rarr; {m.title}</span>
-                            <span className="text-[10px] text-[var(--text-muted)]">
+                          <div key={m.id} className="flex min-w-0 flex-col gap-1 px-4 py-2 sm:flex-row sm:items-center sm:justify-between">
+                            <span className="min-w-0 break-words text-xs text-[var(--text)]">{p?.name ?? "Unknown"} &rarr; {m.title}</span>
+                            <span className="shrink-0 text-[10px] text-[var(--text-muted)]">
                               {m.completed_at ? new Date(m.completed_at).toLocaleDateString() : ""}
                             </span>
                           </div>
@@ -340,37 +340,37 @@ function PassionContent() {
         {activeTab === "passions" && (
           <div className="space-y-6">
             <PulseCard title="Add Passion" accent="accent">
-              <div className="grid grid-cols-2 gap-3 p-4">
+              <div className="grid min-w-0 grid-cols-1 gap-3 p-3.5 sm:grid-cols-2 sm:p-4">
                 <input type="text" placeholder="Passion name" value={passionForm.name}
                   onChange={(e) => setPassionForm((f) => ({ ...f, name: e.target.value }))}
-                  className="col-span-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none focus:border-[var(--accent)]" />
-                <div className="flex flex-col gap-1">
+                  className="min-h-11 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none focus:border-[var(--accent)] sm:col-span-2 sm:min-h-0 sm:py-2" />
+                <div className="min-w-0 flex flex-col gap-1">
                   <label className="text-[10px] font-medium text-[var(--text-muted)]">Category</label>
                   <select value={passionForm.category} onChange={(e) => setPassionForm((f) => ({ ...f, category: e.target.value }))}
-                    className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)] outline-none">
+                    className="min-h-11 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-xs text-[var(--text)] outline-none sm:min-h-0 sm:py-2">
                     {PASSION_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
-                <div className="flex flex-col gap-1">
+                <div className="min-w-0 flex flex-col gap-1">
                   <label className="text-[10px] font-medium text-[var(--text-muted)]">Skill Level</label>
                   <select value={passionForm.skill_level} onChange={(e) => setPassionForm((f) => ({ ...f, skill_level: e.target.value }))}
-                    className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)] outline-none">
+                    className="min-h-11 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-xs text-[var(--text)] outline-none sm:min-h-0 sm:py-2">
                     {SKILL_LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
                   </select>
                 </div>
-                <div className="flex flex-col gap-1">
+                <div className="min-w-0 flex flex-col gap-1">
                   <label className="text-[10px] font-medium text-[var(--text-muted)]">Target hrs/week</label>
                   <input type="number" min={0} step={0.5} placeholder="hrs"
                     value={passionForm.target_hours_per_week ?? ""}
                     onChange={(e) => setPassionForm((f) => ({ ...f, target_hours_per_week: e.target.value ? Number(e.target.value) : null }))}
-                    className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none" />
+                    className="min-h-11 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none sm:min-h-0 sm:py-2" />
                 </div>
                 <textarea placeholder="Description" value={passionForm.description}
                   onChange={(e) => setPassionForm((f) => ({ ...f, description: e.target.value }))}
-                  className="col-span-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none resize-none" rows={2} />
-                <div className="col-span-2 flex justify-end">
+                  className="min-h-24 resize-none rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none sm:col-span-2 sm:min-h-0 sm:py-2" rows={2} />
+                <div className="flex justify-stretch sm:col-span-2 sm:justify-end">
                   <button onClick={handleSavePassion} disabled={saving || !passionForm.name.trim()}
-                    className="rounded-lg bg-[var(--accent)] px-4 py-2 text-xs font-medium text-[var(--text-on-accent)] transition-all hover:opacity-90 disabled:opacity-40">
+                    className="min-h-11 w-full rounded-lg bg-[var(--accent)] px-4 py-2.5 text-xs font-medium text-[var(--text-on-accent)] transition-all hover:opacity-90 disabled:opacity-40 sm:min-h-0 sm:w-auto sm:py-2">
                     {saving ? "Saving..." : "Save Passion"}
                   </button>
                 </div>
@@ -388,55 +388,55 @@ function PassionContent() {
                 <div className="divide-y divide-[var(--border)]">
                   {passions.map((p) => (
                     <div key={p.id}>
-                      <div className="flex items-center justify-between px-4 py-3">
-                        <div className="flex flex-col gap-0.5">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-medium text-[var(--text)]">{p.name}</span>
+                      <div className="flex min-w-0 flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="min-w-0 flex flex-col gap-0.5">
+                          <div className="flex min-w-0 flex-wrap items-center gap-2">
+                            <span className="min-w-0 break-words text-xs font-medium text-[var(--text)]">{p.name}</span>
                             <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
                               p.status === "active" ? "bg-[var(--success-soft)] text-[var(--success)]" : "bg-[var(--surface-soft)] text-[var(--text-muted)]"
                             }`}>
                               {p.status ?? "active"}
                             </span>
                           </div>
-                          <span className="text-[10px] text-[var(--text-muted)]">
+                          <span className="break-words text-[10px] text-[var(--text-muted)]">
                             {p.category ?? "Uncategorized"} &middot; {p.skill_level ?? "N/A"}
                             {p.target_hours_per_week !== null && ` \u00b7 target ${p.target_hours_per_week}h/wk`}
                           </span>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
                           {editPassionId === p.id ? (
                             <button onClick={handleSaveEdit} disabled={saving}
-                              className="text-[10px] font-medium text-[var(--accent)] hover:underline">Save</button>
+                              className="min-h-8 rounded-md px-2 py-1 text-[10px] font-medium text-[var(--accent)] hover:underline sm:min-h-0 sm:px-0 sm:py-0">Save</button>
                           ) : (
                             <button onClick={() => handleStartEdit(p)}
-                              className="text-[10px] text-[var(--text-muted)] hover:text-[var(--text)]">Edit</button>
+                              className="min-h-8 rounded-md px-2 py-1 text-[10px] text-[var(--text-muted)] hover:text-[var(--text)] sm:min-h-0 sm:px-0 sm:py-0">Edit</button>
                           )}
                           {editPassionId !== p.id && (
                             <button onClick={() => handleDeletePassion(p.id)}
-                              className="text-[10px] text-[var(--danger)] hover:underline">Delete</button>
+                              className="min-h-8 rounded-md px-2 py-1 text-[10px] text-[var(--danger)] hover:underline sm:min-h-0 sm:px-0 sm:py-0">Delete</button>
                           )}
                         </div>
                       </div>
                       {editPassionId === p.id && (
                         <div className="border-t border-[var(--border)] p-4">
-                          <div className="grid grid-cols-2 gap-3">
+                          <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
                             <input type="text" placeholder="Name" value={editForm.name}
                               onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
-                              className="col-span-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none" />
+                              className="min-h-11 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none sm:col-span-2 sm:min-h-0 sm:py-2" />
                             <select value={editForm.category} onChange={(e) => setEditForm((f) => ({ ...f, category: e.target.value }))}
-                              className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)] outline-none">
+                              className="min-h-11 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-xs text-[var(--text)] outline-none sm:min-h-0 sm:py-2">
                               {PASSION_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
                             </select>
                             <select value={editForm.skill_level} onChange={(e) => setEditForm((f) => ({ ...f, skill_level: e.target.value }))}
-                              className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)] outline-none">
+                              className="min-h-11 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-xs text-[var(--text)] outline-none sm:min-h-0 sm:py-2">
                               {SKILL_LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
                             </select>
                             <input type="number" min={0} step={0.5} placeholder="Target hrs/week" value={editForm.target_hours_per_week ?? ""}
                               onChange={(e) => setEditForm((f) => ({ ...f, target_hours_per_week: e.target.value ? Number(e.target.value) : null }))}
-                              className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none" />
+                              className="min-h-11 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none sm:min-h-0 sm:py-2" />
                             <textarea placeholder="Description" value={editForm.description}
                               onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))}
-                              className="col-span-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none resize-none" rows={2} />
+                              className="min-h-24 resize-none rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none sm:col-span-2 sm:min-h-0 sm:py-2" rows={2} />
                           </div>
                         </div>
                       )}
@@ -457,44 +457,44 @@ function PassionContent() {
               </PulseCard>
             ) : (
               <PulseCard title="Log Session" accent="accent">
-                <div className="grid grid-cols-2 gap-3 p-4">
-                  <div className="col-span-2 flex flex-col gap-1">
+                <div className="grid min-w-0 grid-cols-1 gap-3 p-3.5 sm:grid-cols-2 sm:p-4">
+                  <div className="flex min-w-0 flex-col gap-1 sm:col-span-2">
                     <label className="text-[10px] font-medium text-[var(--text-muted)]">Passion</label>
                     <select value={sessionForm.passion_id} onChange={(e) => setSessionForm((f) => ({ ...f, passion_id: e.target.value }))}
-                      className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)] outline-none">
+                      className="min-h-11 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-xs text-[var(--text)] outline-none sm:min-h-0 sm:py-2">
                       <option value="">Select...</option>
                       {activePassions.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
                     </select>
                   </div>
                   <input type="number" min={0} placeholder="Duration (min)" value={sessionForm.duration_minutes ?? ""}
                     onChange={(e) => setSessionForm((f) => ({ ...f, duration_minutes: e.target.value ? Number(e.target.value) : null }))}
-                    className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none" />
+                    className="min-h-11 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none sm:min-h-0 sm:py-2" />
                   <input type="text" placeholder="Focus area" value={sessionForm.focus}
                     onChange={(e) => setSessionForm((f) => ({ ...f, focus: e.target.value }))}
                     data-testid="passion-session-focus-input"
-                    className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none" />
-                  <div className="flex flex-col gap-1">
+                    className="min-h-11 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none sm:min-h-0 sm:py-2" />
+                  <div className="min-w-0 flex flex-col gap-1">
                     <label className="text-[10px] font-medium text-[var(--text-muted)]">Enjoyment (1-5)</label>
                     <select value={sessionForm.enjoyment ?? ""} onChange={(e) => setSessionForm((f) => ({ ...f, enjoyment: e.target.value ? Number(e.target.value) : null }))}
-                      className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)] outline-none">
+                      className="min-h-11 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-xs text-[var(--text)] outline-none sm:min-h-0 sm:py-2">
                       <option value="">--</option>
                       {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}</option>)}
                     </select>
                   </div>
-                  <div className="flex flex-col gap-1">
+                  <div className="min-w-0 flex flex-col gap-1">
                     <label className="text-[10px] font-medium text-[var(--text-muted)]">Difficulty (1-5)</label>
                     <select value={sessionForm.difficulty ?? ""} onChange={(e) => setSessionForm((f) => ({ ...f, difficulty: e.target.value ? Number(e.target.value) : null }))}
-                      className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)] outline-none">
+                      className="min-h-11 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-xs text-[var(--text)] outline-none sm:min-h-0 sm:py-2">
                       <option value="">--</option>
                       {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}</option>)}
                     </select>
                   </div>
                   <textarea placeholder="Notes" value={sessionForm.notes}
                     onChange={(e) => setSessionForm((f) => ({ ...f, notes: e.target.value }))}
-                    className="col-span-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none resize-none" rows={2} />
-                  <div className="col-span-2 flex justify-end">
+                    className="min-h-24 resize-none rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none sm:col-span-2 sm:min-h-0 sm:py-2" rows={2} />
+                  <div className="flex justify-stretch sm:col-span-2 sm:justify-end">
                     <button onClick={handleSaveSession} disabled={saving || !sessionForm.passion_id}
-                      className="rounded-lg bg-[var(--accent)] px-4 py-2 text-xs font-medium text-[var(--text-on-accent)] transition-all hover:opacity-90 disabled:opacity-40">
+                      className="min-h-11 w-full rounded-lg bg-[var(--accent)] px-4 py-2.5 text-xs font-medium text-[var(--text-on-accent)] transition-all hover:opacity-90 disabled:opacity-40 sm:min-h-0 sm:w-auto sm:py-2">
                       {saving ? "Saving..." : "Log Session"}
                     </button>
                   </div>
@@ -514,24 +514,24 @@ function PassionContent() {
                   {sessions.map((s) => {
                     const p = passionMap[s.passion_id];
                     return (
-                      <div key={s.id} className="group flex items-center justify-between px-4 py-2">
-                        <div className="flex flex-col gap-0.5">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-medium text-[var(--text)]">{p?.name ?? "Unknown"}</span>
-                            {s.focus && <span className="text-[10px] text-[var(--text-muted)]">{s.focus}</span>}
+                      <div key={s.id} className="group flex min-w-0 flex-col gap-2 px-4 py-2 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="min-w-0 flex flex-col gap-0.5">
+                          <div className="flex min-w-0 flex-wrap items-center gap-2">
+                            <span className="min-w-0 break-words text-xs font-medium text-[var(--text)]">{p?.name ?? "Unknown"}</span>
+                            {s.focus && <span className="break-words text-[10px] text-[var(--text-muted)]">{s.focus}</span>}
                           </div>
-                          <span className="text-[10px] text-[var(--text-muted)]">
+                          <span className="break-words text-[10px] text-[var(--text-muted)]">
                             {new Date(s.session_date).toLocaleDateString()}
                             {s.enjoyment !== null && ` \u00b7 Enjoyment ${s.enjoyment}/5`}
                             {s.difficulty !== null && ` \u00b7 Difficulty ${s.difficulty}/5`}
                           </span>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
                           <span className="text-xs text-[var(--text-secondary)]">
                             {s.duration_minutes !== null ? `${s.duration_minutes} min` : ""}
                           </span>
                           <button onClick={() => handleDeleteSession(s.id)}
-                            className="text-[10px] text-[var(--danger)] opacity-0 group-hover:opacity-100 transition-opacity">Delete</button>
+                            className="min-h-8 rounded-md px-2 py-1 text-[10px] text-[var(--danger)] opacity-100 transition-opacity sm:min-h-0 sm:px-0 sm:py-0 sm:opacity-0 sm:group-hover:opacity-100">Delete</button>
                         </div>
                       </div>
                     );
@@ -551,27 +551,27 @@ function PassionContent() {
               </PulseCard>
             ) : (
               <PulseCard title="Add Milestone" accent="success">
-                <div className="grid grid-cols-2 gap-3 p-4">
-                  <div className="col-span-2 flex flex-col gap-1">
+                <div className="grid min-w-0 grid-cols-1 gap-3 p-3.5 sm:grid-cols-2 sm:p-4">
+                  <div className="flex min-w-0 flex-col gap-1 sm:col-span-2">
                     <label className="text-[10px] font-medium text-[var(--text-muted)]">Passion</label>
                     <select value={milestoneForm.passion_id} onChange={(e) => setMilestoneForm((f) => ({ ...f, passion_id: e.target.value }))}
-                      className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)] outline-none">
+                      className="min-h-11 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-xs text-[var(--text)] outline-none sm:min-h-0 sm:py-2">
                       <option value="">Select...</option>
                       {activePassions.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
                     </select>
                   </div>
                   <input type="text" placeholder="Title" value={milestoneForm.title}
                     onChange={(e) => setMilestoneForm((f) => ({ ...f, title: e.target.value }))}
-                    className="col-span-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none" />
+                    className="min-h-11 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none sm:col-span-2 sm:min-h-0 sm:py-2" />
                   <input type="date" placeholder="Target date" value={milestoneForm.target_date}
                     onChange={(e) => setMilestoneForm((f) => ({ ...f, target_date: e.target.value }))}
-                    className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none" />
+                    className="min-h-11 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none sm:min-h-0 sm:py-2" />
                   <textarea placeholder="Description" value={milestoneForm.description}
                     onChange={(e) => setMilestoneForm((f) => ({ ...f, description: e.target.value }))}
-                    className="col-span-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none resize-none" rows={2} />
-                  <div className="col-span-2 flex justify-end">
+                    className="min-h-24 resize-none rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none sm:col-span-2 sm:min-h-0 sm:py-2" rows={2} />
+                  <div className="flex justify-stretch sm:col-span-2 sm:justify-end">
                     <button onClick={handleSaveMilestone} disabled={saving || !milestoneForm.passion_id || !milestoneForm.title.trim()}
-                      className="rounded-lg bg-[var(--accent)] px-4 py-2 text-xs font-medium text-[var(--text-on-accent)] transition-all hover:opacity-90 disabled:opacity-40">
+                      className="min-h-11 w-full rounded-lg bg-[var(--accent)] px-4 py-2.5 text-xs font-medium text-[var(--text-on-accent)] transition-all hover:opacity-90 disabled:opacity-40 sm:min-h-0 sm:w-auto sm:py-2">
                       {saving ? "Saving..." : "Add Milestone"}
                     </button>
                   </div>
@@ -592,34 +592,34 @@ function PassionContent() {
                     const p = passionMap[m.passion_id];
                     const isDone = !!m.completed_at;
                     return (
-                      <div key={m.id} className="group flex items-center justify-between px-4 py-3">
-                        <div className="flex items-center gap-3">
+                      <div key={m.id} className="group flex min-w-0 flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex min-w-0 items-start gap-3">
                           {!isDone ? (
                             <button onClick={() => handleCompleteMilestone(m.id)}
-                              className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 border-[var(--text-muted)]/40 hover:border-[var(--success)] hover:bg-[var(--success-soft)] transition-all">
+                              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-[var(--text-muted)]/40 transition-all hover:border-[var(--success)] hover:bg-[var(--success-soft)] sm:h-5 sm:w-5">
                               <svg className="h-3 w-3 text-transparent group-hover:text-[var(--success)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                               </svg>
                             </button>
                           ) : (
-                            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--success-soft)]">
+                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--success-soft)] sm:h-5 sm:w-5">
                               <svg className="h-3 w-3 text-[var(--success)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                               </svg>
                             </span>
                           )}
-                          <div className="flex flex-col gap-0.5">
+                          <div className="min-w-0 flex flex-col gap-0.5">
                             <span className={`text-xs font-medium ${isDone ? "text-[var(--text-muted)] line-through" : "text-[var(--text)]"}`}>
                               {m.title}
                             </span>
-                            <span className="text-[10px] text-[var(--text-muted)]">
+                            <span className="break-words text-[10px] text-[var(--text-muted)]">
                               {p?.name ?? "Unknown"}
                               {m.target_date && ` \u00b7 by ${new Date(m.target_date).toLocaleDateString()}`}
                             </span>
                           </div>
                         </div>
                         {m.description && !isDone && (
-                          <span className="hidden text-[10px] text-[var(--text-muted)] sm:block max-w-[200px] truncate">{m.description}</span>
+                          <span className="break-words text-[10px] text-[var(--text-muted)] sm:max-w-[200px] sm:truncate">{m.description}</span>
                         )}
                       </div>
                     );

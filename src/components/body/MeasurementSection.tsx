@@ -84,7 +84,7 @@ export function MeasurementSection({ todayDate = getTodayDate() }: MeasurementSe
     <div className="space-y-6">
       {latest && (
         <PulseCard title="Latest" accent="success">
-          <div className="grid grid-cols-1 gap-2 p-4 text-center sm:grid-cols-3">
+          <div className="grid min-w-0 grid-cols-1 gap-3 p-4 text-center sm:grid-cols-3">
             {latest.weight_kg !== null && (
               <div>
                 <p className="text-lg font-bold text-[var(--text)]">{formatNumber(latest.weight_kg, 1)}</p>
@@ -108,14 +108,14 @@ export function MeasurementSection({ todayDate = getTodayDate() }: MeasurementSe
       )}
 
       <PulseCard title="Log Measurement" accent="success">
-        <div className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid min-w-0 grid-cols-1 gap-3 p-3.5 sm:grid-cols-2 sm:p-4 lg:grid-cols-3">
           <div className="flex flex-col gap-1">
             <label className="text-[10px] font-medium text-[var(--text-muted)]">Weight (kg)</label>
             <input
               type="number" min={0} step={0.1} placeholder="kg"
               value={form.weight_kg ?? ""}
               onChange={(e) => setForm((f) => ({ ...f, weight_kg: e.target.value ? Number(e.target.value) : null }))}
-              className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none"
+              className="min-h-11 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none sm:min-h-0 sm:py-2"
             />
           </div>
           <div className="flex flex-col gap-1">
@@ -124,7 +124,7 @@ export function MeasurementSection({ todayDate = getTodayDate() }: MeasurementSe
               type="number" min={0} max={100} step={0.1} placeholder="%"
               value={form.body_fat_percent ?? ""}
               onChange={(e) => setForm((f) => ({ ...f, body_fat_percent: e.target.value ? Number(e.target.value) : null }))}
-              className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none"
+              className="min-h-11 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none sm:min-h-0 sm:py-2"
             />
           </div>
           <div className="flex flex-col gap-1">
@@ -133,7 +133,7 @@ export function MeasurementSection({ todayDate = getTodayDate() }: MeasurementSe
               type="number" min={0} step={0.1} placeholder="cm"
               value={form.waist_cm ?? ""}
               onChange={(e) => setForm((f) => ({ ...f, waist_cm: e.target.value ? Number(e.target.value) : null }))}
-              className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none"
+              className="min-h-11 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none sm:min-h-0 sm:py-2"
             />
           </div>
           <div className="flex flex-col gap-1">
@@ -142,7 +142,7 @@ export function MeasurementSection({ todayDate = getTodayDate() }: MeasurementSe
               type="number" min={0} step={0.1} placeholder="cm"
               value={form.chest_cm ?? ""}
               onChange={(e) => setForm((f) => ({ ...f, chest_cm: e.target.value ? Number(e.target.value) : null }))}
-              className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none"
+              className="min-h-11 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none sm:min-h-0 sm:py-2"
             />
           </div>
           <div className="flex flex-col gap-1">
@@ -151,7 +151,7 @@ export function MeasurementSection({ todayDate = getTodayDate() }: MeasurementSe
               type="number" min={0} step={0.1} placeholder="cm"
               value={form.arms_cm ?? ""}
               onChange={(e) => setForm((f) => ({ ...f, arms_cm: e.target.value ? Number(e.target.value) : null }))}
-              className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none"
+              className="min-h-11 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none sm:min-h-0 sm:py-2"
             />
           </div>
           <div className="flex flex-col gap-1">
@@ -160,14 +160,14 @@ export function MeasurementSection({ todayDate = getTodayDate() }: MeasurementSe
               type="number" min={0} step={0.1} placeholder="cm"
               value={form.legs_cm ?? ""}
               onChange={(e) => setForm((f) => ({ ...f, legs_cm: e.target.value ? Number(e.target.value) : null }))}
-              className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none"
+              className="min-h-11 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none sm:min-h-0 sm:py-2"
             />
           </div>
-          <div className="flex justify-end sm:col-span-2 lg:col-span-3">
+          <div className="flex justify-stretch sm:col-span-2 sm:justify-end lg:col-span-3">
             <button
               onClick={handleSave}
               disabled={saving}
-              className="rounded-lg bg-[var(--accent)] px-4 py-2 text-xs font-medium text-[var(--text-on-accent)] transition-all hover:opacity-90 disabled:opacity-40"
+              className="min-h-11 w-full rounded-lg bg-[var(--accent)] px-4 py-2.5 text-xs font-medium text-[var(--text-on-accent)] transition-all hover:opacity-90 disabled:opacity-40 sm:min-h-0 sm:w-auto sm:py-2"
             >
               {saving ? "Saving..." : "Save Measurement"}
             </button>
@@ -185,8 +185,8 @@ export function MeasurementSection({ todayDate = getTodayDate() }: MeasurementSe
         <PulseCard title="Recent Measurements" accent="success">
           <div className="divide-y divide-[var(--border)]">
             {measurements.map((m) => (
-              <div key={m.id} className="group flex items-center justify-between px-4 py-2">
-                <div className="flex flex-wrap gap-x-3 gap-y-0.5">
+              <div key={m.id} className="group flex min-w-0 items-start justify-between gap-3 px-4 py-2">
+                <div className="min-w-0 flex flex-wrap gap-x-3 gap-y-0.5">
                   <span className="text-xs text-[var(--text)]">
                     {new Date(m.measurement_date).toLocaleDateString()}
                   </span>
@@ -196,7 +196,7 @@ export function MeasurementSection({ todayDate = getTodayDate() }: MeasurementSe
                 </div>
                 <button
                   onClick={() => handleDelete(m.id)}
-                  className="text-[10px] text-[var(--danger)] opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="shrink-0 text-[10px] text-[var(--danger)] opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
                 >
                   Delete
                 </button>

@@ -177,8 +177,8 @@ function BodyContent() {
   if (loading) return null;
 
   return (
-    <div className="animate-fade-in p-4 md:p-6">
-      <div className="mx-auto max-w-5xl">
+    <div className="animate-fade-in overflow-x-hidden px-4 py-5 md:p-6">
+      <div className="mx-auto max-w-5xl min-w-0">
         <BodyPulseHeader habitCount={bodyHabits.length} taskCount={bodyTaskCount} journalCount={journalCount} />
 
         <div className="mb-6">
@@ -186,12 +186,12 @@ function BodyContent() {
         </div>
 
         {/* Tab Bar */}
-        <div className="mb-6 flex gap-1 overflow-x-auto rounded-xl bg-[var(--surface-soft)] p-1">
+        <div className="mb-6 flex gap-1 overflow-x-auto rounded-xl bg-[var(--surface-soft)] p-1 [-webkit-overflow-scrolling:touch]">
           {TABS.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`shrink-0 whitespace-nowrap rounded-lg px-3 py-2 text-center text-xs font-medium transition-all sm:flex-1 ${
+              className={`min-h-10 shrink-0 whitespace-nowrap rounded-lg px-3 py-2 text-center text-xs font-medium transition-all sm:min-h-0 sm:flex-1 ${
                 activeTab === tab.id
                   ? "bg-[var(--surface)] text-[var(--text)] shadow-sm"
                   : "text-[var(--text-muted)] hover:text-[var(--text)]"

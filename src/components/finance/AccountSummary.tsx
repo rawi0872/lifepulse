@@ -43,8 +43,8 @@ export function AccountSummary({ accountBalances, hasMixedCurrencies, onDelete, 
 
   return (
     <div>
-      <div className="mb-3 flex items-center justify-between">
-        <p className="text-xs text-[var(--text-muted)]">
+      <div className="mb-3 flex min-w-0 items-center justify-between">
+        <p className="break-words text-xs text-[var(--text-muted)]">
           {hasMixedCurrencies ? (
             <span className="italic">Multiple currencies tracked separately.</span>
           ) : (
@@ -53,7 +53,7 @@ export function AccountSummary({ accountBalances, hasMixedCurrencies, onDelete, 
         </p>
       </div>
       {hasMixedCurrencies && (
-        <p className="mb-3 text-[10px] italic text-[var(--text-muted)]">
+        <p className="mb-3 break-words text-[10px] italic text-[var(--text-muted)]">
           Total balance may not be comparable across different currencies.
         </p>
       )}
@@ -65,21 +65,21 @@ export function AccountSummary({ accountBalances, hasMixedCurrencies, onDelete, 
           const isNegative = a.currentBalance < 0;
 
           return (
-            <Card key={a.accountId} className="flex items-center gap-2 px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3">
+            <Card key={a.accountId} className="flex min-w-0 flex-col gap-3 px-3 py-3 sm:flex-row sm:items-center sm:gap-3 sm:px-4">
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--surface-raised)]">
                 <span className="text-[10px] font-medium text-[var(--text-secondary)]">
                   {accountTypeIcons[a.accountType] || a.accountType.slice(0, 3)}
                 </span>
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-                  <p className="text-sm font-medium text-[var(--text)] truncate">{a.accountName}</p>
+              <div className="min-w-0 flex-1">
+                <div className="flex min-w-0 flex-wrap items-center gap-1.5 sm:gap-2">
+                  <p className="min-w-0 break-words text-sm font-medium text-[var(--text)]">{a.accountName}</p>
                   <span className="text-[10px] text-[var(--text-muted)] capitalize">{a.accountType}</span>
                   {a.transactionCount > 0 && (
                     <span className="text-[10px] text-[var(--text-muted)]">{a.transactionCount} txns</span>
                   )}
                 </div>
-                <p className="text-xs text-[var(--text-muted)]">
+                <p className="break-words text-xs text-[var(--text-muted)]">
                   Start {formatCurrency(a.startingBalance, a.currency)}
                   {a.incomeTotal > 0 && <> &middot; In {formatCurrency(a.incomeTotal, a.currency)}</>}
                   {a.expenseTotal > 0 && <> &middot; Out {formatCurrency(a.expenseTotal, a.currency)}</>}
@@ -88,16 +88,16 @@ export function AccountSummary({ accountBalances, hasMixedCurrencies, onDelete, 
                   <p className="text-xs text-[var(--text-muted)]">{share}% of total</p>
                 )}
               </div>
-              <p className={`text-sm font-semibold tabular-nums whitespace-nowrap ${
+              <p className={`self-start whitespace-nowrap text-sm font-semibold tabular-nums sm:self-auto ${
                 isNegative ? "text-[var(--danger)]" : "text-[var(--text)]"
               }`}>
                 {formatCurrency(a.currentBalance, a.currency)}
               </p>
-              <span className="hidden sm:inline text-xs text-[var(--text-muted)]">{a.currency}</span>
+              <span className="text-xs text-[var(--text-muted)] sm:inline">{a.currency}</span>
               <button
                 type="button"
                 onClick={() => onDelete(a.accountId)}
-                className="shrink-0 rounded-md px-1.5 py-1 text-xs text-[var(--text-muted)] hover:text-[var(--danger)] hover:bg-[var(--danger-soft)] transition-colors sm:px-2"
+                className="min-h-8 shrink-0 rounded-md px-2 py-1 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--danger-soft)] hover:text-[var(--danger)] sm:min-h-0"
               >
                 Delete
               </button>

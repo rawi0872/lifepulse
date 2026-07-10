@@ -38,7 +38,7 @@ export function SimpleSelect({
   const selected = options.find((o) => o.value === value);
 
   return (
-    <div>
+    <div className="min-w-0">
       {label && (
         <label className="mb-1.5 block text-xs font-medium text-[var(--text-secondary)]">
           {label}
@@ -50,9 +50,9 @@ export function SimpleSelect({
           onClick={() => setOpen(!open)}
           aria-haspopup="listbox"
           aria-expanded={open}
-          className="flex w-full items-center gap-2 rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none"
+          className="flex min-h-11 w-full min-w-0 items-center gap-2 rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] px-3 py-2.5 text-sm text-[var(--text)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none sm:min-h-0 sm:py-2"
         >
-          <span className="flex-1 text-left">
+          <span className="min-w-0 flex-1 break-words text-left">
             {selected ? selected.label : <span className="text-[var(--text-muted)]">{placeholder}</span>}
           </span>
           <svg className={`h-4 w-4 shrink-0 text-[var(--text-muted)] transition-transform ${open ? "rotate-180" : ""}`}
@@ -72,7 +72,7 @@ export function SimpleSelect({
                   role="option"
                   aria-selected={value === opt.value}
                   onClick={() => { onChange(opt.value); setOpen(false); }}
-                  className={`flex w-full items-center gap-2 px-3 py-2.5 text-sm transition-colors ${
+                   className={`flex min-h-11 w-full items-center gap-2 px-3 py-2.5 text-left text-sm transition-colors sm:min-h-0 ${
                     value === opt.value
                       ? "bg-[var(--accent-soft)] text-[var(--accent)]"
                       : "text-[var(--text-secondary)] hover:bg-[var(--surface-raised)]"
