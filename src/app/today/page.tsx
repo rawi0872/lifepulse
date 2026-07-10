@@ -835,7 +835,7 @@ function TodayContent() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-5 py-8 animate-fade-in">
+    <div className="mx-auto max-w-5xl px-4 py-6 animate-fade-in sm:px-5 sm:py-8">
 
       <TodaysPulseHeader firstName={firstName} totalXp={totalXp} todayXp={todayXp} subtitle={copy.subtitle} />
 
@@ -892,7 +892,7 @@ function TodayContent() {
 
       {activeGoalsCount > 0 && (
         <Card className="mb-4 overflow-hidden">
-          <div className="border-b border-[var(--border)] px-4 py-2.5">
+          <div className="border-b border-[var(--border)] px-4 py-3 sm:py-2.5">
             <p className="text-[10px] font-medium tracking-wider text-[var(--text-muted)]">
               Execution bridge
             </p>
@@ -900,7 +900,7 @@ function TodayContent() {
               Connect today&apos;s actions to the goals they support.
             </p>
           </div>
-          <div className="grid grid-cols-2 gap-0 divide-x divide-y divide-[var(--border)] sm:grid-cols-4 sm:divide-y-0">
+          <div className="grid min-w-0 grid-cols-2 gap-0 divide-x divide-y divide-[var(--border)] sm:grid-cols-4 sm:divide-y-0">
             <ExecutionBridgeMetric label="Active goals" value={activeGoalsCount} />
             <ExecutionBridgeMetric label="Goals with action links" value={linkedGoalsCount} />
             <ExecutionBridgeMetric label="Goals without action links" value={unlinkedGoalsCount} />
@@ -910,20 +910,20 @@ function TodayContent() {
               sub={`${projectLinksCount} projects / ${taskLinksCount} tasks / ${habitLinksCount} habits`}
             />
           </div>
-          <div className="border-t border-[var(--border)] px-4 py-3">
+          <div className="border-t border-[var(--border)] px-4 py-3.5 sm:py-3">
             <p className="text-xs text-[var(--text-muted)]">
               {unlinkedGoalsCount > 0
                 ? "Some active goals are not connected to projects, tasks, or habits yet."
                 : "Your active goals are connected to action."}
             </p>
-            <div className="mt-2 flex flex-wrap gap-2 text-xs">
-              <Link href="/goals" className="text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">Open Goals</Link>
-              <span className="text-[var(--text-muted)]">/</span>
-              <Link href="/projects" className="text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">Open Projects</Link>
-              <span className="text-[var(--text-muted)]">/</span>
-              <Link href="/tasks" className="text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">Open Tasks</Link>
-              <span className="text-[var(--text-muted)]">/</span>
-              <Link href="/habits" className="text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">Open Habits</Link>
+            <div className="mt-3 flex flex-wrap gap-2 text-xs sm:mt-2">
+              <Link href="/goals" className="rounded-md py-1 text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:py-0">Open Goals</Link>
+              <span className="hidden text-[var(--text-muted)] sm:inline">/</span>
+              <Link href="/projects" className="rounded-md py-1 text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:py-0">Open Projects</Link>
+              <span className="hidden text-[var(--text-muted)] sm:inline">/</span>
+              <Link href="/tasks" className="rounded-md py-1 text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:py-0">Open Tasks</Link>
+              <span className="hidden text-[var(--text-muted)] sm:inline">/</span>
+              <Link href="/habits" className="rounded-md py-1 text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:py-0">Open Habits</Link>
             </div>
           </div>
         </Card>
@@ -932,41 +932,43 @@ function TodayContent() {
       {/* Next action */}
       {suggestedTask && suggestedTask.projects ? (
         <Card className="mb-4">
-          <div className="flex items-center gap-3 px-4 py-3 hover:bg-[var(--surface-active)]">
-            <button
-              onClick={() => toggleSuggestedTask(suggestedTask.id, true)}
-              aria-label={`Complete "${suggestedTask.title}"`}
-              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-[var(--text-muted)]/40 hover:border-[var(--accent)]/50 hover:bg-[var(--accent-soft)] shadow-sm hover:shadow-[var(--accent)]/10 transition-all cursor-pointer"
-            >
-              <svg className="h-3 w-3 text-transparent group-hover:text-[var(--accent-strong)] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
-            </button>
-            <div className="flex-1 min-w-0">
-              <p className="text-[10px] font-medium tracking-wider text-[var(--accent)]">Project next action</p>
-              <p className="text-sm font-medium text-[var(--text)] truncate">{suggestedTask.title}</p>
-              <div className="mt-0.5 flex flex-wrap items-center gap-2">
-                <span className="text-[10px] text-[var(--text-muted)]">From: {suggestedTask.projects.title}</span>
-                {suggestedTaskGoalContext && (
-                  <span className="text-[10px] text-[var(--accent)]">{suggestedTaskGoalContext}</span>
-                )}
-                {suggestedTask.realms && (
-                  <span className="text-[10px]" style={{ color: suggestedTask.realms.color }}>
-                    {suggestedTask.realms.icon} {suggestedTask.realms.name}
-                  </span>
-                )}
+          <div className="flex flex-col gap-3 px-4 py-3.5 hover:bg-[var(--surface-active)] sm:flex-row sm:items-center sm:py-3">
+            <div className="flex min-w-0 items-start gap-3 sm:items-center">
+              <button
+                onClick={() => toggleSuggestedTask(suggestedTask.id, true)}
+                aria-label={`Complete "${suggestedTask.title}"`}
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 border-[var(--text-muted)]/40 shadow-sm transition-all hover:border-[var(--accent)]/50 hover:bg-[var(--accent-soft)] hover:shadow-[var(--accent)]/10 sm:h-6 sm:w-6"
+              >
+                <svg className="h-3 w-3 text-transparent transition-colors group-hover:text-[var(--accent-strong)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              </button>
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] font-medium tracking-wider text-[var(--accent)]">Project next action</p>
+                <p className="text-pretty text-sm font-medium text-[var(--text)]">{suggestedTask.title}</p>
+                <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 sm:mt-0.5">
+                  <span className="min-w-0 text-[10px] text-[var(--text-muted)]">From: {suggestedTask.projects.title}</span>
+                  {suggestedTaskGoalContext && (
+                    <span className="min-w-0 text-[10px] text-[var(--accent)]">{suggestedTaskGoalContext}</span>
+                  )}
+                  {suggestedTask.realms && (
+                    <span className="text-[10px]" style={{ color: suggestedTask.realms.color }}>
+                      {suggestedTask.realms.icon} {suggestedTask.realms.name}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
-            <div className="flex items-center gap-1 shrink-0">
+            <div className="flex shrink-0 items-center justify-end gap-1 sm:ml-auto">
               <button
                 onClick={() => setSuggestedHidden(true)}
-                className="rounded-md px-2 py-1 text-xs text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-active)] transition-all"
+                className="rounded-md px-3 py-2 text-xs text-[var(--text-muted)] transition-all hover:bg-[var(--surface-active)] hover:text-[var(--text)] sm:px-2 sm:py-1"
               >
                 Skip
               </button>
               <Link
                 href="/projects"
-                className="rounded-md px-2 py-1 text-xs text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-active)] transition-colors"
+                className="rounded-md px-3 py-2 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-active)] hover:text-[var(--text)] sm:px-2 sm:py-1"
               >
                 View
               </Link>
@@ -975,7 +977,7 @@ function TodayContent() {
         </Card>
       ) : hasContent ? (
         <Card variant="subtle" className="mb-4 border-dashed border-[var(--border)]">
-          <div className="px-4 py-3">
+          <div className="px-4 py-3.5 sm:py-3">
             <p className="text-[10px] font-medium text-[var(--text-muted)]">No project action queued</p>
             <p className="mt-0.5 text-xs text-[var(--text-muted)]">
               No project action waiting.{' '}
@@ -1026,8 +1028,8 @@ function TodayContent() {
         </Card>
       )}
 
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <div>
+      <div className="mb-3 flex min-w-0 items-center justify-between gap-3">
+        <div className="min-w-0">
           <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">
             Daily execution
           </p>
@@ -1037,8 +1039,8 @@ function TodayContent() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="space-y-6 lg:col-span-2">
+      <div className="grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="min-w-0 space-y-6 lg:col-span-2">
           <BodyPulseSection
             dueHabits={dueHabits}
             completedHabitIds={completedHabitIds}
@@ -1058,7 +1060,7 @@ function TodayContent() {
           />
         </div>
 
-        <div className="space-y-4">
+        <div className="min-w-0 space-y-4">
           <SectionHeader label="Life Pulse context" />
 
           <XpDisplay
@@ -1072,14 +1074,14 @@ function TodayContent() {
 
           <Link
             href="/body"
-            className="flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2.5 text-xs font-medium text-[var(--text)] transition-colors hover:bg-[var(--surface)]"
+            className="flex min-w-0 flex-wrap items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-3 text-xs font-medium text-[var(--text)] transition-colors hover:bg-[var(--surface)] sm:flex-nowrap sm:py-2.5"
           >
             <svg className="h-3.5 w-3.5 shrink-0 text-[var(--success)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z" />
             </svg>
             Body Pulse
             {bodyLoggedToday ? (
-              <span className="ml-auto flex items-center gap-1.5 text-[10px]">
+              <span className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-1.5 text-[10px]">
                 <span className="inline-flex items-center gap-1 rounded-full bg-[var(--success-soft)] px-1.5 py-0.5 text-[9px] text-[var(--success)]">
                   <svg className="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
                   Logged
@@ -1093,14 +1095,14 @@ function TodayContent() {
 
           <Link
             href="/mind"
-            className="flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2.5 text-xs font-medium text-[var(--text)] transition-colors hover:bg-[var(--surface)]"
+            className="flex min-w-0 flex-wrap items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-3 text-xs font-medium text-[var(--text)] transition-colors hover:bg-[var(--surface)] sm:flex-nowrap sm:py-2.5"
           >
             <svg className="h-3.5 w-3.5 shrink-0 text-[var(--accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9.53 16.122a3 3 0 00-5.78 1.128 2.25 2.25 0 01-2.4 2.245 4.5 4.5 0 008.4-2.245c0-.399-.078-.78-.22-1.128zm0 0a15.998 15.998 0 003.388-1.62m-5.043-.025a15.994 15.994 0 011.622-3.395m3.42 3.42a15.995 15.995 0 004.764-4.648l3.876-5.814a1.151 1.151 0 00-1.597-1.597L14.146 6.32a15.996 15.996 0 00-4.649 4.763m3.42 3.42a6.776 6.776 0 00-3.42-3.42" />
             </svg>
             Mind Pulse
             {mindLoggedToday ? (
-              <span className="ml-auto flex items-center gap-1.5 text-[10px]">
+              <span className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-1.5 text-[10px]">
                 <span className="inline-flex items-center gap-1 rounded-full bg-[var(--success-soft)] px-1.5 py-0.5 text-[9px] text-[var(--success)]">
                   <svg className="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
                   Logged
@@ -1114,13 +1116,13 @@ function TodayContent() {
 
           <Link
             href="/goals"
-            className="flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2.5 text-xs font-medium text-[var(--text)] transition-colors hover:bg-[var(--surface)]"
+            className="flex min-w-0 flex-wrap items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-3 text-xs font-medium text-[var(--text)] transition-colors hover:bg-[var(--surface)] sm:flex-nowrap sm:py-2.5"
           >
             <svg className="h-3.5 w-3.5 shrink-0 text-[var(--accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.59 14.37a6 6 0 01-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 006.16-12.12A14.98 14.98 0 009.631 8.41m5.96 5.96a14.926 14.926 0 01-5.841 2.58m-.119-8.54a6 6 0 00-7.381 5.84h4.8m2.581-5.84a14.927 14.927 0 00-2.58 5.84m2.699 2.7c-.103.021-.207.041-.311.06a15.09 15.09 0 01-2.448-2.448 14.9 14.9 0 01.06-.312m-2.24 2.39a4.493 4.493 0 00-1.757 4.306 4.493 4.493 0 004.306-1.758M16.5 9a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
             </svg>
             Goal Pulse
-            <span className="ml-auto flex items-center gap-1.5 text-[10px]">
+            <span className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-1.5 text-[10px]">
               {(() => {
                 const active = goalPreviewGoals.filter((g) => g.status === "active");
                 if (active.length === 0) return <span className="text-[var(--text-muted)]">View &rarr;</span>;
@@ -1143,7 +1145,7 @@ function TodayContent() {
 
           <Link
             href="/passions"
-            className="flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2.5 text-xs font-medium text-[var(--text)] transition-colors hover:bg-[var(--surface)]"
+            className="flex min-w-0 items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-3 text-xs font-medium text-[var(--text)] transition-colors hover:bg-[var(--surface)] sm:py-2.5"
           >
             <svg className="h-3.5 w-3.5 shrink-0 text-[var(--accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.385a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
@@ -1159,30 +1161,30 @@ function TodayContent() {
                 Close the day by turning reflection into reusable knowledge.
               </p>
               <div className="mt-3 space-y-2.5">
-                <div className="flex items-center justify-between gap-3 rounded-lg bg-[var(--surface)] px-3 py-2">
-                  <div>
+                <div className="flex flex-col items-start justify-between gap-2 rounded-lg bg-[var(--surface)] px-3 py-3 sm:flex-row sm:items-center sm:gap-3 sm:py-2">
+                  <div className="min-w-0">
                     <p className="text-xs font-medium text-[var(--text)]">Today reflection</p>
                     <p className="text-[10px] text-[var(--text-muted)]">{hasJournal ? "Captured today" : "Not captured yet"}</p>
                   </div>
-                  <a href="#evening-reflection" className="shrink-0 text-[10px] font-medium text-[var(--accent)] hover:text-[var(--accent-strong)]">
+                  <a href="#evening-reflection" className="shrink-0 rounded-md py-1 text-[10px] font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] sm:py-0">
                     Evening Reflection
                   </a>
                 </div>
-                <div className="flex items-center justify-between gap-3 rounded-lg bg-[var(--surface)] px-3 py-2">
-                  <div>
+                <div className="flex flex-col items-start justify-between gap-2 rounded-lg bg-[var(--surface)] px-3 py-3 sm:flex-row sm:items-center sm:gap-3 sm:py-2">
+                  <div className="min-w-0">
                     <p className="text-xs font-medium text-[var(--text)]">Knowledge this week</p>
                     <p className="text-[10px] text-[var(--text-muted)]">{weeklyKnowledgeItems} items captured this week</p>
                   </div>
-                  <Link href="/knowledge" className="shrink-0 text-[10px] font-medium text-[var(--accent)] hover:text-[var(--accent-strong)]">
+                  <Link href="/knowledge" className="shrink-0 rounded-md py-1 text-[10px] font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] sm:py-0">
                     Open Knowledge
                   </Link>
                 </div>
-                <div className="flex items-center justify-between gap-3 rounded-lg bg-[var(--surface)] px-3 py-2">
-                  <div>
+                <div className="flex flex-col items-start justify-between gap-2 rounded-lg bg-[var(--surface)] px-3 py-3 sm:flex-row sm:items-center sm:gap-3 sm:py-2">
+                  <div className="min-w-0">
                     <p className="text-xs font-medium text-[var(--text)]">Weekly memory review</p>
                     <p className="text-[10px] text-[var(--text-muted)]">Review reflections and knowledge from the week.</p>
                   </div>
-                  <Link href="/weekly-review" className="shrink-0 text-[10px] font-medium text-[var(--accent)] hover:text-[var(--accent-strong)]">
+                  <Link href="/weekly-review" className="shrink-0 rounded-md py-1 text-[10px] font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] sm:py-0">
                     Open Weekly Review
                   </Link>
                 </div>
@@ -1214,10 +1216,10 @@ function TodayContent() {
 
 function ExecutionBridgeMetric({ label, value, sub }: { label: string; value: number; sub?: string }) {
   return (
-    <div className="p-3 text-center">
+    <div className="min-w-0 p-3 text-center">
       <p className="text-lg font-bold text-[var(--text)]">{value}</p>
-      <p className="text-[10px] text-[var(--text-muted)]">{label}</p>
-      {sub && <p className="mt-0.5 text-[9px] text-[var(--text-muted)]">{sub}</p>}
+      <p className="text-[10px] text-pretty text-[var(--text-muted)]">{label}</p>
+      {sub && <p className="mt-0.5 break-words text-[9px] text-[var(--text-muted)]">{sub}</p>}
     </div>
   );
 }

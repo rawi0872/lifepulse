@@ -104,11 +104,11 @@ export function NextBestAction(props: NextBestActionProps) {
           <Link
             key={action.id}
             href={action.actionHref}
-            className="flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--text-secondary)] hover:text-[var(--text)] hover:bg-[var(--surface-active)] transition-all"
+            className="flex min-w-0 items-start gap-3 px-4 py-3 text-sm text-[var(--text-secondary)] transition-all hover:bg-[var(--surface-active)] hover:text-[var(--text)] sm:items-center sm:py-2.5"
           >
             {actionIcons[action.category] || actionIcons.general}
-            <span>{action.title}</span>
-            <span className="ml-auto text-xs text-[var(--text-muted)]">&rarr;</span>
+            <span className="min-w-0 flex-1 text-pretty leading-5">{action.title}</span>
+            <span className="ml-auto shrink-0 text-xs text-[var(--text-muted)]">&rarr;</span>
           </Link>
         ))}
       </div>

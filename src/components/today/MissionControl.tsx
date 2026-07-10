@@ -46,20 +46,20 @@ export function MissionControl({
 }: MissionControlProps) {
   return (
     <PulseCard accent="accent" title="Mission Control" className="mb-6">
-      <div className="p-4">
+      <div className="p-4 sm:p-5">
         <div>
           <label className="text-xs font-medium text-[var(--text-secondary)]">
             What matters today
           </label>
           {priorities.length === 0 ? (
-            <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+            <div className="mt-2 flex min-w-0 flex-col gap-2.5 sm:flex-row">
               <input
                 value={priorityInput}
                 onChange={(e) => onPriorityInputChange(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") onAddPriority(); }}
                 placeholder={focusPrompt}
                 maxLength={200}
-                className="flex-1 rounded-lg border border-[var(--border-strong)] bg-[var(--surface-soft)] px-3 py-2 text-sm text-[var(--text)] placeholder-[var(--text-muted)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none"
+                className="min-w-0 flex-1 rounded-lg border border-[var(--border-strong)] bg-[var(--surface-soft)] px-3 py-2.5 text-sm text-[var(--text)] placeholder-[var(--text-muted)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none sm:py-2"
               />
               <Button onClick={onAddPriority} disabled={!priorityInput.trim()} size="sm" className="w-full sm:w-auto">
                 Set
@@ -68,10 +68,10 @@ export function MissionControl({
           ) : (
             <div className="mt-2 space-y-1.5">
               {priorities.map((p) => (
-                <div key={p.id} className="flex items-center gap-2.5 group transition-all duration-200">
+                <div key={p.id} className="group flex min-w-0 items-start gap-2.5 rounded-lg py-1 transition-all duration-200 sm:items-center sm:py-0">
                   <button
                     onClick={() => onTogglePriority(p.id)}
-                    className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-all duration-150 ${
+                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 transition-all duration-150 sm:h-5 sm:w-5 ${
                       p.done
                         ? "border-[var(--success)]/70 bg-[var(--success)]/80 shadow-sm shadow-[var(--success)]/15"
                         : "border-[var(--text-muted)]/40 hover:border-[var(--accent)]/50 hover:bg-[var(--accent-ghost)]"
@@ -83,12 +83,12 @@ export function MissionControl({
                       </svg>
                     )}
                   </button>
-                  <span className={`flex-1 text-sm ${p.done ? "line-through text-[var(--text-muted)]" : "text-[var(--text)]"}`}>
+                  <span className={`min-w-0 flex-1 break-words pt-1 text-sm sm:pt-0 ${p.done ? "line-through text-[var(--text-muted)]" : "text-[var(--text)]"}`}>
                     {p.text}
                   </span>
                   <button
                     onClick={() => onRemovePriority(p.id)}
-                    className="opacity-0 group-hover:opacity-100 text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-all text-xs"
+                    className="rounded-md p-1 text-xs text-[var(--text-muted)] opacity-100 transition-all hover:text-[var(--text-secondary)] sm:opacity-0 sm:group-hover:opacity-100"
                     aria-label={`Remove "${p.text}"`}
                   >
                     <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -108,7 +108,7 @@ export function MissionControl({
               {priorities.length < 3 && (
                 <div className="mt-1">
                   {addingPriority ? (
-                    <div className="flex flex-col gap-2 sm:flex-row">
+                    <div className="flex min-w-0 flex-col gap-2.5 sm:flex-row">
                       <input
                         autoFocus
                         value={priorityInput}
@@ -119,12 +119,12 @@ export function MissionControl({
                         }}
                         placeholder={focusPrompt}
                         maxLength={200}
-                        className="flex-1 rounded-lg border border-[var(--border-strong)] bg-[var(--surface-soft)] px-2.5 py-1.5 text-xs text-[var(--text)] placeholder-[var(--text-muted)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none"
+                        className="min-w-0 flex-1 rounded-lg border border-[var(--border-strong)] bg-[var(--surface-soft)] px-3 py-2 text-sm text-[var(--text)] placeholder-[var(--text-muted)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none sm:px-2.5 sm:py-1.5 sm:text-xs"
                       />
                       <button
                         onClick={onAddPriority}
                         disabled={!priorityInput.trim()}
-                        className="text-xs text-[var(--accent)] hover:text-[var(--accent-strong)] disabled:text-[var(--text-muted)] transition-colors"
+                        className="rounded-lg px-3 py-2 text-xs text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] disabled:text-[var(--text-muted)] sm:px-0 sm:py-0"
                       >
                         Add
                       </button>
@@ -132,7 +132,7 @@ export function MissionControl({
                   ) : (
                     <button
                       onClick={() => onAddingPriorityChange(true)}
-                      className="text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors"
+                      className="rounded-lg py-2 text-xs text-[var(--text-muted)] transition-colors hover:text-[var(--text-secondary)] sm:py-0"
                     >
                       + Add priority
                     </button>
@@ -149,15 +149,15 @@ export function MissionControl({
           <label className="text-xs font-medium text-[var(--text-secondary)]">
             Quick capture
           </label>
-            <div className="mt-2 flex flex-col gap-2 sm:flex-row">
-            <div className="relative flex-1">
+          <div className="mt-2 flex min-w-0 flex-col gap-2.5 sm:flex-row">
+            <div className="relative min-w-0 flex-1">
               <input
                 value={quickCapture}
                 onChange={(e) => onQuickCaptureChange(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") onQuickCapture(); }}
                 placeholder="Capture a task, habit, or project before it gets lost..."
                 maxLength={200}
-                className="w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface-soft)] px-3 py-2 pr-20 text-sm text-[var(--text)] placeholder-[var(--text-muted)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none"
+                className="w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface-soft)] px-3 py-2.5 pr-24 text-sm text-[var(--text)] placeholder-[var(--text-muted)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none sm:py-2"
               />
               <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
                 <span className={`rounded px-2 py-0.5 text-[10px] font-medium ${
@@ -176,13 +176,13 @@ export function MissionControl({
             </Button>
           </div>
           {quickCapture.trim() && (
-            <div className="mt-1.5 flex gap-2">
+            <div className="mt-2 flex flex-wrap gap-2">
               {(["task", "habit", "project"] as const).map((t) => (
                 t !== quickType && (
                   <button
                     key={t}
                     onClick={() => onQuickTypeChange(t)}
-                    className="rounded-md px-2 py-0.5 border border-[var(--border)] hover:border-[var(--border-strong)] text-[10px] text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors"
+                    className="rounded-md border border-[var(--border)] px-2.5 py-1.5 text-[10px] text-[var(--text-muted)] transition-colors hover:border-[var(--border-strong)] hover:text-[var(--text-secondary)] sm:py-0.5"
                   >
                     Save as {t}
                   </button>

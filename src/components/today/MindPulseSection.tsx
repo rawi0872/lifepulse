@@ -63,15 +63,15 @@ export function MindPulseSection({ tasks, doneTaskCount, tasksLength, taskContex
           {tasks.map((task) => {
             const context = taskContextById[task.id];
             return (
-              <div key={task.id} className="space-y-1">
+              <div key={task.id} className="min-w-0 space-y-1.5 sm:space-y-1">
                 <TaskCard task={task} onToggle={onToggleTask} />
                 {(context?.projectTitle || context?.goalContext) && (
-                  <div className="flex flex-wrap gap-1.5 pl-10 text-[10px] text-[var(--text-muted)]">
+                  <div className="flex min-w-0 flex-wrap gap-1.5 pl-0 text-[10px] text-[var(--text-muted)] sm:pl-10">
                     {context.projectTitle && (
-                      <span className="rounded-full bg-[var(--surface)] px-2 py-0.5">Project: {context.projectTitle}</span>
+                      <span className="min-w-0 rounded-full bg-[var(--surface)] px-2 py-1 sm:py-0.5">Project: {context.projectTitle}</span>
                     )}
                     {context.goalContext && (
-                      <span className="rounded-full bg-[var(--accent-soft)] px-2 py-0.5 text-[var(--accent)]">{context.goalContext}</span>
+                      <span className="min-w-0 rounded-full bg-[var(--accent-soft)] px-2 py-1 text-[var(--accent)] sm:py-0.5">{context.goalContext}</span>
                     )}
                   </div>
                 )}

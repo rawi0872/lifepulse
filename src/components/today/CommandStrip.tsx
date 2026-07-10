@@ -26,8 +26,9 @@ export function CommandStrip({
   financeHasTx,
 }: CommandStripProps) {
   return (
-    <div className="mb-6 grid grid-cols-2 gap-2 sm:grid-cols-5">
+    <div className="mb-6 grid grid-cols-2 gap-2.5 sm:grid-cols-5">
       <MetricCard
+        className="min-w-0 py-3 sm:py-2.5"
         label="Habits"
         value={`${completedHabitCount}/${dueHabitsLength}`}
         active={completedHabitCount === dueHabitsLength && dueHabitsLength > 0}
@@ -38,6 +39,7 @@ export function CommandStrip({
         }
       />
       <MetricCard
+        className="min-w-0 py-3 sm:py-2.5"
         label="Tasks"
         value={`${doneTaskCount}/${tasksLength}`}
         active={doneTaskCount > 0 && doneTaskCount === tasksLength && tasksLength > 0}
@@ -48,6 +50,7 @@ export function CommandStrip({
         }
       />
       <MetricCard
+        className="min-w-0 py-3 sm:py-2.5"
         label="Reflect"
         value={hasJournal ? "Done" : "\u2014"}
         active={hasJournal}
@@ -58,6 +61,7 @@ export function CommandStrip({
         }
       />
       <MetricCard
+        className="min-w-0 py-3 sm:py-2.5"
         label="XP Today"
         value={`+${todayXp}`}
         active={todayXp > 0}
@@ -69,6 +73,7 @@ export function CommandStrip({
       />
       <Link href="/finance" className="contents">
         <MetricCard
+          className="min-w-0 py-3 sm:py-2.5"
           label="Money"
           value={financeHasTx && financeNet !== null ? formatMoney(financeNet) : "\u2014"}
           active={financeHasTx}
