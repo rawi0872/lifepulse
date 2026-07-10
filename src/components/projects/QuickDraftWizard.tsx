@@ -116,29 +116,29 @@ export function QuickDraftWizard({
           </div>
           <h2 className="text-sm font-semibold text-[var(--text)]">Quick plan</h2>
         </div>
-        <p className="text-xs text-[var(--text-muted)]">
+        <p className="text-pretty text-xs text-[var(--text-muted)]">
           Describe what you want to achieve. Life Pulse will turn it into a project draft.
         </p>
-        <div className="mt-3 flex gap-2">
+        <div className="mt-3 flex min-w-0 flex-col gap-2 sm:flex-row">
           <input
             value={quickInput}
             onChange={(e) => onQuickInputChange(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Example: Improve my guitar soloing by September"
-            className="flex-1 rounded-lg border border-[var(--border-strong)] bg-[var(--surface-soft)] px-3 py-2 text-sm text-[var(--text)] placeholder-[var(--text-muted)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none"
+            className="min-w-0 flex-1 rounded-lg border border-[var(--border-strong)] bg-[var(--surface-soft)] px-3 py-2.5 text-sm text-[var(--text)] placeholder-[var(--text-muted)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none sm:py-2"
           />
-          <Button onClick={onQuickDraft} disabled={!quickInput.trim()}>
+          <Button className="w-full sm:w-auto" onClick={onQuickDraft} disabled={!quickInput.trim()}>
             Create plan
           </Button>
         </div>
 
         {quickDraft && (
           <div className="mt-4 rounded-lg border border-[var(--accent)]/30 bg-[var(--accent-ghost)] p-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-[var(--accent)]">Draft: {quickDraft.title}</h3>
+            <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <h3 className="min-w-0 text-pretty text-sm font-semibold text-[var(--accent)]">Draft: {quickDraft.title}</h3>
               {quickDraft.realmId && realms.find((r) => r.id === quickDraft.realmId) && (
                 <span
-                  className="rounded-full px-2 py-0.5 text-[10px]"
+                  className="w-fit rounded-full px-2 py-1 text-[10px] sm:py-0.5"
                   style={{
                     backgroundColor: realms.find((r) => r.id === quickDraft.realmId)!.color + "20",
                     color: realms.find((r) => r.id === quickDraft.realmId)!.color,
@@ -157,7 +157,7 @@ export function QuickDraftWizard({
               {quickDraft.suggestedTasks.map((t, i) => (
                 <label
                   key={i}
-                  className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-xs text-[var(--text-secondary)] hover:bg-[var(--surface-raised)] transition-all duration-150"
+                  className="flex min-w-0 cursor-pointer items-start gap-2 rounded-md px-2 py-2 text-xs text-[var(--text-secondary)] transition-all duration-150 hover:bg-[var(--surface-raised)] sm:items-center sm:py-1.5"
                 >
                   <input
                     type="checkbox"
@@ -165,12 +165,12 @@ export function QuickDraftWizard({
                     onChange={() => onToggleSuggestion(i)}
                     className="h-4 w-4 rounded border-[var(--border)] bg-[var(--surface)] text-[var(--accent)] focus:ring-[var(--accent)]/30 focus:ring-offset-0 hover:border-[var(--accent)]/50"
                   />
-                  {t}
+                  <span className="min-w-0 text-pretty">{t}</span>
                 </label>
               ))}
             </div>
 
-            <div className="mt-4 flex gap-2">
+            <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row">
               <Button size="sm" onClick={onSaveQuickDraft} disabled={saving}>
                 {saving ? "Saving..." : (
                   <>

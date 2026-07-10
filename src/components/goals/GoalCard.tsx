@@ -28,11 +28,11 @@ export function GoalCard({ goal, milestoneProgress, nextMilestoneTitle, onEdit, 
   const isComplete = goal.status === "completed";
 
   return (
-    <div className={`rounded-lg border ${isComplete ? "border-[var(--success-soft)]" : "border-[var(--border)]"} bg-[var(--surface)] p-4 transition-all hover:border-[var(--border-strong)]`}>
-      <div className="flex items-start justify-between gap-2">
+    <div className={`min-w-0 rounded-lg border ${isComplete ? "border-[var(--success-soft)]" : "border-[var(--border)]"} bg-[var(--surface)] p-4 transition-all hover:border-[var(--border-strong)]`}>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-2">
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <h3 className={`text-sm font-semibold tracking-tight ${isComplete ? "text-[var(--text-muted)] line-through" : "text-[var(--text)]"}`}>
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <h3 className={`min-w-0 text-pretty text-sm font-semibold tracking-tight ${isComplete ? "text-[var(--text-muted)] line-through" : "text-[var(--text)]"}`}>
               {goal.title}
             </h3>
             <span className={`inline-block rounded-full px-1.5 py-0.5 text-[9px] font-medium ${statusStyles[goal.status] ?? ""}`}>
@@ -47,11 +47,11 @@ export function GoalCard({ goal, milestoneProgress, nextMilestoneTitle, onEdit, 
           )}
         </div>
 
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex shrink-0 items-center justify-end gap-1 sm:justify-start">
           {!isComplete && (
             <button
               onClick={() => onComplete(goal.id)}
-              className="rounded p-1 text-[var(--text-muted)] hover:text-[var(--success)] transition-colors"
+              className="rounded p-2 text-[var(--text-muted)] transition-colors hover:text-[var(--success)] sm:p-1"
               title="Mark complete"
             >
               <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -61,7 +61,7 @@ export function GoalCard({ goal, milestoneProgress, nextMilestoneTitle, onEdit, 
           )}
           <button
             onClick={() => onEdit(goal)}
-            className="rounded p-1 text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors"
+            className="rounded p-2 text-[var(--text-muted)] transition-colors hover:text-[var(--accent)] sm:p-1"
             title="Edit goal"
           >
             <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -70,7 +70,7 @@ export function GoalCard({ goal, milestoneProgress, nextMilestoneTitle, onEdit, 
           </button>
           <button
             onClick={() => onDelete(goal.id)}
-            className="rounded p-1 text-[var(--text-muted)] hover:text-[var(--danger)] transition-colors"
+            className="rounded p-2 text-[var(--text-muted)] transition-colors hover:text-[var(--danger)] sm:p-1"
             title="Delete goal"
           >
             <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -81,7 +81,7 @@ export function GoalCard({ goal, milestoneProgress, nextMilestoneTitle, onEdit, 
       </div>
 
       {goal.description && (
-        <p className="mt-1 text-xs text-[var(--text-muted)] line-clamp-2">{goal.description}</p>
+        <p className="mt-1 text-pretty text-xs text-[var(--text-muted)] line-clamp-2">{goal.description}</p>
       )}
 
       {goal.why && !isComplete && (
@@ -90,7 +90,7 @@ export function GoalCard({ goal, milestoneProgress, nextMilestoneTitle, onEdit, 
         </p>
       )}
 
-      <div className="mt-3 flex items-center gap-3 text-[10px] text-[var(--text-muted)]">
+      <div className="mt-3 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-[var(--text-muted)]">
         {goal.priority && (
           <span className="flex items-center gap-1">
             <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: priorityColors[goal.priority] ?? "var(--text-muted)" }} />
@@ -116,7 +116,7 @@ export function GoalCard({ goal, milestoneProgress, nextMilestoneTitle, onEdit, 
         )}
 
         {nextMilestoneTitle && !isComplete && (
-          <span className="ml-auto truncate max-w-[120px]" title={nextMilestoneTitle}>
+          <span className="min-w-0 max-w-full text-pretty sm:ml-auto sm:max-w-[120px] sm:truncate" title={nextMilestoneTitle}>
             Next: {nextMilestoneTitle}
           </span>
         )}

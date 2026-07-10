@@ -35,7 +35,7 @@ export function GoalForm({ saving, onSave, onCancel, initial, realms }: Props) {
 
   return (
     <PulseCard title={initial ? "Edit Goal" : "New Goal"} accent="accent" description="Define what you want to achieve">
-      <form onSubmit={handleSubmit} className="space-y-3 p-4">
+      <form onSubmit={handleSubmit} className="space-y-3 p-4 sm:p-5">
         <div>
           <label className="mb-1 block text-[10px] font-medium uppercase tracking-[0.08em] text-[var(--text-muted)]">Title *</label>
           <input
@@ -69,7 +69,7 @@ export function GoalForm({ saving, onSave, onCancel, initial, realms }: Props) {
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
             <label className="mb-1 block text-[10px] font-medium uppercase tracking-[0.08em] text-[var(--text-muted)]">Priority</label>
             <select
@@ -108,7 +108,7 @@ export function GoalForm({ saving, onSave, onCancel, initial, realms }: Props) {
           />
         </div>
 
-        <div className="flex gap-2 pt-1">
+        <div className="flex flex-col-reverse gap-2 pt-1 sm:flex-row">
           <button
             type="submit"
             disabled={saving || !title.trim()}
@@ -119,7 +119,7 @@ export function GoalForm({ saving, onSave, onCancel, initial, realms }: Props) {
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs font-medium text-[var(--text-muted)] transition-colors hover:text-[var(--text)]"
+            className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-xs font-medium text-[var(--text-muted)] transition-colors hover:text-[var(--text)] sm:py-2"
           >
             Cancel
           </button>

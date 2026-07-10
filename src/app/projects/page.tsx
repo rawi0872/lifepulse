@@ -70,7 +70,7 @@ export default function ProjectsPage() {
   const [deadline, setDeadline] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-const [linkedProjectIds, setLinkedProjectIds] = useState<Set<string>>(new Set());
+  const [linkedProjectIds, setLinkedProjectIds] = useState<Set<string>>(new Set());
   const { toast } = useToast();
 
   const [quickInput, setQuickInput] = useState("");
@@ -393,11 +393,11 @@ const [linkedProjectIds, setLinkedProjectIds] = useState<Set<string>>(new Set())
 
   return (
     <DashboardNav>
-      <div className="mx-auto max-w-2xl px-5 py-8 animate-fade-in">
-        <div className="mb-8 flex items-center justify-between">
-          <div>
+      <div className="mx-auto max-w-2xl px-4 py-6 animate-fade-in sm:px-5 sm:py-8">
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
             <h1 className="text-2xl font-bold text-[var(--text)]">Projects</h1>
-            <div className="text-sm text-[var(--text-muted)]">
+            <div className="text-pretty text-sm text-[var(--text-muted)]">
               Turn bigger goals into visible progress.
               <HelpPopover title="What is a project?">
                 <p>Projects are larger outcomes made of tasks. Use them when a goal takes multiple steps.</p>
@@ -405,7 +405,7 @@ const [linkedProjectIds, setLinkedProjectIds] = useState<Set<string>>(new Set())
               </HelpPopover>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 sm:shrink-0">
             <Button variant="secondary" onClick={() => { resetForm(); setShowForm(true); }}>
               Create manually
             </Button>
@@ -467,7 +467,7 @@ const [linkedProjectIds, setLinkedProjectIds] = useState<Set<string>>(new Set())
 
               return (
                 <section key={statusGroup}>
-                  <div className="mb-3 flex items-center gap-2">
+                  <div className="mb-3 flex min-w-0 items-center gap-2">
                     <h2 className={`text-sm font-semibold ${isPrimary ? "text-[var(--text)]" : "text-[var(--text-muted)]"}`}>
                       {statusGroup === "active" ? "Active projects" : statusGroup === "paused" ? "Paused" : "Completed"}
                     </h2>
@@ -486,14 +486,14 @@ const [linkedProjectIds, setLinkedProjectIds] = useState<Set<string>>(new Set())
                       Each project is one outcome. Break it into tasks, then execute them one at a time.
                     </p>
                   )}
-                  <div className={`flex flex-col gap-3 ${isPrimary ? "" : "opacity-60 hover:opacity-100 transition-opacity"}`}>
+                  <div className={`flex min-w-0 flex-col gap-3 ${isPrimary ? "" : "opacity-60 hover:opacity-100 transition-opacity"}`}>
                     {groupProjects.map((project) => {
                       const tasks = tasksByProject[project.id] ?? [];
                       const taskContext = getTaskContext(tasks);
                       const linkedProjectGoals = goalsByProjectId[project.id] ?? [];
 
                       return (
-                        <div key={project.id} className="space-y-2">
+                        <div key={project.id} className="min-w-0 space-y-2">
                           <ProjectGoalContext goals={linkedProjectGoals} />
                           <ProjectTaskContext context={taskContext} />
                           <ProjectCard
@@ -542,21 +542,21 @@ function ProjectTaskContext({
   };
 }) {
   return (
-    <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2.5">
+    <div className="min-w-0 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-3 sm:py-2.5">
       {context.totalTasks === 0 ? (
         <p className="text-xs text-[var(--text-muted)]">No linked tasks yet</p>
       ) : (
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap gap-2 text-[10px] text-[var(--text-muted)]">
+        <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 flex-wrap gap-2 text-[10px] text-[var(--text-muted)]">
             <span>Linked tasks: {context.totalTasks}</span>
             <span>Open tasks: {context.openTasks}</span>
             <span>Completed tasks: {context.completedTasks}</span>
           </div>
-          <div className="min-w-0 text-xs text-[var(--text-muted)] sm:max-w-[55%]">
+          <div className="min-w-0 text-pretty text-xs text-[var(--text-muted)] sm:max-w-[55%]">
             <span className="font-medium text-[var(--text-secondary)]">Next task: </span>
             {context.nextTask ? (
-              <span>
-                <span className="truncate text-[var(--text)]">{context.nextTask.title}</span>
+              <span className="min-w-0">
+                <span className="text-[var(--text)]">{context.nextTask.title}</span>
                 {context.nextTask.due_date && <span> &middot; due {context.nextTask.due_date}</span>}
               </span>
             ) : (
@@ -572,7 +572,7 @@ function ProjectTaskContext({
 function ProjectGoalContext({ goals }: { goals: LinkedGoal[] }) {
   if (goals.length === 0) {
     return (
-      <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2.5">
+      <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-3 sm:py-2.5">
         <p className="text-xs text-[var(--text-muted)]">No linked goals yet</p>
       </div>
     );
@@ -587,8 +587,8 @@ function ProjectGoalContext({ goals }: { goals: LinkedGoal[] }) {
     : `Supports goals: ${goalTitles}${remainingCount > 0 ? ` +${remainingCount}` : ""}`;
 
   return (
-    <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2.5">
-      <p className="text-xs text-[var(--text-muted)]">{label}</p>
+    <div className="min-w-0 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-3 sm:py-2.5">
+      <p className="text-pretty text-xs text-[var(--text-muted)]">{label}</p>
     </div>
   );
 }

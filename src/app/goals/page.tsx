@@ -340,9 +340,9 @@ function GoalsContent() {
   const renderGoalList = (items: Goal[], label: string) => {
     if (items.length === 0) return null;
     return (
-      <div className="mb-6">
+      <div className="mb-6 min-w-0">
         <SectionHeader label={label} count={String(items.length)} accent="accent" />
-        <div className="space-y-2">
+        <div className="space-y-2.5 sm:space-y-2">
           {items.map((goal) => {
             const isExpanded = expandedGoalId === goal.id;
             const goalMilestones = getMilestonesForGoal(goal.id);
@@ -354,7 +354,7 @@ function GoalsContent() {
               formatActionLinkCount(actionLinkCounts.habits, "habit", "habits"),
             ].filter(Boolean).join(" · ");
             return (
-              <div key={goal.id}>
+              <div key={goal.id} className="min-w-0">
                 <GoalCard
                   goal={goal}
                   milestoneProgress={getMilestoneProgress(goal.id)}
@@ -363,7 +363,7 @@ function GoalsContent() {
                   onDelete={handleDelete}
                   onComplete={handleComplete}
                 />
-                <div className="mt-1 rounded-md border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2 text-[10px] text-[var(--text-muted)]">
+                <div className="mt-1 min-w-0 rounded-md border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2.5 text-[10px] text-[var(--text-muted)] sm:py-2">
                   {actionLinkCounts.total > 0 ? (
                     <span>
                       <span className="font-medium text-[var(--text-secondary)]">Supports:</span> {actionLinkSummary}
@@ -384,7 +384,7 @@ function GoalsContent() {
                   return (
                     <button
                       onClick={() => toggleExpand(goal.id)}
-                      className="mt-1 flex w-full items-center justify-center gap-1 py-1 text-[9px] text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors"
+                      className="mt-1 flex min-h-8 w-full items-center justify-center gap-1 py-1 text-[9px] text-[var(--text-muted)] transition-colors hover:text-[var(--accent)] sm:min-h-0"
                     >
                       <svg
                         className={`h-3 w-3 transition-transform ${isExpanded ? "rotate-180" : ""}`}
@@ -397,7 +397,7 @@ function GoalsContent() {
                   );
                 })()}
                 {isExpanded && (
-                  <div className="mt-2 space-y-3">
+                  <div className="mt-2 min-w-0 space-y-3">
                     <GoalMilestones
                       milestones={goalMilestones}
                       saving={saving}
@@ -427,8 +427,8 @@ function GoalsContent() {
   if (loading) return null;
 
   return (
-    <div className="animate-fade-in p-4 md:p-6">
-      <div className="mx-auto max-w-3xl">
+    <div className="animate-fade-in px-4 py-6 md:p-6">
+      <div className="mx-auto max-w-3xl min-w-0">
         <GoalPulseHeader
           activeCount={activeGoalCount}
           completedCount={completedGoalCount}
@@ -440,7 +440,7 @@ function GoalsContent() {
           <div className="mb-6">
             <button
               onClick={() => { setEditingGoal(null); setShowForm(true); }}
-              className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 text-xs font-medium text-[var(--text-muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
+              className="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-dashed border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 text-xs font-medium text-[var(--text-muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)] sm:min-h-0"
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />

@@ -49,10 +49,10 @@ export function GoalMilestones({ milestones, saving, onAdd, onToggle, onDelete }
             .map((m) => {
               const done = !!m.completed_at;
               return (
-                <div key={m.id} className="flex items-center gap-2 px-4 py-2.5">
+                <div key={m.id} className="flex min-w-0 items-start gap-2 px-4 py-3 sm:items-center sm:py-2.5">
                   <button
                     onClick={() => onToggle(m.id, !done)}
-                    className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors ${
+                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded border transition-colors sm:h-4 sm:w-4 ${
                       done
                         ? "border-[var(--success)] bg-[var(--success)] text-white"
                         : "border-[var(--border)] hover:border-[var(--accent)]"
@@ -74,7 +74,7 @@ export function GoalMilestones({ milestones, saving, onAdd, onToggle, onDelete }
                   </div>
                   <button
                     onClick={() => onDelete(m.id)}
-                    className="text-[var(--text-muted)] hover:text-[var(--danger)] transition-colors"
+                    className="rounded p-1 text-[var(--text-muted)] transition-colors hover:text-[var(--danger)]"
                     title="Delete milestone"
                   >
                     <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -87,18 +87,18 @@ export function GoalMilestones({ milestones, saving, onAdd, onToggle, onDelete }
         )}
       </div>
 
-      <div className="flex gap-2 border-t border-[var(--border)] px-4 py-3">
+      <div className="flex flex-col gap-2 border-t border-[var(--border)] px-4 py-3 sm:flex-row">
         <input
           value={newTitle}
           onChange={(e) => setNewTitle(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleAdd()}
           placeholder="Add milestone..."
-          className="min-w-0 flex-1 rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-1.5 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none focus:border-[var(--accent)]"
+          className="min-w-0 flex-1 rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none focus:border-[var(--accent)] sm:py-1.5"
         />
         <button
           onClick={handleAdd}
           disabled={saving || !newTitle.trim()}
-          className="shrink-0 rounded-lg bg-[var(--accent)] px-3 py-1.5 text-[10px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+          className="shrink-0 rounded-lg bg-[var(--accent)] px-3 py-2 text-[10px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50 sm:py-1.5"
         >
           Add
         </button>

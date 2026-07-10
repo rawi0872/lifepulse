@@ -53,7 +53,7 @@ export function ProjectForm({
 
   return (
     <Card className="mb-6 border-[var(--border-strong)]">
-      <div className="flex flex-col gap-4 p-4">
+      <div className="flex flex-col gap-4 p-4 sm:p-5">
         <h2 className="text-sm font-semibold text-[var(--text)]">
           {editingId ? "Edit project" : "New project"}
         </h2>
@@ -64,7 +64,7 @@ export function ProjectForm({
             onChange={(e) => onTitleChange(e.target.value)}
             placeholder="Project title"
             maxLength={200}
-            className="w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface-soft)] px-3 py-2 text-sm text-[var(--text)] placeholder-[var(--text-muted)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none"
+            className="w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface-soft)] px-3 py-2.5 text-sm text-[var(--text)] placeholder-[var(--text-muted)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none sm:py-2"
           />
         </div>
 
@@ -76,12 +76,12 @@ export function ProjectForm({
             placeholder="Optional description"
             rows={2}
             maxLength={2000}
-            className="w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface-soft)] px-3 py-2 text-sm text-[var(--text)] placeholder-[var(--text-muted)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none resize-none"
+            className="w-full resize-none rounded-lg border border-[var(--border-strong)] bg-[var(--surface-soft)] px-3 py-2.5 text-sm text-[var(--text)] placeholder-[var(--text-muted)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none sm:py-2"
           />
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row">
-          <div className="flex-1">
+          <div className="min-w-0 flex-1">
             <label className="mb-1.5 block text-xs font-medium text-[var(--text-muted)]">Life area</label>
             <RealmPicker
               realms={realms}
@@ -90,13 +90,13 @@ export function ProjectForm({
               allowNone
             />
           </div>
-          <div className="flex-1">
+          <div className="min-w-0 flex-1">
             <label className="mb-1.5 block text-xs font-medium text-[var(--text-muted)]">Deadline</label>
             <input
               type="date"
               value={deadline}
               onChange={(e) => onDeadlineChange(e.target.value)}
-              className="w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface-soft)] px-3 py-2 text-sm text-[var(--text)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none [color-scheme:dark]"
+              className="w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface-soft)] px-3 py-2.5 text-sm text-[var(--text)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none [color-scheme:dark] sm:py-2"
             />
           </div>
         </div>
@@ -118,7 +118,7 @@ export function ProjectForm({
           </div>
         )}
 
-        <div className="flex justify-end gap-2">
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <Button variant="secondary" onClick={onCancel}>
             Cancel
           </Button>

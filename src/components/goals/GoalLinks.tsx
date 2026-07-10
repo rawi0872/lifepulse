@@ -47,7 +47,7 @@ export function GoalLinks({ links, projects, tasks, habits, saving, onAdd, onRem
         <button
           onClick={() => setShowForm(true)}
           disabled={saving}
-          className="text-[10px] text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors"
+          className="rounded-md py-2 text-[10px] text-[var(--text-muted)] transition-colors hover:text-[var(--accent)] sm:py-0"
         >
           + Link a project, task, or habit
         </button>
@@ -61,7 +61,7 @@ export function GoalLinks({ links, projects, tasks, habits, saving, onAdd, onRem
         {links.map((link) => (
           <span
             key={link.id}
-            className="inline-flex items-center gap-1 rounded-full bg-[var(--surface-soft)] px-2 py-0.5 text-[10px] text-[var(--text-muted)]"
+            className="inline-flex min-w-0 items-center gap-1 rounded-full bg-[var(--surface-soft)] px-2 py-1 text-[10px] text-[var(--text-muted)] sm:py-0.5"
           >
             <span className="text-[9px] text-[var(--accent)]">
               {GOAL_LINK_LABELS[link.linked_type]}
@@ -70,7 +70,7 @@ export function GoalLinks({ links, projects, tasks, habits, saving, onAdd, onRem
             <button
               onClick={() => onRemove(link.id)}
               disabled={saving}
-              className="ml-0.5 text-[var(--text-muted)] hover:text-red-400 transition-colors"
+              className="ml-0.5 rounded px-1 text-[var(--text-muted)] transition-colors hover:text-red-400"
             >
               &times;
             </button>
@@ -79,18 +79,18 @@ export function GoalLinks({ links, projects, tasks, habits, saving, onAdd, onRem
         <button
           onClick={() => setShowForm(!showForm)}
           disabled={saving}
-          className="text-[10px] text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors"
+          className="rounded-md py-1 text-[10px] text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:py-0"
         >
           {showForm ? "Cancel" : "+ Link"}
         </button>
       </div>
 
       {showForm && (
-        <div className="mt-1 flex flex-wrap items-center gap-1.5">
+        <div className="mt-1 flex min-w-0 flex-col gap-1.5 sm:flex-row sm:flex-wrap sm:items-center">
           <select
             value={linkType}
             onChange={(e) => { setLinkType(e.target.value as GoalLinkType); setLinkId(""); }}
-            className="rounded border border-[var(--border)] bg-[var(--surface)] px-1.5 py-0.5 text-[10px] text-[var(--foreground)] outline-none"
+            className="rounded border border-[var(--border)] bg-[var(--surface)] px-2 py-1.5 text-[10px] text-[var(--foreground)] outline-none sm:px-1.5 sm:py-0.5"
           >
             <option value="project">Project</option>
             <option value="task">Task</option>
@@ -99,7 +99,7 @@ export function GoalLinks({ links, projects, tasks, habits, saving, onAdd, onRem
           <select
             value={linkId}
             onChange={(e) => setLinkId(e.target.value)}
-            className="min-w-[120px] rounded border border-[var(--border)] bg-[var(--surface)] px-1.5 py-0.5 text-[10px] text-[var(--foreground)] outline-none"
+            className="min-w-0 rounded border border-[var(--border)] bg-[var(--surface)] px-2 py-1.5 text-[10px] text-[var(--foreground)] outline-none sm:min-w-[120px] sm:px-1.5 sm:py-0.5"
           >
             <option value="">Select...</option>
             {currentOptions.map((opt) => (
@@ -115,7 +115,7 @@ export function GoalLinks({ links, projects, tasks, habits, saving, onAdd, onRem
               setLinkId("");
             }}
             disabled={saving || !linkId}
-            className="rounded bg-[var(--accent)] px-2 py-0.5 text-[10px] font-medium text-white disabled:opacity-40"
+            className="rounded bg-[var(--accent)] px-2 py-1.5 text-[10px] font-medium text-white disabled:opacity-40 sm:py-0.5"
           >
             Add
           </button>

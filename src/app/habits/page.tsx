@@ -321,11 +321,11 @@ export default function HabitsPage() {
 
   return (
     <DashboardNav>
-      <div className="mx-auto max-w-2xl px-5 py-8 animate-fade-in">
-        <div className="mb-8 flex items-center justify-between">
-          <div>
+      <div className="mx-auto max-w-2xl px-4 py-6 animate-fade-in sm:px-5 sm:py-8">
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
             <h1 className="text-2xl font-bold text-[var(--text)]">Habits</h1>
-            <div className="text-sm text-[var(--text-muted)]">
+            <div className="text-pretty text-sm text-[var(--text-muted)]">
               Build the routines your future self depends on.
               <HelpPopover title="What is a habit?">
                 <p>Habits are repeated actions you track over time. They help you build consistency and identity.</p>
@@ -334,7 +334,7 @@ export default function HabitsPage() {
               </HelpPopover>
             </div>
           </div>
-          <Button onClick={() => { resetForm(); setShowForm(true); }}>
+          <Button className="w-full sm:w-auto" onClick={() => { resetForm(); setShowForm(true); }}>
             Add habit
           </Button>
         </div>
@@ -383,12 +383,12 @@ export default function HabitsPage() {
               {frequency === "weekdays" && (
                 <div>
                   <label className="mb-1.5 block text-xs font-medium text-[var(--text-muted)]">Days of week</label>
-                  <div className="flex flex-wrap gap-1">
+                  <div className="flex flex-wrap gap-1.5">
                     {DAY_LABELS.map((label, i) => (
                       <button
                         key={i}
                         onClick={() => toggleDay(i)}
-                        className={`h-8 w-9 rounded-lg text-xs font-medium transition-all duration-150 sm:w-10 ${
+                        className={`h-9 w-10 rounded-lg text-xs font-medium transition-all duration-150 ${
                           daysOfWeek.includes(i)
                             ? "bg-[var(--accent-soft)] text-[var(--accent)] ring-1 ring-[var(--accent)]/30"
                             : "bg-[var(--surface-soft)] text-[var(--text-muted)] hover:bg-[var(--surface-raised)]"
@@ -417,7 +417,7 @@ export default function HabitsPage() {
                 </div>
               )}
 
-              <div className="flex justify-end gap-2">
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                 <Button variant="secondary" onClick={() => { resetForm(); setShowForm(false); }}>
                   Cancel
                 </Button>
@@ -445,7 +445,7 @@ export default function HabitsPage() {
                   <button
                     key={tpl}
                     onClick={() => applyTemplate(tpl)}
-                    className="rounded-full bg-[var(--surface)] px-3 py-1.5 text-xs text-[var(--text-muted)] hover:bg-[var(--surface-active)] hover:text-[var(--text)] hover:ring-1 hover:ring-[var(--accent)]/20 transition-all duration-150"
+                    className="rounded-full bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text-muted)] transition-all duration-150 hover:bg-[var(--surface-active)] hover:text-[var(--text)] hover:ring-1 hover:ring-[var(--accent)]/20 sm:py-1.5"
                   >
                     {tpl}
                   </button>
@@ -467,8 +467,8 @@ export default function HabitsPage() {
           <>
             {grouped.map((g) => (
               <section key={g.realm.id} className="mb-6">
-                <div className="mb-3 flex items-center justify-between">
-                  <h3 className="text-sm font-semibold" style={{ color: g.realm.color }}>
+                <div className="mb-3 flex min-w-0 items-center justify-between gap-3">
+                  <h3 className="min-w-0 text-sm font-semibold" style={{ color: g.realm.color }}>
                     {g.realm.icon} {g.realm.name}
                   </h3>
                   <span className="text-xs text-[var(--text-muted)]">{g.habits.length}</span>
@@ -484,19 +484,20 @@ export default function HabitsPage() {
                         <Card
                           key={habit.id}
                           variant={doneToday ? "subtle" : "default"}
-                          className={`flex items-center gap-3 px-4 py-3 ${doneToday ? "opacity-50" : ""}`}
+                          className={`flex flex-col gap-3 px-4 py-3.5 sm:flex-row sm:items-center sm:py-3 ${doneToday ? "opacity-50" : ""}`}
                         >
-                          {doneToday && (
-                            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--accent-soft)] text-[10px] text-[var(--accent)] shadow-sm shadow-[var(--accent)]/10">
-                              ✓
-                            </span>
-                          )}
-                          <div className="flex-1">
-                            <p className={`text-sm font-medium ${doneToday ? "text-[var(--text-muted)]" : "text-[var(--text)]"}`}>
-                              {habit.title}
-                            </p>
-                            <div className="flex items-center gap-2 mt-0.5">
-                              <p className="text-xs text-[var(--text-muted)]">{frequencyLabel(habit)}</p>
+                          <div className="flex min-w-0 items-start gap-3 sm:flex-1 sm:items-center">
+                            {doneToday && (
+                              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--accent-soft)] text-[10px] text-[var(--accent)] shadow-sm shadow-[var(--accent)]/10 sm:h-5 sm:w-5">
+                                ✓
+                              </span>
+                            )}
+                            <div className="min-w-0 flex-1">
+                              <p className={`text-pretty text-sm font-medium ${doneToday ? "text-[var(--text-muted)]" : "text-[var(--text)]"}`}>
+                                {habit.title}
+                              </p>
+                              <div className="mt-1 flex min-w-0 flex-wrap items-center gap-2 sm:mt-0.5">
+                                <p className="text-xs text-[var(--text-muted)]">{frequencyLabel(habit)}</p>
                               {habit.frequency !== "times_per_week" ? (
                                 s > 0 ? (
                                   <span className="text-xs text-[var(--accent)]/80">{s}-day streak</span>
@@ -509,27 +510,28 @@ export default function HabitsPage() {
                               {b > 1 && b > s && (
                                 <span className="text-xs text-[var(--text-muted)]">Best: {b}</span>
                               )}
-                            </div>
-                            <p className="mt-1 text-[10px] text-[var(--text-muted)]">{getHabitGoalContext(habit.id)}</p>
-                            {habit.frequency === "times_per_week" && wp && (
-                              <div className="mt-1.5 h-1 w-full max-w-24 overflow-hidden rounded-full bg-[var(--surface)]">
-                                <div
-                                  className="h-full rounded-full bg-[var(--warning)]/60 transition-all"
-                                  style={{ width: `${Math.round((wp.completed / wp.target) * 100)}%` }}
-                                />
                               </div>
-                            )}
+                              <p className="mt-1 text-pretty text-[10px] text-[var(--text-muted)]">{getHabitGoalContext(habit.id)}</p>
+                              {habit.frequency === "times_per_week" && wp && (
+                                <div className="mt-1.5 h-1 w-full max-w-32 overflow-hidden rounded-full bg-[var(--surface)] sm:max-w-24">
+                                  <div
+                                    className="h-full rounded-full bg-[var(--warning)]/60 transition-all"
+                                    style={{ width: `${Math.round((wp.completed / wp.target) * 100)}%` }}
+                                  />
+                                </div>
+                              )}
+                            </div>
                           </div>
-                          <div className="flex gap-1">
+                          <div className="flex shrink-0 justify-end gap-1 sm:justify-start">
                             <button
                               onClick={() => openEdit(habit)}
-                              className="rounded-lg px-2 py-1 text-xs text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-raised)] transition-colors"
+                              className="rounded-lg px-3 py-2 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-raised)] hover:text-[var(--text)] sm:px-2 sm:py-1"
                             >
                               Edit
                             </button>
                             <button
                               onClick={() => remove(habit.id)}
-                              className="rounded-lg px-2 py-1 text-xs text-[var(--danger)] hover:bg-[var(--danger-soft)] transition-colors"
+                              className="rounded-lg px-3 py-2 text-xs text-[var(--danger)] transition-colors hover:bg-[var(--danger-soft)] sm:px-2 sm:py-1"
                             >
                               Delete
                             </button>
@@ -548,22 +550,22 @@ export default function HabitsPage() {
                 <Card variant="subtle" className="border-[var(--border)]">
                   <div className="p-1 flex flex-col gap-1">
                     {ungrouped.map((habit) => (
-                      <Card key={habit.id} variant="default" className="flex items-center gap-3 px-4 py-3">
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-[var(--text)]">{habit.title}</p>
-                          <p className="text-xs text-[var(--text-muted)] mt-0.5">{frequencyLabel(habit)}</p>
-                          <p className="mt-1 text-[10px] text-[var(--text-muted)]">{getHabitGoalContext(habit.id)}</p>
+                      <Card key={habit.id} variant="default" className="flex flex-col gap-3 px-4 py-3.5 sm:flex-row sm:items-center sm:py-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-pretty text-sm font-medium text-[var(--text)]">{habit.title}</p>
+                          <p className="mt-0.5 text-xs text-[var(--text-muted)]">{frequencyLabel(habit)}</p>
+                          <p className="mt-1 text-pretty text-[10px] text-[var(--text-muted)]">{getHabitGoalContext(habit.id)}</p>
                         </div>
-                        <div className="flex gap-1">
+                        <div className="flex shrink-0 justify-end gap-1 sm:justify-start">
                           <button
                             onClick={() => openEdit(habit)}
-                            className="rounded-lg px-2 py-1 text-xs text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-raised)] transition-colors"
+                            className="rounded-lg px-3 py-2 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-raised)] hover:text-[var(--text)] sm:px-2 sm:py-1"
                           >
                             Edit
                           </button>
                           <button
                             onClick={() => remove(habit.id)}
-                            className="rounded-lg px-2 py-1 text-xs text-[var(--danger)] hover:bg-[var(--danger-soft)] transition-colors"
+                            className="rounded-lg px-3 py-2 text-xs text-[var(--danger)] transition-colors hover:bg-[var(--danger-soft)] sm:px-2 sm:py-1"
                           >
                             Delete
                           </button>
@@ -577,7 +579,7 @@ export default function HabitsPage() {
 
             {/* Starter routines */}
             <Card variant="subtle" className="border-[var(--border)]">
-              <div className="px-4 py-3">
+              <div className="px-4 py-3.5 sm:py-3">
                 <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Starter routines</p>
                 <p className="mt-0.5 text-xs text-[var(--text-muted)]">Pick a template to build a new habit faster.</p>
                 <div className="mt-2 flex flex-wrap gap-2">
@@ -585,7 +587,7 @@ export default function HabitsPage() {
                     <button
                       key={tpl}
                       onClick={() => applyTemplate(tpl)}
-                      className="rounded-full bg-[var(--surface-soft)] px-2.5 py-1 text-[10px] text-[var(--text-muted)] hover:bg-[var(--surface-active)] hover:text-[var(--text)] hover:ring-1 hover:ring-[var(--accent)]/20 transition-all duration-150"
+                      className="rounded-full bg-[var(--surface-soft)] px-2.5 py-1.5 text-[10px] text-[var(--text-muted)] transition-all duration-150 hover:bg-[var(--surface-active)] hover:text-[var(--text)] hover:ring-1 hover:ring-[var(--accent)]/20 sm:py-1"
                     >
                       {tpl}
                     </button>

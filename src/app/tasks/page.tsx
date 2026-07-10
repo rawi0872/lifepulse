@@ -363,11 +363,11 @@ export default function TasksPage() {
 
   return (
     <DashboardNav>
-      <div className="mx-auto max-w-2xl px-5 py-8 animate-fade-in">
-        <div className="mb-8 flex items-center justify-between">
-          <div>
+      <div className="mx-auto max-w-2xl px-4 py-6 animate-fade-in sm:px-5 sm:py-8">
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
             <h1 className="text-2xl font-bold text-[var(--text)]">Tasks</h1>
-            <div className="text-sm text-[var(--text-muted)]">
+            <div className="text-pretty text-sm text-[var(--text-muted)]">
               Clear the actions that move life forward.
               <HelpPopover title="What is a task?">
                 <p>Tasks are one-time actions with a clear finish.</p>
@@ -376,7 +376,7 @@ export default function TasksPage() {
               </HelpPopover>
             </div>
           </div>
-          <Button onClick={() => { resetForm(); setShowForm(true); }}>
+          <Button className="w-full sm:w-auto" onClick={() => { resetForm(); setShowForm(true); }}>
             Add task
           </Button>
         </div>
@@ -389,9 +389,9 @@ export default function TasksPage() {
             <div className="mt-2">
               <span className="text-[9px] font-medium text-[var(--text-muted)]">Examples</span>
               <div className="mt-1 flex flex-wrap gap-1.5">
-                <button type="button" onClick={() => { resetForm(); setTitle("Review project scope"); setShowForm(true); }} className="cursor-pointer rounded-md border border-dashed border-[var(--border-strong)] bg-transparent px-2 py-0.5 text-[10px] text-[var(--text-muted)] transition-colors hover:border-[var(--text-muted)]/40 hover:text-[var(--text-secondary)]">Review project scope</button>
-                <button type="button" onClick={() => { resetForm(); setTitle("Send follow-up email"); setShowForm(true); }} className="cursor-pointer rounded-md border border-dashed border-[var(--border-strong)] bg-transparent px-2 py-0.5 text-[10px] text-[var(--text-muted)] transition-colors hover:border-[var(--text-muted)]/40 hover:text-[var(--text-secondary)]">Send follow-up email</button>
-                <button type="button" onClick={() => { resetForm(); setTitle("Complete one deep-work block"); setShowForm(true); }} className="cursor-pointer rounded-md border border-dashed border-[var(--border-strong)] bg-transparent px-2 py-0.5 text-[10px] text-[var(--text-muted)] transition-colors hover:border-[var(--text-muted)]/40 hover:text-[var(--text-secondary)]">Complete one deep-work block</button>
+                <button type="button" onClick={() => { resetForm(); setTitle("Review project scope"); setShowForm(true); }} className="cursor-pointer rounded-md border border-dashed border-[var(--border-strong)] bg-transparent px-2.5 py-1.5 text-[10px] text-[var(--text-muted)] transition-colors hover:border-[var(--text-muted)]/40 hover:text-[var(--text-secondary)] sm:py-0.5">Review project scope</button>
+                <button type="button" onClick={() => { resetForm(); setTitle("Send follow-up email"); setShowForm(true); }} className="cursor-pointer rounded-md border border-dashed border-[var(--border-strong)] bg-transparent px-2.5 py-1.5 text-[10px] text-[var(--text-muted)] transition-colors hover:border-[var(--text-muted)]/40 hover:text-[var(--text-secondary)] sm:py-0.5">Send follow-up email</button>
+                <button type="button" onClick={() => { resetForm(); setTitle("Complete one deep-work block"); setShowForm(true); }} className="cursor-pointer rounded-md border border-dashed border-[var(--border-strong)] bg-transparent px-2.5 py-1.5 text-[10px] text-[var(--text-muted)] transition-colors hover:border-[var(--text-muted)]/40 hover:text-[var(--text-secondary)] sm:py-0.5">Complete one deep-work block</button>
               </div>
             </div>
           </div>
@@ -452,7 +452,7 @@ export default function TasksPage() {
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2">
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                 <Button variant="secondary" onClick={() => { resetForm(); setShowForm(false); }}>
                   Cancel
                 </Button>
@@ -469,7 +469,7 @@ export default function TasksPage() {
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all duration-150 ${
+              className={`flex min-h-9 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all duration-150 sm:min-h-0 ${
                 filter === f
                   ? "bg-[var(--accent-soft)] text-[var(--accent)] ring-1 ring-[var(--accent)]/30"
                   : "bg-[var(--surface)] text-[var(--text-muted)] hover:bg-[var(--surface-raised)]"
@@ -510,9 +510,9 @@ export default function TasksPage() {
                   <div className="mt-3">
                     <span className="text-[9px] font-medium text-[var(--text-muted)]">Examples</span>
                     <div className="mt-1 flex flex-wrap justify-center gap-2">
-                      <button type="button" onClick={() => { resetForm(); setTitle("Submit project booklet"); setShowForm(true); }} className="cursor-pointer rounded-md border border-dashed border-[var(--border-strong)] bg-transparent px-2 py-0.5 text-[10px] text-[var(--text-muted)] transition-all duration-150 hover:border-[var(--accent)]/30 hover:text-[var(--accent)]">Submit project booklet</button>
-                      <button type="button" onClick={() => { resetForm(); setTitle("Practice one physics problem set"); setShowForm(true); }} className="cursor-pointer rounded-md border border-dashed border-[var(--border-strong)] bg-transparent px-2 py-0.5 text-[10px] text-[var(--text-muted)] transition-all duration-150 hover:border-[var(--accent)]/30 hover:text-[var(--accent)]">Practice one physics problem set</button>
-                      <button type="button" onClick={() => { resetForm(); setTitle("Call the printer"); setShowForm(true); }} className="cursor-pointer rounded-md border border-dashed border-[var(--border-strong)] bg-transparent px-2 py-0.5 text-[10px] text-[var(--text-muted)] transition-all duration-150 hover:border-[var(--accent)]/30 hover:text-[var(--accent)]">Call the printer</button>
+                      <button type="button" onClick={() => { resetForm(); setTitle("Submit project booklet"); setShowForm(true); }} className="cursor-pointer rounded-md border border-dashed border-[var(--border-strong)] bg-transparent px-2.5 py-1.5 text-[10px] text-[var(--text-muted)] transition-all duration-150 hover:border-[var(--accent)]/30 hover:text-[var(--accent)] sm:py-0.5">Submit project booklet</button>
+                      <button type="button" onClick={() => { resetForm(); setTitle("Practice one physics problem set"); setShowForm(true); }} className="cursor-pointer rounded-md border border-dashed border-[var(--border-strong)] bg-transparent px-2.5 py-1.5 text-[10px] text-[var(--text-muted)] transition-all duration-150 hover:border-[var(--accent)]/30 hover:text-[var(--accent)] sm:py-0.5">Practice one physics problem set</button>
+                      <button type="button" onClick={() => { resetForm(); setTitle("Call the printer"); setShowForm(true); }} className="cursor-pointer rounded-md border border-dashed border-[var(--border-strong)] bg-transparent px-2.5 py-1.5 text-[10px] text-[var(--text-muted)] transition-all duration-150 hover:border-[var(--accent)]/30 hover:text-[var(--accent)] sm:py-0.5">Call the printer</button>
                     </div>
                   </div>
                   <Button
@@ -532,7 +532,7 @@ export default function TasksPage() {
             </div>
           </Card>
         ) : (
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2.5 sm:gap-2">
             {filteredTasks.map((task) => {
               const isDone = task.status === "done";
               const dueLabel = getDueDateLabel(task.due_date);
@@ -544,43 +544,44 @@ export default function TasksPage() {
                 <Card
                   key={task.id}
                   variant={isDone ? "subtle" : "default"}
-                  className={`flex items-center gap-3 px-4 py-3 ${isDone ? "opacity-40" : "hover:bg-[var(--surface-active)]"}`}
+                  className={`flex flex-col gap-3 px-4 py-3.5 sm:flex-row sm:items-center sm:py-3 ${isDone ? "opacity-40" : "hover:bg-[var(--surface-active)]"}`}
                 >
-                  <button
-                    onClick={() => toggleDone(task)}
-                    role="checkbox"
-                    aria-checked={isDone}
-                    aria-label={`Mark "${task.title}" as ${isDone ? "incomplete" : "complete"}`}
-                    className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-all duration-150 ${
-                      isDone
-                        ? "border-[var(--accent)] bg-[var(--accent)]"
-                        : "border-[var(--text-muted)]/40 hover:border-[var(--accent)]/50 hover:bg-[var(--accent-ghost)]"
-                    }`}
-                  >
-                    {isDone && (
-                      <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                    )}
-                  </button>
+                  <div className="flex min-w-0 items-start gap-3 sm:flex-1 sm:items-center">
+                    <button
+                      onClick={() => toggleDone(task)}
+                      role="checkbox"
+                      aria-checked={isDone}
+                      aria-label={`Mark "${task.title}" as ${isDone ? "incomplete" : "complete"}`}
+                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 transition-all duration-150 sm:h-5 sm:w-5 ${
+                        isDone
+                          ? "border-[var(--accent)] bg-[var(--accent)]"
+                          : "border-[var(--text-muted)]/40 hover:border-[var(--accent)]/50 hover:bg-[var(--accent-ghost)]"
+                      }`}
+                    >
+                      {isDone && (
+                        <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </button>
 
-                  <div className="flex-1 min-w-0">
-                    <p className={`text-sm font-medium truncate ${isDone ? "line-through text-[var(--text-muted)]" : "text-[var(--text)]"}`}>
-                      {task.title}
-                    </p>
-                    <div className="flex items-center gap-2 flex-wrap">
+                    <div className="min-w-0 flex-1">
+                      <p className={`text-pretty text-sm font-medium ${isDone ? "line-through text-[var(--text-muted)]" : "text-[var(--text)]"}`}>
+                        {task.title}
+                      </p>
+                      <div className="mt-1 flex min-w-0 flex-wrap items-center gap-2 sm:mt-0">
                       {task.realms && (
-                        <span className="inline-block rounded-full px-2 py-0.5 text-[10px]" style={{ backgroundColor: task.realms.color + "20", color: task.realms.color }}>
+                        <span className="inline-block rounded-full px-2 py-1 text-[10px] sm:py-0.5" style={{ backgroundColor: task.realms.color + "20", color: task.realms.color }}>
                           {task.realms.icon} {task.realms.name}
                         </span>
                       )}
                       {linkedProjectTitle && (
-                        <span className="inline-block rounded-full px-2 py-0.5 text-[10px] bg-[var(--surface)] text-[var(--text-muted)]">
+                        <span className="inline-block rounded-full bg-[var(--surface)] px-2 py-1 text-[10px] text-[var(--text-muted)] sm:py-0.5">
                           Project: {linkedProjectTitle}
                         </span>
                       )}
                       {linkedGoalContext && (
-                        <span className="inline-block rounded-full px-2 py-0.5 text-[10px] bg-[var(--accent-soft)] text-[var(--accent)]">
+                        <span className="inline-block rounded-full bg-[var(--accent-soft)] px-2 py-1 text-[10px] text-[var(--accent)] sm:py-0.5">
                           {linkedGoalContext}
                         </span>
                       )}
@@ -598,14 +599,15 @@ export default function TasksPage() {
                           {dueLabel.label}
                         </span>
                       )}
+                      </div>
                     </div>
                   </div>
 
-                  <div className="flex gap-1 shrink-0">
-                    <button onClick={() => openEdit(task)} className="rounded-lg px-2 py-1 text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--surface-active)] transition-colors">
+                  <div className="flex shrink-0 justify-end gap-1 sm:justify-start">
+                    <button onClick={() => openEdit(task)} className="rounded-lg px-3 py-2 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-active)] hover:text-[var(--text-secondary)] sm:px-2 sm:py-1">
                       Edit
                     </button>
-                    <button onClick={() => remove(task.id)} className="rounded-lg px-2 py-1 text-xs text-[var(--danger)] hover:bg-[var(--danger-soft)] transition-colors">
+                    <button onClick={() => remove(task.id)} className="rounded-lg px-3 py-2 text-xs text-[var(--danger)] transition-colors hover:bg-[var(--danger-soft)] sm:px-2 sm:py-1">
                       Delete
                     </button>
                   </div>

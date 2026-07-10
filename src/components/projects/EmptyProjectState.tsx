@@ -14,13 +14,13 @@ export function EmptyProjectState({ onFocusQuickPlan, onCreateManual }: EmptyPro
       <div className="px-4 py-10 text-center">
         <p className="text-sm text-[var(--text-muted)]">Projects are bigger outcomes made of tasks.</p>
         <div className="mt-3 flex flex-wrap justify-center gap-2">
-          <span className="rounded-full bg-[var(--surface)] px-3 py-1 text-xs text-[var(--text-muted)] hover:bg-[var(--surface-active)] hover:text-[var(--text-secondary)] transition-all duration-150">Build Life Pulse</span>
-          <span className="rounded-full bg-[var(--surface)] px-3 py-1 text-xs text-[var(--text-muted)] hover:bg-[var(--surface-active)] hover:text-[var(--text-secondary)] transition-all duration-150">Improve guitar soloing</span>
-          <span className="rounded-full bg-[var(--surface)] px-3 py-1 text-xs text-[var(--text-muted)] hover:bg-[var(--surface-active)] hover:text-[var(--text-secondary)] transition-all duration-150">Finish Smartocaster</span>
-          <span className="rounded-full bg-[var(--surface)] px-3 py-1 text-xs text-[var(--text-muted)] hover:bg-[var(--surface-active)] hover:text-[var(--text-secondary)] transition-all duration-150">Prepare for physics exam</span>
-          <span className="rounded-full bg-[var(--surface)] px-3 py-1 text-xs text-[var(--text-muted)] hover:bg-[var(--surface-active)] hover:text-[var(--text-secondary)] transition-all duration-150">Launch 3D printing business</span>
+          <span className="rounded-full bg-[var(--surface)] px-3 py-1.5 text-xs text-[var(--text-muted)] transition-all duration-150 hover:bg-[var(--surface-active)] hover:text-[var(--text-secondary)] sm:py-1">Build Life Pulse</span>
+          <span className="rounded-full bg-[var(--surface)] px-3 py-1.5 text-xs text-[var(--text-muted)] transition-all duration-150 hover:bg-[var(--surface-active)] hover:text-[var(--text-secondary)] sm:py-1">Improve guitar soloing</span>
+          <span className="rounded-full bg-[var(--surface)] px-3 py-1.5 text-xs text-[var(--text-muted)] transition-all duration-150 hover:bg-[var(--surface-active)] hover:text-[var(--text-secondary)] sm:py-1">Finish Smartocaster</span>
+          <span className="rounded-full bg-[var(--surface)] px-3 py-1.5 text-xs text-[var(--text-muted)] transition-all duration-150 hover:bg-[var(--surface-active)] hover:text-[var(--text-secondary)] sm:py-1">Prepare for physics exam</span>
+          <span className="rounded-full bg-[var(--surface)] px-3 py-1.5 text-xs text-[var(--text-muted)] transition-all duration-150 hover:bg-[var(--surface-active)] hover:text-[var(--text-secondary)] sm:py-1">Launch 3D printing business</span>
         </div>
-        <div className="mt-6 flex justify-center gap-2">
+        <div className="mt-6 flex flex-col justify-center gap-2 sm:flex-row">
           <Button size="sm" onClick={onFocusQuickPlan}>
             Start with Quick plan
           </Button>
