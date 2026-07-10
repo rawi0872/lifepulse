@@ -178,19 +178,19 @@ function KnowledgeContent() {
   if (loading) return null;
 
   return (
-    <div className="animate-fade-in p-4 md:p-6">
-      <div className="mx-auto max-w-5xl">
-        <div className="mb-6">
+    <div className="animate-fade-in px-4 py-6 md:p-6">
+      <div className="mx-auto max-w-5xl min-w-0">
+        <div className="mb-6 min-w-0">
           <h1 className="text-2xl font-bold text-[var(--text)]">Knowledge</h1>
-          <p className="text-sm text-[var(--text-muted)]">Your information system for ideas, resources, lessons, and notes.</p>
+          <p className="text-pretty text-sm text-[var(--text-muted)]">Your information system for ideas, resources, lessons, and notes.</p>
         </div>
 
-        <div className="mb-6 flex gap-1 rounded-xl bg-[var(--surface-soft)] p-1">
+        <div className="mb-6 flex gap-1 overflow-x-auto rounded-xl bg-[var(--surface-soft)] p-1">
           {TABS.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 rounded-lg px-3 py-2 text-center text-xs font-medium transition-all ${
+              className={`min-h-9 shrink-0 rounded-lg px-3 py-2 text-center text-xs font-medium transition-all sm:min-h-0 sm:flex-1 ${
                 activeTab === tab.id
                   ? "bg-[var(--surface)] text-[var(--text)] shadow-sm"
                   : "text-[var(--text-muted)] hover:text-[var(--text)]"
@@ -204,7 +204,7 @@ function KnowledgeContent() {
         {/* ════════════════ OVERVIEW ════════════════ */}
         {activeTab === "overview" && (
           <div className="space-y-6">
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-4">
               <MetricCard label="Total Items" value={items.length} icon={
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
@@ -228,8 +228,8 @@ function KnowledgeContent() {
             </div>
 
             <PulseCard title="Your Knowledge Library" accent="accent" description="Store and organize what matters">
-              <div className="px-4 py-4 space-y-3">
-                <p className="text-xs text-[var(--text-muted)] leading-relaxed">
+              <div className="space-y-3 px-4 py-4">
+                <p className="text-pretty text-xs leading-relaxed text-[var(--text-muted)]">
                   The Information System is where Life Pulse stores important knowledge, useful resources, ideas, lessons, and notes that should not disappear into random apps.
                   Save articles, book notes, course takeaways, life lessons, and any reference material you want to keep.
                 </p>
@@ -245,30 +245,30 @@ function KnowledgeContent() {
         {activeTab === "add" && (
           <div className="space-y-6">
             <PulseCard title="Add Knowledge Item" accent="accent">
-              <div className="grid grid-cols-2 gap-3 p-4">
+              <div className="grid min-w-0 grid-cols-1 gap-3 p-4 sm:grid-cols-2 sm:p-5">
                 <input type="text" placeholder="Title" value={itemForm.title}
                   onChange={(e) => setItemForm((f) => ({ ...f, title: e.target.value }))}
                   data-testid="knowledge-item-title-input"
-                  className="col-span-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none focus:border-[var(--accent)]" />
+                  className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none focus:border-[var(--accent)] sm:col-span-2 sm:py-2" />
                 <div className="flex flex-col gap-1">
                   <label className="text-[10px] font-medium text-[var(--text-muted)]">Type</label>
                   <select value={itemForm.type} onChange={(e) => setItemForm((f) => ({ ...f, type: e.target.value }))}
-                    className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)] outline-none">
+                    className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-xs text-[var(--text)] outline-none sm:py-2">
                     {KNOWLEDGE_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
                   </select>
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-[10px] font-medium text-[var(--text-muted)]">Category</label>
                   <select value={itemForm.category} onChange={(e) => setItemForm((f) => ({ ...f, category: e.target.value }))}
-                    className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)] outline-none">
+                    className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-xs text-[var(--text)] outline-none sm:py-2">
                     <option value="">None</option>
                     {KNOWLEDGE_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
-                <div className="col-span-2 flex flex-col gap-1">
+                <div className="flex flex-col gap-1 sm:col-span-2">
                   <label className="text-[10px] font-medium text-[var(--text-muted)]">Collection</label>
                   <select value={selectedCollectionId} onChange={(e) => setSelectedCollectionId(e.target.value)}
-                    className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)] outline-none">
+                    className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-xs text-[var(--text)] outline-none sm:py-2">
                     <option value="">No collection</option>
                     {collections.map((collection) => <option key={collection.id} value={collection.id}>{collection.name}</option>)}
                   </select>
@@ -278,17 +278,17 @@ function KnowledgeContent() {
                 </div>
                 <input type="url" placeholder="Source URL (optional)" value={itemForm.source_url}
                   onChange={(e) => setItemForm((f) => ({ ...f, source_url: e.target.value }))}
-                  className="col-span-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none" />
+                  className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none sm:col-span-2 sm:py-2" />
                 <textarea placeholder="Summary (optional)" value={itemForm.summary}
                   onChange={(e) => setItemForm((f) => ({ ...f, summary: e.target.value }))}
-                  className="col-span-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none resize-none" rows={2} />
+                  className="resize-none rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none sm:col-span-2 sm:py-2" rows={2} />
                 <textarea placeholder="Content / Notes" value={itemForm.content}
                   onChange={(e) => setItemForm((f) => ({ ...f, content: e.target.value }))}
-                  className="col-span-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none resize-none" rows={4} />
-                <div className="col-span-2 flex justify-end">
+                  className="resize-none rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none sm:col-span-2 sm:py-2" rows={4} />
+                <div className="flex justify-end sm:col-span-2">
                   <button onClick={handleSaveItem} disabled={saving || !itemForm.title.trim()}
                     data-testid="knowledge-item-save-button"
-                    className="rounded-lg bg-[var(--accent)] px-4 py-2 text-xs font-medium text-[var(--text-on-accent)] transition-all hover:opacity-90 disabled:opacity-40">
+                    className="w-full rounded-lg bg-[var(--accent)] px-4 py-2.5 text-xs font-medium text-[var(--text-on-accent)] transition-all hover:opacity-90 disabled:opacity-40 sm:w-auto sm:py-2">
                     {saving ? "Saving..." : "Save Knowledge"}
                   </button>
                 </div>
@@ -301,18 +301,18 @@ function KnowledgeContent() {
         {activeTab === "collections" && (
           <div className="space-y-6">
             <PulseCard title="Create Collection" accent="accent">
-              <div className="grid grid-cols-2 gap-3 p-4">
+              <div className="grid min-w-0 grid-cols-1 gap-3 p-4 sm:grid-cols-2 sm:p-5">
                 <input type="text" placeholder="Collection name" value={collectionForm.name}
                   onChange={(e) => setCollectionForm((f) => ({ ...f, name: e.target.value }))}
                   data-testid="knowledge-collection-name-input"
-                  className="col-span-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none focus:border-[var(--accent)]" />
+                  className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none focus:border-[var(--accent)] sm:col-span-2 sm:py-2" />
                 <textarea placeholder="Description (optional)" value={collectionForm.description}
                   onChange={(e) => setCollectionForm((f) => ({ ...f, description: e.target.value }))}
-                  className="col-span-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none resize-none" rows={2} />
-                <div className="col-span-2 flex justify-end">
+                  className="resize-none rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none sm:col-span-2 sm:py-2" rows={2} />
+                <div className="flex justify-end sm:col-span-2">
                   <button onClick={handleSaveCollection} disabled={saving || !collectionForm.name.trim()}
                     data-testid="knowledge-collection-save-button"
-                    className="rounded-lg bg-[var(--accent)] px-4 py-2 text-xs font-medium text-[var(--text-on-accent)] transition-all hover:opacity-90 disabled:opacity-40">
+                    className="w-full rounded-lg bg-[var(--accent)] px-4 py-2.5 text-xs font-medium text-[var(--text-on-accent)] transition-all hover:opacity-90 disabled:opacity-40 sm:w-auto sm:py-2">
                     {saving ? "Saving..." : "Create Collection"}
                   </button>
                 </div>
@@ -327,13 +327,13 @@ function KnowledgeContent() {
               <PulseCard title="Your Collections" accent="accent" description={`${collections.length} total`}>
                 <div className="divide-y divide-[var(--border)]">
                   {collections.map((c) => (
-                    <div key={c.id} className="flex items-center justify-between px-4 py-3">
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-xs font-medium text-[var(--text)]">{c.name}</span>
-                        {c.description && <span className="text-[10px] text-[var(--text-muted)]">{c.description}</span>}
+                    <div key={c.id} className="flex min-w-0 flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex min-w-0 flex-col gap-0.5">
+                        <span className="break-words text-xs font-medium text-[var(--text)]">{c.name}</span>
+                        {c.description && <span className="break-words text-[10px] text-[var(--text-muted)]">{c.description}</span>}
                       </div>
                       <button onClick={() => handleDeleteCollection(c.id)}
-                        className="text-[10px] text-[var(--danger)] hover:underline">Delete</button>
+                        className="self-end rounded-md px-2 py-1.5 text-[10px] text-[var(--danger)] hover:underline sm:self-auto sm:py-0">Delete</button>
                     </div>
                   ))}
                 </div>
@@ -352,18 +352,18 @@ function KnowledgeContent() {
             ) : (
               <PulseCard title="Recent Items" accent="accent" description={`${items.length} total`}>
                 <div className="border-b border-[var(--border)] px-4 py-4">
-                  <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto]">
+                  <div className="grid min-w-0 gap-3 sm:grid-cols-[1fr_auto_auto]">
                     <input
                       type="search"
                       placeholder="Search knowledge..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none focus:border-[var(--accent)]"
+                      className="min-w-0 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none focus:border-[var(--accent)] sm:py-2"
                     />
                     <select
                       value={selectedType}
                       onChange={(e) => setSelectedType(e.target.value)}
-                      className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)] outline-none focus:border-[var(--accent)]"
+                      className="min-w-0 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-xs text-[var(--text)] outline-none focus:border-[var(--accent)] sm:py-2"
                     >
                       <option value="">All types</option>
                       {KNOWLEDGE_TYPES.map((type) => <option key={type} value={type}>{type}</option>)}
@@ -371,13 +371,13 @@ function KnowledgeContent() {
                     <select
                       value={selectedCategory}
                       onChange={(e) => setSelectedCategory(e.target.value)}
-                      className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text)] outline-none focus:border-[var(--accent)]"
+                      className="min-w-0 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-xs text-[var(--text)] outline-none focus:border-[var(--accent)] sm:py-2"
                     >
                       <option value="">All categories</option>
                       {KNOWLEDGE_CATEGORIES.map((category) => <option key={category} value={category}>{category}</option>)}
                     </select>
                   </div>
-                  <div className="mt-3 flex flex-col gap-1 text-[10px] text-[var(--text-muted)] sm:flex-row sm:items-center sm:justify-between">
+                  <div className="mt-3 flex min-w-0 flex-col gap-1 text-pretty text-[10px] text-[var(--text-muted)] sm:flex-row sm:items-center sm:justify-between">
                     <span>Showing {filteredItems.length} of {items.length} items</span>
                     <span>Private manual knowledge library. No AI summaries or external processing.</span>
                   </div>
@@ -391,18 +391,18 @@ function KnowledgeContent() {
                 ) : (
                   <div className="divide-y divide-[var(--border)]">
                     {filteredItems.map((item) => (
-                      <div key={item.id} className="group flex items-center justify-between px-4 py-3">
-                        <div className="flex flex-col gap-0.5 flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-medium text-[var(--text)] truncate">{item.title}</span>
-                            <span className="shrink-0 rounded-full bg-[var(--surface-soft)] px-2 py-0.5 text-[9px] font-medium text-[var(--text-muted)]">{item.type}</span>
-                            {item.category && <span className="shrink-0 text-[9px] text-[var(--text-muted)]">{item.category}</span>}
+                      <div key={item.id} className="group flex min-w-0 flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex min-w-0 flex-1 flex-col gap-1">
+                          <div className="flex min-w-0 flex-wrap items-center gap-2">
+                            <span className="min-w-0 break-words text-xs font-medium text-[var(--text)]">{item.title}</span>
+                            <span className="shrink-0 rounded-full bg-[var(--surface-soft)] px-2 py-1 text-[9px] font-medium text-[var(--text-muted)] sm:py-0.5">{item.type}</span>
+                            {item.category && <span className="shrink-0 rounded-full bg-[var(--surface-soft)] px-2 py-1 text-[9px] text-[var(--text-muted)] sm:bg-transparent sm:px-0 sm:py-0">{item.category}</span>}
                           </div>
-                          {item.summary && <span className="text-[10px] text-[var(--text-muted)] truncate">{item.summary}</span>}
+                          {item.summary && <span className="break-words text-[10px] text-[var(--text-muted)]">{item.summary}</span>}
                           {(itemCollectionNames[item.id] ?? []).length > 0 && (
                             <div className="flex flex-wrap gap-1 pt-0.5">
                               {itemCollectionNames[item.id].map((collectionName) => (
-                                <span key={collectionName} className="rounded-full bg-[var(--surface-soft)] px-2 py-0.5 text-[9px] text-[var(--text-muted)]">
+                                <span key={collectionName} className="rounded-full bg-[var(--surface-soft)] px-2 py-1 text-[9px] text-[var(--text-muted)] sm:py-0.5">
                                   {collectionName}
                                 </span>
                               ))}
@@ -411,7 +411,7 @@ function KnowledgeContent() {
                           <span className="text-[9px] text-[var(--text-muted)]">{new Date(item.created_at).toLocaleDateString()}</span>
                         </div>
                         <button onClick={() => handleDeleteItem(item.id)}
-                          className="shrink-0 text-[10px] text-[var(--danger)] opacity-0 group-hover:opacity-100 transition-opacity">Delete</button>
+                          className="self-end rounded-md px-2 py-1.5 text-[10px] text-[var(--danger)] opacity-100 transition-opacity sm:self-auto sm:opacity-0 sm:group-hover:opacity-100">Delete</button>
                       </div>
                     ))}
                   </div>
