@@ -858,6 +858,8 @@ function TodayContent() {
 
       <TodayEcosystemStrip modules={ecosystemModules} />
 
+      <StartHereTodayCard />
+
       <MissionControl
         priorities={priorities}
         priorityInput={priorityInput}
@@ -891,13 +893,13 @@ function TodayContent() {
       />
 
       {activeGoalsCount > 0 && (
-        <Card className="mb-4 overflow-hidden">
+        <Card variant="subtle" className="mb-4 overflow-hidden border-dashed border-[var(--border)]">
           <div className="border-b border-[var(--border)] px-4 py-3 sm:py-2.5">
             <p className="text-[10px] font-medium tracking-wider text-[var(--text-muted)]">
-              Execution bridge
+              Optional goal context
             </p>
             <p className="mt-1 text-xs text-[var(--text-muted)]">
-              Connect today&apos;s actions to the goals they support.
+              Later, connect today&apos;s actions to the goals they support.
             </p>
           </div>
           <div className="grid min-w-0 grid-cols-2 gap-0 divide-x divide-y divide-[var(--border)] sm:grid-cols-4 sm:divide-y-0">
@@ -1042,12 +1044,12 @@ function TodayContent() {
 
       <div className="mb-3 flex min-w-0 items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">
-            Daily execution
-          </p>
-          <p className="mt-0.5 text-xs text-[var(--text-muted)]">
-            Complete the habits, tasks, and context checks that keep today moving.
-          </p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">
+              Daily execution
+            </p>
+            <p className="mt-0.5 text-xs text-[var(--text-muted)]">
+            Complete one task or habit first. The rest can wait.
+            </p>
         </div>
       </div>
 
@@ -1170,7 +1172,7 @@ function TodayContent() {
             <div className="p-4">
               <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Memory loop</p>
               <p className="mt-1 text-xs text-[var(--text-muted)]">
-                Close the day by turning reflection into reusable knowledge.
+                Later today, capture one reflection and review what matters.
               </p>
               <div className="mt-3 space-y-2.5">
                 <div className="flex flex-col items-start justify-between gap-2 rounded-lg bg-[var(--surface)] px-3 py-3 sm:flex-row sm:items-center sm:gap-3 sm:py-2">
@@ -1233,6 +1235,45 @@ function ExecutionBridgeMetric({ label, value, sub }: { label: string; value: nu
       <p className="text-[10px] text-pretty text-[var(--text-muted)]">{label}</p>
       {sub && <p className="mt-0.5 break-words text-[9px] text-[var(--text-muted)]">{sub}</p>}
     </div>
+  );
+}
+
+function StartHereTodayCard() {
+  const steps = [
+    "Set one priority in Mission Control",
+    "Complete one task or habit",
+    "Write a short reflection later",
+  ];
+
+  return (
+    <Card className="mb-4 overflow-hidden border-[var(--accent)]/25 bg-[var(--accent-ghost)]/40">
+      <div className="px-4 py-3.5 sm:px-5 sm:py-4">
+        <div className="mb-3 flex min-w-0 flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-[var(--text)]">Start here today</p>
+            <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
+              You do not need to use every module. Start with one clear priority and build momentum one small action at a time.
+            </p>
+          </div>
+          <span className="shrink-0 rounded-full border border-[var(--accent)]/20 bg-[var(--surface)]/70 px-2 py-1 text-[10px] font-medium text-[var(--accent)]">
+            3-step path
+          </span>
+        </div>
+        <ol className="grid gap-2 text-xs text-[var(--text-secondary)] sm:grid-cols-3">
+          {steps.map((step, index) => (
+            <li key={step} className="flex min-w-0 items-start gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface)]/70 px-3 py-2.5">
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--accent-soft)] text-[10px] font-semibold text-[var(--accent)]">
+                {index + 1}
+              </span>
+              <span className="min-w-0 leading-relaxed">{step}</span>
+            </li>
+          ))}
+        </ol>
+        <p className="mt-3 text-[10px] leading-relaxed text-[var(--text-muted)]">
+          The rest of Today is context for later, not a checklist you have to finish.
+        </p>
+      </div>
+    </Card>
   );
 }
 

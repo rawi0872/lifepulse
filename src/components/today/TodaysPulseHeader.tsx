@@ -43,6 +43,9 @@ export function TodaysPulseHeader({ firstName, totalXp, todayXp, subtitle }: Tod
               <p>Use Today to choose priorities, capture incoming work, complete the next actions, and keep your active Life Pulse areas visible.</p>
             </HelpPopover>
           </div>
+          <p className="mt-2 max-w-xl text-xs leading-relaxed text-[var(--text-muted)]">
+            Start with Mission Control. Everything below is optional context for later.
+          </p>
           <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
             <span className="text-[10px] font-medium text-[var(--accent)]">Level {level}</span>
             <div className="h-1 w-20 overflow-hidden rounded-full bg-[var(--surface)] ring-1 ring-inset ring-[var(--border)]">

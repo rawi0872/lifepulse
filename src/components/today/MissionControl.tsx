@@ -45,7 +45,7 @@ export function MissionControl({
   onQuickCapture,
 }: MissionControlProps) {
   return (
-    <PulseCard accent="accent" title="Mission Control" className="mb-6">
+    <PulseCard accent="accent" title="Mission Control" description="Start here" className="mb-6">
       <div className="p-4 sm:p-5">
         <div>
           <label className="text-xs font-medium text-[var(--text-secondary)]">
