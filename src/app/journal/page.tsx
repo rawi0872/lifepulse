@@ -129,22 +129,25 @@ export default function JournalPage() {
               </div>
               <h2 className="text-lg font-semibold text-[var(--text)]">Your writing room</h2>
               <p className="mx-auto mt-1.5 max-w-xs text-pretty text-sm leading-relaxed text-[var(--text-muted)]">
-                A quiet place to hold your thoughts. Reflections, wins, and lessons — one day at a time.
+                A quiet place to review your reflections. Writing currently lives inside Today so your entry stays connected to the day.
               </p>
 
-              <Link href="/today">
+              <Link href="/today#evening-reflection">
                 <Button className="mt-8">
-                  Write today&apos;s entry
+                  Open Today&apos;s reflection
                 </Button>
               </Link>
+              <p className="mx-auto mt-2 max-w-xs text-xs leading-relaxed text-[var(--text-muted)]">
+                You&apos;ll write in the same daily reflection form used from Today.
+              </p>
 
               <div className="mx-auto mt-12 max-w-sm">
-                <p className="mb-3 text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Need a starting point?</p>
+                <p className="mb-3 text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Need a starting point in Today?</p>
                 <div className="flex flex-col gap-2">
                   {REFLECTION_PROMPTS.map((prompt) => (
                     <Link
                       key={prompt}
-                      href="/today"
+                      href="/today#evening-reflection"
                       className="group flex min-w-0 items-start gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-3 text-left text-xs leading-relaxed text-[var(--text-muted)] transition-all duration-150 hover:border-[var(--accent)]/20 hover:bg-[var(--surface-active)] hover:text-[var(--text-secondary)] sm:items-center"
                     >
                       <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--surface-soft)] text-[10px] text-[var(--text-muted)] group-hover:text-[var(--text-muted)] transition-colors">
@@ -172,15 +175,15 @@ export default function JournalPage() {
                     {REFLECTION_PROMPTS.slice(0, 3).map((prompt) => (
                       <Link
                         key={prompt}
-                        href="/today"
+                        href="/today#evening-reflection"
                         className="rounded-full bg-[var(--surface-soft)] px-3 py-1.5 text-xs text-[var(--text-muted)] transition-all duration-150 hover:bg-[var(--surface-active)] hover:text-[var(--text-secondary)] hover:ring-1 hover:ring-[var(--accent)]/20 sm:px-2.5 sm:py-1"
                       >
                         {prompt}
                       </Link>
                     ))}
                   </div>
-                  <Link href="/today" className="mt-2 inline-block rounded-md py-1.5 text-[10px] text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:py-0">
-                    More prompts →
+                  <Link href="/today#evening-reflection" className="mt-2 inline-block rounded-md py-1.5 text-[10px] text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:py-0">
+                    Open Today&apos;s reflection →
                   </Link>
                 </div>
               </Card>

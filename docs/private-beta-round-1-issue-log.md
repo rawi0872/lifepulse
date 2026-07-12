@@ -26,12 +26,18 @@ Example rows are placeholders. Replace them with real tester feedback as it arri
 | R1-005 | 2026-07-12 | Tester 1 | Unknown | /body | Missing expectation | P2 | Tester requested an easier way to add water or food. Audit found nutrition and water logging already exist under the Nutrition tab, so this is likely discoverability and shortcut friction before schema work. | No | Not yet | Fix this week | Open |  |
 | R1-006 | 2026-07-12 | Tester 1 | Unknown | Overall, /today, /coach, /onboarding | Product motivation | P3 | Tester said the app is not interactive enough and does not clearly make them feel they will become better. Do not translate this into a redesign yet; watch for repeated first-run motivation feedback. | No | Not yet | Watch for repetition | Open |  |
 | R1-007 | 2026-07-12 | Tester 1 | Unknown | Overall navigation/first run | Information architecture | P3 | Tester said the app feels too messy and too much. Do not hide modules or redesign from one opinion; audit suggests this may be first-run guidance/module overload. | No | Not yet | Watch for repetition | Open |  |
+| R1-008 | 2026-07-12 | Tester 2 | Unknown | /journal | Confusing wording | P1 | Journal empty-state CTA says "Write today's entry" but opens Today, making the button feel broken instead of intentional. | Yes | Yes | Fix before more testers | Open |  |
+| R1-009 | 2026-07-12 | Tester 2 | Unknown | Overall navigation/first run | Information architecture | P1 | Tester said there is too much on a single page and they cannot keep up or comprehend everything. This repeats Tester 1's "messy and too much" feedback. | No | Not yet | Fix before wider beta / audit next | Open |  |
+| R1-010 | 2026-07-12 | Tester 2 | Unknown | XP/progress | Product motivation | P2 | Tester said XP could be more useful and motivating. Track for a future motivation slice after core usability issues. | No | Not yet | Watch for repetition | Open |  |
+| R1-011 | 2026-07-12 | Tester 2 | Unknown | XP/social motivation | Useful feature request | P3 | Tester requested Duolingo-style leagues and competition. Useful idea, but too large for Round 1 and has fairness/social-product complexity. | No | Not needed | Save for later | Deferred |  |
+| R1-012 | 2026-07-12 | Tester 2 | Unknown | Social/account | Useful feature request | P3 | Tester requested adding friends for motivation and competition. Defer because it introduces privacy, safety, moderation, and social graph complexity. | No | Not needed | Save for later | Deferred |  |
+| R1-013 | 2026-07-12 | Tester 2 | Unknown | XP/profile | Useful feature request | P2 | Tester requested achievements/profile badges to show progress. Consider later as a safer gamification slice, but do not build during this fix. | No | Not needed | Save for later | Deferred |  |
 
 ## Common Repeated Issues
 
 Group similar issues here after at least two testers mention the same theme.
 
--
+- Cognitive overload / too much at once: Tester 1 said the app feels "too messy and too much" (`R1-007`); Tester 2 said there is too much on a single page and they cannot comprehend everything (`R1-009`). Treat this as a repeated Round 1 signal before wider beta.
 
 ## Top Fixes Selected
 
