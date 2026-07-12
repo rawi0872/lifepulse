@@ -351,6 +351,16 @@ export function DashboardNav({ children }: { children: React.ReactNode }) {
                 );
               })}
             </div>
+            <div className="mt-4 border-t border-[var(--border)] pt-4">
+              <p className="mb-2 text-[10px] font-medium uppercase tracking-[0.12em] text-[var(--text-muted)]">
+                Private beta
+              </p>
+              <FeedbackButton
+                variant="cta"
+                label="Send feedback"
+                description="Report a bug or confusing moment"
+              />
+            </div>
           </div>
         </div>
       )}

@@ -81,7 +81,7 @@ export function FeedbackDialog({ open, onClose }: { open: boolean; onClose: () =
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       <div className="relative z-10 w-full max-w-md rounded-t-2xl border border-[var(--border)] bg-[var(--bg-elevated)] p-6 shadow-2xl sm:rounded-2xl animate-slide-up">
         <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-[var(--text)]">Send feedback</h2>
+          <h2 className="text-lg font-semibold text-[var(--text)]">Private beta feedback</h2>
           <button
             onClick={onClose}
             className="rounded-lg p-1.5 text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface)] transition-colors"
@@ -152,7 +152,7 @@ export function FeedbackDialog({ open, onClose }: { open: boolean; onClose: () =
               onChange={(e) => setMessage(e.target.value)}
               required
               rows={4}
-              placeholder="What felt confusing, broken, useful, or missing?"
+              placeholder="Report a bug, confusing moment, or something useful."
               className="mt-1.5 w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface-soft)] px-3 py-2.5 text-sm text-[var(--text)] placeholder-[var(--text-muted)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none resize-none"
             />
           </div>

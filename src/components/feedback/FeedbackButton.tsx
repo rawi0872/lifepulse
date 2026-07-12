@@ -3,7 +3,13 @@
 import { useState, useCallback } from "react";
 import { FeedbackDialog } from "./FeedbackDialog";
 
-export function FeedbackButton() {
+interface FeedbackButtonProps {
+  label?: string;
+  description?: string;
+  variant?: "nav" | "cta";
+}
+
+export function FeedbackButton({ label = "Feedback", description, variant = "nav" }: FeedbackButtonProps) {
   const [open, setOpen] = useState(false);
   const [dialogKey, setDialogKey] = useState(0);
 
@@ -15,13 +21,20 @@ export function FeedbackButton() {
   return (
     <>
       <button
+        type="button"
         onClick={handleOpen}
-        className="flex items-center gap-2 rounded-md px-2.5 py-2 text-sm font-medium text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-white/[0.03] transition-all duration-200 w-full"
+        className={variant === "cta"
+          ? "flex min-w-0 items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2 text-left text-xs font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-active)] hover:text-[var(--text)] w-full"
+          : "flex items-center gap-2 rounded-md px-2.5 py-2 text-sm font-medium text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-white/[0.03] transition-all duration-200 w-full"
+        }
       >
         <svg className="h-[18px] w-[18px] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
         </svg>
-        Feedback
+        <span className="min-w-0">
+          <span className="block truncate">{label}</span>
+          {description && <span className="mt-0.5 block truncate text-[10px] font-normal text-[var(--text-muted)]">{description}</span>}
+        </span>
       </button>
       <FeedbackDialog key={dialogKey} open={open} onClose={() => setOpen(false)} />
     </>
