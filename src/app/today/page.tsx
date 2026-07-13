@@ -845,6 +845,8 @@ function TodayContent() {
         </div>
       )}
 
+      <StartHereTodayCard />
+
       <CommandStrip
         completedHabitCount={completedHabitCount}
         dueHabitsLength={dueHabits.length}
@@ -857,8 +859,6 @@ function TodayContent() {
       />
 
       <TodayEcosystemStrip modules={ecosystemModules} />
-
-      <StartHereTodayCard />
 
       <MissionControl
         priorities={priorities}
