@@ -69,7 +69,6 @@ export default function LoginPage() {
       setLoading(false);
       router.refresh();
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Something went wrong. Please try again.";
       console.error("Login exception:", err);
       setError("Unable to connect. Check your internet connection and try again.");
       setLoading(false);
@@ -110,9 +109,9 @@ export default function LoginPage() {
               <label htmlFor="password" className="text-sm font-medium text-[var(--text-muted)]">
                 Password
               </label>
-              <a href="/forgot-password" className="text-xs text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors">
+              <Link href="/forgot-password" className="text-xs text-[var(--text-muted)] transition-colors hover:text-[var(--accent)]">
                 Forgot password?
-              </a>
+              </Link>
             </div>
             <input
               id="password"

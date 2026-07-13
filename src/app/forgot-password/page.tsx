@@ -12,6 +12,10 @@ export default function ForgotPasswordPage() {
   const [loading, setLoading] = useState(false);
   const supabase = createClient();
 
+  function getResetRedirectUrl() {
+    return `${window.location.origin}/reset-password`;
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -21,7 +25,7 @@ export default function ForgotPasswordPage() {
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(
         email.trim(),
         {
-          redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
+          redirectTo: getResetRedirectUrl(),
         },
       );
 
@@ -51,14 +55,14 @@ export default function ForgotPasswordPage() {
           </div>
           <h1 className="text-2xl font-bold text-[var(--text)]">Reset your password</h1>
           <p className="mt-1 text-sm text-[var(--text-muted)]">
-            Enter your email and we&apos;ll send you a reset link.
+            Enter the email for your Life Pulse account. If an account exists, we&apos;ll send a reset link.
           </p>
         </div>
 
         {sent ? (
           <div className="flex flex-col gap-4">
             <div className="rounded-lg border border-[var(--border-strong)] bg-[var(--surface-soft)] px-4 py-3 text-sm text-[var(--text-muted)]">
-              If an account exists for that email, we sent password reset instructions.
+              If an account exists for that email, we sent a password reset link.
             </div>
             <Link
               href="/login"
