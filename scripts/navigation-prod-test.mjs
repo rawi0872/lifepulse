@@ -33,7 +33,7 @@ const EMAIL = env.LIFE_PULSE_TEST_EMAIL;
 const PASSWORD = env.LIFE_PULSE_TEST_PASSWORD;
 const ERROR_SCREENSHOT_PATH = "screenshot-navigation-prod-error.png";
 
-const requiredGroupText = ["Pulse", "Build", "Life", "Knowledge", "System"];
+const requiredGroupText = ["Core", "Build later", "Track later", "Review later", "Preview", "System"];
 
 const requiredNavText = [
   "Today",

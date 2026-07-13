@@ -37,7 +37,7 @@ Example rows are placeholders. Replace them with real tester feedback as it arri
 
 Group similar issues here after at least two testers mention the same theme.
 
-- Cognitive overload / too much at once: Tester 1 said the app feels "too messy and too much" (`R1-007`); Tester 2 said there is too much on a single page and they cannot comprehend everything (`R1-009`). Treat this as a repeated Round 1 signal before wider beta. First selected fix: Today-first guidance that makes Mission Control, one action, and later reflection the obvious starting path.
+- Cognitive overload / too much at once: Tester 1 said the app feels "too messy and too much" (`R1-007`); Tester 2 said there is too much on a single page and they cannot comprehend everything (`R1-009`). Treat this as a repeated Round 1 signal before wider beta. First selected fix shipped Today-first guidance; next selected fix is Today + navigation first-run simplification so Core routes appear first and deeper modules feel optional/later. Status: in progress pending production verification.
 
 ## Top Fixes Selected
 
