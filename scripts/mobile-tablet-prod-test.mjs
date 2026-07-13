@@ -147,11 +147,15 @@ async function assertNoHorizontalOverflow(page, label) {
 async function verifyMobileNavigation(page) {
   const bottomNav = page.locator("nav").filter({ hasText: "More" }).last();
   await expect(bottomNav).toBeVisible({ timeout: 15000 });
+  await expect(bottomNav.getByRole("link", { name: /^Today$/ })).toBeVisible({ timeout: 15000 });
+  await expect(bottomNav.getByRole("link", { name: /^Tasks$/ })).toBeVisible({ timeout: 15000 });
+  await expect(bottomNav.getByRole("link", { name: /^Habits$/ })).toBeVisible({ timeout: 15000 });
+  await expect(bottomNav.getByRole("link", { name: /^Journal$/ })).toBeVisible({ timeout: 15000 });
   pass("Phone bottom navigation is visible");
 
   await page.getByRole("button", { name: "More" }).click();
   await expect(page.getByRole("heading", { name: "More" })).toBeVisible({ timeout: 15000 });
-  await expect(page.getByRole("link", { name: /Tasks/ })).toBeVisible({ timeout: 15000 });
+  await expect(page.getByRole("link", { name: /^Goals$/ })).toBeVisible({ timeout: 15000 });
   pass("Phone More menu opens and shows secondary routes");
 
   await page.getByRole("button", { name: "Close more menu" }).click();
