@@ -86,6 +86,28 @@ export default function ResetPasswordPage() {
         return;
       }
 
+      const { error: signOutError } = await supabase.auth.signOut();
+      const {
+        data: { session: remainingSession },
+      } = await supabase.auth.getSession();
+
+      if (signOutError && remainingSession) {
+        console.error("Password reset sign-out error:", signOutError.message);
+        setPassword("");
+        setConfirm("");
+        setError("Your password was updated, but we could not finish signing you out. Close this tab, then sign in again with your new password.");
+        setLoading(false);
+        return;
+      }
+
+      if (remainingSession) {
+        setPassword("");
+        setConfirm("");
+        setError("Your password was updated, but the reset session is still active. Close this tab, then sign in again with your new password.");
+        setLoading(false);
+        return;
+      }
+
       setSuccess(true);
       setLoading(false);
     } catch {
@@ -160,7 +182,7 @@ export default function ResetPasswordPage() {
             href="/login"
             className="block w-full rounded-lg bg-[var(--accent)] px-4 py-2.5 text-center text-sm font-medium text-white transition-all hover:bg-[var(--accent)]"
           >
-            Sign in with new password
+            Sign in with your new password
           </Link>
         </div>
       </div>
