@@ -372,7 +372,7 @@ export default function TasksPage() {
           <div className="min-w-0">
             <h1 className="text-2xl font-bold text-[var(--text)]">Tasks</h1>
             <div className="text-pretty text-sm text-[var(--text-muted)]">
-              Clear the actions that move life forward.
+              Capture the next visible actions, then clear them one at a time.
               <HelpPopover title="What is a task?">
                 <p>Tasks are one-time actions with a clear finish.</p>
                 <p className="mt-1.5 text-[var(--text-muted)]">Examples: Submit project booklet, Buy guitar strings, Finish physics revision</p>
@@ -388,7 +388,7 @@ export default function TasksPage() {
         {tasks.length > 0 && tasks.length <= 2 && (
           <div className="mb-4 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2 hover:border-[var(--accent)]/20 transition-all duration-150">
             <p className="text-xs text-[var(--text-muted)]">
-              💡 Good task lists stay short. Add one clear next action.
+              Good task lists stay short. Add one clear next action.
             </p>
             <div className="mt-2">
               <span className="text-[9px] font-medium text-[var(--text-muted)]">Examples</span>
@@ -548,34 +548,42 @@ export default function TasksPage() {
                 <Card
                   key={task.id}
                   variant={isDone ? "subtle" : "default"}
-                  className={`flex flex-col gap-3 px-4 py-3.5 sm:flex-row sm:items-center sm:py-3 ${isDone ? "opacity-40" : "hover:bg-[var(--surface-active)]"}`}
+                  className={`overflow-hidden transition-all duration-150 ${isDone ? "border-[var(--success)]/20 bg-[var(--success-soft)]/15" : "hover:border-[var(--border-strong)] hover:bg-[var(--surface-active)] hover:shadow-md hover:shadow-black/10"}`}
                 >
-                  <div className="flex min-w-0 items-start gap-3 sm:flex-1 sm:items-center">
-                    <button
-                      onClick={() => toggleDone(task)}
-                      role="checkbox"
-                      aria-checked={isDone}
-                      aria-label={`Mark "${task.title}" as ${isDone ? "incomplete" : "complete"}`}
-                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 transition-all duration-150 sm:h-5 sm:w-5 ${
-                        isDone
-                          ? "border-[var(--accent)] bg-[var(--accent)]"
-                          : "border-[var(--text-muted)]/40 hover:border-[var(--accent)]/50 hover:bg-[var(--accent-ghost)]"
-                      }`}
-                    >
-                      {isDone && (
-                        <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                        </svg>
-                      )}
-                    </button>
+                  <div className="flex flex-col gap-3 px-4 py-3.5 sm:flex-row sm:items-center sm:py-3">
+                    <div className="flex min-w-0 items-start gap-3 sm:flex-1">
+                      <button
+                        onClick={() => toggleDone(task)}
+                        role="checkbox"
+                        aria-checked={isDone}
+                        aria-label={`Mark "${task.title}" as ${isDone ? "incomplete" : "complete"}`}
+                        className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 transition-all duration-150 sm:h-7 sm:w-7 ${
+                          isDone
+                            ? "border-[var(--success)] bg-[var(--success)] shadow-sm shadow-[var(--success)]/15"
+                            : "border-[var(--text-muted)]/40 hover:border-[var(--accent)]/50 hover:bg-[var(--accent-ghost)]"
+                        }`}
+                      >
+                        {isDone && (
+                          <svg className="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </button>
 
-                    <div className="min-w-0 flex-1">
-                      <p className={`text-pretty text-sm font-medium ${isDone ? "line-through text-[var(--text-muted)]" : "text-[var(--text)]"}`}>
-                        {task.title}
-                      </p>
-                      <div className="mt-1 flex min-w-0 flex-wrap items-center gap-2 sm:mt-0">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex min-w-0 flex-wrap items-start gap-x-2 gap-y-1">
+                          <p className={`min-w-0 flex-1 text-pretty text-sm font-semibold leading-snug ${isDone ? "line-through text-[var(--text-muted)]" : "text-[var(--text)]"}`}>
+                            {task.title}
+                          </p>
+                          {isDone && (
+                            <span className="rounded-full bg-[var(--success-soft)] px-2 py-0.5 text-[10px] font-medium text-[var(--success)]">
+                              Done
+                            </span>
+                          )}
+                        </div>
+                        <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-1.5">
                       {task.realms && (
-                        <span className="inline-block rounded-full px-2 py-1 text-[10px] sm:py-0.5" style={{ backgroundColor: task.realms.color + "20", color: task.realms.color }}>
+                        <span className="inline-block rounded-full px-2 py-1 text-[10px] font-medium sm:py-0.5" style={{ backgroundColor: task.realms.color + "20", color: task.realms.color }}>
                           {task.realms.icon} {task.realms.name}
                         </span>
                       )}
@@ -589,7 +597,7 @@ export default function TasksPage() {
                           {linkedGoalContext}
                         </span>
                       )}
-                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium capitalize ${
                         task.priority === "high"
                           ? "bg-[var(--danger-soft)] text-[var(--danger)]"
                           : task.priority === "medium"
@@ -603,17 +611,18 @@ export default function TasksPage() {
                           {dueLabel.label}
                         </span>
                       )}
-                      </div>
+                        </div>
                     </div>
                   </div>
 
-                  <div className="flex shrink-0 justify-end gap-1 sm:justify-start">
+                    <div className="flex shrink-0 justify-end gap-1 border-t border-[var(--border)] pt-2 sm:border-t-0 sm:pt-0">
                     <button onClick={() => openEdit(task)} className="rounded-lg px-3 py-2 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-active)] hover:text-[var(--text-secondary)] sm:px-2 sm:py-1">
                       Edit
                     </button>
-                    <button onClick={() => remove(task.id)} className="rounded-lg px-3 py-2 text-xs text-[var(--danger)] transition-colors hover:bg-[var(--danger-soft)] sm:px-2 sm:py-1">
+                    <button onClick={() => remove(task.id)} className="rounded-lg px-3 py-2 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--danger-soft)] hover:text-[var(--danger)] sm:px-2 sm:py-1">
                       Delete
                     </button>
+                    </div>
                   </div>
                 </Card>
               );

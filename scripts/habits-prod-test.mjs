@@ -35,8 +35,12 @@ const ERROR_SCREENSHOT_PATH = "screenshot-habits-prod-error.png";
 
 const requiredHabitsText = [
   "Habits",
-  "Build the routines your future self depends on.",
   "Add habit",
+];
+
+const acceptableHabitsHeaderCopy = [
+  "Build the routines your future self depends on.",
+  "Track the repeat actions you want to make automatic.",
 ];
 
 const riskyHabitText = [
@@ -99,6 +103,15 @@ async function expectBodyText(page, text, timeout = 15000) {
   pass(`Found text: ${text}`);
 }
 
+async function expectAnyBodyText(page, texts, timeout = 15000) {
+  const bodyText = await page.locator("body").innerText({ timeout });
+  const matched = texts.find((text) => bodyText.includes(text));
+  if (!matched) {
+    throw new Error(`Expected one of these texts: ${texts.join(" | ")}`);
+  }
+  pass(`Found acceptable text: ${matched}`);
+}
+
 async function assertAuthenticatedRoute(page, routeName) {
   if (page.url().includes("/login")) {
     const bodyText = await page.locator("body").innerText({ timeout: 10000 }).catch(() => "<unavailable>");
@@ -140,6 +153,7 @@ async function main() {
     for (const text of requiredHabitsText) {
       await expectBodyText(page, text);
     }
+    await expectAnyBodyText(page, acceptableHabitsHeaderCopy);
 
     const bodyText = await page.locator("body").innerText({ timeout: 10000 });
     if (bodyText.includes("Application error") || bodyText.includes("Failed to load")) {
