@@ -21,15 +21,44 @@ export default function ResetPasswordPage() {
     let isMounted = true;
 
     async function prepareRecoverySession() {
-      const code = new URLSearchParams(window.location.search).get("code");
+      const searchParams = new URLSearchParams(window.location.search);
+      const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+      const code = searchParams.get("code");
+      const tokenHash = searchParams.get("token_hash");
+      const type = searchParams.get("type") ?? hashParams.get("type");
+      const accessToken = hashParams.get("access_token");
+      const refreshToken = hashParams.get("refresh_token");
+      let recoverySessionEstablished = false;
 
       if (code) {
         const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
         if (exchangeError) {
           console.error("Password reset session exchange error:", exchangeError.message);
         } else {
-          window.history.replaceState(null, "", window.location.pathname);
+          recoverySessionEstablished = true;
         }
+      } else if (tokenHash && type === "recovery") {
+        const { error: verifyError } = await supabase.auth.verifyOtp({
+          token_hash: tokenHash,
+          type: "recovery",
+        });
+        if (verifyError) {
+          console.error("Password reset token verification error:", verifyError.message);
+        } else {
+          recoverySessionEstablished = true;
+        }
+      } else if (accessToken && refreshToken && type === "recovery") {
+        const { error: setSessionError } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+        if (setSessionError) {
+          console.error("Password reset session setup error:", setSessionError.message);
+        } else {
+          recoverySessionEstablished = true;
+        }
+      } else if (searchParams.get("recovery") === "1") {
+        recoverySessionEstablished = true;
       }
 
       const {
@@ -37,8 +66,12 @@ export default function ResetPasswordPage() {
       } = await supabase.auth.getSession();
 
       if (!isMounted) return;
-      setHasRecoverySession(Boolean(session));
+      setHasRecoverySession(recoverySessionEstablished && Boolean(session));
       setCheckingSession(false);
+
+      if (recoverySessionEstablished && session) {
+        window.history.replaceState(null, "", window.location.pathname);
+      }
     }
 
     prepareRecoverySession().catch((err) => {

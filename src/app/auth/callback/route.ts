@@ -6,12 +6,14 @@ const ALLOWED_REDIRECT = ["/onboarding", "/today", "/settings", "/reset-password
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const nextParam = searchParams.get("next") ?? "/onboarding";
+  const type = searchParams.get("type");
+  const nextParam = searchParams.get("next") ?? (type === "recovery" ? "/reset-password" : "/onboarding");
   const next = ALLOWED_REDIRECT.includes(nextParam) ? nextParam : "/onboarding";
 
   if (code) {
     const cookieHeader = request.headers.get("cookie") ?? "";
-    const response = NextResponse.redirect(`${origin}${next}`);
+    const redirectUrl = next === "/reset-password" ? `${origin}${next}?recovery=1` : `${origin}${next}`;
+    const response = NextResponse.redirect(redirectUrl);
 
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,

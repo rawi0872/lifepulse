@@ -32,7 +32,7 @@ Example rows are placeholders. Replace them with real tester feedback as it arri
 | R1-011 | 2026-07-12 | Tester 2 | Unknown | XP/social motivation | Useful feature request | P3 | Tester requested Duolingo-style leagues and competition. Useful idea, but too large for Round 1 and has fairness/social-product complexity. | No | Not needed | Save for later | Deferred |  |
 | R1-012 | 2026-07-12 | Tester 2 | Unknown | Social/account | Useful feature request | P3 | Tester requested adding friends for motivation and competition. Defer because it introduces privacy, safety, moderation, and social graph complexity. | No | Not needed | Save for later | Deferred |  |
 | R1-013 | 2026-07-12 | Tester 2 | Unknown | XP/profile | Useful feature request | P2 | Tester requested achievements/profile badges to show progress. Consider later as a safer gamification slice, but do not build during this fix. | No | Not needed | Save for later | Deferred |  |
-| R1-014 | 2026-07-14 | Internal QA | Production / Chrome | /reset-password | Trust/privacy concern | P1 | Password reset success kept the Supabase recovery session active, so the “Sign in with new password” action could reach the app without re-entering the new password. | No | Yes | Fix before more testers | Fixed pending production verification |  |
+| R1-014 | 2026-07-15 | Internal QA | Production / Chrome | /reset-password | Trust/privacy concern | P1 | Password reset showed success but the new password did not work and the old password still worked, indicating the success state could be reached without proving the current recovery link established the Supabase recovery session used for `updateUser`. | No | Yes | Fix before more testers | Fixed pending production verification |  |
 
 ## Common Repeated Issues
 
