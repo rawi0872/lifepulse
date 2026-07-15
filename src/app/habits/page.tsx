@@ -432,8 +432,7 @@ export default function HabitsPage() {
 
         {habits.length > 0 && (
           <p className="mb-4 text-xs text-[var(--text-muted)]">
-            {habits.length} habit{habits.length !== 1 ? "s" : ""} tracked
-            &middot; {todayCompleted.size} completed today
+            {`${habits.length} ${habits.length === 1 ? "habit" : "habits"} tracked`} &middot; {todayCompleted.size} completed today
           </p>
         )}
 

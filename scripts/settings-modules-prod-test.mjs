@@ -122,12 +122,18 @@ async function main() {
     await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible({ timeout: 15000 });
     pass("Settings page loaded");
 
+    await expectBodyText(page, "System control");
+    await expectBodyText(page, "Preferences");
     await expectBodyText(page, "Life Pulse setup");
+    await expectBodyText(page, "Progression");
+    await expectBodyText(page, "How XP works");
+    await expectBodyText(page, "Modules / system");
     await expectBodyText(page, "Life Pulse modules");
-    await expectBodyText(page, "Your starting mode recommends modules, but nothing is locked.");
+    await expectBodyText(page, "Your starting mode recommends areas to keep visible.");
     await expectBodyText(page, "Recommended for your starting mode");
-    await expectBodyText(page, "Full ecosystem roadmap");
-    await expectBodyText(page, "This shows where Life Pulse is heading. Planned modules are not active yet.");
+    await expectBodyText(page, "System map");
+    await expectBodyText(page, "Connected areas");
+    await expectBodyText(page, "Account / security");
     await expectBodyText(page, "Available");
     await expectBodyText(page, "Preview");
     await expectBodyText(page, "Planned");
