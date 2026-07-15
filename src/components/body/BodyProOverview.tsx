@@ -25,6 +25,7 @@ interface BodyProOverviewProps {
   latestHealthNote: HealthNote | null;
   bodyHabits: HabitInfo[];
   bodyTaskCount: number;
+  onQuickAction?: (tab: "nutrition" | "measurements") => void;
 }
 
 export function BodyProOverview({
@@ -39,6 +40,7 @@ export function BodyProOverview({
   latestHealthNote,
   bodyHabits,
   bodyTaskCount,
+  onQuickAction,
 }: BodyProOverviewProps) {
   const todayMetrics = bodyMetrics.find((m) => m.entry_date === new Date().toISOString().slice(0, 10)) ?? null;
   const caloriesToday = nutritionToday.reduce((s, n) => s + (n.calories ?? 0), 0);
@@ -46,7 +48,43 @@ export function BodyProOverview({
 
   return (
     <div className="min-w-0 space-y-6">
-      <BodyProfileCard />
+      <PulseCard title="Today body check-in" accent="success" description="Private manual tracking">
+        <div className="p-4 sm:p-5">
+          <p className="max-w-2xl text-sm leading-relaxed text-[var(--text-secondary)]">
+            Log only what is useful today. Life Pulse tracks entries you provide so patterns are easier to review later.
+          </p>
+          <div className="mt-4 grid gap-2 sm:grid-cols-3">
+            <button
+              type="button"
+              onClick={() => onQuickAction?.("measurements")}
+              className="rounded-xl border border-[var(--border)] bg-[var(--surface)]/70 px-3 py-3 text-left transition-all hover:border-[var(--success)]/30 hover:bg-[var(--surface-active)]"
+            >
+              <span className="block text-xs font-semibold text-[var(--text)]">Log today&apos;s weight</span>
+              <span className="mt-1 block text-[10px] leading-relaxed text-[var(--text-muted)]">
+                {latestWeight !== null ? `Last logged: ${formatNumber(latestWeight, 1)} kg` : "Add current weight in measurements."}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onQuickAction?.("nutrition")}
+              className="rounded-xl border border-[var(--border)] bg-[var(--surface)]/70 px-3 py-3 text-left transition-all hover:border-[var(--success)]/30 hover:bg-[var(--surface-active)]"
+            >
+              <span className="block text-xs font-semibold text-[var(--text)]">Log food & water</span>
+              <span className="mt-1 block text-[10px] leading-relaxed text-[var(--text-muted)]">
+                {nutritionToday.length > 0 || waterToday > 0 ? `${nutritionToday.length} food entries · ${formatNumber(waterToday)} ml water` : "Record a meal, water, or both."}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onQuickAction?.("measurements")}
+              className="rounded-xl border border-[var(--border)] bg-[var(--surface)]/70 px-3 py-3 text-left transition-all hover:border-[var(--success)]/30 hover:bg-[var(--surface-active)]"
+            >
+              <span className="block text-xs font-semibold text-[var(--text)]">Add measurement</span>
+              <span className="mt-1 block text-[10px] leading-relaxed text-[var(--text-muted)]">Weight, waist, or optional body measurements.</span>
+            </button>
+          </div>
+        </div>
+      </PulseCard>
 
       <div className="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-4">
         <MetricCard
@@ -72,7 +110,7 @@ export function BodyProOverview({
           active={workoutMinutesThisWeek > 0}
         />
         <MetricCard
-          label="Calories Today"
+          label="Food Today"
           value={formatNumber(caloriesToday)}
           icon={
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -83,7 +121,7 @@ export function BodyProOverview({
           active={caloriesToday > 0}
         />
         <MetricCard
-          label="Water (ml)"
+          label="Water Today"
           value={formatNumber(waterToday)}
           icon={
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -97,6 +135,8 @@ export function BodyProOverview({
 
       <div className="grid min-w-0 grid-cols-1 gap-6 md:grid-cols-2">
         <div className="space-y-6">
+          <BodyProfileCard />
+
           <BodyMetricsForm
             initial={{
               sleep_hours: todayMetrics?.sleep_hours ?? null,
@@ -114,16 +154,16 @@ export function BodyProOverview({
           />
 
           {nutritionToday.length === 0 && waterToday === 0 && (
-            <PulseCard title="Nutrition" accent="success" description="Today" action={
-              <Link href="#nutrition" className="text-[10px] font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">
+            <PulseCard title="Food & water" accent="success" description="Today" action={
+              <button type="button" onClick={() => onQuickAction?.("nutrition")} className="text-[10px] font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">
                 Log &rarr;
-              </Link>
+              </button>
             }>
-              <EmptyState message="No nutrition logged today." />
+              <EmptyState message="No food or water logged today." description="Log only what helps you remember the day." />
             </PulseCard>
           )}
           {nutritionToday.length > 0 && (
-            <PulseCard title="Nutrition" accent="success" description="Today">
+            <PulseCard title="Food & water" accent="success" description="Today">
               <div className="divide-y divide-[var(--border)]">
                 {nutritionToday.map((n) => (
                   <div key={n.id} className="flex min-w-0 flex-col gap-1 px-4 py-2 sm:flex-row sm:items-center sm:justify-between">
@@ -145,14 +185,14 @@ export function BodyProOverview({
           )}
 
           {latestWeight !== null && (
-            <PulseCard title="Latest Weight" accent="success" action={
-              <Link href="#measurements" className="text-[10px] font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">
+            <PulseCard title="Current weight" accent="success" description="Last logged" action={
+              <button type="button" onClick={() => onQuickAction?.("measurements")} className="text-[10px] font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">
                 Log &rarr;
-              </Link>
+              </button>
             }>
               <div className="p-4 text-center">
                 <p className="text-2xl font-bold text-[var(--text)]">{formatNumber(latestWeight, 1)} kg</p>
-                <p className="text-xs text-[var(--text-muted)]">latest measurement</p>
+                <p className="text-xs text-[var(--text-muted)]">based on your latest measurement entry</p>
               </div>
             </PulseCard>
           )}

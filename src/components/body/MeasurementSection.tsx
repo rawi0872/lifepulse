@@ -1,12 +1,27 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import type { ReactNode } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { PulseCard } from "@/components/ui/pulse-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useToast } from "@/hooks/use-toast";
 import type { BodyMeasurement, MeasurementFormData } from "@/lib/bodyPro";
 import { getTodayDate, formatNumber } from "@/lib/bodyPro";
+
+const numberInputClass = "min-h-11 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-sm text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none [appearance:textfield] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)] sm:min-h-0 sm:py-2 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
+
+function NumberField({ label, unit, children }: { label: string; unit?: string; children: ReactNode }) {
+  return (
+    <div className="flex min-w-0 flex-col gap-1.5">
+      <div className="flex items-center justify-between gap-2">
+        <label className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">{label}</label>
+        {unit && <span className="text-[10px] text-[var(--text-muted)]">{unit}</span>}
+      </div>
+      {children}
+    </div>
+  );
+}
 
 interface MeasurementSectionProps {
   todayDate?: string;
@@ -83,12 +98,12 @@ export function MeasurementSection({ todayDate = getTodayDate() }: MeasurementSe
   return (
     <div className="space-y-6">
       {latest && (
-        <PulseCard title="Latest" accent="success">
+        <PulseCard title="Current weight & latest measurements" accent="success" description="Based on your latest entry">
           <div className="grid min-w-0 grid-cols-1 gap-3 p-4 text-center sm:grid-cols-3">
             {latest.weight_kg !== null && (
               <div>
                 <p className="text-lg font-bold text-[var(--text)]">{formatNumber(latest.weight_kg, 1)}</p>
-                <p className="text-[10px] text-[var(--text-muted)]">kg</p>
+                <p className="text-[10px] text-[var(--text-muted)]">Current weight · kg</p>
               </div>
             )}
             {latest.body_fat_percent !== null && (
@@ -107,67 +122,61 @@ export function MeasurementSection({ todayDate = getTodayDate() }: MeasurementSe
         </PulseCard>
       )}
 
-      <PulseCard title="Log Measurement" accent="success">
+      <PulseCard title="Log today&apos;s weight or measurement" accent="success" description="Optional manual entry">
         <div className="grid min-w-0 grid-cols-1 gap-3 p-3.5 sm:grid-cols-2 sm:p-4 lg:grid-cols-3">
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-medium text-[var(--text-muted)]">Weight (kg)</label>
+          <NumberField label="Current weight" unit="kg">
             <input
-              type="number" min={0} step={0.1} placeholder="kg"
+              type="number" inputMode="decimal" min={0} step={0.1} placeholder="70.0"
               value={form.weight_kg ?? ""}
               onChange={(e) => setForm((f) => ({ ...f, weight_kg: e.target.value ? Number(e.target.value) : null }))}
-              className="min-h-11 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none sm:min-h-0 sm:py-2"
+              className={`${numberInputClass} w-full`}
             />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-medium text-[var(--text-muted)]">Body Fat %</label>
+          </NumberField>
+          <NumberField label="Body fat" unit="%">
             <input
-              type="number" min={0} max={100} step={0.1} placeholder="%"
+              type="number" inputMode="decimal" min={0} max={100} step={0.1} placeholder="Optional"
               value={form.body_fat_percent ?? ""}
               onChange={(e) => setForm((f) => ({ ...f, body_fat_percent: e.target.value ? Number(e.target.value) : null }))}
-              className="min-h-11 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none sm:min-h-0 sm:py-2"
+              className={`${numberInputClass} w-full`}
             />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-medium text-[var(--text-muted)]">Waist (cm)</label>
+          </NumberField>
+          <NumberField label="Waist" unit="cm">
             <input
-              type="number" min={0} step={0.1} placeholder="cm"
+              type="number" inputMode="decimal" min={0} step={0.1} placeholder="Optional"
               value={form.waist_cm ?? ""}
               onChange={(e) => setForm((f) => ({ ...f, waist_cm: e.target.value ? Number(e.target.value) : null }))}
-              className="min-h-11 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none sm:min-h-0 sm:py-2"
+              className={`${numberInputClass} w-full`}
             />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-medium text-[var(--text-muted)]">Chest (cm)</label>
+          </NumberField>
+          <NumberField label="Chest" unit="cm">
             <input
-              type="number" min={0} step={0.1} placeholder="cm"
+              type="number" inputMode="decimal" min={0} step={0.1} placeholder="Optional"
               value={form.chest_cm ?? ""}
               onChange={(e) => setForm((f) => ({ ...f, chest_cm: e.target.value ? Number(e.target.value) : null }))}
-              className="min-h-11 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none sm:min-h-0 sm:py-2"
+              className={`${numberInputClass} w-full`}
             />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-medium text-[var(--text-muted)]">Arms (cm)</label>
+          </NumberField>
+          <NumberField label="Arms" unit="cm">
             <input
-              type="number" min={0} step={0.1} placeholder="cm"
+              type="number" inputMode="decimal" min={0} step={0.1} placeholder="Optional"
               value={form.arms_cm ?? ""}
               onChange={(e) => setForm((f) => ({ ...f, arms_cm: e.target.value ? Number(e.target.value) : null }))}
-              className="min-h-11 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none sm:min-h-0 sm:py-2"
+              className={`${numberInputClass} w-full`}
             />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-medium text-[var(--text-muted)]">Legs (cm)</label>
+          </NumberField>
+          <NumberField label="Legs" unit="cm">
             <input
-              type="number" min={0} step={0.1} placeholder="cm"
+              type="number" inputMode="decimal" min={0} step={0.1} placeholder="Optional"
               value={form.legs_cm ?? ""}
               onChange={(e) => setForm((f) => ({ ...f, legs_cm: e.target.value ? Number(e.target.value) : null }))}
-              className="min-h-11 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none sm:min-h-0 sm:py-2"
+              className={`${numberInputClass} w-full`}
             />
-          </div>
+          </NumberField>
           <div className="flex justify-stretch sm:col-span-2 sm:justify-end lg:col-span-3">
             <button
               onClick={handleSave}
               disabled={saving}
-              className="min-h-11 w-full rounded-lg bg-[var(--accent)] px-4 py-2.5 text-xs font-medium text-[var(--text-on-accent)] transition-all hover:opacity-90 disabled:opacity-40 sm:min-h-0 sm:w-auto sm:py-2"
+              className="min-h-11 w-full rounded-xl bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-[var(--text-on-accent)] transition-all hover:opacity-90 disabled:opacity-40 sm:min-h-0 sm:w-auto sm:py-2"
             >
               {saving ? "Saving..." : "Save Measurement"}
             </button>
@@ -177,7 +186,7 @@ export function MeasurementSection({ todayDate = getTodayDate() }: MeasurementSe
 
       {!loading && measurements.length === 0 && (
         <PulseCard title="Measurement History" accent="success">
-          <EmptyState message="No measurements logged yet." />
+          <EmptyState message="No measurements logged yet." description="Start with current weight or any measurement you want to track." />
         </PulseCard>
       )}
 

@@ -1,9 +1,25 @@
 "use client";
 
 import { useState } from "react";
+import type { ReactNode } from "react";
 import { PulseCard } from "@/components/ui/pulse-card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+
+const numberInputClass = "min-h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-sm text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none [appearance:textfield] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)] sm:min-h-0 sm:py-2 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
+const textInputClass = "min-h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-sm text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)] sm:min-h-0 sm:py-2";
+
+function FieldShell({ label, unit, children }: { label: string; unit?: string; children: ReactNode }) {
+  return (
+    <div className="min-w-0">
+      <div className="mb-1.5 flex items-center justify-between gap-2">
+        <label className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">{label}</label>
+        {unit && <span className="text-[10px] text-[var(--text-muted)]">{unit}</span>}
+      </div>
+      {children}
+    </div>
+  );
+}
 
 interface BodyMetricsFormData {
   sleep_hours: number | null;
@@ -78,79 +94,82 @@ export function BodyMetricsForm({ initial, saving, onSave }: BodyMetricsFormProp
   }
 
   return (
-    <PulseCard title={hasEntry ? "Update Today's Body Data" : "Log Today's Body Data"} accent="success" description="Manual entry">
+    <PulseCard title={hasEntry ? "Update today's check-in" : "Today body check-in"} accent="success" description="Manual entry">
       <div className="min-w-0 space-y-4 p-3.5 sm:p-4">
+        <p className="text-xs leading-relaxed text-[var(--text-muted)]">
+          Log only the signals you want to remember. Leave the rest blank.
+        </p>
         <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-x-4">
-          <div className="min-w-0">
-            <label className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Sleep (hours)</label>
+          <FieldShell label="Sleep" unit="hours">
             <input
               type="number"
+              inputMode="decimal"
               step="0.1"
               min="0"
               max="24"
               value={sleepHours}
               onChange={(e) => setSleepHours(e.target.value)}
               placeholder="8.0"
-               className="min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none sm:min-h-0 sm:py-1.5"
+              className={numberInputClass}
             />
-          </div>
-          <div className="min-w-0">
-            <label className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Steps</label>
+          </FieldShell>
+          <FieldShell label="Steps">
             <input
               type="number"
+              inputMode="numeric"
               min="0"
               value={steps}
               onChange={(e) => setSteps(e.target.value)}
               placeholder="8000"
-               className="min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none sm:min-h-0 sm:py-1.5"
+              className={numberInputClass}
             />
-          </div>
-          <div className="min-w-0">
-            <label className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Workout (min)</label>
+          </FieldShell>
+          <FieldShell label="Workout" unit="minutes">
             <input
               type="number"
+              inputMode="numeric"
               min="0"
               value={workoutMinutes}
               onChange={(e) => setWorkoutMinutes(e.target.value)}
               placeholder="30"
-               className="min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none sm:min-h-0 sm:py-1.5"
+              className={numberInputClass}
             />
-          </div>
-          <div className="min-w-0">
-            <label className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Weight (kg)</label>
+          </FieldShell>
+          <FieldShell label="Current weight" unit="kg">
             <input
               type="number"
+              inputMode="decimal"
               step="0.1"
               min="0"
               value={weightKg}
               onChange={(e) => setWeightKg(e.target.value)}
               placeholder="70.0"
-               className="min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none sm:min-h-0 sm:py-1.5"
+              className={numberInputClass}
             />
-          </div>
-          <div className="min-w-0">
-            <label className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Resting HR</label>
+          </FieldShell>
+          <FieldShell label="Resting heart rate" unit="bpm">
             <input
               type="number"
+              inputMode="numeric"
               min="0"
               value={restingHr}
               onChange={(e) => setRestingHr(e.target.value)}
               placeholder="65"
-               className="min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none sm:min-h-0 sm:py-1.5"
+              className={numberInputClass}
             />
-          </div>
-          <div className="min-w-0">
-            <label className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Recovery (0–100)</label>
+          </FieldShell>
+          <FieldShell label="Recovery" unit="0-100">
             <input
               type="number"
+              inputMode="numeric"
               min="0"
               max="100"
               value={recoveryScore}
               onChange={(e) => setRecoveryScore(e.target.value)}
               placeholder="70"
-               className="min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none sm:min-h-0 sm:py-1.5"
+              className={numberInputClass}
             />
-          </div>
+          </FieldShell>
         </div>
 
         <RatingRow label="Sleep Quality" value={sleepQuality} onChange={setSleepQuality} />
@@ -163,7 +182,7 @@ export function BodyMetricsForm({ initial, saving, onSave }: BodyMetricsFormProp
             onChange={(e) => setNotes(e.target.value)}
             placeholder="How did your body feel today?"
             rows={2}
-             className="min-h-24 w-full resize-none rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none sm:min-h-0 sm:py-1.5"
+            className={cn(textInputClass, "min-h-24 resize-none")}
           />
         </div>
 

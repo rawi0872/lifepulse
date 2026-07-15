@@ -21,8 +21,8 @@ const BODY_REALM = "Body";
 const TABS = [
   { id: "overview", label: "Overview" },
   { id: "workouts", label: "Workouts" },
-  { id: "nutrition", label: "Nutrition" },
-  { id: "measurements", label: "Measurements" },
+  { id: "nutrition", label: "Food & water" },
+  { id: "measurements", label: "Weight & measurements" },
   { id: "health", label: "Health Notes" },
 ] as const;
 
@@ -216,6 +216,7 @@ function BodyContent() {
             latestHealthNote={latestHealthNote}
             bodyHabits={bodyHabits}
             bodyTaskCount={bodyTaskCount}
+            onQuickAction={setActiveTab}
           />
         )}
 

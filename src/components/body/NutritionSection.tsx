@@ -1,12 +1,28 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import type { ReactNode } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { PulseCard } from "@/components/ui/pulse-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useToast } from "@/hooks/use-toast";
 import type { NutritionLog, NutritionFormData } from "@/lib/bodyPro";
 import { getTodayDate, formatNumber } from "@/lib/bodyPro";
+
+const numberInputClass = "min-h-11 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-sm text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none [appearance:textfield] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)] sm:min-h-0 sm:py-2 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
+const textInputClass = "min-h-11 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-sm text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)] sm:min-h-0 sm:py-2";
+
+function Field({ label, unit, children }: { label: string; unit?: string; children: ReactNode }) {
+  return (
+    <div className="min-w-0">
+      <div className="mb-1.5 flex items-center justify-between gap-2">
+        <label className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">{label}</label>
+        {unit && <span className="text-[10px] text-[var(--text-muted)]">{unit}</span>}
+      </div>
+      {children}
+    </div>
+  );
+}
 
 interface NutritionSectionProps {
   todayDate?: string;
@@ -90,50 +106,67 @@ export function NutritionSection({ todayDate = getTodayDate() }: NutritionSectio
 
   return (
     <div className="space-y-6">
-      <PulseCard title="Log Nutrition" accent="success">
-        <div className="grid min-w-0 grid-cols-1 gap-3 p-3.5 sm:grid-cols-2 sm:p-4">
+      <PulseCard title="Log food & water" accent="success" description="Today">
+        <div className="space-y-4 p-3.5 sm:p-4">
+          <p className="text-xs leading-relaxed text-[var(--text-muted)]">
+            Record food, water, or both. Leave any numbers blank when they are not useful.
+          </p>
+          <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
+          <Field label="Food or meal">
           <input
             type="text" placeholder="Meal name"
             value={form.meal_name}
             onChange={(e) => setForm((f) => ({ ...f, meal_name: e.target.value }))}
-            className="min-h-11 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none focus:border-[var(--accent)] sm:col-span-2 sm:min-h-0 sm:py-2"
+            className={`${textInputClass} w-full`}
           />
+          </Field>
+          <Field label="Water" unit="ml">
           <input
-            type="number" min={0} placeholder="Calories"
-            value={form.calories ?? ""}
-            onChange={(e) => setForm((f) => ({ ...f, calories: e.target.value ? Number(e.target.value) : null }))}
-            className="min-h-11 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none sm:min-h-0 sm:py-2"
-          />
-          <input
-            type="number" min={0} placeholder="Water (ml)"
+            type="number" inputMode="numeric" min={0} placeholder="500"
             value={form.water_ml ?? ""}
             onChange={(e) => setForm((f) => ({ ...f, water_ml: e.target.value ? Number(e.target.value) : null }))}
-            className="min-h-11 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none sm:min-h-0 sm:py-2"
+            className={`${numberInputClass} w-full`}
           />
+          </Field>
+          <Field label="Calories" unit="optional">
           <input
-            type="number" min={0} step={0.1} placeholder="Protein (g)"
+            type="number" inputMode="numeric" min={0} placeholder="450"
+            value={form.calories ?? ""}
+            onChange={(e) => setForm((f) => ({ ...f, calories: e.target.value ? Number(e.target.value) : null }))}
+            className={`${numberInputClass} w-full`}
+          />
+          </Field>
+          <Field label="Protein" unit="g">
+          <input
+            type="number" inputMode="decimal" min={0} step={0.1} placeholder="30"
             value={form.protein_g ?? ""}
             onChange={(e) => setForm((f) => ({ ...f, protein_g: e.target.value ? Number(e.target.value) : null }))}
-            className="min-h-11 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none sm:min-h-0 sm:py-2"
+            className={`${numberInputClass} w-full`}
           />
+          </Field>
+          <Field label="Carbs" unit="g">
           <input
-            type="number" min={0} step={0.1} placeholder="Carbs (g)"
+            type="number" inputMode="decimal" min={0} step={0.1} placeholder="40"
             value={form.carbs_g ?? ""}
             onChange={(e) => setForm((f) => ({ ...f, carbs_g: e.target.value ? Number(e.target.value) : null }))}
-            className="min-h-11 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none sm:min-h-0 sm:py-2"
+            className={`${numberInputClass} w-full`}
           />
+          </Field>
+          <Field label="Fat" unit="g">
           <input
-            type="number" min={0} step={0.1} placeholder="Fat (g)"
+            type="number" inputMode="decimal" min={0} step={0.1} placeholder="15"
             value={form.fat_g ?? ""}
             onChange={(e) => setForm((f) => ({ ...f, fat_g: e.target.value ? Number(e.target.value) : null }))}
-            className="min-h-11 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none sm:min-h-0 sm:py-2"
+            className={`${numberInputClass} w-full`}
           />
+          </Field>
+          </div>
           <button
             onClick={handleSave}
             disabled={saving}
-            className="min-h-11 rounded-lg bg-[var(--accent)] px-4 py-2.5 text-xs font-medium text-[var(--text-on-accent)] transition-all hover:opacity-90 disabled:opacity-40 sm:col-span-2 sm:min-h-0 sm:py-2"
+            className="min-h-11 w-full rounded-xl bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-[var(--text-on-accent)] transition-all hover:opacity-90 disabled:opacity-40 sm:min-h-0 sm:py-2"
           >
-            {saving ? "Saving..." : "Log Entry"}
+            {saving ? "Saving..." : "Log food & water"}
           </button>
         </div>
       </PulseCard>
@@ -171,8 +204,8 @@ export function NutritionSection({ todayDate = getTodayDate() }: NutritionSectio
       )}
 
       {!loading && otherLogs.length === 0 && todayLogs.length === 0 && (
-        <PulseCard title="Nutrition History" accent="success">
-          <EmptyState message="No nutrition logged yet." />
+        <PulseCard title="Food & water history" accent="success">
+          <EmptyState message="No food or water logged yet." description="Start with a meal name, water amount, or both." />
         </PulseCard>
       )}
 
