@@ -854,21 +854,6 @@ function TodayContent() {
         </div>
       )}
 
-      <StartHereTodayCard />
-
-      <CommandStrip
-        completedHabitCount={completedHabitCount}
-        dueHabitsLength={dueHabits.length}
-        doneTaskCount={doneTaskCount}
-        tasksLength={tasks.length}
-        hasJournal={hasJournal}
-        todayXp={todayXp}
-        financeNet={financeNet}
-        financeHasTx={financeHasTx}
-      />
-
-      <TodayEcosystemStrip modules={ecosystemModules} />
-
       <MissionControl
         priorities={priorities}
         priorityInput={priorityInput}
@@ -885,6 +870,17 @@ function TodayContent() {
         onQuickCaptureChange={handleQuickChange}
         onQuickTypeChange={setQuickType}
         onQuickCapture={handleQuickCapture}
+      />
+
+      <CommandStrip
+        completedHabitCount={completedHabitCount}
+        dueHabitsLength={dueHabits.length}
+        doneTaskCount={doneTaskCount}
+        tasksLength={tasks.length}
+        hasJournal={hasJournal}
+        todayXp={todayXp}
+        financeNet={financeNet}
+        financeHasTx={financeHasTx}
       />
 
       <NextBestAction
@@ -1009,7 +1005,7 @@ function TodayContent() {
           <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          Day complete &middot; you&apos;re in motion
+          Day complete &middot; visible progress made
         </div>
       )}
 
@@ -1042,7 +1038,7 @@ function TodayContent() {
             </p>
             <ol className="mt-2 grid gap-2 text-xs leading-relaxed text-[var(--text-muted)] sm:grid-cols-2">
               <li>1. Finish setup or review your life areas.</li>
-              <li>2. Open Today as your daily command center.</li>
+              <li>2. Open Today and set one priority.</li>
               <li>3. Add one task and one habit.</li>
               <li>4. Write one short journal reflection.</li>
               <li className="sm:col-span-2">5. Come back later for Weekly Review.</li>
@@ -1233,6 +1229,8 @@ function TodayContent() {
           </section>
         </div>
       </div>
+
+      <TodayEcosystemStrip modules={ecosystemModules} />
     </div>
   );
 }
@@ -1244,45 +1242,6 @@ function ExecutionBridgeMetric({ label, value, sub }: { label: string; value: nu
       <p className="text-[10px] text-pretty text-[var(--text-muted)]">{label}</p>
       {sub && <p className="mt-0.5 break-words text-[9px] text-[var(--text-muted)]">{sub}</p>}
     </div>
-  );
-}
-
-function StartHereTodayCard() {
-  const steps = [
-    "Set one priority in Mission Control",
-    "Complete one task or habit",
-    "Write a short reflection later",
-  ];
-
-  return (
-    <Card className="mb-4 overflow-hidden border-[var(--accent)]/25 bg-[var(--accent-ghost)]/40">
-      <div className="px-4 py-3.5 sm:px-5 sm:py-4">
-        <div className="mb-3 flex min-w-0 flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-[var(--text)]">Start here today</p>
-            <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
-              You do not need to use every module. Start with one clear priority and build momentum one small action at a time.
-            </p>
-          </div>
-          <span className="shrink-0 rounded-full border border-[var(--accent)]/20 bg-[var(--surface)]/70 px-2 py-1 text-[10px] font-medium text-[var(--accent)]">
-            3-step path
-          </span>
-        </div>
-        <ol className="grid gap-2 text-xs text-[var(--text-secondary)] sm:grid-cols-3">
-          {steps.map((step, index) => (
-            <li key={step} className="flex min-w-0 items-start gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface)]/70 px-3 py-2.5">
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--accent-soft)] text-[10px] font-semibold text-[var(--accent)]">
-                {index + 1}
-              </span>
-              <span className="min-w-0 leading-relaxed">{step}</span>
-            </li>
-          ))}
-        </ol>
-        <p className="mt-3 text-[10px] leading-relaxed text-[var(--text-muted)]">
-          The rest of Today is context for later, not a checklist you have to finish.
-        </p>
-      </div>
-    </Card>
   );
 }
 

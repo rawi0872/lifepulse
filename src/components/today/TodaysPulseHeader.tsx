@@ -22,7 +22,7 @@ export function TodaysPulseHeader({ firstName, totalXp, todayXp, subtitle }: Tod
   const { level, xpNeededForNext, progressPercent } = getLevelInfo(totalXp);
 
   return (
-    <header className="mb-6">
+    <header className="mb-4 sm:mb-5">
       <div className="flex min-w-0 items-start justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
@@ -39,12 +39,12 @@ export function TodaysPulseHeader({ firstName, totalXp, todayXp, subtitle }: Tod
           </h1>
           <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-[var(--text-muted)]">
             {formatDate(new Date())}
-            <HelpPopover title="Today Command Center">
-              <p>Use Today to choose priorities, capture incoming work, complete the next actions, and keep your active Life Pulse areas visible.</p>
+            <HelpPopover title="Today">
+              <p>Use Today to choose one priority, capture loose work, complete visible actions, and reflect tonight.</p>
             </HelpPopover>
           </div>
-          <p className="mt-2 max-w-xl text-xs leading-relaxed text-[var(--text-muted)]">
-            Start with Mission Control. Everything below is optional context for later.
+          <p className="mt-2 max-w-xl text-sm leading-relaxed text-[var(--text-secondary)]">
+            Your next useful move is below. Start with one priority, then complete one visible action.
           </p>
           <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
             <span className="text-[10px] font-medium text-[var(--accent)]">Level {level}</span>
@@ -55,7 +55,7 @@ export function TodaysPulseHeader({ firstName, totalXp, todayXp, subtitle }: Tod
             <span className="text-[10px] text-[var(--text-muted)]">Next level: {xpNeededForNext} XP away</span>
           </div>
           <p className="mt-1 text-[10px] leading-relaxed text-[var(--text-muted)]">
-            Small wins today become private progress you can see.
+            Small actions become progress you can see.
           </p>
         </div>
       </div>

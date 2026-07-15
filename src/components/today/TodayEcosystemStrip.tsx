@@ -11,14 +11,14 @@ export function TodayEcosystemStrip({ modules }: TodayEcosystemStripProps) {
   if (modules.length === 0) return null;
 
   return (
-    <section className="mb-5 rounded-xl border border-dashed border-[var(--border)] bg-[var(--surface-soft)]/70 px-4 py-3.5 sm:py-3">
+    <section className="mt-6 rounded-xl border border-dashed border-[var(--border)] bg-[var(--surface-soft)]/40 px-4 py-3.5 sm:py-3">
       <div className="mb-2 flex items-center justify-between gap-3">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">
             Active ecosystem
           </p>
           <p className="mt-0.5 text-xs text-[var(--text-muted)]">
-            Optional areas for later. You do not need every module today.
+            Open these when they support today&apos;s work. They are not a checklist.
           </p>
         </div>
       </div>
@@ -27,7 +27,7 @@ export function TodayEcosystemStrip({ modules }: TodayEcosystemStripProps) {
           <Link
             key={module.key}
             href={module.href!}
-            className="inline-flex min-h-9 min-w-0 items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface)]/80 px-3 py-1.5 text-xs font-medium text-[var(--text-muted)] transition-colors hover:border-[var(--border-strong)] hover:text-[var(--text)] sm:min-h-0"
+            className="inline-flex min-h-9 min-w-0 items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface)]/50 px-3 py-1.5 text-xs font-medium text-[var(--text-muted)] transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface)] hover:text-[var(--text)] sm:min-h-0"
           >
             <span>{module.label}</span>
             {module.status === "preview" && (
