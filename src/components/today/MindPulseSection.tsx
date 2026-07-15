@@ -50,10 +50,12 @@ export function MindPulseSection({ tasks, doneTaskCount, tasksLength, taskContex
       />
       {tasks.length === 0 ? (
         <EmptyState
-          message="No tasks for today."
+          eyebrow="Tasks"
+          title="No tasks for today."
+          message="Add one visible action if something needs to move. Otherwise, keep the day light."
           compact
           action={
-            <Link href="/tasks" className="inline-flex items-center gap-1 text-xs font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">
+            <Link href="/tasks" className="inline-flex min-h-9 items-center gap-1 rounded-lg bg-[var(--accent-soft)] px-3 text-xs font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0 sm:bg-transparent sm:px-0">
               Add a task &rarr;
             </Link>
           }

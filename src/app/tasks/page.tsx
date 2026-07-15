@@ -14,6 +14,7 @@ import { toggleTaskCompletion } from "@/lib/taskCompletion";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { EmptyState } from "@/components/ui/empty-state";
 import { useToast } from "@/hooks/use-toast";
 
 interface Realm {
@@ -500,41 +501,29 @@ export default function TasksPage() {
         )}
 
         {filteredTasks.length === 0 ? (
-          <Card variant="subtle" className="border-dashed border-[var(--border)]">
-            <div className="px-4 py-10 text-center">
-              {filter === "all" ? (
-                <>
-                  <div className="flex items-center gap-2 mb-4 justify-center">
-                    <svg className="h-5 w-5 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    <span className="text-sm font-medium text-[var(--text-muted)]">Clear your mind</span>
-                  </div>
-                  <p className="text-sm text-[var(--text-muted)]">No tasks for now. Add one clear next action.</p>
-                  <div className="mt-3">
-                    <span className="text-[9px] font-medium text-[var(--text-muted)]">Examples</span>
-                    <div className="mt-1 flex flex-wrap justify-center gap-2">
-                      <button type="button" onClick={() => { resetForm(); setTitle("Submit project booklet"); setShowForm(true); }} className="cursor-pointer rounded-md border border-dashed border-[var(--border-strong)] bg-transparent px-2.5 py-1.5 text-[10px] text-[var(--text-muted)] transition-all duration-150 hover:border-[var(--accent)]/30 hover:text-[var(--accent)] sm:py-0.5">Submit project booklet</button>
-                      <button type="button" onClick={() => { resetForm(); setTitle("Practice one physics problem set"); setShowForm(true); }} className="cursor-pointer rounded-md border border-dashed border-[var(--border-strong)] bg-transparent px-2.5 py-1.5 text-[10px] text-[var(--text-muted)] transition-all duration-150 hover:border-[var(--accent)]/30 hover:text-[var(--accent)] sm:py-0.5">Practice one physics problem set</button>
-                      <button type="button" onClick={() => { resetForm(); setTitle("Call the printer"); setShowForm(true); }} className="cursor-pointer rounded-md border border-dashed border-[var(--border-strong)] bg-transparent px-2.5 py-1.5 text-[10px] text-[var(--text-muted)] transition-all duration-150 hover:border-[var(--accent)]/30 hover:text-[var(--accent)] sm:py-0.5">Call the printer</button>
-                    </div>
-                  </div>
-                  <Button
-                    size="sm"
-                    className="mt-6"
-                    onClick={() => { resetForm(); setShowForm(true); }}
-                  >
-                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                    </svg>
-                    Add task
-                  </Button>
-                </>
-              ) : (
-                <p className="text-sm text-[var(--text-muted)]">No tasks match this filter.</p>
-              )}
-            </div>
-          </Card>
+          <EmptyState
+            eyebrow={filter === "all" ? "First task" : undefined}
+            title={filter === "all" ? "Start with one visible action." : "No tasks match this filter."}
+            message={filter === "all" ? "Add one task you can finish today. Keep it concrete enough that done is obvious." : "Try another view or clear the filter to see the rest of your task list."}
+            action={filter === "all" ? (
+              <Button size="sm" onClick={() => { resetForm(); setShowForm(true); }}>
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+                Add first task
+              </Button>
+            ) : undefined}
+            examples={filter === "all" ? (
+              <div>
+                <p className="mb-2 text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Calm examples</p>
+                <div className="flex flex-wrap justify-center gap-2">
+                  <button type="button" onClick={() => { resetForm(); setTitle("Submit project booklet"); setShowForm(true); }} className="cursor-pointer rounded-full border border-[var(--border)] bg-[var(--surface)]/70 px-3 py-2 text-xs text-[var(--text-muted)] transition-all duration-150 hover:border-[var(--accent)]/30 hover:text-[var(--text-secondary)] sm:py-1.5">Submit project booklet</button>
+                  <button type="button" onClick={() => { resetForm(); setTitle("Practice one physics problem set"); setShowForm(true); }} className="cursor-pointer rounded-full border border-[var(--border)] bg-[var(--surface)]/70 px-3 py-2 text-xs text-[var(--text-muted)] transition-all duration-150 hover:border-[var(--accent)]/30 hover:text-[var(--text-secondary)] sm:py-1.5">Practice one problem set</button>
+                  <button type="button" onClick={() => { resetForm(); setTitle("Call the printer"); setShowForm(true); }} className="cursor-pointer rounded-full border border-[var(--border)] bg-[var(--surface)]/70 px-3 py-2 text-xs text-[var(--text-muted)] transition-all duration-150 hover:border-[var(--accent)]/30 hover:text-[var(--text-secondary)] sm:py-1.5">Call the printer</button>
+                </div>
+              </div>
+            ) : undefined}
+          />
         ) : (
           <div className="flex flex-col gap-2.5 sm:gap-2">
             {filteredTasks.map((task) => {

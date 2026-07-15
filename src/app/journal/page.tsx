@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { DashboardNav } from "@/components/DashboardNav";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 
 interface JournalEntry {
   id: string;
@@ -120,51 +121,32 @@ export default function JournalPage() {
         )}
 
         {entries.length === 0 ? (
-          <Card variant="subtle" className="border-[var(--border)]">
-            <div className="px-5 py-12 text-center sm:px-6 sm:py-16">
-              <div className="mx-auto mb-8 flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--surface-soft)] ring-1 ring-[var(--border)]">
-                <svg className="h-7 w-7 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
-                </svg>
-              </div>
-              <h2 className="text-lg font-semibold text-[var(--text)]">Your writing room</h2>
-              <p className="mx-auto mt-1.5 max-w-xs text-pretty text-sm leading-relaxed text-[var(--text-muted)]">
-                A quiet place to review your reflections. Writing currently lives inside Today so your entry stays connected to the day.
-              </p>
-
+          <EmptyState
+            eyebrow="Private journal"
+            title="Your reflections will collect here."
+            message="Journal is your private history. Write tonight from Today so the entry stays connected to the day."
+            action={(
               <Link href="/today#evening-reflection">
-                <Button className="mt-8">
-                  Open Today&apos;s reflection
-                </Button>
+                <Button>Open Today&apos;s reflection</Button>
               </Link>
-              <p className="mx-auto mt-2 max-w-xs text-xs leading-relaxed text-[var(--text-muted)]">
-                You&apos;ll write in the same daily reflection form used from Today.
-              </p>
-
-              <div className="mx-auto mt-12 max-w-sm">
-                <p className="mb-3 text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Need a starting point in Today?</p>
-                <div className="flex flex-col gap-2">
-                  {REFLECTION_PROMPTS.map((prompt) => (
+            )}
+            examples={(
+              <div className="mx-auto max-w-sm">
+                <p className="mb-3 text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Starting prompts</p>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {REFLECTION_PROMPTS.slice(0, 4).map((prompt) => (
                     <Link
                       key={prompt}
                       href="/today#evening-reflection"
-                      className="group flex min-w-0 items-start gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-3 text-left text-xs leading-relaxed text-[var(--text-muted)] transition-all duration-150 hover:border-[var(--accent)]/20 hover:bg-[var(--surface-active)] hover:text-[var(--text-secondary)] sm:items-center"
+                      className="rounded-xl border border-[var(--border)] bg-[var(--surface)]/70 px-3 py-3 text-left text-xs leading-relaxed text-[var(--text-muted)] transition-all duration-150 hover:border-[var(--accent)]/25 hover:text-[var(--text-secondary)]"
                     >
-                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--surface-soft)] text-[10px] text-[var(--text-muted)] group-hover:text-[var(--text-muted)] transition-colors">
-                        <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                        </svg>
-                      </span>
-                      <span className="min-w-0 flex-1 text-pretty">{prompt}</span>
-                      <svg className="h-3 w-3 shrink-0 text-[var(--text-muted)] group-hover:text-[var(--text-muted)] group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                      </svg>
+                      {prompt}
                     </Link>
                   ))}
                 </div>
               </div>
-            </div>
-          </Card>
+            )}
+          />
         ) : (
           <div className="flex flex-col gap-3.5 sm:gap-3">
             {entries.length < 3 && (

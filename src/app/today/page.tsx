@@ -1011,37 +1011,36 @@ function TodayContent() {
 
       {/* Empty state welcome */}
       {!hasContent && (
-        <Card variant="elevated" className="mb-6 overflow-hidden">
+        <Card variant="elevated" className="mb-6 overflow-hidden border-[var(--accent)]/20 bg-[radial-gradient(circle_at_top_left,var(--accent-soft),transparent_34%),var(--surface)]">
           <div className="border-b border-[var(--border)] px-5 py-4">
-            <h2 className="text-base font-semibold text-[var(--text)]">{copy.emptyTitle}</h2>
-            <p className="mt-1 text-sm text-[var(--text-secondary)]">
-              {copy.emptyBody}
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">First setup</p>
+            <h2 className="mt-1 text-base font-semibold text-[var(--text)]">Start with one daily action.</h2>
+            <p className="mt-1 text-sm leading-relaxed text-[var(--text-secondary)]">
+              {copy.emptyTitle}. Add one task or one habit, then come back tonight to reflect.
             </p>
           </div>
-          <div className="flex items-center gap-4 px-5 py-3">
-            <Link
-              href="/habits"
-              className="text-sm font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors"
-            >
-              Add a habit &rarr;
-            </Link>
+          <div className="flex flex-col gap-2 px-5 py-3 sm:flex-row sm:items-center sm:gap-4">
             <Link
               href="/tasks"
-              className="text-sm font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors"
+              className="inline-flex min-h-10 items-center justify-center rounded-lg bg-[var(--accent)] px-3 text-sm font-medium text-white transition-colors hover:bg-[var(--accent-strong)] sm:min-h-0 sm:bg-transparent sm:px-0 sm:text-[var(--accent)] sm:hover:bg-transparent sm:hover:text-[var(--accent-strong)]"
             >
-              Create a task &rarr;
+              Create one task &rarr;
+            </Link>
+            <Link
+              href="/habits"
+              className="inline-flex min-h-10 items-center justify-center rounded-lg border border-[var(--border)] px-3 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/30 hover:text-[var(--accent)] sm:min-h-0 sm:border-0 sm:px-0"
+            >
+              Add one habit &rarr;
             </Link>
           </div>
           <div className="border-t border-[var(--border)] px-5 py-4">
             <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">
-              First 5 minutes
+              Simple path
             </p>
-            <ol className="mt-2 grid gap-2 text-xs leading-relaxed text-[var(--text-muted)] sm:grid-cols-2">
-              <li>1. Finish setup or review your life areas.</li>
-              <li>2. Open Today and set one priority.</li>
-              <li>3. Add one task and one habit.</li>
-              <li>4. Write one short journal reflection.</li>
-              <li className="sm:col-span-2">5. Come back later for Weekly Review.</li>
+            <ol className="mt-2 grid gap-2 text-xs leading-relaxed text-[var(--text-muted)] sm:grid-cols-3">
+              <li>1. Set one priority.</li>
+              <li>2. Complete one visible action.</li>
+              <li>3. Log what happened tonight.</li>
             </ol>
           </div>
         </Card>

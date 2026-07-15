@@ -10,6 +10,7 @@ import { HelpPopover } from "@/components/HelpPopover";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { EmptyState } from "@/components/ui/empty-state";
 import { useToast } from "@/hooks/use-toast";
 import { getTodayDateString, getWeekStartDate } from "@/lib/utils";
 import { getCurrentStreak, getBestStreak, getWeeklyProgress } from "@/lib/streaks";
@@ -437,32 +438,35 @@ export default function HabitsPage() {
         )}
 
         {grouped.length === 0 && ungrouped.length === 0 ? (
-          <Card variant="subtle" className="border-dashed border-[var(--border)]">
-            <div className="px-4 py-10 text-center">
-              <p className="text-sm text-[var(--text-muted)]">Habits are repeated actions you want to become automatic.</p>
-              <div className="mt-4 flex flex-wrap justify-center gap-2">
-                {HABIT_TEMPLATES.map((tpl) => (
-                  <button
-                    key={tpl}
-                    onClick={() => applyTemplate(tpl)}
-                    className="rounded-full bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text-muted)] transition-all duration-150 hover:bg-[var(--surface-active)] hover:text-[var(--text)] hover:ring-1 hover:ring-[var(--accent)]/20 sm:py-1.5"
-                  >
-                    {tpl}
-                  </button>
-                ))}
-              </div>
-              <Button
-                size="sm"
-                className="mt-6"
-                onClick={() => { resetForm(); setShowForm(true); }}
-              >
+          <EmptyState
+            eyebrow="First habit"
+            title="Start with one small repeatable action."
+            message="Choose something you can honestly do for seven days. Tiny routines are easier to trust and easier to keep."
+            action={(
+              <Button size="sm" onClick={() => { resetForm(); setShowForm(true); }}>
                 <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                 </svg>
-                Add habit
+                Add first habit
               </Button>
-            </div>
-          </Card>
+            )}
+            examples={(
+              <div>
+                <p className="mb-2 text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Useful starters</p>
+                <div className="flex flex-wrap justify-center gap-2">
+                  {HABIT_TEMPLATES.slice(0, 6).map((tpl) => (
+                    <button
+                      key={tpl}
+                      onClick={() => applyTemplate(tpl)}
+                      className="rounded-full border border-[var(--border)] bg-[var(--surface)]/70 px-3 py-2 text-xs text-[var(--text-muted)] transition-all duration-150 hover:border-[var(--accent)]/30 hover:text-[var(--text-secondary)] sm:py-1.5"
+                    >
+                      {tpl}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          />
         ) : (
           <>
             {grouped.map((g) => (
