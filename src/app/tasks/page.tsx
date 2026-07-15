@@ -262,7 +262,11 @@ export default function TasksPage() {
       return;
     }
 
-    toast({ type: "success", title: task.status !== "done" ? "Task completed" : "Task reopened" });
+    toast({
+      type: "success",
+      title: task.status !== "done" ? "Task completed" : "Task reopened",
+      description: task.status !== "done" ? "+25 XP added to today's momentum." : undefined,
+    });
     reloadTasks();
   }
 

@@ -19,7 +19,7 @@ interface TodaysPulseHeaderProps {
 }
 
 export function TodaysPulseHeader({ firstName, totalXp, todayXp, subtitle }: TodaysPulseHeaderProps) {
-  const { level, progressPercent } = getLevelInfo(totalXp);
+  const { level, xpNeededForNext, progressPercent } = getLevelInfo(totalXp);
 
   return (
     <header className="mb-6">
@@ -52,7 +52,11 @@ export function TodaysPulseHeader({ firstName, totalXp, todayXp, subtitle }: Tod
               <div className="h-full rounded-full bg-gradient-to-r from-[var(--accent)] to-[var(--accent-strong)] transition-all duration-500" style={{ width: `${progressPercent}%` }} />
             </div>
             <span className="text-[10px] text-[var(--text-muted)]">+{todayXp} XP today</span>
+            <span className="text-[10px] text-[var(--text-muted)]">Next level: {xpNeededForNext} XP away</span>
           </div>
+          <p className="mt-1 text-[10px] leading-relaxed text-[var(--text-muted)]">
+            Small wins today become private progress you can see.
+          </p>
         </div>
       </div>
     </header>

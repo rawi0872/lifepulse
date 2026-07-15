@@ -491,12 +491,15 @@ export default function SettingsPage() {
           </div>
         </Card>
 
-        {/* Progression customization placeholder */}
-        <Card variant="subtle" className="mb-4 border-dashed border-[var(--border)]">
+        {/* Progression */}
+        <Card variant="subtle" className="mb-4 border-[var(--border)]">
           <div className="p-5">
-            <h3 className="mb-1 text-sm font-semibold text-[var(--text)]">Progression</h3>
-            <p className="text-xs text-[var(--text-muted)]">
-              Custom level titles, XP thresholds, and progression speed &mdash; coming soon.
+            <h3 className="mb-1 text-sm font-semibold text-[var(--text)]">How XP works</h3>
+            <p className="text-xs leading-relaxed text-[var(--text-muted)]">
+              XP is active now as a private momentum signal from logged actions like completed tasks and habits. It helps you see visible progress over time; it is not a life score, health score, or financial score.
+            </p>
+            <p className="mt-2 text-xs leading-relaxed text-[var(--text-muted)]">
+              Achievements and deeper progression may come later, but this beta keeps XP simple and private.
             </p>
           </div>
         </Card>

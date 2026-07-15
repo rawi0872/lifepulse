@@ -716,7 +716,7 @@ function TodayContent() {
           amount: 10,
         });
 
-        toast({ type: "success", title: "Habit logged!" });
+        toast({ type: "success", title: "Habit logged!", description: "+10 XP added to today's momentum." });
         setCompletedHabitIds(new Set([...completedHabitIds, habitId]));
         setTpwCounts((prev) => ({ ...prev, [habitId]: (prev[habitId] ?? 0) + 1 }));
         setTodayXp((prev) => prev + 10);
@@ -758,7 +758,7 @@ function TodayContent() {
     if (!result.success) return;
 
     if (isDone) {
-      toast({ type: "success", title: "Task completed!" });
+      toast({ type: "success", title: "Task completed!", description: "+25 XP added to today's momentum." });
       setTasks((prev) =>
         prev.map((t) =>
           t.id === taskId

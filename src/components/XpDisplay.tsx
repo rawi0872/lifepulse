@@ -14,7 +14,7 @@ export function XpDisplay({
   dueHabitCount,
   completedHabitCount,
 }: XpDisplayProps) {
-  const { level, xpIntoLevel, progressPercent, nextLevelXp, currentLevelXp } = getLevelInfo(totalXp);
+  const { level, xpIntoLevel, xpNeededForNext, progressPercent, nextLevelXp, currentLevelXp } = getLevelInfo(totalXp);
   const circumference = 2 * Math.PI * 15.5;
   const progressOffset = circumference - (progressPercent / 100) * circumference;
   const xpRange = nextLevelXp - currentLevelXp;
@@ -86,7 +86,14 @@ export function XpDisplay({
                 style={{ width: `${progressPercent}%` }}
               />
             </div>
+            <p className="mt-1 text-[10px] leading-relaxed text-[var(--text-muted)]">
+              Next level: {xpNeededForNext} XP away.
+            </p>
           </div>
+
+          <p className="text-[10px] leading-relaxed text-[var(--text-muted)]">
+            Private momentum from completed tasks and habits. It is not a judgment score.
+          </p>
 
           {/* Momentum label & Habit progress */}
           {dueHabitCount > 0 && (
