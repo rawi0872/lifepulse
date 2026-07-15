@@ -66,7 +66,7 @@ export default function LoginPage() {
         return;
       }
 
-      setLoading(false);
+      router.push("/today");
       router.refresh();
     } catch (err) {
       console.error("Login exception:", err);
@@ -88,7 +88,7 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4" aria-busy={loading}>
           <div>
             <label htmlFor="email" className="text-sm font-medium text-[var(--text-muted)]">
               Email
@@ -98,6 +98,7 @@ export default function LoginPage() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              disabled={loading}
               required
               autoComplete="email"
                className="mt-1.5 w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface-soft)] px-3 py-2.5 text-sm text-[var(--text)] placeholder-[var(--text-muted)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none"
@@ -118,6 +119,7 @@ export default function LoginPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              disabled={loading}
               required
               autoComplete="current-password"
                className="mt-1.5 w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface-soft)] px-3 py-2.5 text-sm text-[var(--text)] placeholder-[var(--text-muted)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none"
@@ -133,8 +135,13 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full rounded-lg bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-[var(--accent)] disabled:opacity-50"
           >
-            {loading ? "Signing in..." : "Sign in"}
+            {loading ? "Opening your command center..." : "Sign in"}
           </button>
+          {loading && (
+            <p className="text-center text-xs text-[var(--text-muted)]">
+              Preparing your Life Pulse.
+            </p>
+          )}
         </form>
 
         <p className="mt-6 text-center text-sm text-[var(--text-muted)]">

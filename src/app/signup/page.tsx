@@ -99,8 +99,8 @@ export default function SignupPage() {
       }
 
       if (data.session) {
-        setLoading(false);
         router.push("/onboarding");
+        router.refresh();
       } else {
         setSuccess(true);
         setLoading(false);
@@ -165,7 +165,7 @@ export default function SignupPage() {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4" aria-busy={loading}>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label htmlFor="firstName" className="text-sm font-medium text-[var(--text-muted)]">
@@ -176,6 +176,7 @@ export default function SignupPage() {
                 type="text"
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
+                disabled={loading}
                 required
                 maxLength={100}
                 autoComplete="given-name"
@@ -191,6 +192,7 @@ export default function SignupPage() {
                 type="text"
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
+                disabled={loading}
                 required
                 maxLength={100}
                 autoComplete="family-name"
@@ -208,6 +210,7 @@ export default function SignupPage() {
               type="date"
               value={birthDate}
               onChange={(e) => setBirthDate(e.target.value)}
+              disabled={loading}
               required
               className="mt-1.5 w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface-soft)] px-3 py-2.5 text-sm text-[var(--text)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none [color-scheme:dark]"
             />
@@ -225,6 +228,7 @@ export default function SignupPage() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              disabled={loading}
               required
               autoComplete="email"
               className="mt-1.5 w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface-soft)] px-3 py-2.5 text-sm text-[var(--text)] placeholder-[var(--text-muted)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none"
@@ -240,6 +244,7 @@ export default function SignupPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              disabled={loading}
               required
               minLength={6}
               autoComplete="new-password"
@@ -250,8 +255,13 @@ export default function SignupPage() {
           {error && <p className="text-sm text-[var(--danger)]">{error}</p>}
 
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Creating account..." : "Create account"}
+            {loading ? "Creating your workspace..." : "Create account"}
           </Button>
+          {loading && (
+            <p className="text-center text-xs text-[var(--text-muted)]">
+              Preparing setup.
+            </p>
+          )}
         </form>
 
         <p className="mt-6 text-center text-sm text-[var(--text-muted)]">
