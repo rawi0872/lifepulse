@@ -292,10 +292,16 @@ export default function SettingsPage() {
 
   return (
     <DashboardNav>
-      <div className="mx-auto max-w-2xl px-5 py-8 animate-fade-in">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-[var(--text)]">Settings</h1>
-          <p className="text-sm text-[var(--text-muted)]">Manage your account and preferences.</p>
+      <div className="mx-auto max-w-2xl px-4 py-6 animate-fade-in sm:px-5 sm:py-8">
+        <div className="mb-5 rounded-2xl border border-[var(--border)] bg-[radial-gradient(circle_at_top_left,var(--accent-soft),transparent_36%),var(--surface-soft)] px-4 py-4 shadow-sm shadow-black/10 sm:px-5">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">System control</p>
+          <h1 className="mt-1 text-2xl font-bold tracking-tight text-[var(--text)]">Settings</h1>
+          <p className="mt-1 max-w-xl text-sm leading-relaxed text-[var(--text-secondary)]">
+            Control how Life Pulse works for you. Manage your account, preferences, progress, and connected areas.
+          </p>
+          <p className="mt-2 text-xs text-[var(--text-muted)]">
+            Keep the system simple. Turn to deeper areas when you need them.
+          </p>
         </div>
 
         {/* Profile card */}
@@ -376,6 +382,7 @@ export default function SettingsPage() {
         {/* Life Pulse setup */}
         <Card className="mb-4 border-[var(--border-strong)]">
           <div className="p-5">
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Preferences</p>
             <h3 className="mb-1 text-sm font-semibold text-[var(--text)]">Life Pulse setup</h3>
             <p className="mb-4 text-xs leading-relaxed text-[var(--text-muted)]">
               You can change this anytime. It adjusts Life Pulse&apos;s emphasis without deleting your data.
@@ -405,12 +412,40 @@ export default function SettingsPage() {
           </div>
         </Card>
 
+        {/* Progression */}
+        <Card variant="subtle" className="mb-4 overflow-hidden border-[var(--border)]">
+          <div className="border-b border-[var(--border)] px-5 py-4">
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Progression</p>
+            <h3 className="text-sm font-semibold text-[var(--text)]">How XP works</h3>
+          </div>
+          <div className="p-5">
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)]/70 p-3">
+                <p className="text-xs font-semibold text-[var(--text)]">Private momentum</p>
+                <p className="mt-1 text-[10px] leading-relaxed text-[var(--text-muted)]">XP helps you see progress from actions you complete.</p>
+              </div>
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)]/70 p-3">
+                <p className="text-xs font-semibold text-[var(--text)]">Active now</p>
+                <p className="mt-1 text-[10px] leading-relaxed text-[var(--text-muted)]">Tasks, habits, and reflections can add visible progress.</p>
+              </div>
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)]/70 p-3">
+                <p className="text-xs font-semibold text-[var(--text)]">Not a score</p>
+                <p className="mt-1 text-[10px] leading-relaxed text-[var(--text-muted)]">It is not a score of your life, health, money, or worth.</p>
+              </div>
+            </div>
+            <p className="mt-4 text-xs leading-relaxed text-[var(--text-muted)]">
+              Deeper progression may come later, but this beta keeps XP simple, private, and based on what you log or complete.
+            </p>
+          </div>
+        </Card>
+
         {/* Module configuration foundation */}
         <Card className="mb-4 border-[var(--border-strong)]">
           <div className="p-5">
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Modules / system</p>
             <h3 className="mb-1 text-sm font-semibold text-[var(--text)]">Life Pulse modules</h3>
             <p className="mb-4 text-xs leading-relaxed text-[var(--text-muted)]">
-              Your starting mode recommends modules, but nothing is locked. Available modules work today. Preview modules are early or lightweight. Planned modules show where the ecosystem is heading.
+              Your starting mode recommends areas to keep visible. Available modules work today. Preview and planned areas are quieter context, available when ready.
             </p>
 
             <div className="mb-3 flex flex-wrap gap-2">
@@ -428,7 +463,7 @@ export default function SettingsPage() {
             <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
               <h4 className="text-xs font-semibold text-[var(--text)]">Recommended for your starting mode</h4>
               <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
-                These are the areas Life Pulse emphasizes based on your current setup. Nothing is locked.
+                These are the areas Life Pulse emphasizes based on your current setup. Nothing is locked or hidden.
               </p>
 
               <div className="mt-3 flex flex-wrap gap-2">
@@ -446,10 +481,10 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <div className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
-              <h4 className="text-xs font-semibold text-[var(--text)]">Full ecosystem roadmap</h4>
+            <div className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)]/70 p-4">
+              <h4 className="text-xs font-semibold text-[var(--text)]">System map</h4>
               <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
-                This shows where Life Pulse is heading. Planned modules are not active yet.
+                Active now comes first. Future areas are shown as secondary context so Settings stays honest without becoming a roadmap brochure.
               </p>
 
               <div className="mt-4 space-y-4">
@@ -462,9 +497,9 @@ export default function SettingsPage() {
                       {modulesByCategory[category].map((module) => (
                         <div
                           key={module.key}
-                          className={`rounded-lg border px-3 py-2.5 ${
+                          className={`rounded-lg border px-3 py-2.5 transition-colors ${
                             module.status === "planned"
-                              ? "border-[var(--border)] bg-[var(--surface)]/60"
+                              ? "border-[var(--border)] bg-[var(--surface)]/35 opacity-75"
                               : "border-[var(--border)] bg-[var(--surface)]"
                           }`}
                         >
@@ -486,20 +521,7 @@ export default function SettingsPage() {
             </div>
 
             <p className="mt-4 text-xs leading-relaxed text-[var(--text-muted)]">
-              Planned modules are not active yet. This does not create workspaces, team permissions, CRM tools, device sync, AI memory, or database module preferences.
-            </p>
-          </div>
-        </Card>
-
-        {/* Progression */}
-        <Card variant="subtle" className="mb-4 border-[var(--border)]">
-          <div className="p-5">
-            <h3 className="mb-1 text-sm font-semibold text-[var(--text)]">How XP works</h3>
-            <p className="text-xs leading-relaxed text-[var(--text-muted)]">
-              XP is active now as a private momentum signal from logged actions like completed tasks and habits. It helps you see visible progress over time; it is not a life score, health score, or financial score.
-            </p>
-            <p className="mt-2 text-xs leading-relaxed text-[var(--text-muted)]">
-              Achievements and deeper progression may come later, but this beta keeps XP simple and private.
+              Planned modules are not active yet. This page does not create workspaces, team permissions, CRM tools, device sync, AI memory, or database module preferences.
             </p>
           </div>
         </Card>
@@ -507,6 +529,7 @@ export default function SettingsPage() {
         {/* Realms */}
         <Card className="mb-4 border-[var(--border-strong)]">
           <div className="p-5">
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Connected areas</p>
             <h3 className="mb-1 text-sm font-semibold text-[var(--text)]">
               Life areas
               <HelpPopover title="What are life areas?">
@@ -515,7 +538,7 @@ export default function SettingsPage() {
               </HelpPopover>
             </h3>
             <p className="mb-4 text-xs text-[var(--text-muted)]">
-              Create and customize the areas you want to grow in.
+              Create and customize the areas that organize your tasks, habits, projects, and progress.
             </p>
 
             <InfoTip id="settings-life-areas" title="What are life areas?" className="mb-4">
@@ -647,7 +670,7 @@ export default function SettingsPage() {
               Life areas appear in habits, tasks, and Insights.
             </p>
             <p className="mt-1 text-xs text-[var(--text-muted)]">
-              Deleting or archiving life areas is coming later.
+              Archive controls are not active in this beta.
             </p>
           </div>
         </Card>
@@ -655,6 +678,7 @@ export default function SettingsPage() {
         {/* Feedback / Beta */}
         <Card className="border-[var(--border-strong)]">
           <div className="p-5">
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Feedback / support</p>
             <h3 className="mb-3 text-sm font-semibold text-[var(--text)]">Private Beta</h3>
             <p className="mb-3 text-xs leading-relaxed text-[var(--text-muted)]">
               Life Pulse is in private beta. Your feedback shapes what comes next.
@@ -671,7 +695,9 @@ export default function SettingsPage() {
         {/* Account */}
         <Card className="border-[var(--border-strong)]">
           <div className="p-5">
-            <h3 className="mb-3 text-sm font-semibold text-[var(--text)]">Account</h3>
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Account / security</p>
+            <h3 className="mb-1 text-sm font-semibold text-[var(--text)]">Sign out</h3>
+            <p className="mb-3 text-xs text-[var(--text-muted)]">End this session on the current device.</p>
             <Button
               variant="danger"
               className="w-full"
