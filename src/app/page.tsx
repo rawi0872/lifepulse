@@ -68,57 +68,85 @@ const features = [
   {
     icon: <IconToday />,
     title: "Today",
-    desc: "Set up to 3 daily priorities. Capture tasks and ideas fast. See your habits and start your day with intention.",
+    desc: "Choose one priority, capture loose work, and see the tasks, habits, and signals that matter today.",
   },
   {
     icon: <IconHabits />,
     title: "Habits",
-    desc: "Track routines with daily, weekly, or custom schedules. Build streaks, earn XP, and watch consistency grow.",
+    desc: "Track repeat actions without pressure. Completed habits become part of your private momentum and weekly picture.",
   },
   {
     icon: <IconProjects />,
     title: "Projects",
-    desc: "Turn goals into action. Break projects into outcomes and next steps. Keep momentum across multiple efforts.",
+    desc: "Turn larger outcomes into visible next steps when you are ready to go beyond the daily loop.",
   },
   {
     icon: <IconFinance />,
     title: "Finance",
-    desc: "Track income, expenses, accounts, and budgets manually. No bank connections — just your numbers, your control.",
+    desc: "Log money manually when it matters. No bank connections, no advice, just the numbers you choose to enter.",
   },
   {
     icon: <IconJournal />,
     title: "Journal",
-    desc: "Close each day with reflection. Note what worked, what did not, and what is next. Track mood and energy over time.",
+    desc: "Close the day with private reflection. Your notes become history for Weekly Review, not public content.",
   },
   {
     icon: <IconInsights />,
     title: "Insights",
-    desc: "See your Life Balance Map, XP levels, streaks, and weekly consistency. Understand where your energy is going.",
+    desc: "See patterns from logged actions: XP, consistency, life areas, and weekly signals based on what you entered.",
   },
 ];
 
-// ─── How it works steps ────────────────────────────────────────────────────
+const replacementItems = [
+  "todo lists",
+  "habit trackers",
+  "notes and journals",
+  "body and mind logs",
+  "weekly review docs",
+  "Notion-style dashboards",
+];
+
+// ─── Daily loop steps ──────────────────────────────────────────────────────
 
 const steps = [
   {
     num: "01",
-    title: "Choose your life areas",
-    desc: "Set up the six areas that define your life: Mind, Body, Career, Relationships, Finance, and Faith.",
+    title: "Plan today",
+    desc: "Choose one priority and capture anything else before it becomes mental noise.",
   },
   {
     num: "02",
-    title: "Plan your day",
-    desc: "Each morning, set your top priorities, review your habits, and capture what needs to get done.",
+    title: "Act visibly",
+    desc: "Complete tasks and habits so the day has a few clear actions, not just intention.",
   },
   {
     num: "03",
-    title: "Track actions and money",
-    desc: "Log habits, complete tasks, run projects, and record finances — all in one place, on your terms.",
+    title: "Log signals",
+    desc: "Add body, mind, finance, or life context manually when it helps you remember the day.",
   },
   {
     num: "04",
-    title: "Review your progress",
-    desc: "See your life balance, XP growth, habit streaks, and weekly insights. Adjust and keep moving.",
+    title: "Reflect and review",
+    desc: "Write what changed, then use Weekly Review to see what helped, drifted, and needs adjustment.",
+  },
+];
+
+const compoundingSteps = [
+  {
+    label: "One day",
+    text: "You know the next priority and one visible action.",
+  },
+  {
+    label: "A few days",
+    text: "Repeated themes start showing up in tasks, habits, and reflections.",
+  },
+  {
+    label: "One week",
+    text: "Weekly Review turns logged actions and notes into a clearer picture.",
+  },
+  {
+    label: "Over time",
+    text: "You can see what helps, what drifts, and what to adjust next.",
   },
 ];
 
@@ -142,39 +170,48 @@ export default function Home() {
               href="/signup"
               className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition-all hover:bg-[var(--accent-strong)]"
             >
-              Get started
+              Start beta
             </Link>
           </div>
         </div>
       </nav>
 
       {/* ── Hero ── */}
-      <section className="relative overflow-hidden px-5 pt-20 pb-24 text-center md:px-8 md:pt-28 md:pb-32">
+      <section className="relative overflow-hidden px-5 pt-16 pb-20 text-center md:px-8 md:pt-24 md:pb-28">
         <div className="mx-auto max-w-3xl">
           <div className="mb-6 flex justify-center">
             <LifePulseLogo size="lg" />
           </div>
-          <h1 className="mb-5 text-4xl font-bold tracking-tight text-[var(--text)] md:text-5xl">
-            Your personal Life OS
+          <p className="mb-4 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
+            Private beta · daily operating system
+          </p>
+          <h1 className="mb-5 text-4xl font-bold tracking-tight text-[var(--text)] md:text-6xl">
+            Your private operating system
             <br />
             <span className="text-[var(--text-secondary)]">for daily progress.</span>
           </h1>
           <p className="mx-auto max-w-xl text-base leading-relaxed text-[var(--text-secondary)]">
-            A personal Life OS for tracking your goals, habits, health, mind, money, passions, knowledge,
-            and weekly progress — all in one private dashboard.
+            Stop scattering your life across tasks, notes, habits, and trackers. Life Pulse helps you plan one priority, complete visible actions, reflect on what changed, and review the week from what you actually logged.
           </p>
-          <div className="mt-8 flex items-center justify-center gap-3">
+          <div className="mx-auto mt-6 grid max-w-xl grid-cols-2 gap-2 text-left sm:grid-cols-4">
+            {["Plan", "Act", "Reflect", "Review"].map((item) => (
+              <div key={item} className="rounded-lg border border-[var(--border)] bg-[var(--surface)]/70 px-3 py-2 text-center text-xs font-medium text-[var(--text-secondary)]">
+                {item}
+              </div>
+            ))}
+          </div>
+          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link
               href="/signup"
-              className="inline-flex items-center justify-center rounded-lg bg-[var(--accent)] px-6 py-2.5 text-sm font-medium text-white transition-all hover:bg-[var(--accent-strong)]"
+              className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-[var(--accent)] px-6 py-2.5 text-sm font-medium text-white transition-all hover:bg-[var(--accent-strong)] sm:w-auto"
             >
-              Get started
+              Start your private beta
             </Link>
             <Link
               href="/login"
-              className="inline-flex items-center justify-center rounded-lg border border-[var(--border-strong)] px-6 py-2.5 text-sm font-medium text-[var(--text)] transition-colors hover:bg-white/[0.03]"
+              className="inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-[var(--border-strong)] px-6 py-2.5 text-sm font-medium text-[var(--text)] transition-colors hover:bg-white/[0.03] sm:w-auto"
             >
-              Log in
+              Sign in
             </Link>
           </div>
         </div>
@@ -185,7 +222,7 @@ export default function Home() {
             <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
               <div className="flex items-center gap-2 text-xs font-medium text-[var(--text-muted)]">
                 <LifePulseLogo variant="mark" size="sm" />
-                <span>Today&apos;s view</span>
+                <span>Daily loop</span>
               </div>
               <div className="flex gap-1.5">
                 <div className="h-2 w-2 rounded-full bg-[var(--success)]/50" />
@@ -195,17 +232,43 @@ export default function Home() {
             </div>
             <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
               <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-3 text-left">
-                <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Priorities</p>
-                <p className="mt-1 text-xs text-[var(--text)]">3 set today</p>
+                <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Plan</p>
+                <p className="mt-1 text-xs text-[var(--text)]">One priority</p>
               </div>
               <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-3 text-left">
-                <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Habits</p>
-                <p className="mt-1 text-xs text-[var(--text)]">4 of 6 done</p>
+                <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Act</p>
+                <p className="mt-1 text-xs text-[var(--text)]">Visible actions</p>
               </div>
               <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-3 text-left">
-                <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Balance</p>
-                <p className="mt-1 text-xs text-[var(--text)]">Steady</p>
+                <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Review</p>
+                <p className="mt-1 text-xs text-[var(--text)]">Weekly picture</p>
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Scattered tools ── */}
+      <section className="border-t border-[var(--border)] px-5 py-20 md:px-8 md:py-28">
+        <div className="mx-auto max-w-5xl">
+          <div className="grid gap-10 md:grid-cols-[0.9fr_1.1fr] md:items-center">
+            <div>
+              <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">
+                Less scattered self-improvement
+              </p>
+              <h2 className="text-2xl font-bold tracking-tight text-[var(--text)] md:text-3xl">
+                One private loop instead of six disconnected places.
+              </h2>
+              <p className="mt-4 text-base leading-relaxed text-[var(--text-secondary)]">
+                Life Pulse is designed to bring the daily loop into one place. Start with the core rhythm, then expand into body, mind, finance, projects, knowledge, and passions when they are useful.
+              </p>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {replacementItems.map((item) => (
+                <div key={item} className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--text-secondary)]">
+                  Instead of scattered {item}
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -215,10 +278,10 @@ export default function Home() {
       <section className="border-t border-[var(--border)] px-5 py-20 md:px-8 md:py-28">
         <div className="mx-auto max-w-6xl">
           <h2 className="text-center text-2xl font-bold text-[var(--text)] md:text-3xl">
-            Everything you need, nothing you do not
+            Built around the daily loop
           </h2>
           <p className="mx-auto mt-3 mb-12 max-w-xl text-center text-base text-[var(--text-secondary)]">
-            A focused set of tools designed to work together — no noise, no notifications, no algorithm.
+            A focused set of tools that work together: plan today, act, log what matters, reflect, and review the week.
           </p>
           <div className="grid gap-px overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--border)] sm:grid-cols-2 lg:grid-cols-3">
             {features.map((f) => (
@@ -232,14 +295,14 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── How it works ── */}
+      {/* ── Daily loop ── */}
       <section className="border-t border-[var(--border)] px-5 py-20 md:px-8 md:py-28">
         <div className="mx-auto max-w-4xl">
           <h2 className="text-center text-2xl font-bold text-[var(--text)] md:text-3xl">
-            How it works
+            Plan, act, reflect, review
           </h2>
           <p className="mx-auto mt-3 mb-14 max-w-xl text-center text-base text-[var(--text-secondary)]">
-            From setup to daily rhythm — four steps to build momentum.
+            The value is not another dashboard. It is a repeatable daily loop that creates a clearer weekly picture.
           </p>
           <div className="grid gap-6 md:grid-cols-4 md:gap-8">
             {steps.map((s) => (
@@ -249,6 +312,31 @@ export default function Home() {
                 </div>
                 <h3 className="mb-1 text-sm font-semibold text-[var(--text)]">{s.title}</h3>
                 <p className="text-xs leading-relaxed text-[var(--text-secondary)]">{s.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Weekly payoff ── */}
+      <section className="border-t border-[var(--border)] px-5 py-20 md:px-8 md:py-28">
+        <div className="mx-auto max-w-5xl">
+          <div className="mb-10 text-center">
+            <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">
+              Why daily use compounds
+            </p>
+            <h2 className="text-2xl font-bold tracking-tight text-[var(--text)] md:text-3xl">
+              A few logged days become a useful review.
+            </h2>
+            <p className="mx-auto mt-3 max-w-2xl text-base leading-relaxed text-[var(--text-secondary)]">
+              Life Pulse does not promise automatic transformation. It gives you a private place to collect enough honest signals to see what helped, what drifted, and what to adjust.
+            </p>
+          </div>
+          <div className="grid gap-3 md:grid-cols-4">
+            {compoundingSteps.map((item) => (
+              <div key={item.label} className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">{item.label}</p>
+                <p className="mt-3 text-sm leading-relaxed text-[var(--text-secondary)]">{item.text}</p>
               </div>
             ))}
           </div>
@@ -307,11 +395,11 @@ export default function Home() {
                 See the shape of your life.
               </h2>
               <p className="mt-4 text-base leading-relaxed text-[var(--text-secondary)]">
-                Life Pulse turns your activity across six life areas into a visual balance map.
-                See which areas are strong, which need attention, and where your energy is going.
+                Life Pulse turns completed actions and manual logs across life areas into a visual balance map.
+                See where attention is going and where your weekly picture is still thin.
               </p>
               <p className="mt-3 text-sm text-[var(--text-muted)]">
-                No gamification tricks — just a clear view of your personal momentum.
+                No life score — just a private view based on what you enter.
               </p>
             </div>
           </div>
@@ -322,24 +410,27 @@ export default function Home() {
       <section className="border-t border-[var(--border)] px-5 py-20 md:px-8 md:py-24">
         <div className="mx-auto max-w-3xl text-center">
           <h2 className="text-xl font-bold text-[var(--text)] md:text-2xl">
-            Built around your data, your way
+            Private by default, manual by design
           </h2>
+          <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-[var(--text-secondary)]">
+            Life Pulse is based on what you choose to enter. No public profiles, no social pressure, no fake AI judgment, and no medical or financial advice.
+          </p>
           <div className="mx-auto mt-8 grid max-w-lg gap-3 text-left md:grid-cols-2 md:gap-4">
             <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4">
-              <p className="text-xs font-semibold text-[var(--text)]">Manual finance only</p>
-              <p className="mt-1 text-xs text-[var(--text-muted)]">No bank connections. No Plaid. Just the numbers you enter.</p>
+              <p className="text-xs font-semibold text-[var(--text)]">Manual logs</p>
+              <p className="mt-1 text-xs text-[var(--text-muted)]">Tasks, habits, body, mind, finance, and reflection are based on what you enter.</p>
             </div>
             <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4">
               <p className="text-xs font-semibold text-[var(--text)]">Your data stays yours</p>
-              <p className="mt-1 text-xs text-[var(--text-muted)]">Tied to your account. Separated by design. Not shared.</p>
+              <p className="mt-1 text-xs text-[var(--text-muted)]">Tied to your account. Separated by design. Not a public profile.</p>
             </div>
             <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4">
-              <p className="text-xs font-semibold text-[var(--text)]">Not financial advice</p>
-              <p className="mt-1 text-xs text-[var(--text-muted)]">Life Pulse is a tracking tool, not a financial advisor.</p>
+              <p className="text-xs font-semibold text-[var(--text)]">No fake AI judgment</p>
+              <p className="mt-1 text-xs text-[var(--text-muted)]">No AI summaries, no life score, no public ranking, no social pressure.</p>
             </div>
             <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4">
-              <p className="text-xs font-semibold text-[var(--text)]">Set it your way</p>
-              <p className="mt-1 text-xs text-[var(--text-muted)]">Edit life areas, settings, and categories whenever you need.</p>
+              <p className="text-xs font-semibold text-[var(--text)]">Careful boundaries</p>
+              <p className="mt-1 text-xs text-[var(--text-muted)]">A tracking and review tool, not medical, mental health, or financial advice.</p>
             </div>
           </div>
         </div>
@@ -349,23 +440,23 @@ export default function Home() {
       <section className="border-t border-[var(--border)] px-5 py-20 md:px-8 md:py-24">
         <div className="mx-auto max-w-3xl text-center">
           <h2 className="text-xl font-bold text-[var(--text)] md:text-2xl">
-            More than a habit tracker
+            Not another generic tracker
           </h2>
           <p className="mx-auto mt-3 mb-10 max-w-lg text-sm text-[var(--text-secondary)]">
-            Most apps focus on one thing. Life Pulse connects your whole picture — across six life areas.
+            Most tools capture one piece. Life Pulse connects the daily pieces into a private weekly review.
           </p>
           <div className="mx-auto grid max-w-2xl gap-3 text-left md:grid-cols-3 md:gap-4">
             <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4">
-              <p className="text-xs font-semibold text-[var(--text)]">No notifications</p>
-              <p className="mt-1 text-xs text-[var(--text-muted)]">No pings, badges, or alerts. You show up when you choose.</p>
+              <p className="text-xs font-semibold text-[var(--text)]">Less scattered</p>
+              <p className="mt-1 text-xs text-[var(--text-muted)]">Tasks, habits, reflection, and manual signals live in one daily rhythm.</p>
             </div>
             <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4">
-              <p className="text-xs font-semibold text-[var(--text)]">Your data stays private</p>
-              <p className="mt-1 text-xs text-[var(--text-muted)]">No sharing, no algorithm. Each account is fully isolated.</p>
+              <p className="text-xs font-semibold text-[var(--text)]">Weekly clarity</p>
+              <p className="mt-1 text-xs text-[var(--text-muted)]">Daily logs become a review of what moved, what stayed quiet, and what to adjust.</p>
             </div>
             <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4">
-              <p className="text-xs font-semibold text-[var(--text)]">Weekly rhythm, not daily grind</p>
-              <p className="mt-1 text-xs text-[var(--text-muted)]">Plan weekly, reflect weekly. Progress compounds naturally.</p>
+              <p className="text-xs font-semibold text-[var(--text)]">Private momentum</p>
+              <p className="mt-1 text-xs text-[var(--text-muted)]">XP and patterns are private indicators from completed tasks and habits, not a judgment.</p>
             </div>
           </div>
         </div>
@@ -383,7 +474,7 @@ export default function Home() {
           href="/signup"
           className="inline-flex items-center justify-center rounded-lg bg-[var(--accent)] px-8 py-3 text-base font-medium text-white transition-all hover:bg-[var(--accent-strong)]"
         >
-          Create your account
+          Create your Life Pulse
         </Link>
         <p className="mt-4 text-xs text-[var(--text-muted)]">
           Private beta &middot; your feedback shapes what comes next
