@@ -109,26 +109,54 @@ export default function JournalPage() {
   return (
     <DashboardNav>
       <div className="mx-auto max-w-2xl px-4 py-6 animate-fade-in sm:px-5 sm:py-8">
-        <div className="mb-8 min-w-0">
+        <div className="mb-6 min-w-0">
+          <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--accent)]">
+            Private history
+          </p>
           <h1 className="text-2xl font-bold text-[var(--text)]">Journal</h1>
-          <p className="text-pretty text-sm text-[var(--text-muted)]">Your private space to reflect and notice patterns.</p>
+          <p className="mt-1 text-pretty text-sm leading-relaxed text-[var(--text-muted)]">
+            Your private space to reflect and notice patterns. Review what you wrote, notice what keeps coming back, and give Weekly Review more context.
+          </p>
+          <div className="mt-3 flex min-w-0 flex-col gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)]/70 px-3.5 py-3 text-xs text-[var(--text-muted)] sm:flex-row sm:items-center sm:justify-between">
+            <span className="min-w-0 text-pretty">Daily reflection starts from Today. Journal keeps the private record of what changed.</span>
+            <div className="flex shrink-0 flex-wrap gap-2">
+              <Link href="/today#evening-reflection" className="rounded-md py-1 font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:py-0">
+                Open Today&apos;s reflection
+              </Link>
+              <span className="hidden text-[var(--text-muted)] sm:inline">/</span>
+              <Link href="/weekly-review" className="rounded-md py-1 font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:py-0">
+                Review the week
+              </Link>
+            </div>
+          </div>
         </div>
 
         {entries.length > 0 && (
-          <p className="mb-4 text-xs text-[var(--text-muted)]">
-            {entries.length} entr{entries.length === 1 ? "y" : "ies"}
-          </p>
+          <div className="mb-4 flex min-w-0 flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-xs font-medium text-[var(--text)]">
+                {entries.length} private entr{entries.length === 1 ? "y" : "ies"}
+              </p>
+              <p className="text-[10px] text-[var(--text-muted)]">Search what you logged, then bring the useful patterns into your weekly picture.</p>
+            </div>
+          </div>
         )}
 
         {entries.length === 0 ? (
           <EmptyState
             eyebrow="Private journal"
-            title="Your reflections will collect here."
-            message="Journal is your private history. Write tonight from Today so the entry stays connected to the day."
+            title="Your private history starts with one reflection."
+            message="No entries yet is not a failure. Write tonight from Today, then Journal becomes the place to review what happened, what mattered, and what changed."
+            description="Reflections help Weekly Review become clearer as a few days of history accumulate. No AI summaries, no sharing, no judgment."
             action={(
-              <Link href="/today#evening-reflection">
-                <Button>Open Today&apos;s reflection</Button>
-              </Link>
+              <div className="flex flex-col items-center justify-center gap-2 sm:flex-row">
+                <Link href="/today#evening-reflection">
+                  <Button>Open Today&apos;s reflection</Button>
+                </Link>
+                <Link href="/weekly-review" className="inline-flex min-h-10 items-center rounded-lg px-3 text-xs font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0">
+                  View Weekly Review
+                </Link>
+              </div>
             )}
             examples={(
               <div className="mx-auto max-w-sm">
@@ -152,7 +180,8 @@ export default function JournalPage() {
             {entries.length < 3 && (
               <Card variant="subtle" className="border-[var(--border)]">
                 <div className="p-4">
-                  <p className="mb-2 text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Writing prompts</p>
+                  <p className="mb-1 text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Build the record</p>
+                  <p className="mb-3 text-xs text-[var(--text-muted)]">A few honest notes are enough to make the week easier to review.</p>
                   <div className="flex flex-wrap gap-2">
                     {REFLECTION_PROMPTS.slice(0, 3).map((prompt) => (
                       <Link
@@ -173,6 +202,10 @@ export default function JournalPage() {
 
             <Card variant="subtle" className="border-[var(--border)]">
               <div className="p-4">
+                <div className="mb-3 min-w-0">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Search your private history</p>
+                  <p className="mt-1 text-xs text-[var(--text-muted)]">Find patterns, decisions, and repeated themes from what you logged.</p>
+                </div>
                 <div className="grid min-w-0 gap-3 sm:grid-cols-[1fr_auto_auto]">
                   <input
                     type="search"
@@ -200,7 +233,7 @@ export default function JournalPage() {
                 </div>
                 <div className="mt-3 flex min-w-0 flex-col gap-1 text-pretty text-[10px] text-[var(--text-muted)] sm:flex-row sm:items-center sm:justify-between">
                   <span>Showing {filteredEntries.length} of {entries.length} reflections</span>
-                  <span>Private manual reflection library. No AI summaries or external processing.</span>
+                  <span>Private manual reflection library. No AI summaries or external processing. Based only on what you logged.</span>
                 </div>
               </div>
             </Card>
@@ -217,9 +250,10 @@ export default function JournalPage() {
                 <div className="relative p-4 sm:p-5">
                   <div className="absolute left-0 top-0 bottom-0 w-px bg-[var(--accent)]/20" />
                   <div className="mb-3 flex min-w-0 flex-col gap-2 pl-3 sm:flex-row sm:items-center sm:justify-between">
-                    <span className="text-sm font-semibold text-[var(--text)]">
-                      {formatEntryDate(entry.entry_date)}
-                    </span>
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-[var(--text-muted)]">Private entry</p>
+                      <p className="text-sm font-semibold text-[var(--text)]">{formatEntryDate(entry.entry_date)}</p>
+                    </div>
                     <div className="flex min-w-0 flex-wrap items-center gap-2">
                       {entry.mood != null && (
                         <span className="flex items-center gap-1 rounded-full bg-[var(--surface-soft)] px-2.5 py-1 text-xs text-[var(--text-secondary)] sm:py-0.5">
@@ -236,7 +270,7 @@ export default function JournalPage() {
                     </div>
                   </div>
                   <div className="pl-3">
-                    <p className="break-words whitespace-pre-wrap text-sm leading-relaxed text-[var(--text-muted)]">
+                    <p className="break-words whitespace-pre-wrap text-sm leading-relaxed text-[var(--text-secondary)]">
                       {entry.content || <span className="text-[var(--text-muted)]">No content recorded.</span>}
                     </p>
                   </div>
