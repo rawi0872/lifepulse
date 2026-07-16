@@ -322,20 +322,60 @@ function WeeklyReviewContent() {
     const date = new Date(d + "T12:00:00");
     return `${WEEKDAYS[i]} ${date.getDate()}/${date.getMonth() + 1}`;
   });
+  const weeklySignalCount = data.habitCount + data.taskCount + data.journalCount + data.bodyCheckins + data.mindCheckins + data.financeTransactionCount;
+  const isSparseWeek = weeklySignalCount < 3;
 
   return (
     <div className="mx-auto max-w-3xl overflow-x-hidden px-4 py-6 sm:px-5 sm:py-8">
       {/* Header */}
       <div className="mb-6 min-w-0">
+        <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--accent)]">
+          Your week, built from what you logged
+        </p>
         <h1 className="break-words text-xl font-bold text-[var(--text)] sm:text-2xl">Weekly Review</h1>
         <p className="mt-1 break-words text-sm text-[var(--text-muted)]">
           Reset, reflect, and choose what deserves attention next week.
+        </p>
+        <p className="mt-2 max-w-2xl break-words text-sm leading-relaxed text-[var(--text-secondary)]">
+          Review tasks, habits, reflections, body, mind, and finance signals in one place. Use this to notice what helped, what drifted, and what to adjust next week.
         </p>
         <p className="mt-1 break-words text-sm text-[var(--text-muted)]">
           {dayLabels[0]} &ndash; {dayLabels[6]}
           {isWeekend && <span className="mt-1 block text-xs text-[var(--accent)] sm:ml-2 sm:mt-0 sm:inline">Weekend &mdash; good time to reflect</span>}
         </p>
       </div>
+
+      <Card variant="subtle" className="mb-8 border-[var(--border)] bg-[var(--surface-soft)]/70">
+        <div className="p-4 sm:p-5">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">
+            Why this gets useful
+          </p>
+          <p className="mt-2 text-sm leading-relaxed text-[var(--text-secondary)]">
+            Plan today, complete one visible action, reflect tonight, then review the week when a few days are logged. Life Pulse shows patterns from your entries; it does not judge your life or create outside analysis.
+          </p>
+          <div className="mt-3 grid gap-2 text-xs text-[var(--text-muted)] sm:grid-cols-5">
+            <span>1. Plan</span>
+            <span>2. Act</span>
+            <span>3. Reflect</span>
+            <span>4. Review</span>
+            <span>5. Adjust</span>
+          </div>
+        </div>
+      </Card>
+
+      {isSparseWeek && (
+        <Card variant="subtle" className="mb-8 border-dashed border-[var(--border)] bg-black/10">
+          <div className="p-4 text-center sm:p-5">
+            <p className="text-sm font-semibold text-[var(--text)]">Your weekly picture is still forming.</p>
+            <p className="mx-auto mt-1 max-w-xl text-xs leading-relaxed text-[var(--text-muted)]">
+              Log a few tasks, habits, reflections, or body and mind check-ins this week. This review becomes clearer as those private data points collect.
+            </p>
+            <Link href="/today" className="mt-3 inline-flex min-h-10 items-center rounded-md text-xs font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] sm:min-h-0">
+              Return to Today &rarr;
+            </Link>
+          </div>
+        </Card>
+      )}
 
       {/* ── 1. Week Summary ────────────────────────────────────────── */}
       <section className="mb-8">
@@ -344,7 +384,7 @@ function WeeklyReviewContent() {
           <h2 className="min-w-0 break-words text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">This week at a glance</h2>
         </div>
         <p className="mb-3 text-xs text-[var(--text-muted)]">
-          A quick read on what moved, what stayed quiet, and where your rhythm showed up.
+          A quick read on what moved, what stayed quiet, and where your logged rhythm showed up.
         </p>
         <div className="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-4">
           <MetricCard label="Habits done" value={data.habitCount} />

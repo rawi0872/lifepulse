@@ -285,6 +285,8 @@ export default function InsightsPage() {
   const overallTitle = getOverallTitle(levelInfo.level);
   const taskCompletionRate = taskCount > 0 ? Math.round((doneTaskCount / taskCount) * 100) : 0;
   const weekHabitRate = weekDueHabits > 0 ? Math.round((weekHabitLogs / weekDueHabits) * 100) : null;
+  const insightSignalCount = totalXp + journalEntriesThisMonth + knowledgeItemsThisMonth + financeTransactionCount + weekHabitLogs;
+  const hasSparseSignals = insightSignalCount === 0;
 
   // Shared scoring for both the card and the dialog
   const scoredRealms = realmXp.length > 0
@@ -306,11 +308,31 @@ export default function InsightsPage() {
     <DashboardNav>
       <div className="mx-auto max-w-4xl overflow-x-hidden px-4 py-6 animate-fade-in sm:px-5 sm:py-8">
         <div className="mb-8 min-w-0">
+          <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--accent)]">
+            Patterns from logged actions
+          </p>
           <h1 className="break-words text-2xl font-bold text-[var(--text)]">Life Pulse Insights</h1>
           <p className="mt-1 break-words text-sm text-[var(--text-muted)]">
             Patterns across your activity, consistency, and active life areas.
           </p>
+          <p className="mt-2 max-w-2xl break-words text-sm leading-relaxed text-[var(--text-secondary)]">
+            Insights are based on tasks, habits, reflections, and manual logs you add. Sparse data means fewer signals; more logged days make the picture clearer.
+          </p>
         </div>
+
+        {hasSparseSignals && (
+          <Card variant="subtle" className="mb-8 border-dashed border-[var(--border)] bg-black/10">
+            <div className="p-4 text-center sm:p-5">
+              <p className="text-sm font-semibold text-[var(--text)]">Not enough logged signal yet.</p>
+              <p className="mx-auto mt-1 max-w-xl text-xs leading-relaxed text-[var(--text-muted)]">
+                Complete a few tasks or habits, write a reflection, or add body and mind check-ins. Insights stay private and only reflect what you log.
+              </p>
+              <Link href="/today" className="mt-3 inline-flex min-h-10 items-center rounded-md text-xs font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] sm:min-h-0">
+                Start in Today &rarr;
+              </Link>
+            </div>
+          </Card>
+        )}
 
         {/* Overview — compact level card */}
         <LevelOverviewCard
@@ -374,8 +396,8 @@ export default function InsightsPage() {
                   <h2 className="min-w-0 break-words text-sm font-semibold text-[var(--text)]">Life Balance Map</h2>
                   <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
                     <HelpPopover title="How the map works">
-                      <p>Each angle represents one of your life areas. The farther a point extends outward, the more energy that area has received through completed habits, tasks, and projects.</p>
-                      <p className="mt-1.5">Your Life Balance Map shows where energy is accumulating and where attention may be thin.</p>
+                      <p>Each angle represents one of your life areas. The farther a point extends outward, the more logged activity that area has received through completed habits, tasks, and projects.</p>
+                      <p className="mt-1.5">Your Life Balance Map shows where logged energy is accumulating and where attention may be thin.</p>
                     </HelpPopover>
                   </div>
                 </div>
@@ -398,7 +420,7 @@ export default function InsightsPage() {
                       <RealmRadarChart realms={[]} />
                     </div>
                     <p className="text-sm text-[var(--text-muted)]">
-                      Your balance map will take shape as you complete actions across your life areas.
+                      Your balance map will take shape as you complete logged actions across your life areas.
                     </p>
                     <p className="mt-1 text-xs text-[var(--text-muted)]">
                       Complete tasks, habits, and projects connected to life areas to shape your map.
@@ -431,7 +453,7 @@ export default function InsightsPage() {
                         {hasAnyXp ? (
                           <div className="flex flex-col gap-4">
                             <p className="text-xs text-[var(--text-muted)]">
-                              Your Life Balance Map shows where energy is accumulating and where attention may be thin.
+                              Your Life Balance Map shows where logged energy is accumulating and where attention may be thin.
                             </p>
 
                             <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
@@ -526,7 +548,7 @@ export default function InsightsPage() {
                         ) : (
                           <div className="flex flex-col gap-2">
                             <p className="text-xs text-[var(--text-muted)]">
-                              Your Life Balance Map shows where energy is accumulating and where attention may be thin.
+                              Your Life Balance Map shows where logged energy is accumulating and where attention may be thin.
                             </p>
                             <div className="rounded-lg border border-dashed border-[var(--border)] bg-[var(--surface-soft)] p-4 text-center">
                               <p className="text-xs text-[var(--text-muted)]">

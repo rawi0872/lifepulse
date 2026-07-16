@@ -1039,7 +1039,7 @@ function TodayContent() {
             <ol className="mt-2 grid gap-2 text-xs leading-relaxed text-[var(--text-muted)] sm:grid-cols-3">
               <li>1. Set one priority.</li>
               <li>2. Complete one visible action.</li>
-              <li>3. Log what happened tonight.</li>
+              <li>3. Reflect so the week has context.</li>
             </ol>
           </div>
         </Card>
@@ -1177,7 +1177,7 @@ function TodayContent() {
             <div className="p-4">
               <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Memory loop</p>
               <p className="mt-1 text-xs text-[var(--text-muted)]">
-                Later today, capture one reflection and review what matters.
+                Today feeds your weekly review. Capture one reflection so patterns have context later.
               </p>
               <div className="mt-3 space-y-2.5">
                 <div className="flex flex-col items-start justify-between gap-2 rounded-lg bg-[var(--surface)] px-3 py-3 sm:flex-row sm:items-center sm:gap-3 sm:py-2">
@@ -1201,7 +1201,7 @@ function TodayContent() {
                 <div className="flex flex-col items-start justify-between gap-2 rounded-lg bg-[var(--surface)] px-3 py-3 sm:flex-row sm:items-center sm:gap-3 sm:py-2">
                   <div className="min-w-0">
                     <p className="text-xs font-medium text-[var(--text)]">Weekly memory review</p>
-                    <p className="text-[10px] text-[var(--text-muted)]">Review reflections and knowledge from the week.</p>
+                    <p className="text-[10px] text-[var(--text-muted)]">Review tasks, habits, reflections, and signals from what you logged.</p>
                   </div>
                   <Link href="/weekly-review" className="shrink-0 rounded-md py-1 text-[10px] font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] sm:py-0">
                     Open Weekly Review
@@ -1209,7 +1209,7 @@ function TodayContent() {
                 </div>
               </div>
               <p className="mt-3 text-[10px] text-[var(--text-muted)]">
-                Private manual memory. No AI summaries or external processing.
+                Private manual memory. No AI summaries or external processing. Based only on what you log.
               </p>
             </div>
           </Card>

@@ -3,6 +3,7 @@
 import { HelpPopover } from "@/components/HelpPopover";
 import { formatDate } from "@/lib/utils";
 import { getLevelInfo } from "@/lib/levels";
+import Link from "next/link";
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -40,12 +41,18 @@ export function TodaysPulseHeader({ totalXp, todayXp, subtitle }: TodaysPulseHea
           <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-[var(--text-muted)]">
             {formatDate(new Date())}
             <HelpPopover title="Today">
-              <p>Use Today to choose one priority, capture loose work, complete visible actions, and reflect tonight.</p>
+              <p>Use Today to choose one priority, capture loose work, complete visible actions, and reflect tonight. What you log becomes context for Weekly Review.</p>
             </HelpPopover>
           </div>
           <p className="mt-3 max-w-xl text-sm leading-relaxed text-[var(--text-secondary)] sm:text-[15px]">
-            Choose one priority, complete one visible action, and review what changed tonight.
+            Choose one priority, complete one visible action, and review what changed tonight. What you log today becomes context for your week.
           </p>
+          <Link
+            href="/weekly-review"
+            className="mt-2 inline-flex min-h-9 items-center rounded-md text-xs font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0"
+          >
+            View weekly review &rarr;
+          </Link>
           <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs">
             <span className="font-medium text-[var(--text-secondary)]">Level {level}</span>
             <div className="h-1.5 w-24 overflow-hidden rounded-full bg-[var(--surface)] ring-1 ring-inset ring-[var(--border)]">
