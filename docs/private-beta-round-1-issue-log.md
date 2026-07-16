@@ -33,14 +33,14 @@ Example rows are placeholders. Replace them with real tester feedback as it arri
 | R1-012 | 2026-07-12 | Tester 2 | Unknown | Social/account | Useful feature request | P3 | Tester requested adding friends for motivation and competition. Defer because it introduces privacy, safety, moderation, and social graph complexity. | No | Not needed | Save for later | Deferred |  |
 | R1-013 | 2026-07-12 | Tester 2 | Unknown | XP/profile | Useful feature request | P2 | Tester requested achievements/profile badges to show progress. Consider later as a safer gamification slice, but do not build during this fix. | No | Not needed | Save for later | Deferred |  |
 | R1-014 | 2026-07-15 | Internal QA | Production / Chrome | /reset-password | Trust/privacy concern | P1 | Password reset showed success but the new password did not work and the old password still worked, indicating the success state could be reached without proving the current recovery link established the Supabase recovery session used for `updateUser`. | No | Yes | Fix before more testers | Fixed pending production verification |  |
-| R1-015 | 2026-07-16 | Tester 3 | Unknown | /today | Product activation | P1/P2 | Tester created a priority, checked it off, and felt nothing meaningful happened afterward. Today did not guide the next useful step, so the app felt static/dead. | No | Yes | Add first-run live guide and post-action next-step feedback using existing Today state only | Fixed pending production verification |  |
+| R1-015 | 2026-07-16 | Tester 3 | Unknown | /today | Product activation | P1/P2 | Tester created a priority, checked it off, and felt nothing meaningful happened afterward. Today did not guide the next useful step, and after the first fix the phrase "complete one visible action" still needed concrete task/habit guidance for sparse users. | No | Yes | Add first-run live guide, post-action next-step feedback, and concrete first-action guidance using existing Today state and task/habit paths only | Fixed pending production verification |  |
 
 ## Common Repeated Issues
 
 Group similar issues here after at least two testers mention the same theme.
 
 - Cognitive overload / too much at once: Tester 1 said the app feels "too messy and too much" (`R1-007`); Tester 2 said there is too much on a single page and they cannot comprehend everything (`R1-009`). Treat this as a repeated Round 1 signal before wider beta. First selected fix shipped Today-first guidance; next selected fix is Today + navigation first-run simplification so Core routes appear first and deeper modules feel optional/later. Status: in progress pending production verification.
-- First-session activation feels static after an action: Tester 3 completed a priority and did not understand the next useful step (`R1-015`). Treat as a high-priority activation issue because it blocks the first useful Life Pulse loop.
+- First-session activation feels static after an action: Tester 3 completed a priority and did not understand the next useful step (`R1-015`). Treat as a high-priority activation issue because it blocks the first useful Life Pulse loop. Current decision: guide users toward one concrete task, habit, or reflection using existing Today paths only.
 
 ## Top Fixes Selected
 

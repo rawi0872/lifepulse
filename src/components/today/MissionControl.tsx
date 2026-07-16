@@ -26,6 +26,7 @@ interface MissionControlProps {
   onAddingPriorityChange: (value: boolean) => void;
   onQuickCaptureChange: (value: string) => void;
   onQuickTypeChange: (value: "task" | "habit" | "project") => void;
+  onStarterActionSelect: (value: string, type: "task" | "habit") => void;
   onQuickCapture: () => void;
 }
 
@@ -46,6 +47,7 @@ export function MissionControl({
   onAddingPriorityChange,
   onQuickCaptureChange,
   onQuickTypeChange,
+  onStarterActionSelect,
   onQuickCapture,
 }: MissionControlProps) {
   const inputClassName = "min-w-0 flex-1 rounded-xl border border-white/[0.09] bg-[rgba(8,11,15,0.72)] px-3.5 py-3 text-sm text-[var(--text)] placeholder:text-[var(--text-muted)]/80 shadow-inner shadow-black/20 transition-all duration-150 focus:border-[var(--accent-strong)]/50 focus:bg-[rgba(10,14,19,0.9)] focus:ring-2 focus:ring-[var(--accent)]/12 focus:outline-none sm:py-2.5";
@@ -193,12 +195,12 @@ export function MissionControl({
           )}
         </div>
 
-        <div className="p-4 sm:p-5">
+        <div id="quick-capture" className="scroll-mt-24 p-4 sm:p-5">
           <label className="text-xs font-medium text-[var(--text-secondary)]">
             Quick capture
           </label>
           <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
-            Park tasks, habits, or projects without leaving Today.
+            Need a visible action? Add one small task for today or start a tiny habit here.
           </p>
           <div className="mt-2 rounded-2xl border border-white/[0.06] bg-black/[0.12] p-2.5 sm:p-3">
             <div className="flex min-w-0 flex-col gap-2.5 sm:flex-row">
@@ -233,6 +235,32 @@ export function MissionControl({
               </button>
             </div>
           </div>
+          {!visibleActionDone && (
+            <div className="mt-3 rounded-lg border border-dashed border-[var(--border)] bg-black/[0.08] px-3 py-2.5">
+              <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-[var(--text-muted)]">
+                One-action starters
+              </p>
+              <p className="mt-1 text-[11px] leading-relaxed text-[var(--text-muted)]">
+                These only fill the field. Press Add when the action feels right.
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {[
+                  { label: "Study 25 minutes", type: "task" as const },
+                  { label: "Walk 10 minutes", type: "habit" as const },
+                  { label: "Clear one small task", type: "task" as const },
+                ].map((starter) => (
+                  <button
+                    key={starter.label}
+                    type="button"
+                    onClick={() => onStarterActionSelect(starter.label, starter.type)}
+                    className="rounded-full border border-[var(--border)] bg-[var(--surface)]/55 px-3 py-2 text-[11px] text-[var(--text-muted)] transition-colors hover:border-[var(--accent)]/25 hover:text-[var(--text-secondary)] sm:py-1.5"
+                  >
+                    {starter.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           {quickCapture.trim() && (
             <div className="mt-2 flex flex-wrap gap-2">
               {(["task", "habit", "project"] as const).map((t) => (

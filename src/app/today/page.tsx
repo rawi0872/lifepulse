@@ -367,6 +367,11 @@ function TodayContent() {
     }
   }
 
+  function selectStarterAction(text: string, type: "task" | "habit") {
+    setQuickCapture(text);
+    setQuickType(type);
+  }
+
   useEffect(() => {
     let cancelled = false;
 
@@ -901,6 +906,7 @@ function TodayContent() {
         onAddingPriorityChange={setAddingPriority}
         onQuickCaptureChange={handleQuickChange}
         onQuickTypeChange={setQuickType}
+        onStarterActionSelect={selectStarterAction}
         onQuickCapture={handleQuickCapture}
       />
 
@@ -912,6 +918,14 @@ function TodayContent() {
           visibleActionDone={visibleActionDone}
           hasJournal={hasJournal}
           onDismiss={dismissFirstLoopGuide}
+        />
+      )}
+
+      {!visibleActionDone && (
+        <FirstVisibleActionGuide
+          hasTasks={tasks.length > 0}
+          hasDueHabits={dueHabits.length > 0}
+          hasJournal={hasJournal}
         />
       )}
 
@@ -1288,6 +1302,54 @@ function ExecutionBridgeMetric({ label, value, sub }: { label: string; value: nu
       <p className="text-[10px] text-pretty text-[var(--text-muted)]">{label}</p>
       {sub && <p className="mt-0.5 break-words text-[9px] text-[var(--text-muted)]">{sub}</p>}
     </div>
+  );
+}
+
+function FirstVisibleActionGuide({
+  hasTasks,
+  hasDueHabits,
+  hasJournal,
+}: {
+  hasTasks: boolean;
+  hasDueHabits: boolean;
+  hasJournal: boolean;
+}) {
+  const taskCopy = hasTasks
+    ? "Complete one task below if it is already clear."
+    : "Use Quick Capture to add one small task due today.";
+  const habitCopy = hasDueHabits
+    ? "Or check off one habit below if it actually happened."
+    : "No habit fits yet? Create one small repeatable habit.";
+
+  return (
+    <Card variant="subtle" className="mb-4 overflow-hidden border-dashed border-[var(--accent)]/18 bg-[var(--surface-soft)]/70">
+      <div className="flex flex-col gap-3 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:py-3">
+        <div className="min-w-0">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">
+            Create one visible action
+          </p>
+          <p className="mt-1 text-sm font-medium text-[var(--text)]">
+            Make it concrete enough to finish today.
+          </p>
+          <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
+            {taskCopy} {habitCopy} One action is enough to keep the loop alive.
+          </p>
+        </div>
+        <div className="flex shrink-0 flex-wrap gap-2 text-xs">
+          <a href="#quick-capture" className="rounded-md border border-[var(--border)] px-3 py-2 text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/25 hover:text-[var(--accent)] sm:py-1.5">
+            Use quick capture
+          </a>
+          <a href="#daily-execution" className="rounded-md border border-[var(--border)] px-3 py-2 text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/25 hover:text-[var(--accent)] sm:py-1.5">
+            See tasks/habits
+          </a>
+          {!hasJournal && (
+            <a href="#evening-reflection" className="rounded-md border border-[var(--border)] px-3 py-2 text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/25 hover:text-[var(--accent)] sm:py-1.5">
+              Reflect tonight
+            </a>
+          )}
+        </div>
+      </div>
+    </Card>
   );
 }
 
