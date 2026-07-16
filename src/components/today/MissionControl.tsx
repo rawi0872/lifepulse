@@ -1,7 +1,7 @@
 "use client";
 
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import type { CSSProperties } from "react";
 
 interface Priority {
   id: string;
@@ -44,8 +44,21 @@ export function MissionControl({
   onQuickTypeChange,
   onQuickCapture,
 }: MissionControlProps) {
+  const inputClassName = "min-w-0 flex-1 rounded-xl border border-white/[0.09] bg-[rgba(8,11,15,0.72)] px-3.5 py-3 text-sm text-[var(--text)] placeholder:text-[var(--text-muted)]/80 shadow-inner shadow-black/20 transition-all duration-150 focus:border-[var(--accent-strong)]/50 focus:bg-[rgba(10,14,19,0.9)] focus:ring-2 focus:ring-[var(--accent)]/12 focus:outline-none sm:py-2.5";
+  const actionButtonBaseClassName = "inline-flex min-h-[3rem] items-center justify-center rounded-xl border px-4 text-sm font-semibold transition-all duration-150 focus:ring-2 focus:ring-[var(--accent)]/18 focus:outline-none sm:min-h-[2.625rem] sm:w-auto";
+  const enabledActionClassName = "shadow-sm shadow-black/25 hover:brightness-105 active:scale-[0.99]";
+  const disabledActionClassName = "cursor-not-allowed shadow-none";
+  const actionButtonClassName = (disabled: boolean) => `${actionButtonBaseClassName} ${disabled ? disabledActionClassName : enabledActionClassName}`;
+  const actionButtonStyle = (disabled: boolean): CSSProperties => ({
+    background: disabled
+      ? "linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.018))"
+      : "linear-gradient(180deg, rgba(132,180,217,0.95), rgba(95,145,185,0.95))",
+    borderColor: disabled ? "rgba(255,255,255,0.07)" : "rgba(132,180,217,0.35)",
+    color: disabled ? "rgba(135,149,171,0.55)" : "#071018",
+  });
+
   return (
-    <Card className="mb-4 overflow-hidden border-[var(--border-strong)] bg-[var(--surface)] shadow-lg shadow-black/15 sm:mb-5">
+    <Card className="mb-4 overflow-hidden border-white/[0.09] bg-[linear-gradient(180deg,rgba(244,247,251,0.032),rgba(244,247,251,0.008)),var(--surface)] shadow-lg shadow-black/15 sm:mb-5">
       <div className="border-b border-[var(--border)] px-4 py-4 sm:px-5 sm:py-5">
         <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
@@ -56,7 +69,7 @@ export function MissionControl({
               Start with one priority.
             </h2>
             <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-[var(--text-secondary)]">
-              Add the one thing that would make today feel pointed. Capture anything else before it becomes noise.
+              Add the one thing that would make today count. Capture anything else before it becomes noise.
             </p>
           </div>
         </div>
@@ -68,18 +81,25 @@ export function MissionControl({
             One priority
           </label>
           {priorities.length === 0 ? (
-            <div className="mt-2 flex min-w-0 flex-col gap-2.5 sm:flex-row">
-              <input
-                value={priorityInput}
-                onChange={(e) => onPriorityInputChange(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") onAddPriority(); }}
-                placeholder={focusPrompt}
-                maxLength={200}
-                className="min-w-0 flex-1 rounded-lg border border-[var(--border-strong)] bg-[var(--surface-soft)] px-3 py-3 text-sm text-[var(--text)] placeholder-[var(--text-muted)] transition-all duration-150 focus:border-[var(--accent)]/55 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none sm:py-2.5"
-              />
-              <Button onClick={onAddPriority} disabled={!priorityInput.trim()} className="w-full bg-[var(--text)] text-[var(--bg)] shadow-sm shadow-black/20 hover:bg-[var(--text-secondary)] sm:w-auto">
-                Set priority
-              </Button>
+            <div className="mt-2 rounded-2xl border border-white/[0.06] bg-black/[0.12] p-2.5 sm:p-3">
+              <div className="flex min-w-0 flex-col gap-2.5 sm:flex-row">
+                <input
+                  value={priorityInput}
+                  onChange={(e) => onPriorityInputChange(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") onAddPriority(); }}
+                  placeholder={focusPrompt}
+                  maxLength={200}
+                  className={inputClassName}
+                />
+                <button
+                  onClick={onAddPriority}
+                  disabled={!priorityInput.trim()}
+                  className={`${actionButtonClassName(!priorityInput.trim())} w-full`}
+                  style={actionButtonStyle(!priorityInput.trim())}
+                >
+                  Set priority
+                </button>
+              </div>
             </div>
           ) : (
             <div className="mt-2 space-y-1.5">
@@ -124,7 +144,7 @@ export function MissionControl({
               {priorities.length < 3 && (
                 <div className="mt-1">
                   {addingPriority ? (
-                    <div className="flex min-w-0 flex-col gap-2.5 sm:flex-row">
+                    <div className="flex min-w-0 flex-col gap-2.5 rounded-2xl border border-white/[0.06] bg-black/[0.12] p-2.5 sm:flex-row sm:p-3">
                       <input
                         autoFocus
                         value={priorityInput}
@@ -135,12 +155,13 @@ export function MissionControl({
                         }}
                         placeholder={focusPrompt}
                         maxLength={200}
-                        className="min-w-0 flex-1 rounded-lg border border-[var(--border-strong)] bg-[var(--surface-soft)] px-3 py-2.5 text-sm text-[var(--text)] placeholder-[var(--text-muted)] transition-all duration-150 focus:border-[var(--accent)]/55 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none sm:py-2"
+                        className={inputClassName}
                       />
                       <button
                         onClick={onAddPriority}
                         disabled={!priorityInput.trim()}
-                        className="rounded-lg px-3 py-2 text-xs text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] disabled:text-[var(--text-muted)] sm:px-0 sm:py-0"
+                        className={`${actionButtonClassName(!priorityInput.trim())} w-full sm:min-h-[2.5rem] sm:w-auto`}
+                        style={actionButtonStyle(!priorityInput.trim())}
                       >
                         Add
                       </button>
@@ -166,31 +187,38 @@ export function MissionControl({
           <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
             Park tasks, habits, or projects without leaving Today.
           </p>
-          <div className="mt-2 flex min-w-0 flex-col gap-2.5 sm:flex-row">
-            <div className="relative min-w-0 flex-1">
-              <input
-                value={quickCapture}
-                onChange={(e) => onQuickCaptureChange(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") onQuickCapture(); }}
-                placeholder="Capture something before it gets lost..."
-                maxLength={200}
-                className="w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface-soft)] px-3 py-3 pr-24 text-sm text-[var(--text)] placeholder-[var(--text-muted)] transition-all duration-150 focus:border-[var(--accent)]/55 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none sm:py-2.5"
-              />
-              <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                <span className={`rounded px-2 py-0.5 text-[10px] font-medium ${
-                  quickType === "task"
-                    ? "bg-[var(--surface)] text-[var(--text-secondary)]"
-                    : quickType === "habit"
-                      ? "bg-[var(--success-soft)] text-[var(--success)]"
-                      : "bg-[var(--accent-soft)] text-[var(--accent)]"
-                }`}>
-                  {quickType === "task" ? "Task" : quickType === "habit" ? "Habit" : "Project"}
-                </span>
+          <div className="mt-2 rounded-2xl border border-white/[0.06] bg-black/[0.12] p-2.5 sm:p-3">
+            <div className="flex min-w-0 flex-col gap-2.5 sm:flex-row">
+              <div className="relative min-w-0 flex-1">
+                <input
+                  value={quickCapture}
+                  onChange={(e) => onQuickCaptureChange(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") onQuickCapture(); }}
+                  placeholder="Capture something before it gets lost..."
+                  maxLength={200}
+                  className={`${inputClassName} w-full pr-24`}
+                />
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                  <span className={`rounded-md border px-2 py-0.5 text-[10px] font-medium shadow-sm shadow-black/10 ${
+                    quickType === "task"
+                      ? "border-white/[0.07] bg-[var(--surface)] text-[var(--text-secondary)]"
+                      : quickType === "habit"
+                        ? "border-[var(--success)]/20 bg-[var(--success-soft)] text-[var(--success)]"
+                        : "border-[var(--accent)]/20 bg-[var(--accent-soft)] text-[var(--accent)]"
+                  }`}>
+                    {quickType === "task" ? "Task" : quickType === "habit" ? "Habit" : "Project"}
+                  </span>
+                </div>
               </div>
+              <button
+                onClick={onQuickCapture}
+                disabled={!quickCapture.trim() || quickSaving}
+                className={`${actionButtonClassName(!quickCapture.trim() || quickSaving)} w-full`}
+                style={actionButtonStyle(!quickCapture.trim() || quickSaving)}
+              >
+                {quickSaving ? "..." : "Add"}
+              </button>
             </div>
-            <Button onClick={onQuickCapture} disabled={!quickCapture.trim() || quickSaving} className="w-full bg-[var(--text)] text-[var(--bg)] shadow-sm shadow-black/20 hover:bg-[var(--text-secondary)] sm:w-auto">
-              {quickSaving ? "..." : "Add"}
-            </Button>
           </div>
           {quickCapture.trim() && (
             <div className="mt-2 flex flex-wrap gap-2">
