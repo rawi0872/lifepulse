@@ -17,7 +17,6 @@ import { JournalSection } from "@/components/JournalSection";
 import { XpDisplay } from "@/components/XpDisplay";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { SectionHeader } from "@/components/ui/section-header";
 import { TodaysPulseHeader } from "@/components/today/TodaysPulseHeader";
 import { CommandStrip } from "@/components/today/CommandStrip";
 import { MissionControl } from "@/components/today/MissionControl";
@@ -118,7 +117,7 @@ function TodayContent() {
   const [linkedGoals, setLinkedGoals] = useState<LinkedGoal[]>([]);
   const [todayXp, setTodayXp] = useState(0);
   const [totalXp, setTotalXp] = useState(0);
-  const [firstName, setFirstName] = useState("");
+  const [, setFirstName] = useState("");
   const [intendedUse, setIntendedUse] = useState<IntendedUse>("personal");
   const [hasJournal, setHasJournal] = useState(false);
   const [weeklyKnowledgeItems, setWeeklyKnowledgeItems] = useState(0);
@@ -812,7 +811,7 @@ function TodayContent() {
       <div className="mx-auto max-w-5xl px-5 py-8">
         <div className="mb-6 rounded-2xl border border-white/[0.08] bg-[linear-gradient(180deg,rgba(244,247,251,0.04),rgba(244,247,251,0.01))] p-4 shadow-xl shadow-black/20">
           <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--accent)]">
-            Opening your command center
+            Opening Today
           </p>
           <h1 className="mt-1 text-xl font-bold text-[var(--text)]">Preparing your day...</h1>
           <p className="mt-1 text-sm text-[var(--text-muted)]">
@@ -844,10 +843,9 @@ function TodayContent() {
   }
 
   return (
-    <div className="relative mx-auto max-w-5xl px-4 py-5 animate-fade-in sm:px-5 sm:py-8">
-      <div aria-hidden className="pointer-events-none absolute inset-x-4 top-0 -z-10 h-80 rounded-[2rem] bg-[linear-gradient(180deg,rgba(122,162,199,0.08),rgba(11,13,16,0))]" />
+    <div className="mx-auto max-w-5xl px-4 py-6 animate-fade-in sm:px-5 sm:py-8">
 
-      <TodaysPulseHeader firstName={firstName} totalXp={totalXp} todayXp={todayXp} subtitle={copy.subtitle} />
+      <TodaysPulseHeader totalXp={totalXp} todayXp={todayXp} subtitle={copy.subtitle} />
 
       {error && (
         <div className="mb-6 rounded-lg border border-[var(--danger)]/30 bg-[var(--danger)]/10 px-4 py-3 text-sm text-[var(--danger)]">
@@ -1049,7 +1047,7 @@ function TodayContent() {
 
       <div className="mb-3 mt-1 flex min-w-0 items-center justify-between gap-3 border-t border-white/[0.06] pt-5">
         <div className="min-w-0">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">
+            <p className="text-sm font-semibold tracking-[-0.01em] text-[var(--text)]">
               Daily execution
             </p>
             <p className="mt-1 text-xs text-[var(--text-muted)]">
@@ -1080,7 +1078,9 @@ function TodayContent() {
         </div>
 
         <div className="min-w-0 space-y-4 lg:pl-1">
-          <SectionHeader label="Life Pulse context" />
+          <div className="mb-3">
+            <h2 className="text-sm font-semibold tracking-[-0.01em] text-[var(--text)]">Life Pulse context</h2>
+          </div>
 
           <XpDisplay
             totalXp={totalXp}
@@ -1214,7 +1214,9 @@ function TodayContent() {
             </div>
           </Card>
 
-          <SectionHeader label="Evening Reflection" accent="warning" />
+          <div className="mb-3">
+            <h2 className="text-sm font-semibold tracking-[-0.01em] text-[var(--text)]">Evening reflection</h2>
+          </div>
 
           <section id="evening-reflection">
             <JournalSection

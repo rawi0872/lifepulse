@@ -45,30 +45,26 @@ export function MissionControl({
   onQuickCapture,
 }: MissionControlProps) {
   return (
-    <Card className="mb-4 overflow-hidden border-[var(--accent)]/25 bg-[linear-gradient(135deg,rgba(244,247,251,0.075),rgba(122,162,199,0.055)_42%,rgba(11,13,16,0.18)),var(--surface)] shadow-[0_24px_80px_rgba(0,0,0,0.36)] ring-1 ring-white/[0.035] sm:mb-5">
-      <div className="relative border-b border-white/[0.07] px-4 py-4 sm:px-5 sm:py-5">
-        <div aria-hidden className="absolute right-4 top-4 hidden h-14 w-28 rounded-full border border-[var(--accent)]/10 sm:block" />
+    <Card className="mb-4 overflow-hidden border-[var(--border-strong)] bg-[var(--surface)] shadow-lg shadow-black/15 sm:mb-5">
+      <div className="border-b border-[var(--border)] px-4 py-4 sm:px-5 sm:py-5">
         <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
-              Start here / command surface
+            <p className="text-xs font-medium text-[var(--accent-strong)]">
+              Daily focus
             </p>
-            <h2 className="mt-1 text-2xl font-semibold tracking-[-0.035em] text-[var(--text)] sm:text-3xl">
-              Choose the next useful move.
+            <h2 className="mt-1 text-xl font-semibold tracking-[-0.025em] text-[var(--text)] sm:text-2xl">
+              Start with one priority.
             </h2>
-            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[var(--text-secondary)]">
-              Set one priority. Park the distractions. Keep the morning pointed at one visible action.
+            <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-[var(--text-secondary)]">
+              Add the one thing that would make today feel pointed. Capture anything else before it becomes noise.
             </p>
           </div>
-          <span className="w-fit rounded-full border border-white/10 bg-black/20 px-2.5 py-1 text-[10px] font-medium text-[var(--text-secondary)] shadow-inner shadow-black/30">
-            First screen
-          </span>
         </div>
       </div>
 
-      <div className="grid gap-0 divide-y divide-white/[0.07] bg-black/[0.08] lg:grid-cols-[1.05fr_0.95fr] lg:divide-x lg:divide-y-0">
+      <div className="grid gap-0 divide-y divide-[var(--border)] lg:grid-cols-[1.05fr_0.95fr] lg:divide-x lg:divide-y-0">
         <div className="p-4 sm:p-5">
-          <label className="text-[11px] font-semibold tracking-[0.08em] text-[var(--text-secondary)]">
+          <label className="text-xs font-medium text-[var(--text-secondary)]">
             One priority
           </label>
           {priorities.length === 0 ? (
@@ -79,16 +75,16 @@ export function MissionControl({
                 onKeyDown={(e) => { if (e.key === "Enter") onAddPriority(); }}
                 placeholder={focusPrompt}
                 maxLength={200}
-                className="min-w-0 flex-1 rounded-xl border border-white/10 bg-black/25 px-3 py-3 text-sm text-[var(--text)] placeholder-[var(--text-muted)] shadow-inner shadow-black/20 transition-all duration-150 focus:border-[var(--accent)]/55 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none sm:py-2.5"
+                className="min-w-0 flex-1 rounded-lg border border-[var(--border-strong)] bg-[var(--surface-soft)] px-3 py-3 text-sm text-[var(--text)] placeholder-[var(--text-muted)] transition-all duration-150 focus:border-[var(--accent)]/55 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none sm:py-2.5"
               />
-              <Button onClick={onAddPriority} disabled={!priorityInput.trim()} className="w-full bg-[linear-gradient(180deg,var(--accent-strong),var(--accent))] text-[#071018] shadow-lg shadow-[var(--accent)]/15 hover:brightness-110 sm:w-auto">
+              <Button onClick={onAddPriority} disabled={!priorityInput.trim()} className="w-full bg-[var(--text)] text-[var(--bg)] shadow-sm shadow-black/20 hover:bg-[var(--text-secondary)] sm:w-auto">
                 Set priority
               </Button>
             </div>
           ) : (
             <div className="mt-2 space-y-1.5">
               {priorities.map((p) => (
-                <div key={p.id} className="group flex min-w-0 items-start gap-3 rounded-xl border border-white/[0.08] bg-black/20 px-3 py-3 shadow-inner shadow-black/10 transition-all duration-200 sm:items-center sm:py-2.5">
+                <div key={p.id} className="group flex min-w-0 items-start gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-3 transition-all duration-200 sm:items-center sm:py-2.5">
                   <button
                     onClick={() => onTogglePriority(p.id)}
                     className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 transition-all duration-150 ${
@@ -139,7 +135,7 @@ export function MissionControl({
                         }}
                         placeholder={focusPrompt}
                         maxLength={200}
-                        className="min-w-0 flex-1 rounded-xl border border-white/10 bg-black/25 px-3 py-2.5 text-sm text-[var(--text)] placeholder-[var(--text-muted)] transition-all duration-150 focus:border-[var(--accent)]/55 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none sm:py-2"
+                        className="min-w-0 flex-1 rounded-lg border border-[var(--border-strong)] bg-[var(--surface-soft)] px-3 py-2.5 text-sm text-[var(--text)] placeholder-[var(--text-muted)] transition-all duration-150 focus:border-[var(--accent)]/55 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none sm:py-2"
                       />
                       <button
                         onClick={onAddPriority}
@@ -164,7 +160,7 @@ export function MissionControl({
         </div>
 
         <div className="p-4 sm:p-5">
-          <label className="text-[11px] font-semibold tracking-[0.08em] text-[var(--text-secondary)]">
+          <label className="text-xs font-medium text-[var(--text-secondary)]">
             Quick capture
           </label>
           <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
@@ -178,7 +174,7 @@ export function MissionControl({
                 onKeyDown={(e) => { if (e.key === "Enter") onQuickCapture(); }}
                 placeholder="Capture something before it gets lost..."
                 maxLength={200}
-                className="w-full rounded-xl border border-white/10 bg-black/25 px-3 py-3 pr-24 text-sm text-[var(--text)] placeholder-[var(--text-muted)] shadow-inner shadow-black/20 transition-all duration-150 focus:border-[var(--accent)]/55 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none sm:py-2.5"
+                className="w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface-soft)] px-3 py-3 pr-24 text-sm text-[var(--text)] placeholder-[var(--text-muted)] transition-all duration-150 focus:border-[var(--accent)]/55 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none sm:py-2.5"
               />
               <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
                 <span className={`rounded px-2 py-0.5 text-[10px] font-medium ${
@@ -192,7 +188,7 @@ export function MissionControl({
                 </span>
               </div>
             </div>
-            <Button onClick={onQuickCapture} disabled={!quickCapture.trim() || quickSaving} className="w-full bg-[linear-gradient(180deg,var(--accent-strong),var(--accent))] text-[#071018] shadow-lg shadow-[var(--accent)]/15 hover:brightness-110 sm:w-auto">
+            <Button onClick={onQuickCapture} disabled={!quickCapture.trim() || quickSaving} className="w-full bg-[var(--text)] text-[var(--bg)] shadow-sm shadow-black/20 hover:bg-[var(--text-secondary)] sm:w-auto">
               {quickSaving ? "..." : "Add"}
             </Button>
           </div>

@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { TaskCard } from "@/components/TaskCard";
-import { SectionHeader } from "@/components/ui/section-header";
 import { EmptyState } from "@/components/ui/empty-state";
 
 interface RealmInfo {
@@ -38,16 +37,15 @@ interface MindPulseSectionProps {
 export function MindPulseSection({ tasks, doneTaskCount, tasksLength, taskContextById = {}, onToggleTask }: MindPulseSectionProps) {
   return (
     <section>
-      <SectionHeader
-        label="Mind Pulse"
-        count={`${doneTaskCount}/${tasksLength}`}
-        accent="success"
-        action={
-          <Link href="/tasks" className="text-[10px] text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">
-            Manage
-          </Link>
-        }
-      />
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-baseline gap-2">
+          <h2 className="text-sm font-semibold tracking-[-0.01em] text-[var(--text)]">Mind Pulse</h2>
+          <span className="text-xs text-[var(--text-muted)]">{doneTaskCount}/{tasksLength}</span>
+        </div>
+        <Link href="/tasks" className="text-xs text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)]">
+          Manage
+        </Link>
+      </div>
       {tasks.length === 0 ? (
         <EmptyState
           eyebrow="Tasks"

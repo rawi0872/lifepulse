@@ -4,7 +4,7 @@ export default function TodayLoading() {
       <div className="mx-auto max-w-5xl">
         <div className="mb-6 rounded-xl border border-[var(--border)] bg-[var(--surface)]/80 p-4 shadow-xl shadow-black/10">
           <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--accent)]">
-            Opening your command center
+            Opening Today
           </p>
           <h1 className="mt-1 text-xl font-bold text-[var(--text)]">Preparing your day...</h1>
           <p className="mt-1 text-sm text-[var(--text-muted)]">

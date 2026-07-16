@@ -14,8 +14,9 @@ export function TodayEcosystemStrip({ modules }: TodayEcosystemStripProps) {
     <section className="mt-7 rounded-xl border border-dashed border-[var(--border)] bg-black/10 px-4 py-3.5 opacity-80 sm:py-3">
       <div className="mb-2 flex items-center justify-between gap-3">
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">
-            Active ecosystem
+          <p className="text-xs font-medium text-[var(--text-muted)]">
+            <span className="sr-only">Active ecosystem</span>
+            Useful today
           </p>
           <p className="mt-0.5 text-xs text-[var(--text-muted)]">
             Open these when they support today&apos;s work. They are not a checklist.

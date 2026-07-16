@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { HabitCard } from "@/components/HabitCard";
-import { SectionHeader } from "@/components/ui/section-header";
 import { EmptyState } from "@/components/ui/empty-state";
 
 interface RealmInfo {
@@ -42,15 +41,15 @@ export function BodyPulseSection({
 }: BodyPulseSectionProps) {
   return (
     <section>
-      <SectionHeader
-        label="Body Pulse"
-        count={`${completedHabitCount}/${dueHabitsLength}`}
-        action={
-          <Link href="/habits" className="text-[10px] text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">
-            Manage
-          </Link>
-        }
-      />
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-baseline gap-2">
+          <h2 className="text-sm font-semibold tracking-[-0.01em] text-[var(--text)]">Body Pulse</h2>
+          <span className="text-xs text-[var(--text-muted)]">{completedHabitCount}/{dueHabitsLength}</span>
+        </div>
+        <Link href="/habits" className="text-xs text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)]">
+          Manage
+        </Link>
+      </div>
       {dueHabits.length === 0 ? (
         <EmptyState
           eyebrow="Habits"
