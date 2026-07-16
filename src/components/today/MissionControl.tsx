@@ -17,6 +17,8 @@ interface MissionControlProps {
   quickType: "task" | "habit" | "project";
   quickSaving: boolean;
   focusPrompt: string;
+  visibleActionDone: boolean;
+  hasJournal: boolean;
   onPriorityInputChange: (value: string) => void;
   onAddPriority: () => void;
   onTogglePriority: (id: string) => void;
@@ -35,6 +37,8 @@ export function MissionControl({
   quickType,
   quickSaving,
   focusPrompt,
+  visibleActionDone,
+  hasJournal,
   onPriorityInputChange,
   onAddPriority,
   onTogglePriority,
@@ -134,11 +138,20 @@ export function MissionControl({
                 </div>
               ))}
               {priorities.length > 0 && priorities.every(p => p.done) && (
-                <div className="mt-2 flex items-center gap-1.5 text-xs text-[var(--success)]">
+                <div className="mt-2 rounded-lg border border-[var(--success)]/20 bg-[var(--success-soft)]/10 px-3 py-2 text-xs text-[var(--text-secondary)]">
+                  <div className="flex items-center gap-1.5 font-medium text-[var(--success)]">
                   <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                   Priorities complete
+                  </div>
+                  <p className="mt-1 text-[11px] leading-relaxed text-[var(--text-muted)]">
+                    {visibleActionDone
+                      ? hasJournal
+                        ? "First loop complete. Come back tomorrow with one more data point."
+                        : "Good. Capture what changed tonight so Weekly Review has context."
+                      : "Priority complete. Next: complete one visible action."}
+                  </p>
                 </div>
               )}
               {priorities.length < 3 && (

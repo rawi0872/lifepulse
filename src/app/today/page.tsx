@@ -90,6 +90,12 @@ interface TodayTaskExecutionContext {
   goalContext?: string;
 }
 
+interface FirstLoopGuideStep {
+  label: string;
+  done: boolean;
+  href?: string;
+}
+
 function formatGoalContext(goals: LinkedGoal[]): string | undefined {
   if (goals.length === 0) return undefined;
 
@@ -123,6 +129,13 @@ function TodayContent() {
   const [weeklyKnowledgeItems, setWeeklyKnowledgeItems] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [firstLoopGuideDismissed, setFirstLoopGuideDismissed] = useState(() => {
+    try {
+      return localStorage.getItem("life-pulse:first-loop-guide-dismissed") === "true";
+    } catch {
+      return false;
+    }
+  });
 
   interface Priority {
     id: string;
@@ -267,6 +280,13 @@ function TodayContent() {
 
   function removePriorityItem(id: string) {
     savePriorities(priorities.filter((p) => p.id !== id));
+  }
+
+  function dismissFirstLoopGuide() {
+    try {
+      localStorage.setItem("life-pulse:first-loop-guide-dismissed", "true");
+    } catch {}
+    setFirstLoopGuideDismissed(true);
   }
 
   function detectQuickType(text: string): "task" | "habit" | "project" {
@@ -801,6 +821,17 @@ function TodayContent() {
 
   const allDone = completedHabitCount === dueHabits.length && doneTaskCount === tasks.length && dueHabits.length > 0 && tasks.length > 0 && hasJournal;
   const hasContent = habits.length > 0 || tasks.length > 0;
+  const hasPriority = priorities.length > 0;
+  const hasCompletedPriority = priorities.some((priority) => priority.done);
+  const visibleActionDone = completedHabitCount > 0 || doneTaskCount > 0;
+  const firstLoopComplete = hasPriority && hasCompletedPriority && visibleActionDone && hasJournal;
+  const showFirstLoopGuide = !firstLoopGuideDismissed && !firstLoopComplete;
+  const firstLoopSteps: FirstLoopGuideStep[] = [
+    { label: "Set one priority", done: hasPriority },
+    { label: "Complete one visible action", done: visibleActionDone, href: visibleActionDone ? undefined : "#daily-execution" },
+    { label: "Reflect tonight", done: hasJournal, href: hasJournal ? undefined : "#evening-reflection" },
+    { label: "Review the week", done: false, href: "/weekly-review" },
+  ];
   const copy = TODAY_COPY[intendedUse];
   const ecosystemModules = getRecommendedModules(intendedUse)
     .filter((module) => module.href && module.status !== "planned")
@@ -861,6 +892,8 @@ function TodayContent() {
         quickType={quickType}
         quickSaving={quickSaving}
         focusPrompt={copy.focusPrompt}
+        visibleActionDone={visibleActionDone}
+        hasJournal={hasJournal}
         onPriorityInputChange={setPriorityInput}
         onAddPriority={addPriorityItem}
         onTogglePriority={togglePriorityItem}
@@ -870,6 +903,17 @@ function TodayContent() {
         onQuickTypeChange={setQuickType}
         onQuickCapture={handleQuickCapture}
       />
+
+      {showFirstLoopGuide && (
+        <FirstLoopGuide
+          steps={firstLoopSteps}
+          hasPriority={hasPriority}
+          hasCompletedPriority={hasCompletedPriority}
+          visibleActionDone={visibleActionDone}
+          hasJournal={hasJournal}
+          onDismiss={dismissFirstLoopGuide}
+        />
+      )}
 
       <CommandStrip
         completedHabitCount={completedHabitCount}
@@ -1045,7 +1089,7 @@ function TodayContent() {
         </Card>
       )}
 
-      <div className="mb-3 mt-1 flex min-w-0 items-center justify-between gap-3 border-t border-white/[0.06] pt-5">
+      <div id="daily-execution" className="mb-3 mt-1 flex scroll-mt-24 min-w-0 items-center justify-between gap-3 border-t border-white/[0.06] pt-5">
         <div className="min-w-0">
             <p className="text-sm font-semibold tracking-[-0.01em] text-[var(--text)]">
               Daily execution
@@ -1244,6 +1288,88 @@ function ExecutionBridgeMetric({ label, value, sub }: { label: string; value: nu
       <p className="text-[10px] text-pretty text-[var(--text-muted)]">{label}</p>
       {sub && <p className="mt-0.5 break-words text-[9px] text-[var(--text-muted)]">{sub}</p>}
     </div>
+  );
+}
+
+function FirstLoopGuide({
+  steps,
+  hasPriority,
+  hasCompletedPriority,
+  visibleActionDone,
+  hasJournal,
+  onDismiss,
+}: {
+  steps: FirstLoopGuideStep[];
+  hasPriority: boolean;
+  hasCompletedPriority: boolean;
+  visibleActionDone: boolean;
+  hasJournal: boolean;
+  onDismiss: () => void;
+}) {
+  const nextMessage = !hasPriority
+    ? "Start here: set one priority for today."
+    : !hasCompletedPriority
+      ? "Next useful step: check off the priority when it is truly done."
+      : !visibleActionDone
+        ? "Priority complete. Next: complete one visible action."
+        : !hasJournal
+          ? "Good. Reflect tonight so the day has context."
+          : "First loop complete. A few days of logs give you a clearer weekly picture.";
+
+  return (
+    <Card variant="subtle" className="mb-4 overflow-hidden border-[var(--accent)]/18 bg-[linear-gradient(180deg,rgba(122,162,199,0.07),rgba(244,247,251,0.018)),var(--surface-soft)]">
+      <div className="p-4 sm:p-5">
+        <div className="flex min-w-0 items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--accent)]">First Life Pulse loop</p>
+            <p className="mt-1 text-sm font-semibold text-[var(--text)]">{nextMessage}</p>
+            <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
+              What you log today becomes context for Weekly Review.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onDismiss}
+            className="shrink-0 rounded-md px-2 py-1 text-[10px] font-medium text-[var(--text-muted)] transition-colors hover:bg-white/[0.04] hover:text-[var(--text-secondary)]"
+          >
+            Hide
+          </button>
+        </div>
+
+        <div className="mt-4 grid gap-2 sm:grid-cols-4">
+          {steps.map((step, index) => {
+            const content = (
+              <div className={`flex min-w-0 items-center gap-2 rounded-lg border px-3 py-2 text-xs transition-colors ${
+                step.done
+                  ? "border-[var(--success)]/20 bg-[var(--success-soft)]/10 text-[var(--text-secondary)]"
+                  : "border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)]"
+              }`}>
+                <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] ${
+                  step.done
+                    ? "border-[var(--success)]/40 bg-[var(--success)]/80 text-white"
+                    : "border-[var(--border-strong)] text-[var(--text-muted)]"
+                }`}>
+                  {step.done ? (
+                    <svg className="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  ) : index + 1}
+                </span>
+                <span className="min-w-0 text-pretty leading-snug">{step.label}</span>
+              </div>
+            );
+
+            return step.href ? (
+              <Link key={step.label} href={step.href} className="block rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20">
+                {content}
+              </Link>
+            ) : (
+              <div key={step.label}>{content}</div>
+            );
+          })}
+        </div>
+      </div>
+    </Card>
   );
 }
 

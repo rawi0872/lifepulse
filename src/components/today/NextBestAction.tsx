@@ -87,7 +87,34 @@ export function NextBestAction(props: NextBestActionProps) {
 
   const actions = getTopInsights(coachData, 2);
 
-  if (actions.length === 0) return null;
+  if (actions.length === 0) {
+    return (
+      <Card variant="subtle" className="mb-4 overflow-hidden border-white/[0.08] bg-[var(--surface-soft)]/75">
+        <div className="border-b border-white/[0.06] px-4 py-2.5">
+          <p className="text-[10px] font-semibold tracking-[0.14em] text-[var(--text-muted)]">
+            Next action
+          </p>
+        </div>
+        <div className="p-4">
+          <p className="text-sm font-medium text-[var(--text)]">Next useful step</p>
+          <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
+            If the day feels quiet, add one task, complete one habit, or reflect tonight. Keep the loop small.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2 text-xs">
+            <Link href="/tasks" className="rounded-md border border-[var(--border)] px-3 py-2 text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/25 hover:text-[var(--accent)] sm:py-1.5">
+              Add a task
+            </Link>
+            <Link href="/habits" className="rounded-md border border-[var(--border)] px-3 py-2 text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/25 hover:text-[var(--accent)] sm:py-1.5">
+              Complete a habit
+            </Link>
+            <Link href="/today#evening-reflection" className="rounded-md border border-[var(--border)] px-3 py-2 text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/25 hover:text-[var(--accent)] sm:py-1.5">
+              Reflect tonight
+            </Link>
+          </div>
+        </div>
+      </Card>
+    );
+  }
 
   return (
     <Card variant="subtle" className="mb-4 overflow-hidden border-white/[0.08] bg-[var(--surface-soft)]/75">
