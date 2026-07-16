@@ -106,19 +106,19 @@ function NavLink({ item, active, onClick }: { item: NavItem; active: boolean; on
       href={item.href}
       onClick={onClick}
       aria-current={active ? "page" : undefined}
-      className={`group relative flex min-w-0 items-center gap-2.5 rounded-md px-2.5 py-2 text-sm font-medium transition-all duration-200 ${
+      className={`group relative flex min-w-0 items-center gap-2.5 rounded-lg border px-2.5 py-2 text-sm font-medium transition-all duration-200 ${
         active
-          ? "bg-[var(--accent-ghost)] text-[var(--text)]"
-          : "text-[var(--text-muted)] hover:bg-white/[0.03] hover:text-[var(--text-secondary)]"
+          ? "border-white/[0.08] bg-[var(--surface)] text-[var(--text)] shadow-sm shadow-black/10"
+          : "border-transparent text-[var(--text-muted)] hover:border-white/[0.04] hover:bg-white/[0.025] hover:text-[var(--text-secondary)]"
       }`}
     >
-      {active && <span className="absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-full bg-gradient-to-b from-[var(--accent)] to-[var(--accent-strong)]" />}
-      <span className={`shrink-0 transition-colors duration-200 ${active ? "text-[var(--accent)]" : "text-[var(--text-muted)] group-hover:text-[var(--text-secondary)]"}`}>
+      {active && <span className="absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-full bg-[var(--accent-strong)]" />}
+      <span className={`shrink-0 transition-colors duration-200 ${active ? "text-[var(--accent-strong)]" : "text-[var(--text-muted)] group-hover:text-[var(--text-secondary)]"}`}>
         {item.icon}
       </span>
       <span className="min-w-0 truncate">{item.label}</span>
       {item.badge && (
-        <span className="ml-auto shrink-0 rounded-full border border-[var(--accent)]/25 bg-[var(--accent-soft)] px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wide text-[var(--accent)]">
+        <span className="ml-auto shrink-0 rounded-full border border-[var(--border)] bg-[var(--surface-soft)] px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
           {item.badge}
         </span>
       )}
@@ -134,8 +134,8 @@ export function DashboardNav({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen">
-      <aside className="fixed left-0 top-0 z-40 hidden h-screen w-56 flex-col border-r border-[var(--border)] bg-[var(--bg-elevated)] md:flex">
-        <Link href="/today" className="group mx-4 mt-5 mb-7 flex items-center gap-2.5">
+      <aside className="fixed left-0 top-0 z-40 hidden h-screen w-56 flex-col border-r border-white/[0.06] bg-[linear-gradient(180deg,rgba(244,247,251,0.018),rgba(244,247,251,0)),var(--bg-elevated)] md:flex">
+        <Link href="/today" className="group mx-4 mt-5 mb-7 flex items-center gap-2.5 rounded-xl px-1 py-1 transition-colors hover:bg-white/[0.02]">
           <div className="relative transition-all duration-200 group-hover:opacity-80">
             <LifePulseLogo variant="mark" size="sm" />
           </div>
@@ -145,10 +145,10 @@ export function DashboardNav({ children }: { children: React.ReactNode }) {
           </div>
         </Link>
 
-        <nav className="flex flex-1 flex-col gap-4 overflow-y-auto px-2 pb-2">
+        <nav className="flex flex-1 flex-col gap-4 overflow-y-auto px-2.5 pb-2">
           {navGroups.map((group, groupIndex) => (
-            <div key={group.label} className={groupIndex > 0 ? "opacity-75 transition-opacity hover:opacity-100" : undefined}>
-              <p className="mb-1 px-2.5 text-[9px] font-medium uppercase tracking-[0.12em] text-[var(--text-muted)]">
+            <div key={group.label} className={groupIndex > 0 ? "opacity-80 transition-opacity hover:opacity-100" : undefined}>
+              <p className="mb-1.5 px-2.5 text-[9px] font-medium uppercase tracking-[0.14em] text-[var(--text-muted)] opacity-80">
                 {group.label}
               </p>
               <div className="flex flex-col gap-0.5">
@@ -158,7 +158,7 @@ export function DashboardNav({ children }: { children: React.ReactNode }) {
           ))}
         </nav>
 
-        <div className="border-t border-[var(--border)] px-2 pt-1 pb-3">
+        <div className="border-t border-white/[0.06] px-2 pt-2 pb-3">
           <FeedbackButton />
         </div>
       </aside>
@@ -167,30 +167,30 @@ export function DashboardNav({ children }: { children: React.ReactNode }) {
         {children}
       </main>
 
-      <nav className="fixed right-0 bottom-0 left-0 z-50 border-t border-[var(--border)] bg-[var(--bg-elevated)]/95 px-1 backdrop-blur-sm md:hidden">
-        <div className="flex items-center justify-around">
+      <nav className="fixed right-0 bottom-0 left-0 z-50 border-t border-white/[0.08] bg-[var(--bg-elevated)]/95 px-1.5 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden">
+        <div className="flex items-center justify-around py-1">
           {mobilePrimaryItems.map((item) => {
             const active = isActive(item.href);
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex flex-col items-center gap-0.5 rounded-lg px-2 py-1.5 text-[10px] font-medium transition-all duration-200 ${
-                  active ? "bg-[var(--accent-ghost)] text-[var(--accent)]" : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+                className={`flex min-w-[3.5rem] flex-col items-center gap-0.5 rounded-xl border px-2 py-1.5 text-[10px] font-medium transition-all duration-200 ${
+                  active ? "border-white/[0.08] bg-[var(--surface)] text-[var(--text)]" : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
                 }`}
               >
-                <span className={active ? "text-[var(--accent)]" : "text-[var(--text-muted)]"}>{item.icon}</span>
-                <span className={active ? "text-[var(--accent)]" : ""}>{item.label}</span>
+                <span className={active ? "text-[var(--accent-strong)]" : "text-[var(--text-muted)]"}>{item.icon}</span>
+                <span>{item.label}</span>
               </Link>
             );
           })}
 
           <button
             onClick={() => setMoreOpen(true)}
-            className={`flex flex-col items-center gap-0.5 rounded-lg px-2 py-1.5 text-[10px] font-medium transition-all duration-200 ${
+            className={`flex min-w-[3.5rem] flex-col items-center gap-0.5 rounded-xl border px-2 py-1.5 text-[10px] font-medium transition-all duration-200 ${
               moreOpen || mobileMoreItems.some((item) => isActive(item.href))
-                ? "bg-[var(--accent-ghost)] text-[var(--accent)]"
-                : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+                ? "border-white/[0.08] bg-[var(--surface)] text-[var(--text)]"
+                : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
             }`}
           >
             <svg className="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -203,11 +203,11 @@ export function DashboardNav({ children }: { children: React.ReactNode }) {
 
       {moreOpen && (
         <div className="fixed inset-0 z-[55] md:hidden">
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setMoreOpen(false)} />
-          <div className="fixed right-0 bottom-0 left-0 z-10 max-h-[75vh] overflow-y-auto rounded-t-2xl border border-[var(--border)] bg-[var(--bg-elevated)] p-4 pb-8 shadow-2xl animate-slide-up">
+          <div className="fixed inset-0 bg-black/55 backdrop-blur-sm" onClick={() => setMoreOpen(false)} />
+          <div className="fixed right-0 bottom-0 left-0 z-10 max-h-[75vh] overflow-y-auto rounded-t-3xl border border-white/[0.08] bg-[linear-gradient(180deg,rgba(244,247,251,0.03),rgba(244,247,251,0)),var(--bg-elevated)] p-4 pb-8 shadow-2xl shadow-black/40 animate-slide-up">
             <div className="mb-3 flex items-center justify-between">
               <div>
-                <h2 className="text-sm font-semibold text-[var(--text)]">More</h2>
+                <h2 className="text-base font-semibold tracking-[-0.02em] text-[var(--text)]">More</h2>
                 <p className="mt-0.5 text-xs text-[var(--text-muted)]">Deeper tools are here when you need them.</p>
               </div>
               <button
@@ -226,7 +226,7 @@ export function DashboardNav({ children }: { children: React.ReactNode }) {
                 if (group.items.length === 0) return null;
                 return (
                   <section key={group.label}>
-                    <p className="mb-1.5 px-1 text-[9px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
+                    <p className="mb-1.5 px-1 text-[9px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)] opacity-80">
                       {group.label}
                     </p>
                     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">

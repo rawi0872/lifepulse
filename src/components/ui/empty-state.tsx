@@ -25,14 +25,14 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-2xl border border-[var(--border)] bg-[radial-gradient(circle_at_top_left,var(--accent-soft),transparent_36%),var(--surface-soft)] text-center shadow-sm shadow-black/10",
+        "overflow-hidden rounded-2xl border border-white/[0.07] bg-[linear-gradient(180deg,rgba(244,247,251,0.026),rgba(244,247,251,0.006)),var(--surface-soft)] text-center shadow-sm shadow-black/10",
         compact ? "px-3.5 py-4" : "px-5 py-8 sm:px-6 sm:py-10",
         className,
       )}
       {...props}
     >
       {eyebrow && (
-        <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">
+        <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--accent-strong)]">
           {eyebrow}
         </p>
       )}
