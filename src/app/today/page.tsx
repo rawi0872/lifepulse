@@ -810,7 +810,7 @@ function TodayContent() {
   if (loading) {
     return (
       <div className="mx-auto max-w-5xl px-5 py-8">
-        <div className="mb-6 rounded-xl border border-[var(--border)] bg-[var(--surface)]/80 p-4 shadow-xl shadow-black/10">
+        <div className="mb-6 rounded-2xl border border-white/[0.08] bg-[linear-gradient(180deg,rgba(244,247,251,0.04),rgba(244,247,251,0.01))] p-4 shadow-xl shadow-black/20">
           <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--accent)]">
             Opening your command center
           </p>
@@ -819,7 +819,7 @@ function TodayContent() {
             Loading your priorities, habits, and next actions.
           </p>
         </div>
-        <div className="mb-4 overflow-hidden rounded-xl border border-[var(--accent)]/20 bg-[var(--accent-ghost)]/30">
+        <div className="mb-4 overflow-hidden rounded-2xl border border-white/[0.08] bg-black/20">
           <div className="p-4">
             <div className="mb-3 h-4 w-28 animate-pulse rounded bg-[var(--surface-active)]" />
             <div className="grid gap-2 sm:grid-cols-3">
@@ -844,7 +844,8 @@ function TodayContent() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-6 animate-fade-in sm:px-5 sm:py-8">
+    <div className="relative mx-auto max-w-5xl px-4 py-5 animate-fade-in sm:px-5 sm:py-8">
+      <div aria-hidden className="pointer-events-none absolute inset-x-4 top-0 -z-10 h-80 rounded-[2rem] bg-[linear-gradient(180deg,rgba(122,162,199,0.08),rgba(11,13,16,0))]" />
 
       <TodaysPulseHeader firstName={firstName} totalXp={totalXp} todayXp={todayXp} subtitle={copy.subtitle} />
 
@@ -898,7 +899,7 @@ function TodayContent() {
       />
 
       {activeGoalsCount > 0 && (
-        <Card variant="subtle" className="mb-4 overflow-hidden border-dashed border-[var(--border)]">
+        <Card variant="subtle" className="mb-4 overflow-hidden border-dashed border-[var(--border)] bg-[var(--surface-soft)]/55">
           <div className="border-b border-[var(--border)] px-4 py-3 sm:py-2.5">
             <p className="text-[10px] font-medium tracking-wider text-[var(--text-muted)]">
               Optional goal context
@@ -938,7 +939,7 @@ function TodayContent() {
 
       {/* Next action */}
       {suggestedTask && suggestedTask.projects ? (
-        <Card className="mb-4">
+        <Card className="mb-4 border-[var(--accent)]/20 bg-[var(--surface-raised)]/80">
           <div className="flex flex-col gap-3 px-4 py-3.5 hover:bg-[var(--surface-active)] sm:flex-row sm:items-center sm:py-3">
             <div className="flex min-w-0 items-start gap-3 sm:items-center">
               <button
@@ -983,7 +984,7 @@ function TodayContent() {
           </div>
         </Card>
       ) : hasContent ? (
-        <Card variant="subtle" className="mb-4 border-dashed border-[var(--border)]">
+        <Card variant="subtle" className="mb-4 border-dashed border-[var(--border)] bg-black/10">
           <div className="px-4 py-3.5 sm:py-3">
             <p className="text-[10px] font-medium text-[var(--text-muted)]">No project action queued</p>
             <p className="mt-0.5 text-xs text-[var(--text-muted)]">
@@ -1011,7 +1012,7 @@ function TodayContent() {
 
       {/* Empty state welcome */}
       {!hasContent && (
-        <Card variant="elevated" className="mb-6 overflow-hidden border-[var(--accent)]/20 bg-[radial-gradient(circle_at_top_left,var(--accent-soft),transparent_34%),var(--surface)]">
+        <Card variant="elevated" className="mb-6 overflow-hidden border-[var(--accent)]/20 bg-[linear-gradient(135deg,rgba(244,247,251,0.055),rgba(122,162,199,0.045)),var(--surface)]">
           <div className="border-b border-[var(--border)] px-5 py-4">
             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">First setup</p>
             <h2 className="mt-1 text-base font-semibold text-[var(--text)]">Start with one daily action.</h2>
@@ -1046,12 +1047,12 @@ function TodayContent() {
         </Card>
       )}
 
-      <div className="mb-3 flex min-w-0 items-center justify-between gap-3">
+      <div className="mb-3 mt-1 flex min-w-0 items-center justify-between gap-3 border-t border-white/[0.06] pt-5">
         <div className="min-w-0">
             <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">
               Daily execution
             </p>
-            <p className="mt-0.5 text-xs text-[var(--text-muted)]">
+            <p className="mt-1 text-xs text-[var(--text-muted)]">
             Complete one task or habit first. The rest can wait.
             </p>
         </div>
@@ -1078,7 +1079,7 @@ function TodayContent() {
           />
         </div>
 
-        <div className="min-w-0 space-y-4">
+        <div className="min-w-0 space-y-4 lg:pl-1">
           <SectionHeader label="Life Pulse context" />
 
           <XpDisplay

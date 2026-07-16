@@ -11,7 +11,7 @@ export function TodayEcosystemStrip({ modules }: TodayEcosystemStripProps) {
   if (modules.length === 0) return null;
 
   return (
-    <section className="mt-6 rounded-xl border border-dashed border-[var(--border)] bg-[var(--surface-soft)]/40 px-4 py-3.5 sm:py-3">
+    <section className="mt-7 rounded-xl border border-dashed border-[var(--border)] bg-black/10 px-4 py-3.5 opacity-80 sm:py-3">
       <div className="mb-2 flex items-center justify-between gap-3">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">

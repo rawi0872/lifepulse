@@ -90,21 +90,21 @@ export function NextBestAction(props: NextBestActionProps) {
   if (actions.length === 0) return null;
 
   return (
-    <Card className="mb-4 overflow-hidden">
-      <div className="border-b border-[var(--border)] px-4 py-2.5">
-        <p className="text-[10px] font-medium tracking-wider text-[var(--text-muted)]">
+    <Card variant="subtle" className="mb-4 overflow-hidden border-white/[0.08] bg-[var(--surface-soft)]/75">
+      <div className="border-b border-white/[0.06] px-4 py-2.5">
+        <p className="text-[10px] font-semibold tracking-[0.14em] text-[var(--text-muted)]">
           <svg className="mr-1.5 inline-block h-3 w-3 -mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />
           </svg>
           Recommended next move
         </p>
       </div>
-      <div className="divide-y divide-[var(--border)]">
+      <div className="divide-y divide-white/[0.06]">
         {actions.map((action) => (
           <Link
             key={action.id}
             href={action.actionHref}
-            className="flex min-w-0 items-start gap-3 px-4 py-3 text-sm text-[var(--text-secondary)] transition-all hover:bg-[var(--surface-active)] hover:text-[var(--text)] sm:items-center sm:py-2.5"
+            className="flex min-w-0 items-start gap-3 px-4 py-3 text-sm text-[var(--text-secondary)] transition-all hover:bg-white/[0.035] hover:text-[var(--text)] sm:items-center sm:py-2.5"
           >
             {actionIcons[action.category] || actionIcons.general}
             <span className="min-w-0 flex-1 text-pretty leading-5">{action.title}</span>
