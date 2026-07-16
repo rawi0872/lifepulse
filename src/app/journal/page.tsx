@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { DashboardNav } from "@/components/DashboardNav";
+import { DailyLoopConnector } from "@/components/DailyLoopConnector";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -130,6 +131,11 @@ export default function JournalPage() {
             </div>
           </div>
         </div>
+
+        <DailyLoopConnector
+          activeStep="reflect"
+          note="Journal is the private history of what changed. Reflection starts from Today, then Weekly Review gets clearer as entries collect."
+        />
 
         {entries.length > 0 && (
           <div className="mb-4 flex min-w-0 flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">

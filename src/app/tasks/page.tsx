@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { getTodayDateString } from "@/lib/utils";
 import { DashboardNav } from "@/components/DashboardNav";
+import { DailyLoopConnector } from "@/components/DailyLoopConnector";
 import { RealmPicker } from "@/components/RealmPicker";
 import { SelectPicker } from "@/components/SelectPicker";
 import { ProjectPicker } from "@/components/ProjectPicker";
@@ -373,7 +374,7 @@ export default function TasksPage() {
           <div className="min-w-0">
             <h1 className="text-2xl font-bold text-[var(--text)]">Tasks</h1>
             <div className="text-pretty text-sm text-[var(--text-muted)]">
-              Capture the next visible actions, then clear them one at a time.
+              Create or complete one visible action, then return to Today to close the loop.
               <HelpPopover title="What is a task?">
                 <p>Tasks are one-time actions with a clear finish.</p>
                 <p className="mt-1.5 text-[var(--text-muted)]">Examples: Submit project booklet, Buy guitar strings, Finish physics revision</p>
@@ -386,10 +387,15 @@ export default function TasksPage() {
           </Button>
         </div>
 
+        <DailyLoopConnector
+          activeStep="action"
+          note="Tasks are where today&apos;s visible actions become progress. Keep one task concrete enough to finish today."
+        />
+
         {tasks.length > 0 && tasks.length <= 2 && (
           <div className="mb-4 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2 hover:border-[var(--accent)]/20 transition-all duration-150">
             <p className="text-xs text-[var(--text-muted)]">
-              Good task lists stay short. Add one clear next action.
+              Good task lists stay short. Add one clear next action, complete it, then reflect tonight.
             </p>
             <div className="mt-2">
               <span className="text-[9px] font-medium text-[var(--text-muted)]">Examples</span>
@@ -504,7 +510,7 @@ export default function TasksPage() {
           <EmptyState
             eyebrow={filter === "all" ? "First task" : undefined}
             title={filter === "all" ? "Start with one visible action." : "No tasks match this filter."}
-            message={filter === "all" ? "Add one task you can finish today. Keep it concrete enough that done is obvious." : "Try another view or clear the filter to see the rest of your task list."}
+            message={filter === "all" ? "Add one task you can finish today. It becomes part of today&apos;s loop when you check it off and reflect." : "Try another view or clear the filter to see the rest of your task list."}
             action={filter === "all" ? (
               <Button size="sm" onClick={() => { resetForm(); setShowForm(true); }}>
                 <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

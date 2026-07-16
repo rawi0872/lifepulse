@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { DashboardNav } from "@/components/DashboardNav";
+import { DailyLoopConnector } from "@/components/DailyLoopConnector";
 import { RealmPicker } from "@/components/RealmPicker";
 import { SelectPicker } from "@/components/SelectPicker";
 import { HelpPopover } from "@/components/HelpPopover";
@@ -327,7 +328,7 @@ export default function HabitsPage() {
           <div className="min-w-0">
             <h1 className="text-2xl font-bold text-[var(--text)]">Habits</h1>
             <div className="text-pretty text-sm text-[var(--text-muted)]">
-              Track the repeat actions you want to make automatic.
+              Choose one small repeatable action and complete it today to keep the loop alive.
               <HelpPopover title="What is a habit?">
                 <p>Habits are repeated actions you track over time. They help you build consistency and identity.</p>
                 <p className="mt-1.5 text-[var(--text-muted)]">Examples: Practice guitar daily, Drink 3L water, Do plank every morning</p>
@@ -339,6 +340,11 @@ export default function HabitsPage() {
             Add habit
           </Button>
         </div>
+
+        <DailyLoopConnector
+          activeStep="action"
+          note="Habits are repeatable visible actions. Check off one today, then close the day from Today&apos;s reflection."
+        />
 
         {habits.length > 0 && habits.length <= 2 && (
           <div className="mb-4 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2">
@@ -440,7 +446,7 @@ export default function HabitsPage() {
           <EmptyState
             eyebrow="First habit"
             title="Start with one small repeatable action."
-            message="Choose something you can honestly do for seven days. Tiny routines are easier to trust and easier to keep."
+            message="Choose something you can honestly do today and repeat for seven days. Tiny routines are easier to trust and easier to review."
             action={(
               <Button size="sm" onClick={() => { resetForm(); setShowForm(true); }}>
                 <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

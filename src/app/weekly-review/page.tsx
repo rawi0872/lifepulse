@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { DashboardNav } from "@/components/DashboardNav";
+import { DailyLoopConnector } from "@/components/DailyLoopConnector";
 import { PulseCard } from "@/components/ui/pulse-card";
 import { Card } from "@/components/ui/card";
 import { getTodayDateString, getWeekStartDate } from "@/lib/utils";
@@ -344,6 +345,11 @@ function WeeklyReviewContent() {
           {isWeekend && <span className="mt-1 block text-xs text-[var(--accent)] sm:ml-2 sm:mt-0 sm:inline">Weekend &mdash; good time to reflect</span>}
         </p>
       </div>
+
+      <DailyLoopConnector
+        activeStep="review"
+        note="Weekly Review is the payoff from what you logged: priorities, visible actions, and private reflections across the week."
+      />
 
       <Card variant="subtle" className="mb-8 border-[var(--border)] bg-[var(--surface-soft)]/70">
         <div className="p-4 sm:p-5">
