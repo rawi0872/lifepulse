@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useId } from "react";
+import { useState, useEffect, useCallback, useId, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
@@ -65,6 +65,7 @@ interface WeekData {
   financeNet: number;
   financeCurrency: string | null;
   financeHasMixedCurrencies: boolean;
+  rhythmByDay: { label: string; habits: number; tasks: number; reflections: number }[];
   bodyLoggedToday: boolean;
   mindLoggedToday: boolean;
   hasWorkoutThisWeek: boolean;
@@ -87,7 +88,7 @@ function WeeklyReviewContent() {
   const supabase = createClient();
   const today = getTodayDateString();
   const weekStart = getWeekStartDate();
-  const weekDates = getWeekDates();
+  const weekDates = useMemo(() => getWeekDates(), []);
   const todayDow = new Date().getDay();
   const isWeekend = todayDow === 0 || todayDow === 6;
 
@@ -118,8 +119,8 @@ function WeeklyReviewContent() {
       passionsRes, sessionsRes, goalsRes, milestonesRes, projectsRes, financeRes,
       journalMemoryRes, knowledgeMemoryRes, goalLinksRes,
     ] = await Promise.all([
-      supabase.from("habit_logs").select("id").eq("user_id", user.id).gte("completed_date", weekStart).lte("completed_date", weekEnd),
-      supabase.from("tasks").select("id").eq("user_id", user.id).eq("status", "done"),
+      supabase.from("habit_logs").select("id, completed_date").eq("user_id", user.id).gte("completed_date", weekStart).lte("completed_date", weekEnd),
+      supabase.from("tasks").select("id, completed_at").eq("user_id", user.id).eq("status", "done").gte("completed_at", `${weekStart}T00:00:00`).lte("completed_at", `${weekEnd}T23:59:59`),
       supabase.from("workouts").select("duration_minutes").eq("user_id", user.id).gte("workout_date", weekStart).lte("workout_date", weekEnd),
       supabase.from("journal_entries").select("id").eq("user_id", user.id).gte("entry_date", weekStart).lte("entry_date", weekEnd),
       supabase.from("body_metrics").select("energy, sleep_hours").eq("user_id", user.id).gte("entry_date", weekStart).lte("entry_date", weekEnd),
@@ -156,6 +157,8 @@ function WeeklyReviewContent() {
     const bodyMetrics = (bodyRes.data ?? []) as { energy?: number | null; sleep_hours?: number | null }[];
     const mindMetrics = (mindRes.data ?? []) as { mood?: number | null; focus?: number | null; stress?: number | null }[];
     const nutritionLogs = (nutritionRes.data ?? []) as { log_date?: string | null; protein_g?: number | null; water_ml?: number | null }[];
+    const habitLogs = (habitsRes.data ?? []) as { completed_date?: string | null }[];
+    const completedTasks = (tasksRes.data ?? []) as { completed_at?: string | null }[];
     const sessions = (sessionsRes.data ?? []) as { duration_minutes?: number | null; passion_id?: string }[];
     const passions = (passionsRes.data ?? []) as { id: string; name: string }[];
     const passionMap = new Map(passions.map((p) => [p.id, p.name]));
@@ -183,7 +186,7 @@ function WeeklyReviewContent() {
     const nutritionDays = new Set(nutritionLogs.map((n) => n.log_date).filter(Boolean)).size;
     const totalProtein = nutritionLogs.reduce((sum, n) => sum + (n.protein_g ?? 0), 0);
     const waterMl = nutritionLogs.reduce((sum, n) => sum + (n.water_ml ?? 0), 0);
-    const journalMemoryEntries = (journalMemoryRes.data ?? []) as { content?: string | null }[];
+    const journalMemoryEntries = (journalMemoryRes.data ?? []) as { entry_date?: string | null; content?: string | null }[];
     const knowledgeMemoryItems = (knowledgeMemoryRes.data ?? []) as { title?: string | null; type?: string | null }[];
     const latestJournalReflection = makeMemorySnippet(journalMemoryEntries[0]?.content ?? null);
     const latestKnowledge = knowledgeMemoryItems[0];
@@ -218,6 +221,13 @@ function WeeklyReviewContent() {
     const linkedGoalIds = new Set(activeGoalLinks.map((link) => link.goal_id).filter(Boolean));
     const linkedGoals = linkedGoalIds.size;
     const unlinkedGoals = activeGoals.length - linkedGoals;
+
+    const rhythmByDay = weekDates.map((date, index) => ({
+      label: WEEKDAYS[index],
+      habits: habitLogs.filter((log) => log.completed_date === date).length,
+      tasks: completedTasks.filter((task) => task.completed_at?.slice(0, 10) === date).length,
+      reflections: journalMemoryEntries.filter((entry) => entry.entry_date === date).length,
+    }));
 
     setData({
       weekDates,
@@ -260,6 +270,7 @@ function WeeklyReviewContent() {
       financeNet: financeIncome - financeExpenses,
       financeCurrency,
       financeHasMixedCurrencies,
+      rhythmByDay,
       bodyLoggedToday: bodyMetrics.length > 0,
       mindLoggedToday: mindMetrics.length > 0,
       hasWorkoutThisWeek: (workoutsRes.data ?? []).length > 0,
@@ -326,6 +337,7 @@ function WeeklyReviewContent() {
   });
   const weeklySignalCount = data.habitCount + data.taskCount + data.journalCount + data.bodyCheckins + data.mindCheckins + data.financeTransactionCount;
   const isSparseWeek = weeklySignalCount < 3;
+  const nextActions = suggestedActions(data);
 
   return (
     <div className="mx-auto max-w-3xl overflow-x-hidden px-4 py-6 sm:px-5 sm:py-8">
@@ -403,6 +415,17 @@ function WeeklyReviewContent() {
           <MetricCard label="Passion sessions" value={data.passionSessions} sub={`${data.passionMinutes} min`} />
           <MetricCard label="Nutrition logs" value={data.nutritionCount} />
         </div>
+      </section>
+
+      <section className="mb-8">
+        <div className="mb-3 flex min-w-0 items-center gap-2">
+          <span className="h-4 w-1 rounded-full bg-gradient-to-b from-[var(--accent)] to-[var(--accent-strong)]" />
+          <h2 className="min-w-0 break-words text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Weekly rhythm</h2>
+        </div>
+        <p className="mb-3 text-xs text-[var(--text-muted)]">
+          Habits, completed tasks, and reflections by day. This is based only on logged activity from this week.
+        </p>
+        <WeeklyRhythmChart rows={data.rhythmByDay} />
       </section>
 
       {(data.weeklyJournalEntries > 0 || data.weeklyKnowledgeItems > 0) && (
@@ -629,7 +652,7 @@ function WeeklyReviewContent() {
           <div className="min-w-0 px-3.5 pb-3.5 sm:px-4 sm:pb-4">
             <p className="mb-2 text-xs font-medium text-[var(--text)]">Suggested actions</p>
             <div className="space-y-1.5">
-              {suggestedActions(data).map((action, i) => (
+              {nextActions.map((action, i) => (
                 <Link
                   key={i}
                   href={action.href}
@@ -641,8 +664,8 @@ function WeeklyReviewContent() {
                   <span className="min-w-0 break-words">{action.text}</span>
                 </Link>
               ))}
-              {suggestedActions(data).length === 0 && (
-                <p className="text-xs text-[var(--text-muted)]">No suggestions &mdash; you&rsquo;re on track!</p>
+              {nextActions.length === 0 && (
+                <p className="text-xs text-[var(--text-muted)]">No optional prompts right now.</p>
               )}
             </div>
           </div>
@@ -711,6 +734,40 @@ function ReflectionField({ label, value, onChange }: { label: string; value: str
         className="min-h-32 w-full resize-none rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3.5 py-3 text-base leading-relaxed text-[var(--text)] placeholder-[var(--text-muted)] outline-none transition-colors focus:border-[var(--accent)] sm:min-h-24 sm:px-3 sm:py-2.5 sm:text-sm"
       />
     </div>
+  );
+}
+
+function WeeklyRhythmChart({ rows }: { rows: { label: string; habits: number; tasks: number; reflections: number }[] }) {
+  const maxValue = Math.max(1, ...rows.map((row) => row.habits + row.tasks + row.reflections));
+
+  return (
+    <Card className="min-w-0 p-4 sm:p-5">
+      <div className="grid min-w-0 grid-cols-7 items-end gap-2" aria-label="Weekly rhythm chart">
+        {rows.map((row) => {
+          const total = row.habits + row.tasks + row.reflections;
+          const height = Math.max(total > 0 ? 18 : 4, Math.round((total / maxValue) * 104));
+
+          return (
+            <div key={row.label} className="flex min-w-0 flex-col items-center gap-2">
+              <div className="flex h-28 w-full max-w-8 items-end rounded-full bg-[var(--surface-soft)] p-1 ring-1 ring-inset ring-[var(--border)]">
+                <div
+                  className="w-full rounded-full bg-gradient-to-t from-[var(--accent)] to-[var(--accent-strong)] transition-all"
+                  style={{ height }}
+                  title={`${row.label}: ${total} logged actions`}
+                />
+              </div>
+              <span className="text-[9px] font-medium text-[var(--text-muted)]">{row.label}</span>
+              <span className="text-[10px] font-semibold text-[var(--text)]">{total}</span>
+            </div>
+          );
+        })}
+      </div>
+      <div className="mt-4 grid gap-2 text-[10px] text-[var(--text-muted)] sm:grid-cols-3">
+        <span>Habits: checked actions</span>
+        <span>Tasks: completed this week</span>
+        <span>Reflections: journal entries</span>
+      </div>
+    </Card>
   );
 }
 
