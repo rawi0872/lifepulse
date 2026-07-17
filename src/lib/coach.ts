@@ -136,7 +136,7 @@ export function getCoachInsights(data: CoachData): CoachInsight[] {
     results.push(
       mk(
         "Check in with Mind Pulse",
-        "A useful next step could be noting your mood and focus levels for today.",
+        "If it fits, a quick mood and focus check-in can add context for today.",
         "mind",
         "high",
         "Check In",
@@ -151,7 +151,7 @@ export function getCoachInsights(data: CoachData): CoachInsight[] {
     results.push(
       mk(
         "Focus on a high-priority task",
-        "You have high-priority tasks waiting. Consider tackling one now.",
+        "There are high-priority tasks waiting. Pick one only if it fits your day.",
         "tasks",
         "high",
         "View Tasks",
@@ -166,7 +166,7 @@ export function getCoachInsights(data: CoachData): CoachInsight[] {
     results.push(
       mk(
         "Connect your goal to action",
-        "Consider linking your goal to a project, task, or habit to make progress measurable.",
+        "A goal can be easier to review when it is linked to a project, task, or habit.",
         "goals",
         "medium",
         "Review Goals",
@@ -181,7 +181,7 @@ export function getCoachInsights(data: CoachData): CoachInsight[] {
     results.push(
       mk(
         "Write a short reflection",
-        "A brief journal entry at the end of the day can help you process what happened.",
+        "A brief private reflection can give today more context for Weekly Review.",
         "general",
         "medium",
         "Open Journal",
@@ -196,7 +196,7 @@ export function getCoachInsights(data: CoachData): CoachInsight[] {
     results.push(
       mk(
         "Add a passion or hobby",
-        "Consider adding an activity you enjoy outside of work and responsibilities.",
+        "If there is an activity you enjoy outside work and responsibilities, you can track it here.",
         "passions",
         "low",
         "Explore Passions",
@@ -209,7 +209,7 @@ export function getCoachInsights(data: CoachData): CoachInsight[] {
     results.push(
       mk(
         "Log a passion practice session",
-        "Spending even 15 minutes on a passion activity can improve your sense of balance.",
+        "If passion practice happened this week, logging it can make the week easier to review.",
         "passions",
         "medium",
         "Log Session",
@@ -256,7 +256,7 @@ export function getCoachInsights(data: CoachData): CoachInsight[] {
     results.push(
       mk(
         "Plan your week ahead",
-        "Mondays are a good time to set intentions and plan your week.",
+        "Monday can be a useful time to choose one realistic focus for the week.",
         "weekly_review",
         "medium",
         "Open Weekly Review",
@@ -269,7 +269,7 @@ export function getCoachInsights(data: CoachData): CoachInsight[] {
     results.push(
       mk(
         "Review your week",
-        "Late week is a good time to reflect on what went well and what to adjust.",
+        "Late week can be a useful time to review what changed and choose one adjustment.",
         "weekly_review",
         "medium",
         "Open Weekly Review",
@@ -309,7 +309,7 @@ export function getCoachInsights(data: CoachData): CoachInsight[] {
     results.push(
       mk(
         "Review this week's money activity",
-        "You have logged finance transactions this week. Weekly Review can help you reflect on the pattern.",
+        "There are logged finance transactions this week. Weekly Review can show them as a private manual reflection prompt.",
         "weekly_review",
         "low",
         "Open Weekly Review",
@@ -328,7 +328,7 @@ export function getCoachInsights(data: CoachData): CoachInsight[] {
     results.push(
       mk(
         "Capture one lesson from this week",
-        "You have reflection activity this week. Save one useful lesson or idea in Knowledge so it does not get lost.",
+        "There is reflection activity this week. If one lesson is worth keeping, Knowledge can store it manually.",
         "knowledge",
         "low",
         "Open Knowledge",
@@ -343,7 +343,7 @@ export function getCoachInsights(data: CoachData): CoachInsight[] {
     results.push(
       mk(
         "Add your first transaction",
-        "Consider adding a transaction or category to start tracking your finances.",
+        "If you want a manual money record, Finance can store one transaction or category.",
         "finance",
         "low",
         "Open Finance",
@@ -358,7 +358,7 @@ export function getCoachInsights(data: CoachData): CoachInsight[] {
     results.push(
       mk(
         "Save an important idea or resource",
-        "Consider capturing a useful resource, article, or idea in your Knowledge system.",
+        "If a useful resource, article, or idea matters later, Knowledge can store it manually.",
         "knowledge",
         "low",
         "Open Knowledge",

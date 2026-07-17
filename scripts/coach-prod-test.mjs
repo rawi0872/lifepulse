@@ -35,11 +35,13 @@ const ERROR_SCREENSHOT_PATH = "screenshot-coach-prod-error.png";
 
 const requiredCoachText = [
   "Life Pulse Coach",
-  "Transparent, rule-based recommendations",
+  "Optional prompts based on your logged activity",
+  "Safety framing",
+  "Suggestions are optional prompts, not instructions",
   "Open Today",
   "Run Weekly Review",
   "Open Insights",
-  "Recommended next actions",
+  "Optional next prompts",
   "Signal breakdown",
   "Transparent rule engine",
 ];
@@ -47,6 +49,8 @@ const requiredCoachText = [
 const requiredTransparencyText = [
   "No AI summaries",
   "AI memory",
+  "No external AI processing",
+  "embeddings",
   "external APIs are enabled",
 ];
 
@@ -70,17 +74,16 @@ const forbiddenCoachMemoryPhrases = [
   "public sharing",
   "emotional analysis",
   "mental health analysis",
-  "diagnosis",
+  "diagnose",
   "prediction",
   "forecast",
   "getting better",
   "getting worse",
-  "therapy",
+  "therapy advice",
   "AI is reading",
   "AI remembers",
   "AI-generated summary",
   "automatic AI summary",
-  "external AI processing",
 ];
 
 const financeCoachNudgeTitle = "Review this week's money activity";
