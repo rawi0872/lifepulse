@@ -160,7 +160,7 @@ export function ProjectCard({
           </div>
           <div className="flex shrink-0 justify-end gap-1 sm:justify-start">
             <button onClick={() => onEdit(project)} className="rounded-lg px-3 py-2 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-active)] hover:text-[var(--text)] sm:px-2 sm:py-1">Edit</button>
-            <button onClick={() => onDelete(project.id)} className="rounded-lg px-3 py-2 text-xs text-[var(--danger)] transition-colors hover:bg-[var(--danger-soft)] sm:px-2 sm:py-1">Delete</button>
+            <button onClick={() => onDelete(project.id)} className="rounded-lg px-3 py-2 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-active)] hover:text-[var(--text)] sm:px-2 sm:py-1">Delete</button>
           </div>
         </div>
 

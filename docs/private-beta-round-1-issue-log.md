@@ -42,6 +42,7 @@ Example rows are placeholders. Replace them with real tester feedback as it arri
 | R1-021 | 2026-07-17 | Internal QA | /finance | Product activation | P2 | Finance first-use can feel unclear unless income/expense logging, privacy, and non-advice boundaries are explicit. | No | Yes | Improve safe manual-money framing and discoverability without schema or save changes | Fixed pending production verification |  |
 | R1-022 | 2026-07-17 | Tester | Phone / mobile | /tasks | Mobile interaction usability | P1/P2 | Tester tapped Edit on a task and had to scroll to the top to find the edit form, making task editing feel disconnected and unfinished on phone. | No | Yes | Move edit/delete interaction close to the task card and improve mobile ergonomics without changing task CRUD semantics | Fixed pending production verification |  |
 | R1-023 | 2026-07-17 | Internal QA | Phone / mobile | /habits | Mobile interaction usability | P2 | After fixing Tasks edit ergonomics, Habits needed the same check because editing could also open a shared form far from the selected habit on phone. | No | Yes | Keep habit edit/delete interactions local to the habit card and safe on mobile without changing habit CRUD, streak, or XP semantics | Fixed pending production verification |  |
+| R1-024 | 2026-07-17 | Internal QA | Phone / mobile | /projects, /goals | Mobile interaction usability | P2 | Projects and Goals still had edit/delete flows where editing opened away from the selected item or deletion used disconnected/immediate controls after Tasks/Habits were fixed. | No | Yes | Keep edit/delete interactions local to the selected item where needed, without changing project/goal CRUD, goal-linking, or XP semantics | Fixed pending production verification |  |
 
 ## Common Repeated Issues
 
@@ -57,6 +58,7 @@ Group similar issues here after at least two testers mention the same theme.
 - Finance first-use discoverability: Finance must make income/expense logging, privacy, no bank connection, and non-advice boundaries explicit (`R1-021`). Current decision: improve safe manual-money framing and discoverability without schema or save changes.
 - Task edit/delete ergonomics: Task editing must happen near the selected task, especially on phone, and deletion should use a local confirmation instead of a disconnected browser prompt (`R1-022`). Current decision: inline edit and local delete confirmation only, with no task CRUD semantics changes.
 - Habit edit/delete ergonomics: Habits should follow the same local mobile interaction model as Tasks while preserving repeated-action completion, streak, and XP behavior (`R1-023`). Current decision: inline edit and local delete confirmation only, with no habit CRUD, streak, or XP semantics changes.
+- Projects/Goals edit-delete ergonomics: Projects and Goals should not keep the old tap-here/edit-elsewhere pattern after Tasks/Habits were fixed (`R1-024`). Current decision: inline edit and local delete confirmation only, with no project/goal CRUD, goal-linking, or XP semantics changes.
 
 ## Top Fixes Selected
 

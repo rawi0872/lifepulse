@@ -63,6 +63,7 @@ export default function ProjectsPage() {
   const [realms, setRealms] = useState<Realm[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [realmId, setRealmId] = useState("");
@@ -136,6 +137,20 @@ export default function ProjectsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    if (!editingId) return;
+    window.requestAnimationFrame(() => {
+      document.getElementById(`project-edit-panel-${editingId}`)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    });
+  }, [editingId]);
+
+  useEffect(() => {
+    if (!confirmingDeleteId) return;
+    window.requestAnimationFrame(() => {
+      document.getElementById(`project-delete-panel-${confirmingDeleteId}`)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    });
+  }, [confirmingDeleteId]);
+
   const tasksByProject = useMemo(() => {
     const map: Record<string, LinkedTask[]> = {};
     for (const t of linkedTasks) {
@@ -188,16 +203,23 @@ export default function ProjectsPage() {
     setStatus("active");
     setDeadline("");
     setEditingId(null);
+    setConfirmingDeleteId(null);
   }
 
   function openEdit(p: Project) {
     setEditingId(p.id);
+    setConfirmingDeleteId(null);
     setTitle(p.title);
     setDescription(p.description ?? "");
     setRealmId(p.realm_id ?? "");
     setStatus(p.status);
     setDeadline(p.deadline ?? "");
-    setShowForm(true);
+    setShowForm(false);
+  }
+
+  function cancelEdit() {
+    resetForm();
+    setShowForm(false);
   }
 
   async function save() {
@@ -252,11 +274,12 @@ export default function ProjectsPage() {
   }
 
   async function remove(id: string) {
-    if (!confirm("Delete this project? Linked tasks will be unlinked but not deleted.")) return;
     const { error: unlinkErr } = await supabase.from("tasks").update({ project_id: null }).eq("project_id", id);
     if (unlinkErr) { toast({ type: "error", title: "Failed to unlink tasks." }); return; }
     const { error } = await supabase.from("projects").delete().eq("id", id);
     if (error) { toast({ type: "error", title: "Failed to delete project." }); return; }
+    if (editingId === id) cancelEdit();
+    setConfirmingDeleteId(null);
     toast({ type: "success", title: "Project deleted." });
     await reloadAll();
   }
@@ -406,7 +429,7 @@ export default function ProjectsPage() {
             </div>
           </div>
           <div className="flex gap-2 sm:shrink-0">
-            <Button variant="secondary" onClick={() => { resetForm(); setShowForm(true); }}>
+            <Button variant="secondary" onClick={() => { resetForm(); setConfirmingDeleteId(null); setShowForm(true); }}>
               Create manually
             </Button>
           </div>
@@ -434,7 +457,7 @@ export default function ProjectsPage() {
         />
 
         <ProjectForm
-          show={showForm}
+          show={showForm && !editingId}
           title={title}
           onTitleChange={setTitle}
           description={description}
@@ -455,7 +478,7 @@ export default function ProjectsPage() {
         {projects.length === 0 ? (
           <EmptyProjectState
             onFocusQuickPlan={() => { const el = document.querySelector("input[placeholder*='Example']"); if (el) (el as HTMLInputElement).focus(); }}
-            onCreateManual={() => { resetForm(); setShowForm(true); }}
+            onCreateManual={() => { resetForm(); setConfirmingDeleteId(null); setShowForm(true); }}
           />
         ) : (
           <div className="flex flex-col gap-6">
@@ -491,6 +514,8 @@ export default function ProjectsPage() {
                       const tasks = tasksByProject[project.id] ?? [];
                       const taskContext = getTaskContext(tasks);
                       const linkedProjectGoals = goalsByProjectId[project.id] ?? [];
+                      const isEditing = editingId === project.id;
+                      const isConfirmingDelete = confirmingDeleteId === project.id;
 
                       return (
                         <div key={project.id} className="min-w-0 space-y-2">
@@ -508,7 +533,7 @@ export default function ProjectsPage() {
                             newTaskDue={newTaskDue}
                             newTaskPriority={newTaskPriority}
                             onEdit={openEdit}
-                            onDelete={remove}
+                            onDelete={(id) => { if (editingId === id) cancelEdit(); setConfirmingDeleteId(id); }}
                             onToggleTask={toggleTaskStatus}
                             onStartAddTask={setAddingTaskTo}
                             onCancelAddTask={() => { setAddingTaskTo(null); setNewTaskTitle(""); }}
@@ -517,6 +542,47 @@ export default function ProjectsPage() {
                             onNewTaskPriorityChange={setNewTaskPriority}
                             onAddTask={addInlineTask}
                           />
+                          {isEditing && (
+                            <div id={`project-edit-panel-${project.id}`} className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)]/70 p-3 sm:p-4">
+                              <div className="mb-3">
+                                <p className="text-sm font-semibold text-[var(--text)]">Edit this project</p>
+                                <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">Changes apply to this project only. Save or cancel right here.</p>
+                              </div>
+                              <ProjectForm
+                                show
+                                title={title}
+                                onTitleChange={setTitle}
+                                description={description}
+                                onDescriptionChange={setDescription}
+                                realmId={realmId}
+                                onRealmChange={setRealmId}
+                                deadline={deadline}
+                                onDeadlineChange={setDeadline}
+                                editingId={editingId}
+                                status={status}
+                                onStatusChange={setStatus}
+                                saving={saving}
+                                realms={realms}
+                                onSave={save}
+                                onCancel={cancelEdit}
+                              />
+                            </div>
+                          )}
+                          {isConfirmingDelete && (
+                            <div id={`project-delete-panel-${project.id}`} className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)]/70 p-4">
+                              <p className="text-sm font-semibold text-[var(--text)]">Delete this project?</p>
+                              <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">This removes it from your list.</p>
+                              <p className="mt-1 text-[10px] leading-relaxed text-[var(--text-muted)]">Linked tasks stay in Tasks and are unlinked from this project.</p>
+                              <div className="mt-3 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                                <Button variant="secondary" onClick={() => setConfirmingDeleteId(null)}>
+                                  Cancel
+                                </Button>
+                                <button onClick={() => remove(project.id)} className="inline-flex min-h-10 items-center justify-center rounded-lg border border-[var(--danger)]/30 bg-[var(--danger-soft)] px-3 py-2 text-sm font-medium text-[var(--danger)] transition-colors hover:border-[var(--danger)]/50 sm:min-h-0 sm:py-1.5">
+                                  Delete
+                                </button>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       );
                     })}

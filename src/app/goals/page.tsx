@@ -51,6 +51,7 @@ function GoalsContent() {
   const [realms, setRealms] = useState<RealmInfo[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
+  const [confirmingDeleteGoalId, setConfirmingDeleteGoalId] = useState<string | null>(null);
   const [expandedGoalId, setExpandedGoalId] = useState<string | null>(null);
   const [links, setLinks] = useState<GoalLink[]>([]);
   const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
@@ -116,6 +117,20 @@ function GoalsContent() {
     load();
     return () => { cancelled = true; };
   }, [router, supabase]);
+
+  useEffect(() => {
+    if (!editingGoal) return;
+    window.requestAnimationFrame(() => {
+      document.getElementById(`goal-edit-panel-${editingGoal.id}`)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    });
+  }, [editingGoal]);
+
+  useEffect(() => {
+    if (!confirmingDeleteGoalId) return;
+    window.requestAnimationFrame(() => {
+      document.getElementById(`goal-delete-panel-${confirmingDeleteGoalId}`)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    });
+  }, [confirmingDeleteGoalId]);
 
   async function reload() {
     const { data: { user } } = await supabase.auth.getUser();
@@ -201,6 +216,7 @@ function GoalsContent() {
 
       setShowForm(false);
       setEditingGoal(null);
+      setConfirmingDeleteGoalId(null);
       reload();
     } catch {
       toast({ type: "error", title: "Something went wrong. Try again." });
@@ -216,6 +232,8 @@ function GoalsContent() {
       if (error) { toast({ type: "error", title: "Failed to delete goal." }); return; }
       toast({ type: "success", title: "Goal deleted." });
       setMilestones((prev) => prev.filter((m) => m.goal_id !== id));
+      if (editingGoal?.id === id) setEditingGoal(null);
+      setConfirmingDeleteGoalId(null);
       reload();
     } catch {
       toast({ type: "error", title: "Something went wrong." });
@@ -325,12 +343,14 @@ function GoalsContent() {
 
   function startEdit(goal: Goal) {
     setEditingGoal(goal);
-    setShowForm(true);
+    setConfirmingDeleteGoalId(null);
+    setShowForm(false);
   }
 
   function cancelForm() {
     setShowForm(false);
     setEditingGoal(null);
+    setConfirmingDeleteGoalId(null);
   }
 
   function toggleExpand(goalId: string) {
@@ -345,6 +365,8 @@ function GoalsContent() {
         <div className="space-y-2.5 sm:space-y-2">
           {items.map((goal) => {
             const isExpanded = expandedGoalId === goal.id;
+            const isEditing = editingGoal?.id === goal.id;
+            const isConfirmingDelete = confirmingDeleteGoalId === goal.id;
             const goalMilestones = getMilestonesForGoal(goal.id);
             const nextMs = getNextMilestone(goal.id);
             const actionLinkCounts = actionLinksByGoal[goal.id] ?? emptyActionLinkCounts;
@@ -360,9 +382,46 @@ function GoalsContent() {
                   milestoneProgress={getMilestoneProgress(goal.id)}
                   nextMilestoneTitle={nextMs?.title}
                   onEdit={startEdit}
-                  onDelete={handleDelete}
+                  onDelete={(id) => { if (editingGoal?.id === id) setEditingGoal(null); setShowForm(false); setConfirmingDeleteGoalId(id); }}
                   onComplete={handleComplete}
                 />
+                {isEditing && (
+                  <div id={`goal-edit-panel-${goal.id}`} className="mt-2 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)]/70 p-3 sm:p-4">
+                    <div className="mb-3">
+                      <p className="text-sm font-semibold text-[var(--text)]">Edit this goal</p>
+                      <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">Changes apply to this goal only. Save or cancel right here.</p>
+                    </div>
+                    <GoalForm
+                      key={goal.id}
+                      saving={saving}
+                      onSave={handleSave}
+                      onCancel={cancelForm}
+                      initial={{
+                        title: goal.title,
+                        description: goal.description ?? "",
+                        why: goal.why ?? "",
+                        priority: goal.priority,
+                        realm_id: goal.realm_id ?? "",
+                        target_date: goal.target_date ?? "",
+                      }}
+                      realms={realms}
+                    />
+                  </div>
+                )}
+                {isConfirmingDelete && (
+                  <div id={`goal-delete-panel-${goal.id}`} className="mt-2 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)]/70 p-4">
+                    <p className="text-sm font-semibold text-[var(--text)]">Delete this goal?</p>
+                    <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">This removes it from your list.</p>
+                    <div className="mt-3 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                      <button onClick={() => setConfirmingDeleteGoalId(null)} className="inline-flex min-h-10 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm font-medium text-[var(--text-muted)] transition-colors hover:text-[var(--text)] sm:min-h-0 sm:py-1.5">
+                        Cancel
+                      </button>
+                      <button onClick={() => handleDelete(goal.id)} className="inline-flex min-h-10 items-center justify-center rounded-lg border border-[var(--danger)]/30 bg-[var(--danger-soft)] px-3 py-2 text-sm font-medium text-[var(--danger)] transition-colors hover:border-[var(--danger)]/50 sm:min-h-0 sm:py-1.5">
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                )}
                 <div className="mt-1 min-w-0 rounded-md border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2.5 text-[10px] text-[var(--text-muted)] sm:py-2">
                   {actionLinkCounts.total > 0 ? (
                     <span>
@@ -439,7 +498,7 @@ function GoalsContent() {
         {!showForm && (
           <div className="mb-6">
             <button
-              onClick={() => { setEditingGoal(null); setShowForm(true); }}
+              onClick={() => { setEditingGoal(null); setConfirmingDeleteGoalId(null); setShowForm(true); }}
               className="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-dashed border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 text-xs font-medium text-[var(--text-muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)] sm:min-h-0"
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -450,20 +509,12 @@ function GoalsContent() {
           </div>
         )}
 
-        {showForm && (
+        {showForm && !editingGoal && (
           <div className="mb-6">
             <GoalForm
               saving={saving}
               onSave={handleSave}
               onCancel={cancelForm}
-              initial={editingGoal ? {
-                title: editingGoal.title,
-                description: editingGoal.description ?? "",
-                why: editingGoal.why ?? "",
-                priority: editingGoal.priority,
-                realm_id: editingGoal.realm_id ?? "",
-                target_date: editingGoal.target_date ?? "",
-              } : undefined}
               realms={realms}
             />
           </div>
@@ -475,7 +526,7 @@ function GoalsContent() {
               message="No goals yet. Create your first goal to start tracking what matters."
               action={
                 <button
-                  onClick={() => setShowForm(true)}
+                  onClick={() => { setConfirmingDeleteGoalId(null); setShowForm(true); }}
                   className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors"
                 >
                   Create your first goal &rarr;
