@@ -97,6 +97,7 @@ export default function TasksPage() {
   const [filter, setFilter] = useState<"today" | "upcoming" | "all" | "done">("all");
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [realmId, setRealmId] = useState("");
   const [projectId, setProjectId] = useState("");
@@ -162,6 +163,20 @@ export default function TasksPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    if (!editingId) return;
+    window.requestAnimationFrame(() => {
+      document.getElementById(`task-edit-panel-${editingId}`)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    });
+  }, [editingId]);
+
+  useEffect(() => {
+    if (!confirmingDeleteId) return;
+    window.requestAnimationFrame(() => {
+      document.getElementById(`task-delete-panel-${confirmingDeleteId}`)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    });
+  }, [confirmingDeleteId]);
+
   function resetForm() {
     setTitle("");
     setRealmId(realms[0]?.id ?? "");
@@ -169,6 +184,7 @@ export default function TasksPage() {
     setPriority("medium");
     setDueDate("");
     setEditingId(null);
+    setConfirmingDeleteId(null);
   }
 
   function applyStarterTask(starter: string) {
@@ -180,12 +196,18 @@ export default function TasksPage() {
 
   function openEdit(t: Task) {
     setEditingId(t.id);
+    setConfirmingDeleteId(null);
     setTitle(t.title);
     setRealmId(t.realm_id ?? realms[0]?.id ?? "");
     setProjectId(t.project_id ?? "");
     setPriority(t.priority);
     setDueDate(t.due_date ?? "");
-    setShowForm(true);
+    setShowForm(false);
+  }
+
+  function cancelEdit() {
+    resetForm();
+    setShowForm(false);
   }
 
   async function save() {
@@ -260,12 +282,13 @@ export default function TasksPage() {
   }
 
   async function remove(id: string) {
-    if (!confirm("Delete this task? This cannot be undone.")) return;
     const { error } = await supabase.from("tasks").delete().eq("id", id);
     if (error) {
       toast({ type: "error", title: "Failed to delete task." });
       return;
     }
+    if (editingId === id) cancelEdit();
+    setConfirmingDeleteId(null);
     toast({ type: "success", title: "Task deleted." });
     reloadTasks();
   }
@@ -362,6 +385,62 @@ export default function TasksPage() {
     return true;
   });
 
+  const taskFormFields = (
+    <>
+      <Input
+        label="Title"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder="Task title"
+        maxLength={200}
+      />
+
+      <div>
+        <label className="mb-1.5 block text-xs font-medium text-[var(--text-muted)]">Realm</label>
+        <RealmPicker
+          realms={realms}
+          value={realmId}
+          onChange={setRealmId}
+          allowNone
+        />
+      </div>
+
+      <div>
+        <label className="mb-1.5 block text-xs font-medium text-[var(--text-muted)]">Project</label>
+        <ProjectPicker
+          projects={projects}
+          value={projectId}
+          onChange={setProjectId}
+          allowNone
+        />
+      </div>
+
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <div className="flex-1">
+          <label className="mb-1.5 block text-xs font-medium text-[var(--text-muted)]">Priority</label>
+          <SelectPicker
+            options={[
+              { value: "low", label: "Low", color: "#a1a1aa" },
+              { value: "medium", label: "Medium", color: "#b8944a" },
+              { value: "high", label: "High", color: "#c45a5a" },
+            ]}
+            value={priority}
+            onChange={setPriority}
+          />
+        </div>
+
+        <div className="flex-1">
+          <Input
+            label="Due date"
+            type="date"
+            value={dueDate}
+            onChange={(e) => setDueDate(e.target.value)}
+          />
+        </div>
+      </div>
+    </>
+  );
+
   if (loading) {
     return (
       <DashboardNav>
@@ -431,60 +510,10 @@ export default function TasksPage() {
           </div>
         )}
 
-        {showForm && (
+        {showForm && !editingId && (
           <Card className="mb-6">
             <div className="flex flex-col gap-4 p-4">
-              <Input
-                label="Title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Task title"
-                maxLength={200}
-              />
-
-              <div>
-                <label className="mb-1.5 block text-xs font-medium text-[var(--text-muted)]">Realm</label>
-                <RealmPicker
-                  realms={realms}
-                  value={realmId}
-                  onChange={setRealmId}
-                  allowNone
-                />
-              </div>
-
-              <div>
-                <label className="mb-1.5 block text-xs font-medium text-[var(--text-muted)]">Project</label>
-                <ProjectPicker
-                  projects={projects}
-                  value={projectId}
-                  onChange={setProjectId}
-                  allowNone
-                />
-              </div>
-
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <div className="flex-1">
-                  <label className="mb-1.5 block text-xs font-medium text-[var(--text-muted)]">Priority</label>
-                  <SelectPicker
-                    options={[
-                      { value: "low", label: "Low", color: "#a1a1aa" },
-                      { value: "medium", label: "Medium", color: "#b8944a" },
-                      { value: "high", label: "High", color: "#c45a5a" },
-                    ]}
-                    value={priority}
-                    onChange={setPriority}
-                  />
-                </div>
-
-                <div className="flex-1">
-                  <Input
-                    label="Due date"
-                    type="date"
-                    value={dueDate}
-                    onChange={(e) => setDueDate(e.target.value)}
-                  />
-                </div>
-              </div>
+              {taskFormFields}
 
               <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                 <Button variant="secondary" onClick={() => { resetForm(); setShowForm(false); }}>
@@ -565,6 +594,8 @@ export default function TasksPage() {
           <div className="flex flex-col gap-2.5 sm:gap-2">
             {filteredTasks.map((task) => {
               const isDone = task.status === "done";
+              const isEditing = editingId === task.id;
+              const isConfirmingDelete = confirmingDeleteId === task.id;
               const dueLabel = getDueDateLabel(task.due_date);
               const linkedProjectTitle = task.project_id
                 ? taskProjectsById[task.project_id]?.title ?? task.projects?.title
@@ -642,14 +673,47 @@ export default function TasksPage() {
                   </div>
 
                     <div className="flex shrink-0 justify-end gap-1 border-t border-[var(--border)] pt-2 sm:border-t-0 sm:pt-0">
-                    <button onClick={() => openEdit(task)} className="rounded-lg px-3 py-2 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-active)] hover:text-[var(--text-secondary)] sm:px-2 sm:py-1">
-                      Edit
+                    <button onClick={() => openEdit(task)} className="min-h-9 rounded-lg px-3 py-2 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-active)] hover:text-[var(--text-secondary)] sm:min-h-0 sm:px-2 sm:py-1" aria-expanded={isEditing}>
+                      {isEditing ? "Editing" : "Edit"}
                     </button>
-                    <button onClick={() => remove(task.id)} className="rounded-lg px-3 py-2 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--danger-soft)] hover:text-[var(--danger)] sm:px-2 sm:py-1">
+                    <button onClick={() => { if (isEditing) cancelEdit(); setConfirmingDeleteId(task.id); }} className="min-h-9 rounded-lg px-3 py-2 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-active)] hover:text-[var(--text-secondary)] sm:min-h-0 sm:px-2 sm:py-1" aria-expanded={isConfirmingDelete}>
                       Delete
                     </button>
                     </div>
                   </div>
+                  {isEditing && (
+                    <div id={`task-edit-panel-${task.id}`} className="border-t border-[var(--border)] bg-[var(--surface-soft)]/60 px-4 py-4">
+                      <div className="mb-3">
+                        <p className="text-sm font-semibold text-[var(--text)]">Edit this task</p>
+                        <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">Changes apply to this task only. Save or cancel right here.</p>
+                      </div>
+                      <div className="flex flex-col gap-4">
+                        {taskFormFields}
+                        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                          <Button variant="secondary" onClick={cancelEdit}>
+                            Cancel
+                          </Button>
+                          <Button onClick={save} disabled={saving}>
+                            {saving ? "Saving..." : "Save changes"}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {isConfirmingDelete && (
+                    <div id={`task-delete-panel-${task.id}`} className="border-t border-[var(--border)] bg-[var(--surface-soft)]/70 px-4 py-4">
+                      <p className="text-sm font-semibold text-[var(--text)]">Delete this task?</p>
+                      <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">This removes the task from your list.</p>
+                      <div className="mt-3 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                        <Button variant="secondary" onClick={() => setConfirmingDeleteId(null)}>
+                          Cancel
+                        </Button>
+                        <button onClick={() => remove(task.id)} className="inline-flex min-h-10 items-center justify-center rounded-lg border border-[var(--danger)]/30 bg-[var(--danger-soft)] px-3 py-2 text-sm font-medium text-[var(--danger)] transition-colors hover:border-[var(--danger)]/50 sm:min-h-0 sm:py-1.5">
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </Card>
               );
             })}
