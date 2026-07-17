@@ -429,7 +429,7 @@ function TodayContent() {
             .eq("linked_type", "task"),
           supabase
             .from("goals")
-            .select("id, title, status")
+            .select("id, title, status, target_date")
             .eq("user_id", user.id),
         ]);
 
@@ -443,7 +443,10 @@ function TodayContent() {
         if (projectTasksRes.data) setProjectTasks(projectTasksRes.data as ProjectTask[]);
         if (taskProjectsRes.data) setTaskProjects(taskProjectsRes.data as TaskProjectContext[]);
         if (taskGoalLinksRes.data) setTaskGoalLinks(taskGoalLinksRes.data as GoalLink[]);
-        if (taskGoalsRes.data) setLinkedGoals(taskGoalsRes.data as LinkedGoal[]);
+        if (taskGoalsRes.data) {
+          setLinkedGoals(taskGoalsRes.data as LinkedGoal[]);
+          setGoalPreviewGoals(taskGoalsRes.data as { id: string; status: string; target_date: string | null }[]);
+        }
 
         const [allLogsRes, xpRes, totalXpRes] = await Promise.all([
           supabase
@@ -500,109 +503,95 @@ function TodayContent() {
           setTotalXp(totalXpRes.data.reduce((sum, e) => sum + e.amount, 0));
         }
 
-        const year = today.slice(0, 4);
-        const month = today.slice(5, 7);
-        const monthStart = `${year}-${month}-01`;
-        const lastDay = new Date(Number(year), Number(month), 0).getDate();
-        const monthEnd = `${year}-${month}-${String(lastDay).padStart(2, "0")}`;
+        setLoading(false);
 
-        const [incomeRes, expenseRes] = await Promise.all([
-          supabase
-            .from("finance_transactions")
-            .select("amount")
-            .eq("user_id", user.id)
-            .eq("type", "income")
-            .gte("transaction_date", monthStart)
-            .lte("transaction_date", monthEnd),
-          supabase
-            .from("finance_transactions")
-            .select("amount")
-            .eq("user_id", user.id)
-            .eq("type", "expense")
-            .gte("transaction_date", monthStart)
-            .lte("transaction_date", monthEnd),
-        ]);
+        try {
+          const year = today.slice(0, 4);
+          const month = today.slice(5, 7);
+          const monthStart = `${year}-${month}-01`;
+          const lastDay = new Date(Number(year), Number(month), 0).getDate();
+          const monthEnd = `${year}-${month}-${String(lastDay).padStart(2, "0")}`;
 
-        if (!cancelled) {
-          const income = (incomeRes.data ?? []).reduce((s, r) => s + Number(r.amount), 0);
-          const expense = (expenseRes.data ?? []).reduce((s, r) => s + Number(r.amount), 0);
-          setFinanceNet(income - expense);
-          setFinanceHasTx((incomeRes.data?.length ?? 0) + (expenseRes.data?.length ?? 0) > 0);
-        }
+          const [financeRes, bodyRes, mindRes, workoutRes, nutritionRes, passionsRes, sessionsRes, knowledgeWeekRes, goalMsRes, goalLinkRes] = await Promise.all([
+            supabase
+              .from("finance_transactions")
+              .select("amount, type")
+              .eq("user_id", user.id)
+              .gte("transaction_date", monthStart)
+              .lte("transaction_date", monthEnd),
+            supabase
+              .from("body_metrics")
+              .select("energy")
+              .eq("user_id", user.id)
+              .eq("entry_date", today)
+              .maybeSingle(),
+            supabase
+              .from("mind_metrics")
+              .select("mood")
+              .eq("user_id", user.id)
+              .eq("entry_date", today)
+              .maybeSingle(),
+            supabase
+              .from("workouts")
+              .select("id")
+              .eq("user_id", user.id)
+              .gte("workout_date", weekStart),
+            supabase
+              .from("nutrition_logs")
+              .select("id")
+              .eq("user_id", user.id)
+              .eq("log_date", today),
+            supabase
+              .from("passions")
+              .select("id")
+              .eq("user_id", user.id)
+              .eq("status", "active"),
+            supabase
+              .from("passion_sessions")
+              .select("id")
+              .eq("user_id", user.id)
+              .gte("session_date", weekStart),
+            supabase
+              .from("knowledge_items")
+              .select("id, created_at")
+              .eq("user_id", user.id)
+              .gte("created_at", knowledgeWeekStart)
+              .lte("created_at", knowledgeWeekEnd),
+            supabase
+              .from("goal_milestones")
+              .select("goal_id, completed_at")
+              .eq("user_id", user.id),
+            supabase
+              .from("goal_links")
+              .select("goal_id, linked_type")
+              .eq("user_id", user.id),
+          ]);
 
-        const [bodyRes, mindRes, workoutRes, nutritionRes, passionsRes, sessionsRes, knowledgeWeekRes] = await Promise.all([
-          supabase
-            .from("body_metrics")
-            .select("energy")
-            .eq("user_id", user.id)
-            .eq("entry_date", today)
-            .maybeSingle(),
-          supabase
-            .from("mind_metrics")
-            .select("mood")
-            .eq("user_id", user.id)
-            .eq("entry_date", today)
-            .maybeSingle(),
-          supabase
-            .from("workouts")
-            .select("id")
-            .eq("user_id", user.id)
-            .gte("workout_date", weekStart),
-          supabase
-            .from("nutrition_logs")
-            .select("id")
-            .eq("user_id", user.id)
-            .eq("log_date", today),
-          supabase
-            .from("passions")
-            .select("id")
-            .eq("user_id", user.id)
-            .eq("status", "active"),
-          supabase
-            .from("passion_sessions")
-            .select("id")
-            .eq("user_id", user.id)
-            .gte("session_date", weekStart),
-          supabase
-            .from("knowledge_items")
-            .select("id, created_at")
-            .eq("user_id", user.id)
-            .gte("created_at", knowledgeWeekStart)
-            .lte("created_at", knowledgeWeekEnd),
-        ]);
+          if (!cancelled) {
+            const financeRows = (financeRes.data ?? []) as { amount?: number | string | null; type?: string | null }[];
+            const income = financeRows.reduce((s, r) => r.type === "income" ? s + Number(r.amount) : s, 0);
+            const expense = financeRows.reduce((s, r) => r.type === "expense" ? s + Number(r.amount) : s, 0);
+            setFinanceNet(income - expense);
+            setFinanceHasTx(financeRows.length > 0);
 
-        if (!cancelled) {
-          if (bodyRes.data) {
-            setBodyLoggedToday(true);
-            setBodyEnergyToday(bodyRes.data.energy);
+            if (bodyRes.data) {
+              setBodyLoggedToday(true);
+              setBodyEnergyToday(bodyRes.data.energy);
+            }
+            if (mindRes.data) {
+              setMindLoggedToday(true);
+              setMindMoodToday(mindRes.data.mood);
+            }
+            setHasWorkoutThisWeek((workoutRes.data ?? []).length > 0);
+            setHasNutritionToday((nutritionRes.data ?? []).length > 0);
+            setHasActivePassions((passionsRes.data ?? []).length > 0);
+            setHasPassionSessionThisWeek((sessionsRes.data ?? []).length > 0);
+            setWeeklyKnowledgeItems((knowledgeWeekRes.data ?? []).length);
+            if (goalMsRes.data) setGoalPreviewMilestones(goalMsRes.data);
+            if (goalLinkRes.data) setGoalPreviewLinks(goalLinkRes.data);
           }
-          if (mindRes.data) {
-            setMindLoggedToday(true);
-            setMindMoodToday(mindRes.data.mood);
-          }
-          setHasWorkoutThisWeek((workoutRes.data ?? []).length > 0);
-          setHasNutritionToday((nutritionRes.data ?? []).length > 0);
-          setHasActivePassions((passionsRes.data ?? []).length > 0);
-          setHasPassionSessionThisWeek((sessionsRes.data ?? []).length > 0);
-          setWeeklyKnowledgeItems((knowledgeWeekRes.data ?? []).length);
-        }
-
-        const { data: goalData } = await supabase
-          .from("goals")
-          .select("id, status, target_date")
-          .eq("user_id", user.id);
-        const { data: goalMsData } = await supabase
-          .from("goal_milestones")
-          .select("goal_id, completed_at")
-          .eq("user_id", user.id);
-        const { data: goalLinkData } = await supabase
-          .from("goal_links")
-          .select("goal_id, linked_type")
-          .eq("user_id", user.id);
-        if (!cancelled && goalData) {
-          setGoalPreviewGoals(goalData);
-          if (goalMsData) setGoalPreviewMilestones(goalMsData);
-          if (goalLinkData) setGoalPreviewLinks(goalLinkData);
+        } catch (secondaryError) {
+          console.warn("Failed to load secondary Today signals", secondaryError);
         }
       } catch {
         setError("Failed to load dashboard.");

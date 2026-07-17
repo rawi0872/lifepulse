@@ -147,66 +147,6 @@ export default function InsightsPage() {
         setHabitLinksCount(activeGoalLinks.filter((link) => link.linked_type === "habit").length);
       }
 
-      const [financeRes, journalMemoryRes, knowledgeMemoryRes] = await Promise.all([
-        supabase.from("finance_transactions")
-          .select("amount, type, transaction_date, account_id, finance_accounts(currency)")
-          .eq("user_id", user.id)
-          .gte("transaction_date", monthStart)
-          .lte("transaction_date", monthEnd),
-        supabase.from("journal_entries")
-          .select("id, entry_date, mood, energy")
-          .eq("user_id", user.id)
-          .gte("entry_date", monthStart)
-          .lte("entry_date", monthEnd),
-        supabase.from("knowledge_items")
-          .select("id, title, type, category, created_at")
-          .eq("user_id", user.id)
-          .gte("created_at", knowledgeMonthStart)
-          .lte("created_at", knowledgeMonthEnd)
-          .order("created_at", { ascending: false }),
-      ]);
-
-      if (!cancelled) {
-        const financeTransactions = (financeRes.data ?? []) as {
-          amount?: number | string | null;
-          type?: string | null;
-          finance_accounts?: { currency?: string | null } | { currency?: string | null }[] | null;
-        }[];
-        let inc = 0;
-        let exp = 0;
-        const currencies = new Set<string>();
-
-        for (const tx of financeTransactions) {
-          const amount = Number(tx.amount);
-          if (!Number.isFinite(amount)) continue;
-
-          if (tx.type === "income") inc += amount;
-          if (tx.type === "expense") exp += amount;
-
-          const account = Array.isArray(tx.finance_accounts) ? tx.finance_accounts[0] : tx.finance_accounts;
-          if (account?.currency) currencies.add(account.currency);
-        }
-
-        const currencyList = Array.from(currencies);
-        setFinanceIncome(inc);
-        setFinanceExpense(exp);
-        setFinanceNet(inc - exp);
-        setFinanceTransactionCount(financeTransactions.length);
-        setFinanceCurrency(currencyList.length === 1 ? currencyList[0] : null);
-        setFinanceHasMixedCurrencies(currencyList.length > 1);
-        setFinanceHasData(financeTransactions.length > 0);
-
-        const journalMemoryEntries = (journalMemoryRes.data ?? []) as { id: string; entry_date?: string | null; mood?: string | null; energy?: number | null }[];
-        const knowledgeMemoryItems = (knowledgeMemoryRes.data ?? []) as { title?: string | null; type?: string | null; category?: string | null }[];
-        const latestKnowledge = knowledgeMemoryItems[0];
-
-        setJournalEntriesThisMonth(journalMemoryEntries.length);
-        setKnowledgeItemsThisMonth(knowledgeMemoryItems.length);
-        setLatestKnowledgeTitle(makeMemoryLabel(latestKnowledge?.title ?? null));
-        setLatestKnowledgeType(makeMemoryLabel(latestKnowledge?.type ?? null));
-        setTopKnowledgeType(getTopValue(knowledgeMemoryItems.map((item) => item.type ?? null)));
-      }
-
       if (habitLogsRes.data) {
         const thisWeek = habitLogsRes.data.filter(
           (l: { completed_date: string }) => l.completed_date >= weekStart
@@ -274,6 +214,70 @@ export default function InsightsPage() {
       }
 
       setLoading(false);
+
+      try {
+        const [financeRes, journalMemoryRes, knowledgeMemoryRes] = await Promise.all([
+          supabase.from("finance_transactions")
+            .select("amount, type, transaction_date, account_id, finance_accounts(currency)")
+            .eq("user_id", user.id)
+            .gte("transaction_date", monthStart)
+            .lte("transaction_date", monthEnd),
+          supabase.from("journal_entries")
+            .select("id, entry_date, mood, energy")
+            .eq("user_id", user.id)
+            .gte("entry_date", monthStart)
+            .lte("entry_date", monthEnd),
+          supabase.from("knowledge_items")
+            .select("id, title, type, category, created_at")
+            .eq("user_id", user.id)
+            .gte("created_at", knowledgeMonthStart)
+            .lte("created_at", knowledgeMonthEnd)
+            .order("created_at", { ascending: false }),
+        ]);
+
+        if (!cancelled) {
+          const financeTransactions = (financeRes.data ?? []) as {
+            amount?: number | string | null;
+            type?: string | null;
+            finance_accounts?: { currency?: string | null } | { currency?: string | null }[] | null;
+          }[];
+          let inc = 0;
+          let exp = 0;
+          const currencies = new Set<string>();
+
+          for (const tx of financeTransactions) {
+            const amount = Number(tx.amount);
+            if (!Number.isFinite(amount)) continue;
+
+            if (tx.type === "income") inc += amount;
+            if (tx.type === "expense") exp += amount;
+
+            const account = Array.isArray(tx.finance_accounts) ? tx.finance_accounts[0] : tx.finance_accounts;
+            if (account?.currency) currencies.add(account.currency);
+          }
+
+          const currencyList = Array.from(currencies);
+          setFinanceIncome(inc);
+          setFinanceExpense(exp);
+          setFinanceNet(inc - exp);
+          setFinanceTransactionCount(financeTransactions.length);
+          setFinanceCurrency(currencyList.length === 1 ? currencyList[0] : null);
+          setFinanceHasMixedCurrencies(currencyList.length > 1);
+          setFinanceHasData(financeTransactions.length > 0);
+
+          const journalMemoryEntries = (journalMemoryRes.data ?? []) as { id: string; entry_date?: string | null; mood?: string | null; energy?: number | null }[];
+          const knowledgeMemoryItems = (knowledgeMemoryRes.data ?? []) as { title?: string | null; type?: string | null; category?: string | null }[];
+          const latestKnowledge = knowledgeMemoryItems[0];
+
+          setJournalEntriesThisMonth(journalMemoryEntries.length);
+          setKnowledgeItemsThisMonth(knowledgeMemoryItems.length);
+          setLatestKnowledgeTitle(makeMemoryLabel(latestKnowledge?.title ?? null));
+          setLatestKnowledgeType(makeMemoryLabel(latestKnowledge?.type ?? null));
+          setTopKnowledgeType(getTopValue(knowledgeMemoryItems.map((item) => item.type ?? null)));
+        }
+      } catch (secondaryError) {
+        console.warn("Failed to load secondary Insights signals", secondaryError);
+      }
     }
 
     load();
