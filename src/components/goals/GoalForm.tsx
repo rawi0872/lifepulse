@@ -112,14 +112,14 @@ export function GoalForm({ saving, onSave, onCancel, initial, realms }: Props) {
           <button
             type="submit"
             disabled={saving || !title.trim()}
-            className="flex-1 rounded-lg bg-[var(--accent)] px-3 py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+            className="flex min-h-10 flex-1 items-center justify-center rounded-lg bg-[var(--accent)] px-3 py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
           >
             {saving ? "Saving..." : initial ? "Update Goal" : "Create Goal"}
           </button>
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-xs font-medium text-[var(--text-muted)] transition-colors hover:text-[var(--text)] sm:py-2"
+            className="inline-flex min-h-10 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-xs font-medium text-[var(--text-muted)] transition-colors hover:text-[var(--text)] sm:py-2"
           >
             Cancel
           </button>
