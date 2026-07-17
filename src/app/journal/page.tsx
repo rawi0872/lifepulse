@@ -118,14 +118,14 @@ export default function JournalPage() {
           <p className="mt-1 text-pretty text-sm leading-relaxed text-[var(--text-muted)]">
             Your private space to reflect and notice patterns. Review what you wrote, notice what keeps coming back, and give Weekly Review more context.
           </p>
-          <div className="mt-3 flex min-w-0 flex-col gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)]/70 px-3.5 py-3 text-xs text-[var(--text-muted)] sm:flex-row sm:items-center sm:justify-between">
+          <div className="mt-3 flex min-w-0 flex-col gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)]/70 px-3.5 py-3 text-xs text-[var(--text-muted)] sm:flex-row sm:items-center sm:justify-between sm:gap-2">
             <span className="min-w-0 text-pretty">Daily reflection starts from Today. Journal keeps the private record of what changed.</span>
             <div className="flex shrink-0 flex-wrap gap-2">
-              <Link href="/today#evening-reflection" className="rounded-md py-1 font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:py-0">
+              <Link href="/today#evening-reflection" className="inline-flex min-h-10 items-center rounded-lg border border-[var(--accent)]/20 bg-[var(--accent-soft)] px-3 font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0 sm:border-0 sm:bg-transparent sm:px-0">
                 Open Today&apos;s reflection
               </Link>
               <span className="hidden text-[var(--text-muted)] sm:inline">/</span>
-              <Link href="/weekly-review" className="rounded-md py-1 font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:py-0">
+              <Link href="/weekly-review" className="inline-flex min-h-10 items-center rounded-lg px-3 font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0 sm:px-0">
                 Review the week
               </Link>
             </div>
@@ -172,7 +172,7 @@ export default function JournalPage() {
                     <Link
                       key={prompt}
                       href="/today#evening-reflection"
-                      className="rounded-xl border border-[var(--border)] bg-[var(--surface)]/70 px-3 py-3 text-left text-xs leading-relaxed text-[var(--text-muted)] transition-all duration-150 hover:border-[var(--accent)]/25 hover:text-[var(--text-secondary)]"
+                      className="inline-flex min-h-12 items-center rounded-xl border border-[var(--border)] bg-[var(--surface)]/70 px-3 py-3 text-left text-xs leading-relaxed text-[var(--text-muted)] transition-all duration-150 hover:border-[var(--accent)]/25 hover:text-[var(--text-secondary)]"
                     >
                       {prompt}
                     </Link>
@@ -193,13 +193,13 @@ export default function JournalPage() {
                       <Link
                         key={prompt}
                         href="/today#evening-reflection"
-                        className="rounded-full bg-[var(--surface-soft)] px-3 py-1.5 text-xs text-[var(--text-muted)] transition-all duration-150 hover:bg-[var(--surface-active)] hover:text-[var(--text-secondary)] hover:ring-1 hover:ring-[var(--accent)]/20 sm:px-2.5 sm:py-1"
+                        className="inline-flex min-h-10 items-center rounded-full bg-[var(--surface-soft)] px-3 py-1.5 text-xs text-[var(--text-muted)] transition-all duration-150 hover:bg-[var(--surface-active)] hover:text-[var(--text-secondary)] hover:ring-1 hover:ring-[var(--accent)]/20 sm:min-h-0 sm:px-2.5 sm:py-1"
                       >
                         {prompt}
                       </Link>
                     ))}
                   </div>
-                  <Link href="/today#evening-reflection" className="mt-2 inline-block rounded-md py-1.5 text-[10px] text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:py-0">
+                  <Link href="/today#evening-reflection" className="mt-2 inline-flex min-h-10 items-center rounded-md py-1.5 text-[10px] text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0 sm:py-0">
                     Open Today&apos;s reflection →
                   </Link>
                 </div>
