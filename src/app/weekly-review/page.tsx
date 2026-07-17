@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useId } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
@@ -102,6 +102,7 @@ function WeeklyReviewContent() {
   const [planFocus, setPlanFocus] = useState("");
   const [savingReflection, setSavingReflection] = useState(false);
   const [loading, setLoading] = useState(true);
+  const planFocusId = useId();
 
   const loadData = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -613,9 +614,10 @@ function WeeklyReviewContent() {
         </p>
         <PulseCard title="Plan Ahead" accent="accent">
           <div className="mb-4 min-w-0 px-3.5 pt-3.5 sm:px-4 sm:pt-4">
-            <label className="mb-1.5 block break-words text-xs font-medium text-[var(--text)]">Top focus for next week</label>
+            <label htmlFor={planFocusId} className="mb-1.5 block break-words text-xs font-medium text-[var(--text)]">Top focus for next week</label>
             <p className="mb-2 text-[10px] leading-relaxed text-[var(--text-muted)]">A private planning note for this screen. Use it to choose one realistic adjustment.</p>
             <input
+              id={planFocusId}
               type="text"
               value={planFocus}
               onChange={(e) => setPlanFocus(e.target.value)}
@@ -695,10 +697,13 @@ function MetricCard({ label, value, sub }: { label: string; value: string | numb
 }
 
 function ReflectionField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  const fieldId = useId();
+
   return (
     <div className="min-w-0">
-      <label className="mb-1 block text-xs font-medium text-[var(--text)]">{label}</label>
+      <label htmlFor={fieldId} className="mb-1 block text-xs font-medium text-[var(--text)]">{label}</label>
       <textarea
+        id={fieldId}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         rows={3}
