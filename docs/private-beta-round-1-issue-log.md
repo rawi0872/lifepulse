@@ -37,6 +37,7 @@ Example rows are placeholders. Replace them with real tester feedback as it arri
 | R1-016 | 2026-07-16 | Internal QA | Core routes | /today, /tasks, /habits, /journal, /weekly-review | Product activation | P2 | After Today guidance improved, Tasks, Habits, Journal, and Weekly Review still risked feeling like separate tools instead of one first-use loop. | No | Yes | Connect Today, Tasks/Habits, Journal, and Weekly Review with compact route guidance and copy only | Fixed pending production verification |  |
 | R1-017 | 2026-07-16 | Internal QA | /onboarding | Product activation | P2 | Onboarding still risked introducing Life Pulse as a broad module ecosystem before the user understood the first daily loop. | No | Yes | Clarify the first-session loop in onboarding and make deeper modules feel optional/later | Fixed pending production verification |  |
 | R1-018 | 2026-07-17 | Internal QA | /tasks, /habits | Product activation | P2 | Sparse Tasks/Habits pages can still make first-time users unsure what visible action to create after onboarding explains the loop. | No | Yes | Improve empty/sparse guidance with concrete examples and a compact return-to-Today path, without changing creation or completion behavior | Fixed pending production verification |  |
+| R1-019 | 2026-07-17 | Tester 1 / Internal QA | /body | Product activation | P2 | Body first-use flow made current weight, water, and food logging harder to find than expected; number inputs also needed polished non-native spinner styling. | Yes | Yes | Improve discoverability and safe manual-check-in framing for current weight, water, and food without schema or save behavior changes | Fixed pending production verification |  |
 
 ## Common Repeated Issues
 
@@ -47,6 +48,7 @@ Group similar issues here after at least two testers mention the same theme.
 - Core route sequencing: Today now explains the loop, but core routes must keep users inside the same journey (`R1-016`). Current decision: use compact UI/copy guidance only, with no backend onboarding system.
 - Onboarding loop alignment: onboarding must not make a first session feel like module setup before users understand Today -> Action -> Reflect -> Review (`R1-017`). Current decision: clarify the first-session loop in onboarding and make deeper modules optional/later.
 - Sparse action pages: Tasks and Habits must make the first visible action obvious for new or sparse users (`R1-018`). Current decision: improve empty/sparse guidance with concrete examples and a compact return-to-Today path only.
+- Body first-use discoverability: Body must make current weight, water, and food logging obvious without sounding medical or judgmental (`R1-003`, `R1-004`, `R1-005`, `R1-019`). Current decision: polish manual-check-in UI/copy only, with no schema or save changes.
 
 ## Top Fixes Selected
 

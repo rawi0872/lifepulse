@@ -51,7 +51,7 @@ export function BodyProOverview({
       <PulseCard title="Today body check-in" accent="success" description="Private manual tracking">
         <div className="p-4 sm:p-5">
           <p className="max-w-2xl text-sm leading-relaxed text-[var(--text-secondary)]">
-            Log only what is useful today. Life Pulse tracks entries you provide so patterns are easier to review later.
+            Log what happened today: current weight if useful, water, food notes, or a quick body signal. These entries add optional context to Today and Weekly Review.
           </p>
           <div className="mt-4 grid gap-2 sm:grid-cols-3">
             <button
@@ -59,9 +59,9 @@ export function BodyProOverview({
               onClick={() => onQuickAction?.("measurements")}
               className="rounded-xl border border-[var(--border)] bg-[var(--surface)]/70 px-3 py-3 text-left transition-all hover:border-[var(--success)]/30 hover:bg-[var(--surface-active)]"
             >
-              <span className="block text-xs font-semibold text-[var(--text)]">Log today&apos;s weight</span>
+              <span className="block text-xs font-semibold text-[var(--text)]">Current weight</span>
               <span className="mt-1 block text-[10px] leading-relaxed text-[var(--text-muted)]">
-                {latestWeight !== null ? `Last logged: ${formatNumber(latestWeight, 1)} kg` : "Add current weight in measurements."}
+                {latestWeight !== null ? `Last measurement: ${formatNumber(latestWeight, 1)} kg` : "Open weight & measurements."}
               </span>
             </button>
             <button
@@ -69,20 +69,25 @@ export function BodyProOverview({
               onClick={() => onQuickAction?.("nutrition")}
               className="rounded-xl border border-[var(--border)] bg-[var(--surface)]/70 px-3 py-3 text-left transition-all hover:border-[var(--success)]/30 hover:bg-[var(--surface-active)]"
             >
-              <span className="block text-xs font-semibold text-[var(--text)]">Log food & water</span>
+              <span className="block text-xs font-semibold text-[var(--text)]">Water today</span>
               <span className="mt-1 block text-[10px] leading-relaxed text-[var(--text-muted)]">
-                {nutritionToday.length > 0 || waterToday > 0 ? `${nutritionToday.length} food entries · ${formatNumber(waterToday)} ml water` : "Record a meal, water, or both."}
+                {waterToday > 0 ? `${formatNumber(waterToday)} ml logged` : "Log what you drank manually."}
               </span>
             </button>
             <button
               type="button"
-              onClick={() => onQuickAction?.("measurements")}
+              onClick={() => onQuickAction?.("nutrition")}
               className="rounded-xl border border-[var(--border)] bg-[var(--surface)]/70 px-3 py-3 text-left transition-all hover:border-[var(--success)]/30 hover:bg-[var(--surface-active)]"
             >
-              <span className="block text-xs font-semibold text-[var(--text)]">Add measurement</span>
-              <span className="mt-1 block text-[10px] leading-relaxed text-[var(--text-muted)]">Weight, waist, or optional body measurements.</span>
+              <span className="block text-xs font-semibold text-[var(--text)]">Food notes</span>
+              <span className="mt-1 block text-[10px] leading-relaxed text-[var(--text-muted)]">
+                {nutritionToday.length > 0 ? `${nutritionToday.length} food entries today` : "Breakfast, lunch, snacks, dinner."}
+              </span>
             </button>
           </div>
+          <p className="mt-3 text-[10px] leading-relaxed text-[var(--text-muted)]">
+            Body is optional support for the daily loop. It helps you notice patterns over time; it does not judge your day.
+          </p>
         </div>
       </PulseCard>
 
@@ -110,15 +115,15 @@ export function BodyProOverview({
           active={workoutMinutesThisWeek > 0}
         />
         <MetricCard
-          label="Food Today"
-          value={formatNumber(caloriesToday)}
+          label="Food Entries"
+          value={nutritionToday.length}
           icon={
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           }
-          trend={caloriesToday > 0 ? "up" : (caloriesToday === 0 ? "neutral" : "down")}
-          active={caloriesToday > 0}
+          trend={nutritionToday.length > 0 ? "up" : "neutral"}
+          active={nutritionToday.length > 0}
         />
         <MetricCard
           label="Water Today"
@@ -159,7 +164,7 @@ export function BodyProOverview({
                 Log &rarr;
               </button>
             }>
-              <EmptyState message="No food or water logged today." description="Log only what helps you remember the day." />
+              <EmptyState message="No food or water logged today." description="Manual check-in only. Add water, a meal name, or food notes if useful." />
             </PulseCard>
           )}
           {nutritionToday.length > 0 && (

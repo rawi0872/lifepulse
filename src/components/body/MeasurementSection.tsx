@@ -11,13 +11,14 @@ import { getTodayDate, formatNumber } from "@/lib/bodyPro";
 
 const numberInputClass = "min-h-11 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-sm text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none [appearance:textfield] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)] sm:min-h-0 sm:py-2 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
 
-function NumberField({ label, unit, children }: { label: string; unit?: string; children: ReactNode }) {
+function NumberField({ label, unit, hint, children }: { label: string; unit?: string; hint?: string; children: ReactNode }) {
   return (
     <div className="flex min-w-0 flex-col gap-1.5">
       <div className="flex items-center justify-between gap-2">
         <label className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">{label}</label>
         {unit && <span className="text-[10px] text-[var(--text-muted)]">{unit}</span>}
       </div>
+      {hint && <p className="text-[10px] leading-relaxed text-[var(--text-muted)]">{hint}</p>}
       {children}
     </div>
   );
@@ -122,9 +123,12 @@ export function MeasurementSection({ todayDate = getTodayDate() }: MeasurementSe
         </PulseCard>
       )}
 
-      <PulseCard title="Log today&apos;s weight or measurement" accent="success" description="Optional manual entry">
+      <PulseCard title="Current weight & measurements" accent="success" description="Optional manual entry">
+        <p className="px-3.5 pt-3.5 text-xs leading-relaxed text-[var(--text-muted)] sm:px-4">
+          Add today&apos;s current weight or any measurement you want to remember. Leave anything blank.
+        </p>
         <div className="grid min-w-0 grid-cols-1 gap-3 p-3.5 sm:grid-cols-2 sm:p-4 lg:grid-cols-3">
-          <NumberField label="Current weight" unit="kg">
+          <NumberField label="Current weight today" unit="kg" hint="Your latest manual weight entry.">
             <input
               type="number" inputMode="decimal" min={0} step={0.1} placeholder="70.0"
               value={form.weight_kg ?? ""}
@@ -185,8 +189,8 @@ export function MeasurementSection({ todayDate = getTodayDate() }: MeasurementSe
       </PulseCard>
 
       {!loading && measurements.length === 0 && (
-        <PulseCard title="Measurement History" accent="success">
-          <EmptyState message="No measurements logged yet." description="Start with current weight or any measurement you want to track." />
+        <PulseCard title="Measurement history" accent="success">
+          <EmptyState message="No measurements logged yet." description="Start with current weight if useful. This is private tracking, not advice." />
         </PulseCard>
       )}
 

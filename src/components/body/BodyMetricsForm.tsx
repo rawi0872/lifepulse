@@ -9,13 +9,14 @@ import { cn } from "@/lib/utils";
 const numberInputClass = "min-h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-sm text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none [appearance:textfield] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)] sm:min-h-0 sm:py-2 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
 const textInputClass = "min-h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-sm text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)] sm:min-h-0 sm:py-2";
 
-function FieldShell({ label, unit, children }: { label: string; unit?: string; children: ReactNode }) {
+function FieldShell({ label, unit, hint, children }: { label: string; unit?: string; hint?: string; children: ReactNode }) {
   return (
     <div className="min-w-0">
       <div className="mb-1.5 flex items-center justify-between gap-2">
         <label className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">{label}</label>
         {unit && <span className="text-[10px] text-[var(--text-muted)]">{unit}</span>}
       </div>
+      {hint && <p className="mb-1.5 text-[10px] leading-relaxed text-[var(--text-muted)]">{hint}</p>}
       {children}
     </div>
   );
@@ -97,7 +98,7 @@ export function BodyMetricsForm({ initial, saving, onSave }: BodyMetricsFormProp
     <PulseCard title={hasEntry ? "Update today's check-in" : "Today body check-in"} accent="success" description="Manual entry">
       <div className="min-w-0 space-y-4 p-3.5 sm:p-4">
         <p className="text-xs leading-relaxed text-[var(--text-muted)]">
-          Log only the signals you want to remember. Leave the rest blank.
+          Log only the signals you want to remember today. Leave the rest blank; this is private tracking, not a health score.
         </p>
         <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-x-4">
           <FieldShell label="Sleep" unit="hours">
@@ -135,7 +136,7 @@ export function BodyMetricsForm({ initial, saving, onSave }: BodyMetricsFormProp
               className={numberInputClass}
             />
           </FieldShell>
-          <FieldShell label="Current weight" unit="kg">
+          <FieldShell label="Current weight today" unit="kg" hint="Optional daily check-in value.">
             <input
               type="number"
               inputMode="decimal"

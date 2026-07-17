@@ -28,6 +28,11 @@ interface NutritionSectionProps {
   todayDate?: string;
 }
 
+const FOOD_HELPERS = ["Breakfast + lunch", "Evening snack"] as const;
+const WATER_HELPERS = [
+  { label: "Water bottle", value: 500 },
+] as const;
+
 export function NutritionSection({ todayDate = getTodayDate() }: NutritionSectionProps) {
   const supabase = createClient();
   const { toast } = useToast();
@@ -104,23 +109,47 @@ export function NutritionSection({ todayDate = getTodayDate() }: NutritionSectio
     setLogs((prev) => prev.filter((l) => l.id !== id));
   };
 
+  function applyFoodHelper(label: string) {
+    setForm((f) => ({ ...f, meal_name: label, notes: f.notes || "Manual food note." }));
+  }
+
+  function applyWaterHelper(amount: number) {
+    setForm((f) => ({ ...f, water_ml: amount }));
+  }
+
   return (
     <div className="space-y-6">
-      <PulseCard title="Log food & water" accent="success" description="Today">
+      <PulseCard title="Food & water today" accent="success" description="Manual check-in">
         <div className="space-y-4 p-3.5 sm:p-4">
           <p className="text-xs leading-relaxed text-[var(--text-muted)]">
-            Record food, water, or both. Leave any numbers blank when they are not useful.
+            Log what you drank or ate today. This is optional private tracking, not a health score or diet advice.
           </p>
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Quick fill helpers</p>
+            <p className="mt-1 text-[10px] leading-relaxed text-[var(--text-muted)]">These only fill fields. You still choose whether to save.</p>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {FOOD_HELPERS.map((helper) => (
+                <button key={helper} type="button" onClick={() => applyFoodHelper(helper)} className="rounded-full border border-[var(--border)] bg-[var(--surface)]/70 px-2.5 py-1.5 text-[10px] text-[var(--text-muted)] transition-colors hover:border-[var(--success)]/30 hover:text-[var(--text-secondary)]">
+                  {helper}
+                </button>
+              ))}
+              {WATER_HELPERS.map((helper) => (
+                <button key={helper.label} type="button" onClick={() => applyWaterHelper(helper.value)} className="rounded-full border border-[var(--border)] bg-[var(--surface)]/70 px-2.5 py-1.5 text-[10px] text-[var(--text-muted)] transition-colors hover:border-[var(--success)]/30 hover:text-[var(--text-secondary)]">
+                  {helper.label}
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
-          <Field label="Food or meal">
+          <Field label="Food notes or meal">
           <input
-            type="text" placeholder="Meal name"
+            type="text" placeholder="Breakfast, lunch, snacks, dinner"
             value={form.meal_name}
             onChange={(e) => setForm((f) => ({ ...f, meal_name: e.target.value }))}
             className={`${textInputClass} w-full`}
           />
           </Field>
-          <Field label="Water" unit="ml">
+          <Field label="Water today" unit="ml">
           <input
             type="number" inputMode="numeric" min={0} placeholder="500"
             value={form.water_ml ?? ""}
@@ -161,12 +190,21 @@ export function NutritionSection({ todayDate = getTodayDate() }: NutritionSectio
           />
           </Field>
           </div>
+          <Field label="Manual notes">
+            <textarea
+              placeholder="Optional context: breakfast, lunch, snacks, dinner, or anything worth remembering."
+              value={form.notes ?? ""}
+              onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+              rows={2}
+              className={`${textInputClass} min-h-24 w-full resize-none`}
+            />
+          </Field>
           <button
             onClick={handleSave}
             disabled={saving}
             className="min-h-11 w-full rounded-xl bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-[var(--text-on-accent)] transition-all hover:opacity-90 disabled:opacity-40 sm:min-h-0 sm:py-2"
           >
-            {saving ? "Saving..." : "Log food & water"}
+            {saving ? "Saving..." : "Save food & water check-in"}
           </button>
         </div>
       </PulseCard>
@@ -205,7 +243,7 @@ export function NutritionSection({ todayDate = getTodayDate() }: NutritionSectio
 
       {!loading && otherLogs.length === 0 && todayLogs.length === 0 && (
         <PulseCard title="Food & water history" accent="success">
-          <EmptyState message="No food or water logged yet." description="Start with a meal name, water amount, or both." />
+          <EmptyState message="No food or water logged yet." description="Start with a meal name, water amount, or a manual note. No scoring or advice." />
         </PulseCard>
       )}
 

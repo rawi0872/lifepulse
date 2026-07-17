@@ -111,10 +111,10 @@ export function BodyProfileCard() {
   }
 
   return (
-    <PulseCard title="Body Profile" accent="success" description="Wellness context">
+    <PulseCard title="Body Profile" accent="success" description="Optional context">
       <div className="min-w-0 space-y-4 p-3.5 sm:p-4">
         <p className="break-words text-xs text-[var(--text-muted)]">
-          Use this for wellness context and personal trends based on what you enter. Life Pulse does not provide medical advice.
+          Profile fields are background context. Log today&apos;s current weight under Weight & measurements or Today body check-in.
         </p>
 
         <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
@@ -136,9 +136,9 @@ export function BodyProfileCard() {
 
           <div className="min-w-0">
             <label className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">
-              Target weight (kg)
+              Personal reference weight (kg)
             </label>
-            <p className="mb-1.5 text-[10px] text-[var(--text-muted)]">Optional personal reference, not advice.</p>
+            <p className="mb-1.5 text-[10px] text-[var(--text-muted)]">Optional reference only. This is not today&apos;s current weight.</p>
             <input
               type="number"
               inputMode="decimal"

@@ -21,9 +21,9 @@ export function BodyPulseHeader({ habitCount, taskCount, journalCount }: BodyPul
           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--success)]">Body check-in</p>
           <h1 className="break-words text-xl font-bold tracking-tight text-[var(--text)]">Body Pulse</h1>
           <p className="mt-1 max-w-xl break-words text-sm leading-relaxed text-[var(--text-secondary)]">
-            Track what you log. Notice patterns over time. This is not medical advice or a body score.
+            Manual body check-ins for weight, water, food notes, and energy. Private tracking only, not medical advice or a health score.
           </p>
-          <p className="mt-1 text-xs text-[var(--text-muted)]">Start with today&apos;s weight, food, water, or energy.</p>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">Start with what happened today. Leave anything blank.</p>
         </div>
       </div>
       <div className="flex min-w-0 flex-wrap items-center gap-2 sm:justify-end sm:gap-3">

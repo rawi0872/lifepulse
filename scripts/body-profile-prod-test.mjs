@@ -35,10 +35,10 @@ const ERROR_SCREENSHOT_PATH = "screenshot-body-profile-prod-error.png";
 
 const requiredBodyProfileText = [
   "Body Profile",
-  "wellness context",
-  "Life Pulse does not provide medical advice",
+  "Optional context",
+  "not today's current weight",
   "Height",
-  "Target weight",
+  "Personal reference weight",
   "Activity level",
   "Body goal",
   "Notes",
