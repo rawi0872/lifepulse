@@ -5,8 +5,8 @@ import { cn } from "@/lib/utils";
 const DAILY_LOOP = [
   {
     step: "01",
-    title: "Plan",
-    desc: "Choose your priorities for today",
+    title: "Today",
+    desc: "Set one priority for the day",
     color: "from-[var(--accent)]/20 to-[var(--accent)]/5",
     borderColor: "border-[var(--accent)]/20",
     icon: (
@@ -20,8 +20,8 @@ const DAILY_LOOP = [
   },
   {
     step: "02",
-    title: "Capture",
-    desc: "Add tasks, ideas, and notes",
+    title: "Action",
+    desc: "Complete one visible task or habit",
     color: "from-[var(--success)]/20 to-[var(--success)]/5",
     borderColor: "border-[var(--success)]/20",
     icon: (
@@ -33,8 +33,8 @@ const DAILY_LOOP = [
   },
   {
     step: "03",
-    title: "Act",
-    desc: "Complete habits and track actions",
+    title: "Reflect",
+    desc: "Write what changed tonight",
     color: "from-[var(--warning)]/20 to-[var(--warning)]/5",
     borderColor: "border-[var(--warning)]/20",
     icon: (
@@ -45,8 +45,8 @@ const DAILY_LOOP = [
   },
   {
     step: "04",
-    title: "Reflect",
-    desc: "Close the day with a journal entry",
+    title: "Review",
+    desc: "Use a few logged days to see the week clearly",
     color: "from-[var(--accent-strong)]/20 to-[var(--accent-strong)]/5",
     borderColor: "border-[var(--accent-strong)]/20",
     icon: (

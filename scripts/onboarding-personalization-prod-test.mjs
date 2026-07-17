@@ -19,25 +19,37 @@ function loadEnv(filepath) {
     if (!trimmed || trimmed.startsWith("#")) continue;
     const eqIdx = trimmed.indexOf("=");
     if (eqIdx === -1) continue;
-    vars[trimmed.slice(0, eqIdx).trim()] = trimmed.slice(eqIdx + 1).trim();
+    vars[trimmed.slice(0, eqIdx).trim()] = normalizeEnvValue(trimmed.slice(eqIdx + 1).trim());
   }
   return vars;
+}
+
+function normalizeEnvValue(value) {
+  const quote = value[0];
+  if ((quote === '"' || quote === "'") && value.endsWith(quote)) {
+    return value.slice(1, -1);
+  }
+  return value;
 }
 
 const fileEnv = loadEnv(resolve(__dirname, "..", ".env.test.local"));
 const env = { ...fileEnv, ...process.env };
 
-const BASE = env.LIFE_PULSE_PROD_BASE_URL || "https://lifepulse-sand.vercel.app";
-const HEADLESS = env.LIFE_PULSE_TEST_HEADLESS !== "false";
-const CREATE_DISPOSABLE = env.LIFE_PULSE_ONBOARDING_CREATE_DISPOSABLE === "true";
-const ALLOW_MAIN_ACCOUNT = env.LIFE_PULSE_ONBOARDING_ALLOW_MAIN_ACCOUNT === "true";
-const SHOULD_TEST_SETTINGS_UPDATE = env.LIFE_PULSE_ONBOARDING_TEST_SETTINGS_UPDATE === "true";
+function envValue(name) {
+  return normalizeEnvValue(env[name] || "");
+}
 
-const MAIN_SMOKE_EMAIL = env.LIFE_PULSE_TEST_EMAIL;
-const PROVIDED_EMAIL = env.LIFE_PULSE_ONBOARDING_TEST_EMAIL;
-const PROVIDED_PASSWORD = env.LIFE_PULSE_ONBOARDING_TEST_PASSWORD;
-const DISPOSABLE_DOMAIN = env.LIFE_PULSE_ONBOARDING_DISPOSABLE_EMAIL_DOMAIN;
-const DISPOSABLE_PASSWORD = env.LIFE_PULSE_ONBOARDING_DISPOSABLE_PASSWORD || PROVIDED_PASSWORD;
+const BASE = envValue("LIFE_PULSE_PROD_BASE_URL") || "https://lifepulse-sand.vercel.app";
+const HEADLESS = envValue("LIFE_PULSE_TEST_HEADLESS") !== "false";
+const CREATE_DISPOSABLE = envValue("LIFE_PULSE_ONBOARDING_CREATE_DISPOSABLE") === "true";
+const ALLOW_MAIN_ACCOUNT = envValue("LIFE_PULSE_ONBOARDING_ALLOW_MAIN_ACCOUNT") === "true";
+const SHOULD_TEST_SETTINGS_UPDATE = envValue("LIFE_PULSE_ONBOARDING_TEST_SETTINGS_UPDATE") === "true";
+
+const MAIN_SMOKE_EMAIL = envValue("LIFE_PULSE_TEST_EMAIL");
+const PROVIDED_EMAIL = envValue("LIFE_PULSE_ONBOARDING_TEST_EMAIL");
+const PROVIDED_PASSWORD = envValue("LIFE_PULSE_ONBOARDING_TEST_PASSWORD");
+const DISPOSABLE_DOMAIN = envValue("LIFE_PULSE_ONBOARDING_DISPOSABLE_EMAIL_DOMAIN");
+const DISPOSABLE_PASSWORD = envValue("LIFE_PULSE_ONBOARDING_DISPOSABLE_PASSWORD") || PROVIDED_PASSWORD;
 
 const TEST_EMAIL = CREATE_DISPOSABLE
   ? `lifepulse-onboarding-${Date.now()}@${DISPOSABLE_DOMAIN || ""}`
@@ -59,6 +71,68 @@ function fail(label, detail = "") {
 
 function step(label) {
   console.log(`  STEP ${label}`);
+}
+
+function maskIdentifier(value) {
+  if (!value) return "missing";
+  const [localPart, domain] = value.split("@");
+  if (!domain) return "configured";
+  const visible = localPart.slice(0, 2);
+  return `${visible}${"*".repeat(Math.max(3, localPart.length - visible.length))}@${domain}`;
+}
+
+function sanitizeText(text) {
+  return text.replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, (match) => maskIdentifier(match));
+}
+
+async function getSafeLoginErrorText(page) {
+  const selectors = ["[role='alert']", "[aria-live='polite']", "[aria-live='assertive']"];
+  for (const selector of selectors) {
+    const locator = page.locator(selector).first();
+    if (await locator.isVisible().catch(() => false)) {
+      const text = (await locator.innerText().catch(() => "")).trim();
+      if (text) return sanitizeText(text).slice(0, 240);
+    }
+  }
+
+  const knownAuthMessages = [
+    "Wrong email or password. Please try again.",
+    "Please confirm your email address before signing in. Check your inbox.",
+    "Enter a valid email address.",
+    "Too many attempts. Please wait a moment and try again.",
+    "Could not verify your credentials. Please try again.",
+    "Unable to connect. Check your internet connection and try again.",
+    "Something went wrong. Please try again.",
+  ];
+
+  for (const message of knownAuthMessages) {
+    if (await page.getByText(message, { exact: true }).isVisible().catch(() => false)) {
+      return message;
+    }
+  }
+
+  return "none detected";
+}
+
+function logConfigDiagnostics() {
+  console.log(`Config LIFE_PULSE_ONBOARDING_CREATE_DISPOSABLE present: ${Boolean(env.LIFE_PULSE_ONBOARDING_CREATE_DISPOSABLE)}`);
+  console.log(`Config LIFE_PULSE_ONBOARDING_TEST_EMAIL present: ${Boolean(PROVIDED_EMAIL)}`);
+  console.log(`Config LIFE_PULSE_ONBOARDING_TEST_EMAIL file present: ${Boolean(fileEnv.LIFE_PULSE_ONBOARDING_TEST_EMAIL)}`);
+  console.log(`Config LIFE_PULSE_ONBOARDING_TEST_EMAIL process present: ${Boolean(process.env.LIFE_PULSE_ONBOARDING_TEST_EMAIL)}`);
+  console.log(`Config LIFE_PULSE_ONBOARDING_TEST_EMAIL process overrides file: ${Boolean(fileEnv.LIFE_PULSE_ONBOARDING_TEST_EMAIL && process.env.LIFE_PULSE_ONBOARDING_TEST_EMAIL && fileEnv.LIFE_PULSE_ONBOARDING_TEST_EMAIL !== process.env.LIFE_PULSE_ONBOARDING_TEST_EMAIL)}`);
+  console.log(`Config LIFE_PULSE_ONBOARDING_TEST_PASSWORD present: ${Boolean(PROVIDED_PASSWORD)}`);
+  console.log(`Config LIFE_PULSE_ONBOARDING_TEST_PASSWORD file present: ${Boolean(fileEnv.LIFE_PULSE_ONBOARDING_TEST_PASSWORD)}`);
+  console.log(`Config LIFE_PULSE_ONBOARDING_TEST_PASSWORD process present: ${Boolean(process.env.LIFE_PULSE_ONBOARDING_TEST_PASSWORD)}`);
+  console.log(`Config LIFE_PULSE_ONBOARDING_TEST_PASSWORD process overrides file: ${Boolean(fileEnv.LIFE_PULSE_ONBOARDING_TEST_PASSWORD && process.env.LIFE_PULSE_ONBOARDING_TEST_PASSWORD && fileEnv.LIFE_PULSE_ONBOARDING_TEST_PASSWORD !== process.env.LIFE_PULSE_ONBOARDING_TEST_PASSWORD)}`);
+  console.log(`Config LIFE_PULSE_ONBOARDING_DISPOSABLE_EMAIL_DOMAIN present: ${Boolean(DISPOSABLE_DOMAIN)}`);
+  console.log(`Config LIFE_PULSE_TEST_EMAIL present: ${Boolean(MAIN_SMOKE_EMAIL)}`);
+  console.log(`Config onboarding account equals smoke account: ${Boolean(TEST_EMAIL && MAIN_SMOKE_EMAIL && TEST_EMAIL === MAIN_SMOKE_EMAIL)}`);
+}
+
+function safeAuthMessage(payload) {
+  if (!payload) return "none";
+  if (typeof payload === "string") return sanitizeText(payload).slice(0, 240);
+  return sanitizeText(String(payload.error_description || payload.msg || payload.message || payload.error || "none")).slice(0, 240);
 }
 
 function requireConfig() {
@@ -140,11 +214,82 @@ async function signUpDisposable(page) {
 
 async function loginDedicatedAccount(page) {
   step("Opening login for dedicated onboarding account");
+  const authResponsePromises = [];
+  page.on("response", (response) => {
+    if (response.url().includes("/auth/v1/token")) {
+      authResponsePromises.push(response.text()
+        .then((text) => {
+          let payload = text;
+          try {
+            payload = JSON.parse(text);
+          } catch {
+            // Keep raw text for safe sanitization below.
+          }
+          return { status: response.status(), message: safeAuthMessage(payload) };
+        })
+        .catch(() => ({ status: response.status(), message: "unavailable" })));
+    }
+  });
+
+  await page.context().clearCookies();
   await page.goto(`${BASE}/login`, { waitUntil: "domcontentloaded", timeout: 30000 });
-  await page.locator("#email").fill(TEST_EMAIL);
-  await page.locator("#password").fill(TEST_PASSWORD);
-  await page.locator('button[type="submit"]').click();
-  await page.waitForTimeout(8000);
+  await page.evaluate(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+  }).catch(() => {});
+  await page.waitForLoadState("networkidle", { timeout: 15000 }).catch(() => {});
+  await page.getByRole("button", { name: "Sign in" }).waitFor({ state: "visible", timeout: 15000 });
+  await page.waitForTimeout(500);
+
+  const emailInput = page.locator("#email");
+  const passwordInput = page.locator("#password");
+  const submitButton = page.locator('button[type="submit"]').first();
+  console.log(`  DIAG Login form found: ${await emailInput.isVisible().catch(() => false) && await passwordInput.isVisible().catch(() => false)}`);
+  await emailInput.fill(TEST_EMAIL);
+  console.log(`  DIAG Email filled: ${(await emailInput.inputValue()).length > 0}`);
+  console.log(`  DIAG Email includes at-sign: ${(await emailInput.inputValue()).includes("@")}`);
+  await passwordInput.fill(TEST_PASSWORD);
+  console.log(`  DIAG Password filled: ${(await passwordInput.inputValue()).length > 0}`);
+  await submitButton.waitFor({ state: "visible", timeout: 10000 });
+  console.log(`  DIAG Submit enabled before click: ${await submitButton.isEnabled().catch(() => false)}`);
+  await submitButton.click();
+  console.log("  DIAG Submit clicked: true");
+  await page.waitForURL((url) => !url.pathname.startsWith("/login"), { timeout: 15000 }).catch(() => null);
+  await page.waitForTimeout(2500);
+  console.log(`  DIAG Post-login URL after wait: ${page.url()}`);
+  const authResponses = await Promise.all(authResponsePromises);
+  const authSuccessSeen = authResponses.some((authResponse) => authResponse.status >= 200 && authResponse.status < 300);
+  console.log(`  DIAG Auth response 200 seen: ${authSuccessSeen}`);
+  if (authResponses.length > 0) {
+    for (const authResponse of authResponses) {
+      console.log(`  DIAG Auth response status: ${authResponse.status}`);
+      console.log(`  DIAG Auth response message: ${authResponse.message}`);
+    }
+  } else {
+    console.log("  DIAG Auth response status: none captured");
+  }
+
+  if (page.url().includes("/login")) {
+    console.log(`  DIAG Visible login error text: ${await getSafeLoginErrorText(page)}`);
+  }
+
+  let fallbackAttempted = false;
+  let onboardingAccessibleAfterFallback = false;
+  let redirectedBackToLogin = false;
+
+  if (authSuccessSeen && page.url().includes("/login")) {
+    fallbackAttempted = true;
+    await page.goto(`${BASE}/onboarding`, { waitUntil: "domcontentloaded", timeout: 30000 });
+    await page.waitForURL(/\/(onboarding|today|login)(?:$|[?#])/, { timeout: 15000 }).catch(() => null);
+    await page.waitForTimeout(1500);
+    onboardingAccessibleAfterFallback = page.url().includes("/onboarding");
+    redirectedBackToLogin = page.url().includes("/login");
+  }
+
+  console.log(`  DIAG Direct /onboarding fallback attempted: ${fallbackAttempted}`);
+  console.log(`  DIAG /onboarding accessible after fallback: ${onboardingAccessibleAfterFallback}`);
+  console.log(`  DIAG Redirected back to /login: ${redirectedBackToLogin}`);
+  console.log(`  DIAG Current URL after fallback: ${page.url()}`);
 
   if (page.url().includes("/today")) {
     throw new Error("Dedicated onboarding account is already onboarded. Use a fresh/non-onboarded account for this focused QA.");
@@ -158,7 +303,7 @@ async function loginDedicatedAccount(page) {
 }
 
 async function completeOnboarding(page) {
-  await waitForVisibleText(page, "Build your personal operating system");
+  await waitForVisibleText(page, "Start with the daily loop");
   pass("Onboarding welcome step loaded");
   await clickContinue(page);
 
@@ -178,9 +323,9 @@ async function completeOnboarding(page) {
 
   await page.locator('button:has-text("Personal life")').first().click();
   pass("Selected Personal life");
-  await waitForVisibleText(page, "Recommended starting areas");
-  await waitForBodyToContain(page, "Life Pulse will emphasize these areas first");
-  for (const moduleLabel of ["Today", "Habits", "Journal", "Goals"]) {
+  await waitForVisibleText(page, "Starting path, not a checklist");
+  await waitForBodyToContain(page, "Today, action, reflection, and review are the main path");
+  for (const moduleLabel of ["Today", "Tasks", "Habits", "Journal", "Weekly Review"]) {
     await waitForVisibleText(page, moduleLabel);
   }
   await waitForBodyToContain(page, "Available");
@@ -188,18 +333,18 @@ async function completeOnboarding(page) {
   pass("Personal setup module recommendation preview is visible");
   await clickContinue(page);
 
-  await waitForVisibleText(page, "These are the areas your progress will be organized around");
+  await waitForVisibleText(page, "These labels help organize what you log");
   await waitForVisibleText(page, "Mind");
   await waitForVisibleText(page, "Body");
   pass("Realm selection still appears");
   await clickContinue(page);
 
-  await waitForVisibleText(page, "Each day, Life Pulse guides you through a simple rhythm");
+  await waitForVisibleText(page, "Your first job is simple");
   pass("Daily Loop step still appears");
   await clickContinue(page);
 
-  await waitForVisibleText(page, "Enter my dashboard");
-  await page.locator('button:has-text("Enter my dashboard")').click();
+  await waitForVisibleText(page, "Start today's loop");
+  await page.locator('button:has-text("Start today\'s loop")').click();
   step("Waiting for onboarding redirect to /today");
   await page.waitForURL(/\/today/, { timeout: 30000 });
   pass("Onboarding completed and redirected to /today");
@@ -253,7 +398,8 @@ async function main() {
   console.log("=== Life Pulse Onboarding Personalization Production QA ===");
   console.log(`Base URL: ${BASE}`);
   console.log(`Account strategy: ${CREATE_DISPOSABLE ? "disposable signup" : "provided dedicated account"}`);
-  console.log(`Test account: ${TEST_EMAIL}`);
+  logConfigDiagnostics();
+  console.log(`Using onboarding QA account: ${TEST_EMAIL ? maskIdentifier(TEST_EMAIL) : "missing"}`);
   console.log("This full onboarding path mutates the account. Reset onboarding_completed=false before rerunning with the same dedicated account.");
   console.log("");
 

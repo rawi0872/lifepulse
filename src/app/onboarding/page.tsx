@@ -24,13 +24,13 @@ const DEFAULT_REALMS = [
   { name: "Faith", color: "#a855f7", icon: "🙏", description: "Values, discipline, spiritual growth" },
 ] as const;
 
-const STEP_LABELS = ["Welcome", "Setup", "Life Areas", "Daily Loop", "Start"];
+const STEP_LABELS = ["Loop", "Setup", "Life Areas", "Daily Loop", "Start"];
 
 const MODULE_PREVIEW_KEYS: Record<IntendedUse, readonly ModuleKey[]> = {
-  personal: ["today", "habits", "journal", "goals", "body", "mind", "coach", "weeklyReview"],
-  business: ["today", "tasks", "projects", "goals", "finance", "knowledge", "business", "clients"],
-  team: ["today", "tasks", "projects", "goals", "knowledge", "team", "members", "decisions"],
-  mixed: ["today", "tasks", "habits", "journal", "projects", "finance", "business", "clients"],
+  personal: ["today", "tasks", "habits", "journal", "weeklyReview", "body"],
+  business: ["today", "tasks", "projects", "weeklyReview", "finance", "knowledge"],
+  team: ["today", "tasks", "projects", "weeklyReview", "knowledge", "team"],
+  mixed: ["today", "tasks", "habits", "journal", "weeklyReview", "projects"],
 };
 
 const moduleStatusStyles: Record<ModuleStatus, string> = {
@@ -41,29 +41,29 @@ const moduleStatusStyles: Record<ModuleStatus, string> = {
 
 const STEP_LEFT = [
   {
-    title: "Build your personal operating system",
+    title: "Start with the daily loop",
     subtitle:
-      "Life Pulse turns your habits, tasks, projects, finance, and reflection into one daily command center.",
+      "Life Pulse is not many separate tools to learn at once. Begin with Today, one visible action, a short reflection, and a weekly review.",
   },
   {
     title: "Personalize your starting setup",
     subtitle:
-      "Choose why you are using Life Pulse so the app can emphasize the right starting experience.",
+      "Choose why you are using Life Pulse so the app can emphasize the right starting path. Deeper areas can wait until you need them.",
   },
   {
     title: "Choose your life areas",
     subtitle:
-      "Life areas organize everything you track. Habits, tasks, and projects connect back to these areas so you can see where your energy is going.",
+      "Life areas are labels for your activity. Keep the defaults for now if you are unsure; the first loop matters more than perfect setup.",
   },
   {
     title: "Your daily rhythm",
     subtitle:
-      "After setup, your Today dashboard becomes the place you plan, act, and close the day. Here is how the daily loop works.",
+      "After setup, Today becomes the place you plan one priority, complete one visible action, and close the day with reflection.",
   },
   {
-    title: "You are all set",
+    title: "Start Today",
     subtitle:
-      "Your data stays tied to your account. You can edit your life areas and preferences later in Settings.",
+      "You are ready to start Today. Set one priority first; Weekly Review becomes useful after a few days of logged activity.",
   },
 ] as const;
 
@@ -127,9 +127,9 @@ function ModuleRecommendationPreview({ intendedUse }: { intendedUse: IntendedUse
   return (
     <section className="max-w-2xl rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-4 animate-fade-in">
       <div className="mb-3">
-        <h3 className="text-sm font-semibold text-[var(--text)]">Recommended starting areas</h3>
+        <h3 className="text-sm font-semibold text-[var(--text)]">Starting path, not a checklist</h3>
         <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
-          Life Pulse will emphasize these areas first. Nothing is locked, and planned modules are roadmap items only.
+          Today, action, reflection, and review are the main path. Other areas are available when they become useful.
         </p>
       </div>
 
@@ -580,17 +580,17 @@ export default function OnboardingPage() {
                     style={{ background: "radial-gradient(circle, var(--accent), transparent 70%)" }}
                   />
                   <p className="relative z-10 mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
-                    Welcome to Life Pulse
+                    The first session
                   </p>
                   <h2 className="relative z-10 text-xl font-semibold leading-tight tracking-tight text-[var(--text)] sm:text-2xl">
-                    Your personal operating system for building a better life.
+                    Start with the loop. Expand later.
                   </h2>
                   <p className="relative z-10 mt-3 max-w-xl text-sm leading-relaxed text-[var(--text-secondary)]">
-                    Plan your day, track your habits, reflect on your progress, and keep your most important goals connected in one private dashboard.
+                    Plan today. Complete one visible action. Reflect tonight. Review the week once a few days are logged.
                   </p>
                 </div>
                 <p className="px-1 text-xs leading-relaxed text-[var(--text-muted)]">
-                  This is a private beta. Your honest feedback shapes what comes next.
+                  Everything is private and based on what you enter. This private beta starts with a directed first loop, not a full system to configure.
                 </p>
               </div>
 
@@ -607,11 +607,11 @@ export default function OnboardingPage() {
                 <div>
                   <h2 className="text-lg font-semibold text-[var(--text)]">What are you using Life Pulse for?</h2>
                   <p className="mt-1 text-sm leading-relaxed text-[var(--text-secondary)]">
-                    Choose the starting setup that best fits why you&apos;re here. You can change this later.
+                    Choose the starting setup that best fits why you&apos;re here. The daily loop stays the same either way.
                   </p>
                 </div>
                 <p className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-xs leading-relaxed text-[var(--text-muted)]">
-                  This only personalizes your starting experience. It does not lock your account into one mode.
+                  This only personalizes your starting experience. It does not lock your account into one mode or require every module today.
                 </p>
               </div>
 
@@ -631,7 +631,7 @@ export default function OnboardingPage() {
             <div className="animate-fade-in flex flex-col gap-8">
               <div className="max-w-2xl">
                 <p className="text-sm leading-relaxed text-[var(--text-secondary)]">
-                  These are the areas your progress will be organized around. You can change them later, or create new ones.
+                  These labels help organize what you log. Keep the defaults if you want to move faster; you can edit them later.
                 </p>
               </div>
 
@@ -653,7 +653,7 @@ export default function OnboardingPage() {
             <div className="animate-fade-in flex flex-col gap-8">
               <div className="max-w-2xl">
                 <p className="mb-6 text-sm leading-relaxed text-[var(--text-secondary)]">
-                  Each day, Life Pulse guides you through a simple rhythm — plan, capture, act, and reflect.
+                  Your first job is simple: set one priority, complete one visible action, then reflect tonight. Weekly Review gets useful after a few days of entries.
                 </p>
               </div>
 
@@ -669,7 +669,7 @@ export default function OnboardingPage() {
               <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
                 <div className="max-w-lg">
                   <p className="text-sm leading-relaxed text-[var(--text-secondary)]">
-                    Your life areas are ready. Your dashboard is waiting. Start with one priority and build from there.
+                    You are ready to start Today. One priority is enough to begin; what you log today becomes context for your week.
                   </p>
                 </div>
 
@@ -709,12 +709,12 @@ export default function OnboardingPage() {
                           Setting up...
                         </span>
                       ) : (
-                        "Enter my dashboard"
+                        "Start today's loop"
                       )}
                     </Button>
                   </div>
                   <p className="text-xs text-[var(--text-muted)]">
-                    You can customize your setup later in Settings.
+                    This opens Today. Set one priority first.
                   </p>
                 </div>
               </div>

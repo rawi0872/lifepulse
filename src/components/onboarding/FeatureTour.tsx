@@ -9,7 +9,7 @@ const FEATURES = [
       </svg>
     ),
     name: "Today",
-    desc: "Daily command center",
+    desc: "Choose one priority",
   },
   {
     icon: (
@@ -18,8 +18,8 @@ const FEATURES = [
         <circle cx="12" cy="12" r="9" />
       </svg>
     ),
-    name: "Habits",
-    desc: "Track daily practices",
+    name: "Action",
+    desc: "Complete one visible step",
   },
   {
     icon: (
@@ -28,8 +28,8 @@ const FEATURES = [
         <polyline points="9,22 9,12 15,12 15,22" />
       </svg>
     ),
-    name: "Projects",
-    desc: "Manage goals and work",
+    name: "Reflect",
+    desc: "Close the day privately",
   },
   {
     icon: (
@@ -38,8 +38,8 @@ const FEATURES = [
         <path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
       </svg>
     ),
-    name: "Finance",
-    desc: "Monitor spending",
+    name: "Review",
+    desc: "Understand the week",
   },
   {
     icon: (
@@ -48,8 +48,8 @@ const FEATURES = [
         <path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" />
       </svg>
     ),
-    name: "Journal",
-    desc: "End-of-day reflection",
+    name: "Expand later",
+    desc: "Use deeper areas when needed",
   },
   {
     icon: (
@@ -59,8 +59,8 @@ const FEATURES = [
         <path d="M6 20v-4" />
       </svg>
     ),
-    name: "Insights",
-    desc: "See your patterns",
+    name: "Private by default",
+    desc: "Based on what you enter",
   },
 ] as const;
 
