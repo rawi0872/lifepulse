@@ -993,7 +993,7 @@ function TodayContent() {
                   Start with a task or habit you can actually finish today. Then close the day with a short reflection so it becomes context for your week.
                 </p>
               </div>
-              <a href="#evening-reflection" className="inline-flex min-h-9 shrink-0 items-center rounded-md text-xs font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0">
+              <a href="#evening-reflection" className="inline-flex min-h-10 shrink-0 items-center rounded-md text-xs font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0">
                 Close the day &rarr;
               </a>
             </div>

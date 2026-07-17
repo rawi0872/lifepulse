@@ -190,7 +190,7 @@ function KnowledgeContent() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`min-h-9 shrink-0 rounded-lg px-3 py-2 text-center text-xs font-medium transition-all sm:min-h-0 sm:flex-1 ${
+              className={`min-h-10 shrink-0 rounded-lg px-3 py-2 text-center text-xs font-medium transition-all sm:min-h-0 sm:flex-1 ${
                 activeTab === tab.id
                   ? "bg-[var(--surface)] text-[var(--text)] shadow-sm"
                   : "text-[var(--text-muted)] hover:text-[var(--text)]"
@@ -234,7 +234,7 @@ function KnowledgeContent() {
                   Save articles, book notes, course takeaways, life lessons, and any reference material you want to keep.
                 </p>
                 {items.length === 0 && collections.length === 0 && (
-                  <EmptyState title="Overview" message="No knowledge items yet. Save notes, articles, ideas, and reference materials to organize what matters." action={<Link href="/knowledge" className="inline-flex items-center gap-1 text-xs font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">Add your first item &rarr;</Link>} />
+                  <EmptyState title="Overview" message="No knowledge items yet. Save notes, articles, ideas, and reference materials to organize what matters." action={<Link href="/knowledge" className="inline-flex min-h-10 items-center gap-1 text-xs font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0">Add your first item &rarr;</Link>} />
                 )}
               </div>
             </PulseCard>
@@ -288,7 +288,7 @@ function KnowledgeContent() {
                 <div className="flex justify-end sm:col-span-2">
                   <button onClick={handleSaveItem} disabled={saving || !itemForm.title.trim()}
                     data-testid="knowledge-item-save-button"
-                    className="w-full rounded-lg bg-[var(--accent)] px-4 py-2.5 text-xs font-medium text-[var(--text-on-accent)] transition-all hover:opacity-90 disabled:opacity-40 sm:w-auto sm:py-2">
+                    className="min-h-11 w-full rounded-lg bg-[var(--accent)] px-4 py-2.5 text-xs font-medium text-[var(--text-on-accent)] transition-all hover:opacity-90 disabled:opacity-40 sm:min-h-0 sm:w-auto sm:py-2">
                     {saving ? "Saving..." : "Save Knowledge"}
                   </button>
                 </div>
@@ -312,7 +312,7 @@ function KnowledgeContent() {
                 <div className="flex justify-end sm:col-span-2">
                   <button onClick={handleSaveCollection} disabled={saving || !collectionForm.name.trim()}
                     data-testid="knowledge-collection-save-button"
-                    className="w-full rounded-lg bg-[var(--accent)] px-4 py-2.5 text-xs font-medium text-[var(--text-on-accent)] transition-all hover:opacity-90 disabled:opacity-40 sm:w-auto sm:py-2">
+                    className="min-h-11 w-full rounded-lg bg-[var(--accent)] px-4 py-2.5 text-xs font-medium text-[var(--text-on-accent)] transition-all hover:opacity-90 disabled:opacity-40 sm:min-h-0 sm:w-auto sm:py-2">
                     {saving ? "Saving..." : "Create Collection"}
                   </button>
                 </div>
@@ -321,7 +321,7 @@ function KnowledgeContent() {
 
             {collections.length === 0 ? (
               <PulseCard title="Your Collections" accent="accent">
-                <EmptyState title="Your Collections" message="No collections yet. Collections group related knowledge items together — like a folder for a topic or project." action={<Link href="/knowledge" className="inline-flex items-center gap-1 text-xs font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">Create a collection &rarr;</Link>} />
+                <EmptyState title="Your Collections" message="No collections yet. Collections group related knowledge items together — like a folder for a topic or project." action={<Link href="/knowledge" className="inline-flex min-h-10 items-center gap-1 text-xs font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0">Create a collection &rarr;</Link>} />
               </PulseCard>
             ) : (
               <PulseCard title="Your Collections" accent="accent" description={`${collections.length} total`}>
@@ -333,7 +333,7 @@ function KnowledgeContent() {
                         {c.description && <span className="break-words text-[10px] text-[var(--text-muted)]">{c.description}</span>}
                       </div>
                       <button onClick={() => handleDeleteCollection(c.id)}
-                        className="self-end rounded-md px-2 py-1.5 text-[10px] text-[var(--danger)] hover:underline sm:self-auto sm:py-0">Delete</button>
+                        className="min-h-10 self-end rounded-md px-2 py-1.5 text-[10px] text-[var(--danger)] hover:underline sm:min-h-0 sm:self-auto sm:py-0">Delete</button>
                     </div>
                   ))}
                 </div>
@@ -347,7 +347,7 @@ function KnowledgeContent() {
           <div>
             {items.length === 0 ? (
               <PulseCard title="Recent Items" accent="accent">
-                <EmptyState title="Recent Items" message="No knowledge items yet. Add notes, links, articles, and reference material to build your personal library." action={<Link href="/knowledge" className="inline-flex items-center gap-1 text-xs font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">Add your first item &rarr;</Link>} />
+                <EmptyState title="Recent Items" message="No knowledge items yet. Add notes, links, articles, and reference material to build your personal library." action={<Link href="/knowledge" className="inline-flex min-h-10 items-center gap-1 text-xs font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0">Add your first item &rarr;</Link>} />
               </PulseCard>
             ) : (
               <PulseCard title="Recent Items" accent="accent" description={`${items.length} total`}>
@@ -411,7 +411,7 @@ function KnowledgeContent() {
                           <span className="text-[9px] text-[var(--text-muted)]">{new Date(item.created_at).toLocaleDateString()}</span>
                         </div>
                         <button onClick={() => handleDeleteItem(item.id)}
-                          className="self-end rounded-md px-2 py-1.5 text-[10px] text-[var(--danger)] opacity-100 transition-opacity sm:self-auto sm:opacity-0 sm:group-hover:opacity-100">Delete</button>
+                          className="min-h-10 self-end rounded-md px-2 py-1.5 text-[10px] text-[var(--danger)] opacity-100 transition-opacity sm:min-h-0 sm:self-auto sm:opacity-0 sm:group-hover:opacity-100">Delete</button>
                       </div>
                     ))}
                   </div>

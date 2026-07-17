@@ -611,7 +611,7 @@ export default function SettingsPage() {
                       <span className="h-2 w-2 rounded-full" style={{ backgroundColor: r.color }} />
                       <button
                         onClick={() => startEditing(r)}
-                        className="text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors"
+                        className="min-h-10 rounded-md px-2 text-xs text-[var(--text-muted)] transition-colors hover:text-[var(--text-secondary)] sm:min-h-0 sm:px-0"
                       >
                         Edit
                       </button>

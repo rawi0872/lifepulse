@@ -19,7 +19,7 @@ export function DailyLoopConnector({ activeStep, note }: DailyLoopConnectorProps
     <div className="mb-5 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)]/65 px-3.5 py-3 text-xs text-[var(--text-muted)] sm:px-4">
       <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <p className="min-w-0 text-pretty leading-relaxed">{note}</p>
-        <Link href="/today" className="shrink-0 rounded-md py-1 font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:py-0">
+        <Link href="/today" className="inline-flex min-h-10 shrink-0 items-center rounded-md py-1 font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0 sm:py-0">
           Return to Today
         </Link>
       </div>
@@ -28,7 +28,7 @@ export function DailyLoopConnector({ activeStep, note }: DailyLoopConnectorProps
           <div key={step.key} className="flex min-w-0 items-center gap-1.5">
             <Link
               href={step.href}
-              className={`rounded-full border px-2.5 py-1 transition-colors ${
+              className={`inline-flex min-h-10 items-center rounded-full border px-2.5 py-1 transition-colors sm:min-h-0 ${
                 step.key === activeStep
                   ? "border-[var(--accent)]/25 bg-[var(--accent-soft)] text-[var(--accent)]"
                   : "border-[var(--border)] bg-[var(--surface)]/50 text-[var(--text-muted)] hover:border-[var(--border-strong)] hover:text-[var(--text-secondary)]"

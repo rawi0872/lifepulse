@@ -74,7 +74,7 @@ export function GoalMilestones({ milestones, saving, onAdd, onToggle, onDelete }
                   </div>
                   <button
                     onClick={() => onDelete(m.id)}
-                    className="rounded p-1 text-[var(--text-muted)] transition-colors hover:text-[var(--danger)]"
+                    className="inline-flex min-h-10 min-w-10 items-center justify-center rounded p-1 text-[var(--text-muted)] transition-colors hover:text-[var(--danger)] sm:min-h-0 sm:min-w-0"
                     title="Delete milestone"
                   >
                     <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>

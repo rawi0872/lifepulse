@@ -497,13 +497,13 @@ export default function TasksPage() {
                 <span className="text-[9px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Useful starters</span>
               <div className="mt-1 flex flex-wrap gap-1.5">
                   {TASK_STARTERS.slice(0, 3).map((starter) => (
-                    <button key={starter} type="button" onClick={() => applyStarterTask(starter)} className="cursor-pointer rounded-md border border-dashed border-[var(--border-strong)] bg-transparent px-2.5 py-1.5 text-[10px] text-[var(--text-muted)] transition-colors hover:border-[var(--text-muted)]/40 hover:text-[var(--text-secondary)] sm:py-0.5">
+                    <button key={starter} type="button" onClick={() => applyStarterTask(starter)} className="min-h-10 cursor-pointer rounded-md border border-dashed border-[var(--border-strong)] bg-transparent px-2.5 py-1.5 text-[10px] text-[var(--text-muted)] transition-colors hover:border-[var(--text-muted)]/40 hover:text-[var(--text-secondary)] sm:min-h-0 sm:py-0.5">
                       {starter}
                     </button>
                   ))}
                 </div>
               </div>
-              <Link href="/today#daily-execution" className="shrink-0 rounded-md py-1 text-[10px] font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:py-0">
+              <Link href="/today#daily-execution" className="inline-flex min-h-10 shrink-0 items-center rounded-md py-1 text-[10px] font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0 sm:py-0">
                 Return to today&apos;s loop
               </Link>
             </div>
@@ -532,7 +532,7 @@ export default function TasksPage() {
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`flex min-h-9 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all duration-150 sm:min-h-0 ${
+              className={`flex min-h-10 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all duration-150 sm:min-h-0 ${
                 filter === f
                   ? "bg-[var(--accent-soft)] text-[var(--accent)] ring-1 ring-[var(--accent)]/30"
                   : "bg-[var(--surface)] text-[var(--text-muted)] hover:bg-[var(--surface-raised)]"
@@ -614,7 +614,7 @@ export default function TasksPage() {
                         role="checkbox"
                         aria-checked={isDone}
                         aria-label={`Mark "${task.title}" as ${isDone ? "incomplete" : "complete"}`}
-                        className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 transition-all duration-150 sm:h-7 sm:w-7 ${
+                        className={`mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 transition-all duration-150 sm:h-7 sm:w-7 ${
                           isDone
                             ? "border-[var(--success)] bg-[var(--success)] shadow-sm shadow-[var(--success)]/15"
                             : "border-[var(--text-muted)]/40 hover:border-[var(--accent)]/50 hover:bg-[var(--accent-ghost)]"
@@ -673,10 +673,10 @@ export default function TasksPage() {
                   </div>
 
                     <div className="flex shrink-0 justify-end gap-1 border-t border-[var(--border)] pt-2 sm:border-t-0 sm:pt-0">
-                    <button onClick={() => openEdit(task)} className="min-h-9 rounded-lg px-3 py-2 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-active)] hover:text-[var(--text-secondary)] sm:min-h-0 sm:px-2 sm:py-1" aria-expanded={isEditing}>
+                    <button onClick={() => openEdit(task)} className="min-h-10 rounded-lg px-3 py-2 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-active)] hover:text-[var(--text-secondary)] sm:min-h-0 sm:px-2 sm:py-1" aria-expanded={isEditing}>
                       {isEditing ? "Editing" : "Edit"}
                     </button>
-                    <button onClick={() => { if (isEditing) cancelEdit(); setConfirmingDeleteId(task.id); }} className="min-h-9 rounded-lg px-3 py-2 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-active)] hover:text-[var(--text-secondary)] sm:min-h-0 sm:px-2 sm:py-1" aria-expanded={isConfirmingDelete}>
+                    <button onClick={() => { if (isEditing) cancelEdit(); setConfirmingDeleteId(task.id); }} className="min-h-10 rounded-lg px-3 py-2 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-active)] hover:text-[var(--text-secondary)] sm:min-h-0 sm:px-2 sm:py-1" aria-expanded={isConfirmingDelete}>
                       Delete
                     </button>
                     </div>

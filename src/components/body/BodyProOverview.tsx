@@ -160,7 +160,7 @@ export function BodyProOverview({
 
           {nutritionToday.length === 0 && waterToday === 0 && (
             <PulseCard title="Food & water" accent="success" description="Today" action={
-              <button type="button" onClick={() => onQuickAction?.("nutrition")} className="text-[10px] font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">
+              <button type="button" onClick={() => onQuickAction?.("nutrition")} className="inline-flex min-h-10 min-w-10 items-center justify-center text-[10px] font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0 sm:min-w-0">
                 Log &rarr;
               </button>
             }>
@@ -191,7 +191,7 @@ export function BodyProOverview({
 
           {latestWeight !== null && (
             <PulseCard title="Current weight" accent="success" description="Last logged" action={
-              <button type="button" onClick={() => onQuickAction?.("measurements")} className="text-[10px] font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">
+              <button type="button" onClick={() => onQuickAction?.("measurements")} className="inline-flex min-h-10 min-w-10 items-center justify-center text-[10px] font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0 sm:min-w-0">
                 Log &rarr;
               </button>
             }>
@@ -206,7 +206,7 @@ export function BodyProOverview({
         <div className="space-y-6">
           {latestHealthNote && (
             <PulseCard title={`Health: ${latestHealthNote.title}`} accent="warning" description={latestHealthNote.category || "Note"} action={
-              <Link href="#health" className="text-[10px] font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">
+              <Link href="#health" className="inline-flex min-h-10 items-center text-[10px] font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0">
                 View all &rarr;
               </Link>
             }>
@@ -235,14 +235,14 @@ export function BodyProOverview({
 
       <div className="grid min-w-0 grid-cols-1 gap-6 md:grid-cols-2">
         <PulseCard title="Body Habits" accent="success" description={`${bodyHabits.length} habits`} action={
-          <Link href="/habits" className="text-[10px] font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">
+          <Link href="/habits" className="inline-flex min-h-10 items-center text-[10px] font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0">
             Manage
           </Link>
         }>
           {bodyHabits.length === 0 ? (
             <div className="p-4">
               <EmptyState message="No body-related habits." action={
-                <Link href="/habits" className="inline-flex items-center gap-1 text-xs font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">
+                <Link href="/habits" className="inline-flex min-h-10 items-center gap-1 text-xs font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0">
                   Add a habit &rarr;
                 </Link>
               } />
@@ -262,14 +262,14 @@ export function BodyProOverview({
         </PulseCard>
 
         <PulseCard title="Body Tasks" accent="success" description="Open health-related tasks" action={
-          <Link href="/tasks" className="text-[10px] font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">
+          <Link href="/tasks" className="inline-flex min-h-10 items-center text-[10px] font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0">
             Manage
           </Link>
         }>
           {bodyTaskCount === 0 ? (
             <div className="p-4">
               <EmptyState message="No open body-related tasks." action={
-                <Link href="/tasks" className="inline-flex items-center gap-1 text-xs font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">
+                <Link href="/tasks" className="inline-flex min-h-10 items-center gap-1 text-xs font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0">
                   Add a task &rarr;
                 </Link>
               } />

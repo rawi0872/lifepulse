@@ -54,7 +54,7 @@ export function MindPulseSection({ tasks, doneTaskCount, tasksLength, taskContex
           description="Optional manual tracking only, not clinical or medical guidance."
           compact
           action={
-            <Link href="/mind" className="inline-flex min-h-9 items-center gap-1 rounded-lg bg-[var(--accent-soft)] px-3 text-xs font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0 sm:bg-transparent sm:px-0">
+            <Link href="/mind" className="inline-flex min-h-10 items-center gap-1 rounded-lg bg-[var(--accent-soft)] px-3 text-xs font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0 sm:bg-transparent sm:px-0">
               Log mind check-in &rarr;
             </Link>
           }

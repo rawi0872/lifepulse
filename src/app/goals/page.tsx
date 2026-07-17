@@ -443,7 +443,7 @@ function GoalsContent() {
                   return (
                     <button
                       onClick={() => toggleExpand(goal.id)}
-                      className="mt-1 flex min-h-8 w-full items-center justify-center gap-1 py-1 text-[9px] text-[var(--text-muted)] transition-colors hover:text-[var(--accent)] sm:min-h-0"
+                      className="mt-1 flex min-h-10 w-full items-center justify-center gap-1 py-1 text-[9px] text-[var(--text-muted)] transition-colors hover:text-[var(--accent)] sm:min-h-0"
                     >
                       <svg
                         className={`h-3 w-3 transition-transform ${isExpanded ? "rotate-180" : ""}`}
@@ -527,7 +527,7 @@ function GoalsContent() {
               action={
                 <button
                   onClick={() => { setConfirmingDeleteGoalId(null); setShowForm(true); }}
-                  className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors"
+                  className="mt-2 inline-flex min-h-10 items-center gap-1 text-xs font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0"
                 >
                   Create your first goal &rarr;
                 </button>

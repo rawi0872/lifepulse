@@ -159,8 +159,8 @@ export function ProjectCard({
             </div>
           </div>
           <div className="flex shrink-0 justify-end gap-1 sm:justify-start">
-            <button onClick={() => onEdit(project)} className="rounded-lg px-3 py-2 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-active)] hover:text-[var(--text)] sm:px-2 sm:py-1">Edit</button>
-            <button onClick={() => onDelete(project.id)} className="rounded-lg px-3 py-2 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-active)] hover:text-[var(--text)] sm:px-2 sm:py-1">Delete</button>
+            <button onClick={() => onEdit(project)} className="min-h-10 rounded-lg px-3 py-2 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-active)] hover:text-[var(--text)] sm:min-h-0 sm:px-2 sm:py-1">Edit</button>
+            <button onClick={() => onDelete(project.id)} className="min-h-10 rounded-lg px-3 py-2 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-active)] hover:text-[var(--text)] sm:min-h-0 sm:px-2 sm:py-1">Delete</button>
           </div>
         </div>
 
@@ -208,7 +208,7 @@ export function ProjectCard({
                     role="checkbox"
                     aria-checked={isDone}
                     aria-label={`Mark "${t.title}" as ${isDone ? "incomplete" : "complete"}`}
-                    className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-all ${
+                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition-all sm:h-4 sm:w-4 ${
                       isDone
                         ? "border-[var(--accent)] bg-[var(--accent)]"
                         : "border-[var(--border)]"
@@ -273,14 +273,14 @@ export function ProjectCard({
               <div className="flex justify-end gap-2">
                 <button
                   onClick={onCancelAddTask}
-                  className="rounded-lg px-3 py-2 text-[10px] text-[var(--text-muted)] transition-colors hover:text-[var(--text-secondary)] sm:px-2 sm:py-1"
+                  className="min-h-10 rounded-lg px-3 py-2 text-[10px] text-[var(--text-muted)] transition-colors hover:text-[var(--text-secondary)] sm:min-h-0 sm:px-2 sm:py-1"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={() => onAddTask(project.id, project.realm_id)}
                   disabled={!newTaskTitle.trim()}
-                  className="rounded-lg px-3 py-2 text-[10px] font-medium text-[var(--accent)] transition-colors hover:bg-[var(--accent-soft)] disabled:opacity-40 sm:px-2 sm:py-1"
+                  className="min-h-10 rounded-lg px-3 py-2 text-[10px] font-medium text-[var(--accent)] transition-colors hover:bg-[var(--accent-soft)] disabled:opacity-40 sm:min-h-0 sm:px-2 sm:py-1"
                 >
                   Add
                 </button>
@@ -290,7 +290,7 @@ export function ProjectCard({
         ) : (
           <button
             onClick={() => onStartAddTask(project.id)}
-            className="mt-2 flex min-h-8 items-center gap-1 rounded-md px-2 py-1 text-[10px] text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-raised)] hover:text-[var(--accent)] sm:min-h-0"
+            className="mt-2 flex min-h-10 items-center gap-1 rounded-md px-2 py-1 text-[10px] text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-raised)] hover:text-[var(--accent)] sm:min-h-0"
           >
             <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />

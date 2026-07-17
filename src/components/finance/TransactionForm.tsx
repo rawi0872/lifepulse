@@ -89,7 +89,7 @@ export function TransactionForm({
                 key={example.label}
                 type="button"
                 onClick={() => applyExample(example)}
-                className="rounded-full border border-[var(--border)] bg-[var(--surface)]/70 px-2.5 py-1.5 text-[10px] text-[var(--text-muted)] transition-colors hover:border-[var(--accent)]/30 hover:text-[var(--text-secondary)]"
+                className="min-h-10 rounded-full border border-[var(--border)] bg-[var(--surface)]/70 px-2.5 py-1.5 text-[10px] text-[var(--text-muted)] transition-colors hover:border-[var(--accent)]/30 hover:text-[var(--text-secondary)] sm:min-h-0"
               >
                 {example.label}
               </button>

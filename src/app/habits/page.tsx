@@ -447,13 +447,13 @@ export default function HabitsPage() {
                 <span className="text-[9px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Tiny starters</span>
                 <div className="mt-1 flex flex-wrap gap-1.5">
                   {HABIT_TEMPLATES.slice(0, 3).map((tpl) => (
-                    <button key={tpl} type="button" onClick={() => applyTemplate(tpl)} className="rounded-md border border-dashed border-[var(--border-strong)] bg-transparent px-2.5 py-1.5 text-[10px] text-[var(--text-muted)] transition-colors hover:border-[var(--text-muted)]/40 hover:text-[var(--text-secondary)] sm:py-0.5">
+                  <button key={tpl} type="button" onClick={() => applyTemplate(tpl)} className="min-h-10 rounded-md border border-dashed border-[var(--border-strong)] bg-transparent px-2.5 py-1.5 text-[10px] text-[var(--text-muted)] transition-colors hover:border-[var(--text-muted)]/40 hover:text-[var(--text-secondary)] sm:min-h-0 sm:py-0.5">
                       {tpl}
                     </button>
                   ))}
                 </div>
               </div>
-              <Link href="/today#daily-execution" className="shrink-0 rounded-md py-1 text-[10px] font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:py-0">
+              <Link href="/today#daily-execution" className="inline-flex min-h-10 shrink-0 items-center rounded-md py-1 text-[10px] font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0 sm:py-0">
                 Return to today&apos;s loop
               </Link>
             </div>
@@ -510,7 +510,7 @@ export default function HabitsPage() {
                     <button
                       key={tpl}
                       onClick={() => applyTemplate(tpl)}
-                      className="rounded-full border border-[var(--border)] bg-[var(--surface)]/70 px-3 py-2 text-xs text-[var(--text-muted)] transition-all duration-150 hover:border-[var(--accent)]/30 hover:text-[var(--text-secondary)] sm:py-1.5"
+                      className="min-h-10 rounded-full border border-[var(--border)] bg-[var(--surface)]/70 px-3 py-2 text-xs text-[var(--text-muted)] transition-all duration-150 hover:border-[var(--accent)]/30 hover:text-[var(--text-secondary)] sm:min-h-0 sm:py-1.5"
                     >
                       {tpl}
                     </button>
@@ -546,7 +546,7 @@ export default function HabitsPage() {
                         >
                           <div className="flex flex-col gap-3 px-4 py-3.5 sm:flex-row sm:items-center sm:py-3">
                             <div className="flex min-w-0 items-start gap-3 sm:flex-1">
-                              <span className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 text-[10px] transition-all duration-150 sm:h-7 sm:w-7 ${doneToday ? "border-[var(--success)] bg-[var(--success)] text-white shadow-sm shadow-[var(--success)]/15" : "border-[var(--text-muted)]/30 text-transparent"}`}>
+                              <span className={`mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 text-[10px] transition-all duration-150 sm:h-7 sm:w-7 ${doneToday ? "border-[var(--success)] bg-[var(--success)] text-white shadow-sm shadow-[var(--success)]/15" : "border-[var(--text-muted)]/30 text-transparent"}`}>
                                 ✓
                               </span>
                               <div className="min-w-0 flex-1">
@@ -590,14 +590,14 @@ export default function HabitsPage() {
                           <div className="flex shrink-0 justify-end gap-1 border-t border-[var(--border)] pt-2 sm:border-t-0 sm:pt-0">
                             <button
                               onClick={() => openEdit(habit)}
-                              className="min-h-9 rounded-lg px-3 py-2 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-raised)] hover:text-[var(--text)] sm:min-h-0 sm:px-2 sm:py-1"
+                              className="min-h-10 rounded-lg px-3 py-2 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-raised)] hover:text-[var(--text)] sm:min-h-0 sm:px-2 sm:py-1"
                               aria-expanded={isEditing}
                             >
                               {isEditing ? "Editing" : "Edit"}
                             </button>
                             <button
                               onClick={() => { if (isEditing) cancelEdit(); setConfirmingDeleteId(habit.id); }}
-                              className="min-h-9 rounded-lg px-3 py-2 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-raised)] hover:text-[var(--text)] sm:min-h-0 sm:px-2 sm:py-1"
+                              className="min-h-10 rounded-lg px-3 py-2 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-raised)] hover:text-[var(--text)] sm:min-h-0 sm:px-2 sm:py-1"
                               aria-expanded={isConfirmingDelete}
                             >
                               Delete
@@ -663,14 +663,14 @@ export default function HabitsPage() {
                             <div className="flex shrink-0 justify-end gap-1 border-t border-[var(--border)] pt-2 sm:border-t-0 sm:pt-0 sm:justify-start">
                               <button
                                 onClick={() => openEdit(habit)}
-                                className="min-h-9 rounded-lg px-3 py-2 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-raised)] hover:text-[var(--text)] sm:min-h-0 sm:px-2 sm:py-1"
+                                className="min-h-10 rounded-lg px-3 py-2 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-raised)] hover:text-[var(--text)] sm:min-h-0 sm:px-2 sm:py-1"
                                 aria-expanded={isEditing}
                               >
                                 {isEditing ? "Editing" : "Edit"}
                               </button>
                               <button
                                 onClick={() => { if (isEditing) cancelEdit(); setConfirmingDeleteId(habit.id); }}
-                                className="min-h-9 rounded-lg px-3 py-2 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-raised)] hover:text-[var(--text)] sm:min-h-0 sm:px-2 sm:py-1"
+                                className="min-h-10 rounded-lg px-3 py-2 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-raised)] hover:text-[var(--text)] sm:min-h-0 sm:px-2 sm:py-1"
                                 aria-expanded={isConfirmingDelete}
                               >
                                 Delete
@@ -728,7 +728,7 @@ export default function HabitsPage() {
                     <button
                       key={tpl}
                       onClick={() => applyTemplate(tpl)}
-                      className="rounded-full bg-[var(--surface-soft)] px-2.5 py-1.5 text-[10px] text-[var(--text-muted)] transition-all duration-150 hover:bg-[var(--surface-active)] hover:text-[var(--text)] hover:ring-1 hover:ring-[var(--accent)]/20 sm:py-1"
+                      className="min-h-10 rounded-full bg-[var(--surface-soft)] px-2.5 py-1.5 text-[10px] text-[var(--text-muted)] transition-all duration-150 hover:bg-[var(--surface-active)] hover:text-[var(--text)] hover:ring-1 hover:ring-[var(--accent)]/20 sm:min-h-0 sm:py-1"
                     >
                       {tpl}
                     </button>

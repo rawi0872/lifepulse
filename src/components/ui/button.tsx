@@ -16,9 +16,9 @@ export function Button({
     <button
       className={cn(
         "inline-flex items-center justify-center rounded-lg font-medium transition-all duration-150 disabled:opacity-40 disabled:pointer-events-none active:scale-[0.98]",
-        size === "sm" && "px-3 py-1.5 text-xs",
-        size === "md" && "px-4 py-2 text-sm",
-        size === "lg" && "px-6 py-3 text-base",
+        size === "sm" && "min-h-10 px-3 py-1.5 text-xs sm:min-h-0",
+        size === "md" && "min-h-11 px-4 py-2 text-sm sm:min-h-0",
+        size === "lg" && "min-h-12 px-6 py-3 text-base sm:min-h-0",
         variant === "primary" &&
           "text-white bg-[var(--accent)] hover:bg-[var(--accent-strong)] shadow-sm shadow-[var(--accent)]/10",
         variant === "secondary" &&

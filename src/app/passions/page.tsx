@@ -263,7 +263,7 @@ function PassionContent() {
 
             {activePassions.length === 0 && (
               <PulseCard title="Passions" accent="accent">
-                <EmptyState title="Passions" message="No passions yet. Hobbies and skills you actively practice — music, sports, coding, art, or anything you want to grow in." action={<Link href="/passions" className="inline-flex items-center gap-1 text-xs font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">Add your first passion &rarr;</Link>} />
+                <EmptyState title="Passions" message="No passions yet. Hobbies and skills you actively practice — music, sports, coding, art, or anything you want to grow in." action={<Link href="/passions" className="inline-flex min-h-10 items-center gap-1 text-xs font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0">Add your first passion &rarr;</Link>} />
               </PulseCard>
             )}
 
@@ -379,7 +379,7 @@ function PassionContent() {
 
             {passions.length === 0 && (
               <PulseCard title="Your Passions" accent="accent">
-                <EmptyState title="My Passions" message="No passions created yet." action={<Link href="/passions" className="inline-flex items-center gap-1 text-xs font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">Add a passion &rarr;</Link>} />
+                <EmptyState title="My Passions" message="No passions created yet." action={<Link href="/passions" className="inline-flex min-h-10 items-center gap-1 text-xs font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0">Add a passion &rarr;</Link>} />
               </PulseCard>
             )}
 
@@ -406,14 +406,14 @@ function PassionContent() {
                         <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
                           {editPassionId === p.id ? (
                             <button onClick={handleSaveEdit} disabled={saving}
-                              className="min-h-8 rounded-md px-2 py-1 text-[10px] font-medium text-[var(--accent)] hover:underline sm:min-h-0 sm:px-0 sm:py-0">Save</button>
+                              className="min-h-10 rounded-md px-2 py-1 text-[10px] font-medium text-[var(--accent)] hover:underline sm:min-h-0 sm:px-0 sm:py-0">Save</button>
                           ) : (
                             <button onClick={() => handleStartEdit(p)}
-                              className="min-h-8 rounded-md px-2 py-1 text-[10px] text-[var(--text-muted)] hover:text-[var(--text)] sm:min-h-0 sm:px-0 sm:py-0">Edit</button>
+                              className="min-h-10 rounded-md px-2 py-1 text-[10px] text-[var(--text-muted)] hover:text-[var(--text)] sm:min-h-0 sm:px-0 sm:py-0">Edit</button>
                           )}
                           {editPassionId !== p.id && (
                             <button onClick={() => handleDeletePassion(p.id)}
-                              className="min-h-8 rounded-md px-2 py-1 text-[10px] text-[var(--danger)] hover:underline sm:min-h-0 sm:px-0 sm:py-0">Delete</button>
+                              className="min-h-10 rounded-md px-2 py-1 text-[10px] text-[var(--danger)] hover:underline sm:min-h-0 sm:px-0 sm:py-0">Delete</button>
                           )}
                         </div>
                       </div>
@@ -453,7 +453,7 @@ function PassionContent() {
           <div className="space-y-6">
             {passions.length === 0 ? (
               <PulseCard title="Log Session" accent="accent">
-                <EmptyState title="No passions yet" message="Create a passion first, then log sessions to track your practice time and progress." action={<Link href="/passions" className="inline-flex items-center gap-1 text-xs font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">Add a passion &rarr;</Link>} />
+                <EmptyState title="No passions yet" message="Create a passion first, then log sessions to track your practice time and progress." action={<Link href="/passions" className="inline-flex min-h-10 items-center gap-1 text-xs font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0">Add a passion &rarr;</Link>} />
               </PulseCard>
             ) : (
               <PulseCard title="Log Session" accent="accent">
@@ -504,7 +504,7 @@ function PassionContent() {
 
             {sessions.length === 0 && (
               <PulseCard title="Recent Sessions" accent="accent">
-                <EmptyState title="Recent Sessions" message="No sessions logged yet. Log your first practice session to start tracking time spent on your passions." action={<Link href="/passions" className="inline-flex items-center gap-1 text-xs font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">Log a session &rarr;</Link>} />
+                <EmptyState title="Recent Sessions" message="No sessions logged yet. Log your first practice session to start tracking time spent on your passions." action={<Link href="/passions" className="inline-flex min-h-10 items-center gap-1 text-xs font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0">Log a session &rarr;</Link>} />
               </PulseCard>
             )}
 
@@ -531,7 +531,7 @@ function PassionContent() {
                             {s.duration_minutes !== null ? `${s.duration_minutes} min` : ""}
                           </span>
                           <button onClick={() => handleDeleteSession(s.id)}
-                            className="min-h-8 rounded-md px-2 py-1 text-[10px] text-[var(--danger)] opacity-100 transition-opacity sm:min-h-0 sm:px-0 sm:py-0 sm:opacity-0 sm:group-hover:opacity-100">Delete</button>
+                            className="min-h-10 rounded-md px-2 py-1 text-[10px] text-[var(--danger)] opacity-100 transition-opacity sm:min-h-0 sm:px-0 sm:py-0 sm:opacity-0 sm:group-hover:opacity-100">Delete</button>
                         </div>
                       </div>
                     );
@@ -547,7 +547,7 @@ function PassionContent() {
           <div className="space-y-6">
             {passions.length === 0 ? (
               <PulseCard title="Add Milestone" accent="success">
-                <EmptyState title="No passions yet" message="Create a passion first, then set milestones to mark progress on your journey." action={<Link href="/passions" className="inline-flex items-center gap-1 text-xs font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">Add a passion &rarr;</Link>} />
+                <EmptyState title="No passions yet" message="Create a passion first, then set milestones to mark progress on your journey." action={<Link href="/passions" className="inline-flex min-h-10 items-center gap-1 text-xs font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0">Add a passion &rarr;</Link>} />
               </PulseCard>
             ) : (
               <PulseCard title="Add Milestone" accent="success">
@@ -581,7 +581,7 @@ function PassionContent() {
 
             {milestones.length === 0 && (
               <PulseCard title="Milestones" accent="success">
-                <EmptyState title="Milestones" message="No milestones yet. Set your first milestone to mark an achievement on your journey." action={<Link href="/passions" className="inline-flex items-center gap-1 text-xs font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">Add a milestone &rarr;</Link>} />
+                <EmptyState title="Milestones" message="No milestones yet. Set your first milestone to mark an achievement on your journey." action={<Link href="/passions" className="inline-flex min-h-10 items-center gap-1 text-xs font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0">Add a milestone &rarr;</Link>} />
               </PulseCard>
             )}
 
@@ -596,13 +596,13 @@ function PassionContent() {
                         <div className="flex min-w-0 items-start gap-3">
                           {!isDone ? (
                             <button onClick={() => handleCompleteMilestone(m.id)}
-                              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-[var(--text-muted)]/40 transition-all hover:border-[var(--success)] hover:bg-[var(--success-soft)] sm:h-5 sm:w-5">
+                              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-[var(--text-muted)]/40 transition-all hover:border-[var(--success)] hover:bg-[var(--success-soft)] sm:h-5 sm:w-5">
                               <svg className="h-3 w-3 text-transparent group-hover:text-[var(--success)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                               </svg>
                             </button>
                           ) : (
-                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--success-soft)] sm:h-5 sm:w-5">
+                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--success-soft)] sm:h-5 sm:w-5">
                               <svg className="h-3 w-3 text-[var(--success)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                               </svg>

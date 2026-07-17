@@ -49,7 +49,7 @@ export function TransactionList({ transactions, onEdit, onDelete, onAddNew }: Tr
             key={chip.key}
             type="button"
             onClick={() => { setFilter(chip.key); setConfirmDelete(null); }}
-            className={`min-h-9 rounded-lg px-3 py-1.5 text-xs font-medium transition-all sm:min-h-0 ${
+            className={`min-h-10 rounded-lg px-3 py-1.5 text-xs font-medium transition-all sm:min-h-0 ${
               filter === chip.key
                 ? "bg-[var(--accent-soft)] text-[var(--accent)] ring-1 ring-[var(--accent)]/30"
                 : "bg-[var(--surface-soft)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
@@ -104,7 +104,7 @@ export function TransactionList({ transactions, onEdit, onDelete, onAddNew }: Tr
                 <button
                   type="button"
                   onClick={() => onEdit(tx)}
-                  className="min-h-8 rounded-md px-2 py-1 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface)] hover:text-[var(--text)] sm:min-h-0"
+                  className="min-h-10 rounded-md px-2 py-1 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface)] hover:text-[var(--text)] sm:min-h-0"
                 >
                   Edit
                 </button>
@@ -113,14 +113,14 @@ export function TransactionList({ transactions, onEdit, onDelete, onAddNew }: Tr
                     <button
                       type="button"
                       onClick={() => { onDelete(tx.id); setConfirmDelete(null); }}
-                       className="min-h-8 rounded-md px-2 py-1 text-xs text-[var(--danger)] transition-colors hover:bg-[var(--danger-soft)] sm:min-h-0"
+                       className="min-h-10 rounded-md px-2 py-1 text-xs text-[var(--danger)] transition-colors hover:bg-[var(--danger-soft)] sm:min-h-0"
                     >
                       Confirm
                     </button>
                     <button
                       type="button"
                       onClick={() => setConfirmDelete(null)}
-                       className="min-h-8 rounded-md px-2 py-1 text-xs text-[var(--text-muted)] transition-colors hover:text-[var(--text)] sm:min-h-0"
+                       className="min-h-10 rounded-md px-2 py-1 text-xs text-[var(--text-muted)] transition-colors hover:text-[var(--text)] sm:min-h-0"
                     >
                       Cancel
                     </button>
@@ -129,7 +129,7 @@ export function TransactionList({ transactions, onEdit, onDelete, onAddNew }: Tr
                   <button
                     type="button"
                     onClick={() => setConfirmDelete(tx.id)}
-                    className="min-h-8 rounded-md px-2 py-1 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--danger-soft)] hover:text-[var(--danger)] sm:min-h-0"
+                    className="min-h-10 rounded-md px-2 py-1 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--danger-soft)] hover:text-[var(--danger)] sm:min-h-0"
                   >
                     Delete
                   </button>

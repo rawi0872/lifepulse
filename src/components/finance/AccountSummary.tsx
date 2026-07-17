@@ -8,6 +8,9 @@ interface AccountSummaryProps {
   accountBalances: AccountBalance[];
   hasMixedCurrencies: boolean;
   onDelete: (id: string) => void;
+  onRequestDelete: (id: string) => void;
+  onCancelDelete: () => void;
+  confirmingDeleteId: string | null;
   onAddNew: () => void;
 }
 
@@ -20,7 +23,7 @@ const accountTypeIcons: Record<string, string> = {
   other: "Other",
 };
 
-export function AccountSummary({ accountBalances, hasMixedCurrencies, onDelete, onAddNew }: AccountSummaryProps) {
+export function AccountSummary({ accountBalances, hasMixedCurrencies, onDelete, onRequestDelete, onCancelDelete, confirmingDeleteId, onAddNew }: AccountSummaryProps) {
   if (accountBalances.length === 0) {
     return (
       <Card variant="subtle" className="p-6 text-center">
@@ -30,7 +33,7 @@ export function AccountSummary({ accountBalances, hasMixedCurrencies, onDelete, 
         <button
           type="button"
           onClick={onAddNew}
-          className="text-sm text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors"
+          className="inline-flex min-h-10 items-center justify-center rounded-lg px-3 text-sm text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0"
         >
           + Add account
         </button>
@@ -65,7 +68,8 @@ export function AccountSummary({ accountBalances, hasMixedCurrencies, onDelete, 
           const isNegative = a.currentBalance < 0;
 
           return (
-            <Card key={a.accountId} className="flex min-w-0 flex-col gap-3 px-3 py-3 sm:flex-row sm:items-center sm:gap-3 sm:px-4">
+            <Card key={a.accountId} className="min-w-0 px-3 py-3 sm:px-4">
+              <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--surface-raised)]">
                 <span className="text-[10px] font-medium text-[var(--text-secondary)]">
                   {accountTypeIcons[a.accountType] || a.accountType.slice(0, 3)}
@@ -96,11 +100,26 @@ export function AccountSummary({ accountBalances, hasMixedCurrencies, onDelete, 
               <span className="text-xs text-[var(--text-muted)] sm:inline">{a.currency}</span>
               <button
                 type="button"
-                onClick={() => onDelete(a.accountId)}
-                className="min-h-8 shrink-0 rounded-md px-2 py-1 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--danger-soft)] hover:text-[var(--danger)] sm:min-h-0"
+                onClick={() => onRequestDelete(a.accountId)}
+                className="min-h-10 shrink-0 rounded-md px-2 py-1 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--danger-soft)] hover:text-[var(--danger)] sm:min-h-0"
               >
                 Delete
               </button>
+              </div>
+              {confirmingDeleteId === a.accountId && (
+                <div className="mt-3 rounded-lg border border-[var(--danger)]/20 bg-[var(--danger-soft)]/30 p-3">
+                  <p className="text-xs font-medium text-[var(--text)]">Delete this account?</p>
+                  <p className="mt-1 text-[10px] leading-relaxed text-[var(--text-muted)]">Transactions linked to this account stay saved, but the account is removed.</p>
+                  <div className="mt-3 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                    <button type="button" onClick={onCancelDelete} className="inline-flex min-h-10 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs font-medium text-[var(--text-muted)] transition-colors hover:text-[var(--text)] sm:min-h-0 sm:py-1.5">
+                      Cancel
+                    </button>
+                    <button type="button" onClick={() => onDelete(a.accountId)} className="inline-flex min-h-10 items-center justify-center rounded-lg border border-[var(--danger)]/30 bg-[var(--danger-soft)] px-3 py-2 text-xs font-medium text-[var(--danger)] transition-colors hover:border-[var(--danger)]/50 sm:min-h-0 sm:py-1.5">
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              )}
             </Card>
           );
         })}

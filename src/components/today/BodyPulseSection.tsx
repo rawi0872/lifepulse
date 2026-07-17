@@ -57,7 +57,7 @@ export function BodyPulseSection({
           message="When you are ready, add one small repeatable action you can actually keep."
           compact
           action={
-            <Link href="/habits" className="inline-flex min-h-9 items-center gap-1 rounded-lg bg-[var(--accent-soft)] px-3 text-xs font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0 sm:bg-transparent sm:px-0">
+            <Link href="/habits" className="inline-flex min-h-10 items-center gap-1 rounded-lg bg-[var(--accent-soft)] px-3 text-xs font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0 sm:bg-transparent sm:px-0">
               Add one habit &rarr;
             </Link>
           }

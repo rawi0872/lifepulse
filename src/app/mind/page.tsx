@@ -219,7 +219,7 @@ function MindContent() {
 
           <div className="space-y-6">
             <PulseCard title="Focus Habits" accent="accent" description="Meditation, focus, reading, learning" action={
-              <Link href="/habits" className="text-[10px] font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">
+              <Link href="/habits" className="inline-flex min-h-10 items-center text-[10px] font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0">
                 Manage
               </Link>
             }>
@@ -228,7 +228,7 @@ function MindContent() {
                   <EmptyState
                     message="No mind-related habits yet."
                     action={
-                      <Link href="/habits" className="inline-flex items-center gap-1 text-xs font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">
+                      <Link href="/habits" className="inline-flex min-h-10 items-center gap-1 text-xs font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0">
                         Create focus habit &rarr;
                       </Link>
                     }
@@ -253,7 +253,7 @@ function MindContent() {
             <MindMetricsAverages recent={mindMetrics} />
 
             <PulseCard title="Open Tasks" accent="accent" description="Mind-related tasks" action={
-              <Link href="/tasks" className="text-[10px] font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">
+              <Link href="/tasks" className="inline-flex min-h-10 items-center text-[10px] font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0">
                 Manage
               </Link>
             }>
@@ -262,7 +262,7 @@ function MindContent() {
                   <EmptyState
                     message="No open mind-related tasks."
                     action={
-                      <Link href="/tasks" className="inline-flex items-center gap-1 text-xs font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors">
+                      <Link href="/tasks" className="inline-flex min-h-10 items-center gap-1 text-xs font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0">
                         Add clarity task &rarr;
                       </Link>
                     }

@@ -129,12 +129,12 @@ export function NutritionSection({ todayDate = getTodayDate() }: NutritionSectio
             <p className="mt-1 text-[10px] leading-relaxed text-[var(--text-muted)]">These only fill fields. You still choose whether to save.</p>
             <div className="mt-2 flex flex-wrap gap-1.5">
               {FOOD_HELPERS.map((helper) => (
-                <button key={helper} type="button" onClick={() => applyFoodHelper(helper)} className="rounded-full border border-[var(--border)] bg-[var(--surface)]/70 px-2.5 py-1.5 text-[10px] text-[var(--text-muted)] transition-colors hover:border-[var(--success)]/30 hover:text-[var(--text-secondary)]">
+                <button key={helper} type="button" onClick={() => applyFoodHelper(helper)} className="min-h-10 rounded-full border border-[var(--border)] bg-[var(--surface)]/70 px-2.5 py-1.5 text-[10px] text-[var(--text-muted)] transition-colors hover:border-[var(--success)]/30 hover:text-[var(--text-secondary)] sm:min-h-0">
                   {helper}
                 </button>
               ))}
               {WATER_HELPERS.map((helper) => (
-                <button key={helper.label} type="button" onClick={() => applyWaterHelper(helper.value)} className="rounded-full border border-[var(--border)] bg-[var(--surface)]/70 px-2.5 py-1.5 text-[10px] text-[var(--text-muted)] transition-colors hover:border-[var(--success)]/30 hover:text-[var(--text-secondary)]">
+                <button key={helper.label} type="button" onClick={() => applyWaterHelper(helper.value)} className="min-h-10 rounded-full border border-[var(--border)] bg-[var(--surface)]/70 px-2.5 py-1.5 text-[10px] text-[var(--text-muted)] transition-colors hover:border-[var(--success)]/30 hover:text-[var(--text-secondary)] sm:min-h-0">
                   {helper.label}
                 </button>
               ))}

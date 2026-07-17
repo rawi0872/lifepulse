@@ -79,7 +79,7 @@ export function GoalLinks({ links, projects, tasks, habits, saving, onAdd, onRem
         <button
           onClick={() => setShowForm(!showForm)}
           disabled={saving}
-          className="rounded-md py-1 text-[10px] text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:py-0"
+          className="min-h-10 rounded-md py-1 text-[10px] text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0 sm:py-0"
         >
           {showForm ? "Cancel" : "+ Link"}
         </button>
@@ -90,7 +90,7 @@ export function GoalLinks({ links, projects, tasks, habits, saving, onAdd, onRem
           <select
             value={linkType}
             onChange={(e) => { setLinkType(e.target.value as GoalLinkType); setLinkId(""); }}
-            className="rounded border border-[var(--border)] bg-[var(--surface)] px-2 py-1.5 text-[10px] text-[var(--foreground)] outline-none sm:px-1.5 sm:py-0.5"
+            className="min-h-10 rounded border border-[var(--border)] bg-[var(--surface)] px-2 py-1.5 text-[10px] text-[var(--foreground)] outline-none sm:min-h-0 sm:px-1.5 sm:py-0.5"
           >
             <option value="project">Project</option>
             <option value="task">Task</option>
@@ -99,7 +99,7 @@ export function GoalLinks({ links, projects, tasks, habits, saving, onAdd, onRem
           <select
             value={linkId}
             onChange={(e) => setLinkId(e.target.value)}
-            className="min-w-0 rounded border border-[var(--border)] bg-[var(--surface)] px-2 py-1.5 text-[10px] text-[var(--foreground)] outline-none sm:min-w-[120px] sm:px-1.5 sm:py-0.5"
+            className="min-h-10 min-w-0 rounded border border-[var(--border)] bg-[var(--surface)] px-2 py-1.5 text-[10px] text-[var(--foreground)] outline-none sm:min-h-0 sm:min-w-[120px] sm:px-1.5 sm:py-0.5"
           >
             <option value="">Select...</option>
             {currentOptions.map((opt) => (
@@ -115,7 +115,7 @@ export function GoalLinks({ links, projects, tasks, habits, saving, onAdd, onRem
               setLinkId("");
             }}
             disabled={saving || !linkId}
-            className="rounded bg-[var(--accent)] px-2 py-1.5 text-[10px] font-medium text-white disabled:opacity-40 sm:py-0.5"
+            className="min-h-10 rounded bg-[var(--accent)] px-2 py-1.5 text-[10px] font-medium text-white disabled:opacity-40 sm:min-h-0 sm:py-0.5"
           >
             Add
           </button>

@@ -251,6 +251,7 @@ export default function FinancePage() {
   const [showBudgetForm, setShowBudgetForm] = useState(false);
   const [budgetCategoryId, setBudgetCategoryId] = useState("");
   const [budgetAmount, setBudgetAmount] = useState("");
+  const [confirmingBudgetDeleteId, setConfirmingBudgetDeleteId] = useState<string | null>(null);
 
   async function handleAddBudget() {
     const amount = parseFloat(budgetAmount);
@@ -280,9 +281,9 @@ export default function FinancePage() {
   }
 
   async function deleteBudget(id: string) {
-    if (!confirm("Delete this budget? This cannot be undone.")) return;
     try {
       await supabase.from("finance_budgets").delete().eq("id", id);
+      setConfirmingBudgetDeleteId(null);
       loadData();
     } catch {
       toast({ type: "error", title: "Failed to delete budget." });
@@ -294,6 +295,7 @@ export default function FinancePage() {
   const [acctType, setAcctType] = useState("cash");
   const [acctBalance, setAcctBalance] = useState("0");
   const [acctCurrency, setAcctCurrency] = useState("ILS");
+  const [confirmingAccountDeleteId, setConfirmingAccountDeleteId] = useState<string | null>(null);
 
   async function handleAddAccount() {
     const name = acctName.trim();
@@ -327,9 +329,9 @@ export default function FinancePage() {
   }
 
   async function deleteAccount(id: string) {
-    if (!confirm("Delete this account? Transactions linked to this account will remain but the account will be removed.")) return;
     try {
       await supabase.from("finance_accounts").delete().eq("id", id);
+      setConfirmingAccountDeleteId(null);
       loadData();
     } catch {
       toast({ type: "error", title: "Failed to delete account." });
@@ -413,7 +415,7 @@ export default function FinancePage() {
               <button
                 type="button"
                 onClick={() => setCurrentMonth((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1))}
-                className="min-h-9 rounded-lg px-2.5 py-1.5 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface)] hover:text-[var(--text)] sm:min-h-0"
+                className="min-h-10 rounded-lg px-2.5 py-1.5 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface)] hover:text-[var(--text)] sm:min-h-0"
                 aria-label="Previous month"
               >
                 &larr; Prev
@@ -421,14 +423,14 @@ export default function FinancePage() {
               <button
                 type="button"
                 onClick={() => setCurrentMonth(new Date())}
-                className="min-h-9 rounded-lg px-2.5 py-1.5 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface)] hover:text-[var(--text)] sm:min-h-0"
+                className="min-h-10 rounded-lg px-2.5 py-1.5 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface)] hover:text-[var(--text)] sm:min-h-0"
               >
                 Today
               </button>
               <button
                 type="button"
                 onClick={() => setCurrentMonth((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1))}
-                className="min-h-9 rounded-lg px-2.5 py-1.5 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface)] hover:text-[var(--text)] sm:min-h-0"
+                className="min-h-10 rounded-lg px-2.5 py-1.5 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface)] hover:text-[var(--text)] sm:min-h-0"
                 aria-label="Next month"
               >
                 Next &rarr;
@@ -600,7 +602,7 @@ export default function FinancePage() {
               Budget Health
               <HelpPopover title="Budget Health" className="ml-1">
                 <p>Budgets help you record a monthly amount for a category. Life Pulse compares logged expenses in that category against the budget.</p>
-                <p className="mt-1.5 text-[var(--text-muted)]">On track = logged expenses are below the budget. Near limit = logged expenses are close to the budget. Over budget = logged expenses passed the budget.</p>
+                <p className="mt-1.5 text-[var(--text-muted)]">Within budget = logged expenses are below the budget. Near limit = logged expenses are close to the budget. Over budget = logged expenses passed the budget.</p>
                 <p className="mt-1.5">Budgets only use expense categories.</p>
               </HelpPopover>
             </h3>
@@ -625,6 +627,9 @@ export default function FinancePage() {
             budgetUsage={analytics.budgetUsage}
             formatCurrency={formatCurrency}
             onDelete={deleteBudget}
+            onRequestDelete={setConfirmingBudgetDeleteId}
+            onCancelDelete={() => setConfirmingBudgetDeleteId(null)}
+            confirmingDeleteId={confirmingBudgetDeleteId}
           />
         </div>
 
@@ -661,6 +666,9 @@ export default function FinancePage() {
             accountBalances={analytics.accountBalances}
             hasMixedCurrencies={analytics.hasMixedCurrencies}
             onDelete={deleteAccount}
+            onRequestDelete={setConfirmingAccountDeleteId}
+            onCancelDelete={() => setConfirmingAccountDeleteId(null)}
+            confirmingDeleteId={confirmingAccountDeleteId}
             onAddNew={() => setShowAccountForm(true)}
           />
         </div>

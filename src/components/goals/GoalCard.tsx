@@ -51,7 +51,7 @@ export function GoalCard({ goal, milestoneProgress, nextMilestoneTitle, onEdit, 
           {!isComplete && (
             <button
               onClick={() => onComplete(goal.id)}
-              className="inline-flex min-h-9 items-center gap-1 rounded-lg px-2.5 py-2 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-active)] hover:text-[var(--success)] sm:min-h-0 sm:py-1"
+              className="inline-flex min-h-10 items-center gap-1 rounded-lg px-2.5 py-2 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-active)] hover:text-[var(--success)] sm:min-h-0 sm:py-1"
               title="Mark complete"
             >
               <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -62,7 +62,7 @@ export function GoalCard({ goal, milestoneProgress, nextMilestoneTitle, onEdit, 
           )}
           <button
             onClick={() => onEdit(goal)}
-            className="inline-flex min-h-9 items-center gap-1 rounded-lg px-2.5 py-2 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-active)] hover:text-[var(--accent)] sm:min-h-0 sm:py-1"
+            className="inline-flex min-h-10 items-center gap-1 rounded-lg px-2.5 py-2 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-active)] hover:text-[var(--accent)] sm:min-h-0 sm:py-1"
             title="Edit goal"
           >
             <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -72,7 +72,7 @@ export function GoalCard({ goal, milestoneProgress, nextMilestoneTitle, onEdit, 
           </button>
           <button
             onClick={() => onDelete(goal.id)}
-            className="inline-flex min-h-9 items-center gap-1 rounded-lg px-2.5 py-2 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-active)] hover:text-[var(--text)] sm:min-h-0 sm:py-1"
+            className="inline-flex min-h-10 items-center gap-1 rounded-lg px-2.5 py-2 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-active)] hover:text-[var(--text)] sm:min-h-0 sm:py-1"
             title="Delete goal"
           >
             <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>

@@ -51,7 +51,7 @@ function RatingRow({ label, value, onChange, max = 5 }: { label: string; value: 
             type="button"
             onClick={() => onChange(value === n ? null : n)}
             className={cn(
-               "flex h-9 w-9 items-center justify-center rounded-md text-xs font-medium transition-all sm:h-7 sm:w-7",
+                "flex h-10 w-10 items-center justify-center rounded-md text-xs font-medium transition-all sm:h-7 sm:w-7",
               value !== null && n <= value
                 ? "bg-[var(--accent)] text-white"
                 : "bg-[var(--surface)] text-[var(--text-muted)] hover:bg-[var(--surface-active)]",

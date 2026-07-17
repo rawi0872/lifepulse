@@ -28,7 +28,7 @@ export function TodayEcosystemStrip({ modules }: TodayEcosystemStripProps) {
           <Link
             key={module.key}
             href={module.href!}
-            className="inline-flex min-h-9 min-w-0 items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface)]/50 px-3 py-1.5 text-xs font-medium text-[var(--text-muted)] transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface)] hover:text-[var(--text)] sm:min-h-0"
+            className="inline-flex min-h-10 min-w-0 items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface)]/50 px-3 py-1.5 text-xs font-medium text-[var(--text-muted)] transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface)] hover:text-[var(--text)] sm:min-h-0"
           >
             <span>{module.label}</span>
             {module.status === "preview" && (

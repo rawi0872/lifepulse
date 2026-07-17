@@ -106,7 +106,7 @@ function NavLink({ item, active, onClick }: { item: NavItem; active: boolean; on
       href={item.href}
       onClick={onClick}
       aria-current={active ? "page" : undefined}
-      className={`group relative flex min-w-0 items-center gap-2.5 rounded-lg border px-2.5 py-2 text-sm font-medium transition-all duration-200 ${
+      className={`group relative flex min-h-10 min-w-0 items-center gap-2.5 rounded-lg border px-2.5 py-2 text-sm font-medium transition-all duration-200 md:min-h-0 ${
         active
           ? "border-white/[0.08] bg-[var(--surface)] text-[var(--text)] shadow-sm shadow-black/10"
           : "border-transparent text-[var(--text-muted)] hover:border-white/[0.04] hover:bg-white/[0.025] hover:text-[var(--text-secondary)]"
@@ -212,7 +212,7 @@ export function DashboardNav({ children }: { children: React.ReactNode }) {
               </div>
               <button
                 onClick={() => setMoreOpen(false)}
-                className="rounded-lg p-1.5 text-[var(--text-muted)] transition-colors hover:bg-[var(--surface)] hover:text-[var(--text)]"
+                className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-lg p-1.5 text-[var(--text-muted)] transition-colors hover:bg-[var(--surface)] hover:text-[var(--text)]"
                 aria-label="Close more menu"
               >
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>

@@ -49,7 +49,7 @@ export function TodaysPulseHeader({ totalXp, todayXp, subtitle }: TodaysPulseHea
           </p>
           <Link
             href="/weekly-review"
-            className="mt-2 inline-flex min-h-9 items-center rounded-md text-xs font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0"
+            className="mt-2 inline-flex min-h-10 items-center rounded-md text-xs font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0"
           >
             View weekly review &rarr;
           </Link>

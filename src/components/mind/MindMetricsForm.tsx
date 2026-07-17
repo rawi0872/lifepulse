@@ -37,7 +37,7 @@ function RatingRow({ label, hint, value, onChange, max = 5 }: { label: string; h
             type="button"
             onClick={() => onChange(value === n ? null : n)}
             className={cn(
-              "flex h-9 w-9 items-center justify-center rounded-md text-xs font-medium transition-all sm:h-7 sm:w-7",
+              "flex h-10 w-10 items-center justify-center rounded-md text-xs font-medium transition-all sm:h-7 sm:w-7",
               value !== null && n <= value
                 ? "bg-[var(--accent)] text-white"
                 : "bg-[var(--surface)] text-[var(--text-muted)] hover:bg-[var(--surface-active)]",
@@ -116,7 +116,7 @@ export function MindMetricsForm({ initial, saving, onSave }: MindMetricsFormProp
             <p className="mt-1 text-[10px] leading-relaxed text-[var(--text-muted)]">These only fill the note. You still choose whether to save.</p>
             <div className="mt-2 flex flex-wrap gap-1.5">
               {NOTE_HELPERS.map((helper) => (
-                <button key={helper} type="button" onClick={() => applyNoteHelper(helper)} className="rounded-full border border-[var(--border)] bg-[var(--surface)]/70 px-2.5 py-1.5 text-[10px] text-[var(--text-muted)] transition-colors hover:border-[var(--accent)]/30 hover:text-[var(--text-secondary)]">
+                <button key={helper} type="button" onClick={() => applyNoteHelper(helper)} className="min-h-10 rounded-full border border-[var(--border)] bg-[var(--surface)]/70 px-2.5 py-1.5 text-[10px] text-[var(--text-muted)] transition-colors hover:border-[var(--accent)]/30 hover:text-[var(--text-secondary)] sm:min-h-0">
                   {helper}
                 </button>
               ))}
