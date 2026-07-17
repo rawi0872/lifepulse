@@ -34,7 +34,6 @@ const PASSWORD = env.LIFE_PULSE_TEST_PASSWORD;
 const ERROR_SCREENSHOT_PATH = "screenshot-projects-prod-error.png";
 
 const requiredProjectsText = [
-  "Projects",
   "Turn bigger goals into visible progress.",
 ];
 
@@ -146,8 +145,9 @@ async function main() {
     await page.goto(`${BASE}/projects`, { waitUntil: "domcontentloaded", timeout: 30000 });
     await page.waitForURL(/\/projects/, { timeout: 30000 });
     await assertAuthenticatedRoute(page, "Projects");
-    await expect(page.getByRole("heading", { name: "Projects" })).toBeVisible({ timeout: 20000 });
+    await expect(page.getByRole("heading", { name: "Projects", exact: true })).toBeVisible({ timeout: 20000 });
     pass("Projects page loaded");
+    pass("Found page title: Projects");
 
     for (const text of requiredProjectsText) {
       await expectBodyText(page, text);
