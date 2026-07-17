@@ -145,6 +145,33 @@ function MindContent() {
       <div className="mx-auto max-w-5xl min-w-0">
         <MindPulseHeader journalCount={journalEntries.length} journalStreak={journalStreak} avgMood={avgMood} />
 
+        <div className="mb-6">
+          <PulseCard title="Today mind check-in" accent="accent" description="Optional context">
+            <div className="p-4 sm:p-5">
+              <p className="max-w-2xl text-sm leading-relaxed text-[var(--text-secondary)]">
+                Log today&apos;s mood, energy to act, stress, focus, clarity, or a short note about what affected the day. Mind logs add optional context to Today and Weekly Review so patterns are easier to notice over time.
+              </p>
+              <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)]/70 px-3 py-3">
+                  <span className="block text-xs font-semibold text-[var(--text)]">What to log</span>
+                  <span className="mt-1 block text-[10px] leading-relaxed text-[var(--text-muted)]">Mood, energy, stress, focus, and one note if useful.</span>
+                </div>
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)]/70 px-3 py-3">
+                  <span className="block text-xs font-semibold text-[var(--text)]">How it helps</span>
+                  <span className="mt-1 block text-[10px] leading-relaxed text-[var(--text-muted)]">Adds private context to your daily loop and review.</span>
+                </div>
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)]/70 px-3 py-3">
+                  <span className="block text-xs font-semibold text-[var(--text)]">What it is not</span>
+                  <span className="mt-1 block text-[10px] leading-relaxed text-[var(--text-muted)]">Not clinical care or medical guidance.</span>
+                </div>
+              </div>
+              <p className="mt-3 text-[10px] leading-relaxed text-[var(--text-muted)]">
+                Mind is optional support. One honest check-in is enough, and blank fields are fine.
+              </p>
+            </div>
+          </PulseCard>
+        </div>
+
         <div className="mb-6 grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-4">
           <MetricCard label="Journal Streak" value={journalStreak} icon={
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>

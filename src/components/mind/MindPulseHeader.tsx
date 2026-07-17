@@ -17,8 +17,12 @@ export function MindPulseHeader({ journalCount, journalStreak, avgMood }: MindPu
           <LifePulseLogo variant="mark" size="sm" />
         </div>
         <div className="min-w-0">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">Private mind check-in</p>
           <h1 className="break-words text-xl font-bold tracking-tight text-[var(--text)]">Mind Pulse</h1>
-          <p className="break-words text-xs text-[var(--text-muted)]">Mood, reflection, and mental clarity</p>
+          <p className="mt-1 max-w-xl break-words text-sm leading-relaxed text-[var(--text-secondary)]">
+            Log what affected today with simple mood, energy, stress, focus, and note tracking. Manual context only, not clinical or medical guidance.
+          </p>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">One honest note is enough. Leave anything blank.</p>
         </div>
       </div>
       <div className="flex min-w-0 flex-wrap items-center gap-2 sm:justify-end sm:gap-3">

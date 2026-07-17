@@ -49,12 +49,13 @@ export function MindPulseSection({ tasks, doneTaskCount, tasksLength, taskContex
       {tasks.length === 0 ? (
         <EmptyState
           eyebrow="Tasks"
-          title="No tasks for today."
-          message="Add one visible action if something needs to move. Otherwise, keep the day light."
+          title="No mind tasks for today."
+          message="If nothing needs action, a private mind check-in can still add context for Today and Weekly Review."
+          description="Optional manual tracking only, not clinical or medical guidance."
           compact
           action={
-            <Link href="/tasks" className="inline-flex min-h-9 items-center gap-1 rounded-lg bg-[var(--accent-soft)] px-3 text-xs font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0 sm:bg-transparent sm:px-0">
-              Add a task &rarr;
+            <Link href="/mind" className="inline-flex min-h-9 items-center gap-1 rounded-lg bg-[var(--accent-soft)] px-3 text-xs font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0 sm:bg-transparent sm:px-0">
+              Log mind check-in &rarr;
             </Link>
           }
         />
