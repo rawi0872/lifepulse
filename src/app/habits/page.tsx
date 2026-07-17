@@ -77,6 +77,7 @@ export default function HabitsPage() {
   const [weeklyProgress, setWeeklyProgress] = useState<Record<string, { completed: number; target: number } | null>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [togglingHabitId, setTogglingHabitId] = useState<string | null>(null);
   const { toast } = useToast();
   const router = useRouter();
   const supabase = createClient();
@@ -84,13 +85,6 @@ export default function HabitsPage() {
   const weekStart = getWeekStartDate();
 
   const cancelledRef = useRef(false);
-
-  useEffect(() => {
-    cancelledRef.current = false;
-    load();
-    return () => { cancelledRef.current = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   useEffect(() => {
     if (!editingId) return;
@@ -170,6 +164,13 @@ export default function HabitsPage() {
     if (goalsRes.data) setLinkedGoals(goalsRes.data as LinkedGoal[]);
     setLoading(false);
   }
+
+  useEffect(() => {
+    cancelledRef.current = false;
+    void Promise.resolve().then(load);
+    return () => { cancelledRef.current = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function resetForm() {
     setTitle("");
@@ -258,6 +259,73 @@ export default function HabitsPage() {
     setConfirmingDeleteId(null);
     toast({ type: "success", title: "Habit deleted." });
     await load();
+  }
+
+  async function toggleHabit(habitId: string, isCompleted: boolean) {
+    if (togglingHabitId) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    setTogglingHabitId(habitId);
+    try {
+      if (isCompleted) {
+        const { data: existing } = await supabase
+          .from("habit_logs")
+          .select("id")
+          .eq("habit_id", habitId)
+          .eq("completed_date", today)
+          .maybeSingle();
+
+        if (existing) return;
+
+        const { data: log, error: logErr } = await supabase
+          .from("habit_logs")
+          .insert({ user_id: user.id, habit_id: habitId, completed_date: today })
+          .select()
+          .single();
+
+        if (logErr || !log) throw logErr;
+
+        await supabase.from("xp_events").insert({
+          user_id: user.id,
+          source_type: "habit",
+          source_id: log.id,
+          amount: 10,
+        });
+
+        setTodayCompleted((prev) => new Set([...prev, habitId]));
+        toast({ type: "success", title: "Habit logged.", description: "+10 XP added to today's momentum." });
+      } else {
+        const { data: logs } = await supabase
+          .from("habit_logs")
+          .select("id")
+          .eq("habit_id", habitId)
+          .eq("completed_date", today);
+
+        if (logs && logs.length > 0) {
+          const logId = logs[0].id;
+          await supabase.from("xp_events").delete().match({
+            source_type: "habit",
+            source_id: logId,
+            user_id: user.id,
+          });
+          await supabase.from("habit_logs").delete().eq("id", logId);
+        }
+
+        setTodayCompleted((prev) => {
+          const next = new Set(prev);
+          next.delete(habitId);
+          return next;
+        });
+        toast({ type: "success", title: "Habit unchecked." });
+      }
+
+      await load();
+    } catch {
+      toast({ type: "error", title: "Failed to update habit." });
+    } finally {
+      setTogglingHabitId(null);
+    }
   }
 
   function toggleDay(d: number) {
@@ -546,9 +614,17 @@ export default function HabitsPage() {
                         >
                           <div className="flex flex-col gap-3 px-4 py-3.5 sm:flex-row sm:items-center sm:py-3">
                             <div className="flex min-w-0 items-start gap-3 sm:flex-1">
-                              <span className={`mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 text-[10px] transition-all duration-150 sm:h-7 sm:w-7 ${doneToday ? "border-[var(--success)] bg-[var(--success)] text-white shadow-sm shadow-[var(--success)]/15" : "border-[var(--text-muted)]/30 text-transparent"}`}>
+                              <button
+                                type="button"
+                                onClick={() => toggleHabit(habit.id, !doneToday)}
+                                disabled={togglingHabitId === habit.id}
+                                role="checkbox"
+                                aria-checked={doneToday}
+                                aria-label={`${doneToday ? "Uncheck" : "Check"} habit ${habit.title}`}
+                                className={`mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 text-[10px] transition-all duration-150 disabled:opacity-60 sm:h-7 sm:w-7 ${doneToday ? "border-[var(--success)] bg-[var(--success)] text-white shadow-sm shadow-[var(--success)]/15" : "border-[var(--text-muted)]/40 text-transparent hover:border-[var(--success)] hover:bg-[var(--success-soft)]"}`}
+                              >
                                 ✓
-                              </span>
+                              </button>
                               <div className="min-w-0 flex-1">
                                 <div className="flex min-w-0 flex-wrap items-start gap-x-2 gap-y-1">
                                   <p className={`min-w-0 flex-1 text-pretty text-sm font-semibold leading-snug ${doneToday ? "text-[var(--text-muted)]" : "text-[var(--text)]"}`}>
