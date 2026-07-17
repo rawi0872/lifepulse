@@ -338,7 +338,7 @@ function WeeklyReviewContent() {
           Reset, reflect, and choose what deserves attention next week.
         </p>
         <p className="mt-2 max-w-2xl break-words text-sm leading-relaxed text-[var(--text-secondary)]">
-          Review tasks, habits, reflections, body, mind, and finance signals in one place. Use this to notice what helped, what drifted, and what to adjust next week.
+          Review what changed from tasks, habits, reflections, body, mind, and finance logs. This is a private manual review built from what you logged, not a score.
         </p>
         <p className="mt-1 break-words text-sm text-[var(--text-muted)]">
           {dayLabels[0]} &ndash; {dayLabels[6]}
@@ -357,7 +357,7 @@ function WeeklyReviewContent() {
             Why this gets useful
           </p>
           <p className="mt-2 text-sm leading-relaxed text-[var(--text-secondary)]">
-            Plan today, complete one visible action, reflect tonight, then review the week when a few days are logged. Life Pulse shows patterns from your entries; it does not judge your life or create outside analysis.
+            Plan today, complete one visible action, reflect tonight, then review the week when a few days are logged. Use this page to notice patterns and adjust next week. No AI summaries or external processing.
           </p>
           <div className="mt-3 grid gap-2 text-xs text-[var(--text-muted)] sm:grid-cols-5">
             <span>1. Plan</span>
@@ -374,9 +374,9 @@ function WeeklyReviewContent() {
           <div className="p-4 text-center sm:p-5">
             <p className="text-sm font-semibold text-[var(--text)]">Your weekly picture is still forming.</p>
             <p className="mx-auto mt-1 max-w-xl text-xs leading-relaxed text-[var(--text-muted)]">
-              Log a few tasks, habits, reflections, or body and mind check-ins this week. This review becomes clearer as those private data points collect.
+              Log a few tasks, habits, reflections, body or mind check-ins, or manual finance entries this week. This review becomes clearer as private history collects. No shame if the week is quiet.
             </p>
-            <Link href="/today" className="mt-3 inline-flex min-h-10 items-center rounded-md text-xs font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] sm:min-h-0">
+            <Link href="/today" className="mt-3 inline-flex min-h-11 items-center rounded-lg border border-[var(--accent)]/20 bg-[var(--accent-soft)] px-3 text-xs font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] sm:min-h-0 sm:border-0 sm:bg-transparent sm:px-0">
               Return to Today &rarr;
             </Link>
           </div>
@@ -554,10 +554,13 @@ function WeeklyReviewContent() {
           <h2 className="min-w-0 break-words text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Weekly reset</h2>
         </div>
         <p className="mb-3 text-xs text-[var(--text-muted)]">
-          Name what worked, what slipped, and what next week needs.
+          Name what worked, what slipped, and what next week needs. Save the review to your private Journal when it feels useful.
         </p>
         <PulseCard title="Weekly Reflection" accent="accent">
           <div className="space-y-4 p-3.5 sm:p-4">
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)]/70 px-3 py-3 text-xs leading-relaxed text-[var(--text-muted)]">
+              Write as much or as little as you need. This saves a manual review note to today&apos;s Journal entry with a weekly review prefix.
+            </div>
             <ReflectionField
               label="What went well this week?"
               value={reflection.wentWell}
@@ -587,13 +590,13 @@ function WeeklyReviewContent() {
               <button
                 onClick={handleSaveReflection}
                 disabled={savingReflection || Object.values(reflection).every((v) => !v)}
-                className="min-h-11 w-full rounded-lg bg-[var(--accent)] px-4 py-2.5 text-xs font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-40 sm:w-auto sm:min-h-0 sm:py-2"
+                className="min-h-11 w-full rounded-lg bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-40 sm:w-auto sm:min-h-0 sm:py-2 sm:text-xs"
               >
                 {savingReflection ? "Saving..." : "Save to Journal"}
               </button>
             </div>
-            <p className="text-[10px] text-[var(--text-muted)]">
-              Reflection is saved as today&rsquo;s journal entry with a weekly review prefix.
+            <p className="text-[10px] leading-relaxed text-[var(--text-muted)]">
+              Save keeps the same behavior: it writes this weekly reflection into today&rsquo;s private Journal entry. No AI summaries or external processing.
             </p>
           </div>
         </PulseCard>
@@ -611,6 +614,7 @@ function WeeklyReviewContent() {
         <PulseCard title="Plan Ahead" accent="accent">
           <div className="mb-4 min-w-0 px-3.5 pt-3.5 sm:px-4 sm:pt-4">
             <label className="mb-1.5 block break-words text-xs font-medium text-[var(--text)]">Top focus for next week</label>
+            <p className="mb-2 text-[10px] leading-relaxed text-[var(--text-muted)]">A private planning note for this screen. Use it to choose one realistic adjustment.</p>
             <input
               type="text"
               value={planFocus}
@@ -698,7 +702,8 @@ function ReflectionField({ label, value, onChange }: { label: string; value: str
         value={value}
         onChange={(e) => onChange(e.target.value)}
         rows={3}
-        className="min-h-24 w-full resize-none rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2.5 text-sm text-[var(--text)] placeholder-[var(--text-muted)] outline-none transition-colors focus:border-[var(--accent)] sm:min-h-0 sm:py-2"
+        placeholder="Write a few words, or leave it blank."
+        className="min-h-32 w-full resize-none rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3.5 py-3 text-base leading-relaxed text-[var(--text)] placeholder-[var(--text-muted)] outline-none transition-colors focus:border-[var(--accent)] sm:min-h-24 sm:px-3 sm:py-2.5 sm:text-sm"
       />
     </div>
   );
