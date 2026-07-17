@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { getTodayDateString } from "@/lib/utils";
@@ -64,6 +65,14 @@ interface Task {
 }
 
 const PRIORITY_ORDER = { high: 0, medium: 1, low: 2 };
+
+const TASK_STARTERS = [
+  "Study 25 minutes",
+  "Send one message",
+  "Clear one small task",
+  "Review one mistake",
+  "Prepare gym clothes",
+] as const;
 
 function getDueDateLabel(due_date: string | null): { label: string; className: string } | null {
   if (!due_date) return null;
@@ -160,6 +169,13 @@ export default function TasksPage() {
     setPriority("medium");
     setDueDate("");
     setEditingId(null);
+  }
+
+  function applyStarterTask(starter: string) {
+    resetForm();
+    setTitle(starter);
+    setDueDate(getTodayDateString());
+    setShowForm(true);
   }
 
   function openEdit(t: Task) {
@@ -389,21 +405,28 @@ export default function TasksPage() {
 
         <DailyLoopConnector
           activeStep="action"
-          note="Tasks are where today&apos;s visible actions become progress. Keep one task concrete enough to finish today."
+          note="Tasks are where today&apos;s visible action becomes progress. Add one task you can finish today, check it off, then return to Today."
         />
 
         {tasks.length > 0 && tasks.length <= 2 && (
           <div className="mb-4 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2 hover:border-[var(--accent)]/20 transition-all duration-150">
             <p className="text-xs text-[var(--text-muted)]">
-              Good task lists stay short. Add one clear next action, complete it, then reflect tonight.
+              One visible action is enough. Keep the next task concrete, finish it today, then close the loop from Today.
             </p>
-            <div className="mt-2">
-              <span className="text-[9px] font-medium text-[var(--text-muted)]">Examples</span>
+            <div className="mt-2 flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <span className="text-[9px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Useful starters</span>
               <div className="mt-1 flex flex-wrap gap-1.5">
-                <button type="button" onClick={() => { resetForm(); setTitle("Review project scope"); setShowForm(true); }} className="cursor-pointer rounded-md border border-dashed border-[var(--border-strong)] bg-transparent px-2.5 py-1.5 text-[10px] text-[var(--text-muted)] transition-colors hover:border-[var(--text-muted)]/40 hover:text-[var(--text-secondary)] sm:py-0.5">Review project scope</button>
-                <button type="button" onClick={() => { resetForm(); setTitle("Send follow-up email"); setShowForm(true); }} className="cursor-pointer rounded-md border border-dashed border-[var(--border-strong)] bg-transparent px-2.5 py-1.5 text-[10px] text-[var(--text-muted)] transition-colors hover:border-[var(--text-muted)]/40 hover:text-[var(--text-secondary)] sm:py-0.5">Send follow-up email</button>
-                <button type="button" onClick={() => { resetForm(); setTitle("Complete one deep-work block"); setShowForm(true); }} className="cursor-pointer rounded-md border border-dashed border-[var(--border-strong)] bg-transparent px-2.5 py-1.5 text-[10px] text-[var(--text-muted)] transition-colors hover:border-[var(--text-muted)]/40 hover:text-[var(--text-secondary)] sm:py-0.5">Complete one deep-work block</button>
+                  {TASK_STARTERS.slice(0, 3).map((starter) => (
+                    <button key={starter} type="button" onClick={() => applyStarterTask(starter)} className="cursor-pointer rounded-md border border-dashed border-[var(--border-strong)] bg-transparent px-2.5 py-1.5 text-[10px] text-[var(--text-muted)] transition-colors hover:border-[var(--text-muted)]/40 hover:text-[var(--text-secondary)] sm:py-0.5">
+                      {starter}
+                    </button>
+                  ))}
+                </div>
               </div>
+              <Link href="/today#daily-execution" className="shrink-0 rounded-md py-1 text-[10px] font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:py-0">
+                Return to today&apos;s loop
+              </Link>
             </div>
           </div>
         )}
@@ -510,22 +533,30 @@ export default function TasksPage() {
           <EmptyState
             eyebrow={filter === "all" ? "First task" : undefined}
             title={filter === "all" ? "Start with one visible action." : "No tasks match this filter."}
-            message={filter === "all" ? "Add one task you can finish today. It becomes part of today&apos;s loop when you check it off and reflect." : "Try another view or clear the filter to see the rest of your task list."}
+            message={filter === "all" ? "Add one task you can finish today. Keep it concrete enough that done is obvious. One visible action keeps the loop moving." : "Try another view or clear the filter to see the rest of your task list."}
+            description={filter === "all" ? "Starter chips only fill the form. You still choose what to save." : undefined}
             action={filter === "all" ? (
-              <Button size="sm" onClick={() => { resetForm(); setShowForm(true); }}>
-                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                </svg>
-                Add first task
-              </Button>
+              <div className="flex flex-col items-center gap-2 sm:flex-row sm:justify-center">
+                <Button size="sm" onClick={() => { resetForm(); setDueDate(getTodayDateString()); setShowForm(true); }}>
+                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add first task
+                </Button>
+                <Link href="/today#daily-execution" className="rounded-lg px-3 py-2 text-xs font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)]">
+                  Back to Today
+                </Link>
+              </div>
             ) : undefined}
             examples={filter === "all" ? (
               <div>
-                <p className="mb-2 text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Calm examples</p>
+                <p className="mb-2 text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Useful visible actions</p>
                 <div className="flex flex-wrap justify-center gap-2">
-                  <button type="button" onClick={() => { resetForm(); setTitle("Submit project booklet"); setShowForm(true); }} className="cursor-pointer rounded-full border border-[var(--border)] bg-[var(--surface)]/70 px-3 py-2 text-xs text-[var(--text-muted)] transition-all duration-150 hover:border-[var(--accent)]/30 hover:text-[var(--text-secondary)] sm:py-1.5">Submit project booklet</button>
-                  <button type="button" onClick={() => { resetForm(); setTitle("Practice one physics problem set"); setShowForm(true); }} className="cursor-pointer rounded-full border border-[var(--border)] bg-[var(--surface)]/70 px-3 py-2 text-xs text-[var(--text-muted)] transition-all duration-150 hover:border-[var(--accent)]/30 hover:text-[var(--text-secondary)] sm:py-1.5">Practice one problem set</button>
-                  <button type="button" onClick={() => { resetForm(); setTitle("Call the printer"); setShowForm(true); }} className="cursor-pointer rounded-full border border-[var(--border)] bg-[var(--surface)]/70 px-3 py-2 text-xs text-[var(--text-muted)] transition-all duration-150 hover:border-[var(--accent)]/30 hover:text-[var(--text-secondary)] sm:py-1.5">Call the printer</button>
+                  {TASK_STARTERS.map((starter) => (
+                    <button key={starter} type="button" onClick={() => applyStarterTask(starter)} className="cursor-pointer rounded-full border border-[var(--border)] bg-[var(--surface)]/70 px-3 py-2 text-xs text-[var(--text-muted)] transition-all duration-150 hover:border-[var(--accent)]/30 hover:text-[var(--text-secondary)] sm:py-1.5">
+                      {starter}
+                    </button>
+                  ))}
                 </div>
               </div>
             ) : undefined}

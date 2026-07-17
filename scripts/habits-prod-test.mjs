@@ -41,6 +41,7 @@ const requiredHabitsText = [
 const acceptableHabitsHeaderCopy = [
   "Build the routines your future self depends on.",
   "Track the repeat actions you want to make automatic.",
+  "Choose one small repeatable action and complete it today to keep the loop alive.",
 ];
 
 const riskyHabitText = [
@@ -160,7 +161,7 @@ async function main() {
       throw new Error("Habits page loaded with an error state.");
     }
 
-    const hasNoHabitsState = bodyText.includes("Habits are repeated actions you want to become automatic.");
+    const hasNoHabitsState = bodyText.includes("Start with one small repeatable action.");
     const goalContextCount = await page.getByText(/^Goal:\s+.+/).count();
     const supportsGoalsCount = await page.getByText(/^Supports goals:\s+.+/).count();
     const noLinkedGoalsCount = await page.getByText("No linked goals yet", { exact: true }).count();

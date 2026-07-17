@@ -36,6 +36,7 @@ Example rows are placeholders. Replace them with real tester feedback as it arri
 | R1-015 | 2026-07-16 | Tester 3 | Unknown | /today | Product activation | P1/P2 | Tester created a priority, checked it off, and felt nothing meaningful happened afterward. Today did not guide the next useful step, and after the first fix the phrase "complete one visible action" still needed concrete task/habit guidance for sparse users. | No | Yes | Add first-run live guide, post-action next-step feedback, and concrete first-action guidance using existing Today state and task/habit paths only | Fixed pending production verification |  |
 | R1-016 | 2026-07-16 | Internal QA | Core routes | /today, /tasks, /habits, /journal, /weekly-review | Product activation | P2 | After Today guidance improved, Tasks, Habits, Journal, and Weekly Review still risked feeling like separate tools instead of one first-use loop. | No | Yes | Connect Today, Tasks/Habits, Journal, and Weekly Review with compact route guidance and copy only | Fixed pending production verification |  |
 | R1-017 | 2026-07-16 | Internal QA | /onboarding | Product activation | P2 | Onboarding still risked introducing Life Pulse as a broad module ecosystem before the user understood the first daily loop. | No | Yes | Clarify the first-session loop in onboarding and make deeper modules feel optional/later | Fixed pending production verification |  |
+| R1-018 | 2026-07-17 | Internal QA | /tasks, /habits | Product activation | P2 | Sparse Tasks/Habits pages can still make first-time users unsure what visible action to create after onboarding explains the loop. | No | Yes | Improve empty/sparse guidance with concrete examples and a compact return-to-Today path, without changing creation or completion behavior | Fixed pending production verification |  |
 
 ## Common Repeated Issues
 
@@ -45,6 +46,7 @@ Group similar issues here after at least two testers mention the same theme.
 - First-session activation feels static after an action: Tester 3 completed a priority and did not understand the next useful step (`R1-015`). Treat as a high-priority activation issue because it blocks the first useful Life Pulse loop. Current decision: guide users toward one concrete task, habit, or reflection using existing Today paths only.
 - Core route sequencing: Today now explains the loop, but core routes must keep users inside the same journey (`R1-016`). Current decision: use compact UI/copy guidance only, with no backend onboarding system.
 - Onboarding loop alignment: onboarding must not make a first session feel like module setup before users understand Today -> Action -> Reflect -> Review (`R1-017`). Current decision: clarify the first-session loop in onboarding and make deeper modules optional/later.
+- Sparse action pages: Tasks and Habits must make the first visible action obvious for new or sparse users (`R1-018`). Current decision: improve empty/sparse guidance with concrete examples and a compact return-to-Today path only.
 
 ## Top Fixes Selected
 

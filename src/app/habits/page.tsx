@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { DashboardNav } from "@/components/DashboardNav";
@@ -50,16 +51,12 @@ interface LinkedGoal {
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const HABIT_TEMPLATES = [
-  "Drink 3L water",
-  "Practice guitar",
+  "2-minute plank",
+  "Read 5 pages",
   "Walk 10 minutes",
-  "Study 30 minutes",
-  "Journal at night",
-  "Morning stretch",
-  "Read 20 pages",
-  "Meditate 10 minutes",
-  "Do plank",
-];
+  "Practice guitar 10 minutes",
+  "No phone in bed",
+] as const;
 
 export default function HabitsPage() {
   const [habits, setHabits] = useState<Habit[]>([]);
@@ -343,14 +340,29 @@ export default function HabitsPage() {
 
         <DailyLoopConnector
           activeStep="action"
-          note="Habits are repeatable visible actions. Check off one today, then close the day from Today&apos;s reflection."
+          note="Habits are repeatable visible actions. Start tiny, check off one today, then close the loop from Today&apos;s reflection."
         />
 
         {habits.length > 0 && habits.length <= 2 && (
           <div className="mb-4 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2">
             <p className="text-xs text-[var(--text-muted)]">
-              Small repeat actions become visible progress when you check them off daily.
+              One small repeatable action is enough. Keep it easy to do today, then use it as your visible action.
             </p>
+            <div className="mt-2 flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <span className="text-[9px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Tiny starters</span>
+                <div className="mt-1 flex flex-wrap gap-1.5">
+                  {HABIT_TEMPLATES.slice(0, 3).map((tpl) => (
+                    <button key={tpl} type="button" onClick={() => applyTemplate(tpl)} className="rounded-md border border-dashed border-[var(--border-strong)] bg-transparent px-2.5 py-1.5 text-[10px] text-[var(--text-muted)] transition-colors hover:border-[var(--text-muted)]/40 hover:text-[var(--text-secondary)] sm:py-0.5">
+                      {tpl}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <Link href="/today#daily-execution" className="shrink-0 rounded-md py-1 text-[10px] font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:py-0">
+                Return to today&apos;s loop
+              </Link>
+            </div>
           </div>
         )}
 
@@ -446,20 +458,26 @@ export default function HabitsPage() {
           <EmptyState
             eyebrow="First habit"
             title="Start with one small repeatable action."
-            message="Choose something you can honestly do today and repeat for seven days. Tiny routines are easier to trust and easier to review."
+            message="Habits are repeatable visible actions. Choose something tiny enough to do today and repeat for seven days."
+            description="Starter chips only fill the form. You still choose what to save."
             action={(
-              <Button size="sm" onClick={() => { resetForm(); setShowForm(true); }}>
-                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                </svg>
-                Add first habit
-              </Button>
+              <div className="flex flex-col items-center gap-2 sm:flex-row sm:justify-center">
+                <Button size="sm" onClick={() => { resetForm(); setShowForm(true); }}>
+                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add first habit
+                </Button>
+                <Link href="/today#daily-execution" className="rounded-lg px-3 py-2 text-xs font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)]">
+                  Back to Today
+                </Link>
+              </div>
             )}
             examples={(
               <div>
-                <p className="mb-2 text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Useful starters</p>
+                <p className="mb-2 text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Tiny repeatable actions</p>
                 <div className="flex flex-wrap justify-center gap-2">
-                  {HABIT_TEMPLATES.slice(0, 6).map((tpl) => (
+                  {HABIT_TEMPLATES.map((tpl) => (
                     <button
                       key={tpl}
                       onClick={() => applyTemplate(tpl)}
