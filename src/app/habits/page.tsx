@@ -66,6 +66,7 @@ export default function HabitsPage() {
   const [todayCompleted, setTodayCompleted] = useState<Set<string>>(new Set());
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [realmId, setRealmId] = useState("");
   const [frequency, setFrequency] = useState("daily");
@@ -90,6 +91,20 @@ export default function HabitsPage() {
     return () => { cancelledRef.current = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!editingId) return;
+    window.requestAnimationFrame(() => {
+      document.getElementById(`habit-edit-panel-${editingId}`)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    });
+  }, [editingId]);
+
+  useEffect(() => {
+    if (!confirmingDeleteId) return;
+    window.requestAnimationFrame(() => {
+      document.getElementById(`habit-delete-panel-${confirmingDeleteId}`)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    });
+  }, [confirmingDeleteId]);
 
   async function load() {
     if (cancelledRef.current) return;
@@ -163,6 +178,7 @@ export default function HabitsPage() {
     setDaysOfWeek([]);
     setTpw(3);
     setEditingId(null);
+    setConfirmingDeleteId(null);
   }
 
   function applyTemplate(template: string) {
@@ -173,12 +189,18 @@ export default function HabitsPage() {
 
   function openEdit(h: Habit) {
     setEditingId(h.id);
+    setConfirmingDeleteId(null);
     setTitle(h.title);
     setRealmId(h.realm_id);
     setFrequency(h.frequency);
     setDaysOfWeek(h.days_of_week ?? []);
     setTpw(h.times_per_week ?? 3);
-    setShowForm(true);
+    setShowForm(false);
+  }
+
+  function cancelEdit() {
+    resetForm();
+    setShowForm(false);
   }
 
   async function save() {
@@ -222,7 +244,6 @@ export default function HabitsPage() {
   }
 
   async function remove(id: string) {
-    if (!confirm("Delete this habit? This cannot be undone.")) return;
     const { error: logErr } = await supabase.from("habit_logs").delete().eq("habit_id", id);
     if (logErr) {
       toast({ type: "error", title: "Failed to remove habit data." });
@@ -233,6 +254,8 @@ export default function HabitsPage() {
       toast({ type: "error", title: "Failed to delete habit." });
       return;
     }
+    if (editingId === id) cancelEdit();
+    setConfirmingDeleteId(null);
     toast({ type: "success", title: "Habit deleted." });
     await load();
   }
@@ -294,6 +317,77 @@ export default function HabitsPage() {
     if (goalTitles) return `Supports goals: ${goalTitles}${remainingCount > 0 ? ` +${remainingCount}` : ""}`;
     return `Supports: ${goals.length} goals`;
   };
+
+  const habitFormFields = (
+    <>
+      <Input
+        label="Title"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder="Habit title"
+        maxLength={100}
+      />
+
+      <div>
+        <label className="mb-1.5 block text-xs font-medium text-[var(--text-muted)]">Realm</label>
+        <RealmPicker
+          realms={realms}
+          value={realmId}
+          onChange={setRealmId}
+        />
+      </div>
+
+      <div>
+        <label className="mb-1.5 block text-xs font-medium text-[var(--text-muted)]">Frequency</label>
+        <SelectPicker
+          options={[
+            { value: "daily", label: "Daily" },
+            { value: "weekdays", label: "Specific days" },
+            { value: "times_per_week", label: "Times per week" },
+          ]}
+          value={frequency}
+          onChange={setFrequency}
+        />
+      </div>
+
+      {frequency === "weekdays" && (
+        <div>
+          <label className="mb-1.5 block text-xs font-medium text-[var(--text-muted)]">Days of week</label>
+          <div className="flex flex-wrap gap-1.5">
+            {DAY_LABELS.map((label, i) => (
+              <button
+                key={i}
+                onClick={() => toggleDay(i)}
+                className={`h-9 w-10 rounded-lg text-xs font-medium transition-all duration-150 ${
+                  daysOfWeek.includes(i)
+                    ? "bg-[var(--accent-soft)] text-[var(--accent)] ring-1 ring-[var(--accent)]/30"
+                    : "bg-[var(--surface-soft)] text-[var(--text-muted)] hover:bg-[var(--surface-raised)]"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {frequency === "times_per_week" && (
+        <div>
+          <label className="mb-1.5 block text-xs font-medium text-[var(--text-muted)]">
+            Times per week: {tpw}
+          </label>
+          <input
+            type="range"
+            min={1}
+            max={7}
+            value={tpw}
+            onChange={(e) => setTpw(Number(e.target.value))}
+            className="w-full"
+          />
+        </div>
+      )}
+    </>
+  );
 
   if (loading) {
     return (
@@ -366,75 +460,10 @@ export default function HabitsPage() {
           </div>
         )}
 
-        {showForm && (
+        {showForm && !editingId && (
           <Card className="mb-6 border-[var(--border-strong)]">
             <div className="flex flex-col gap-4 p-4">
-              <Input
-                label="Title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Habit title"
-                maxLength={100}
-              />
-
-              <div>
-                <label className="mb-1.5 block text-xs font-medium text-[var(--text-muted)]">Realm</label>
-                <RealmPicker
-                  realms={realms}
-                  value={realmId}
-                  onChange={setRealmId}
-                />
-              </div>
-
-              <div>
-                <label className="mb-1.5 block text-xs font-medium text-[var(--text-muted)]">Frequency</label>
-                <SelectPicker
-                  options={[
-                    { value: "daily", label: "Daily" },
-                    { value: "weekdays", label: "Specific days" },
-                    { value: "times_per_week", label: "Times per week" },
-                  ]}
-                  value={frequency}
-                  onChange={setFrequency}
-                />
-              </div>
-
-              {frequency === "weekdays" && (
-                <div>
-                  <label className="mb-1.5 block text-xs font-medium text-[var(--text-muted)]">Days of week</label>
-                  <div className="flex flex-wrap gap-1.5">
-                    {DAY_LABELS.map((label, i) => (
-                      <button
-                        key={i}
-                        onClick={() => toggleDay(i)}
-                        className={`h-9 w-10 rounded-lg text-xs font-medium transition-all duration-150 ${
-                          daysOfWeek.includes(i)
-                            ? "bg-[var(--accent-soft)] text-[var(--accent)] ring-1 ring-[var(--accent)]/30"
-                            : "bg-[var(--surface-soft)] text-[var(--text-muted)] hover:bg-[var(--surface-raised)]"
-                        }`}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {frequency === "times_per_week" && (
-                <div>
-                  <label className="mb-1.5 block text-xs font-medium text-[var(--text-muted)]">
-                    Times per week: {tpw}
-                  </label>
-                  <input
-                    type="range"
-                    min={1}
-                    max={7}
-                    value={tpw}
-                    onChange={(e) => setTpw(Number(e.target.value))}
-                    className="w-full"
-                  />
-                </div>
-              )}
+              {habitFormFields}
 
               <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                 <Button variant="secondary" onClick={() => { resetForm(); setShowForm(false); }}>
@@ -504,6 +533,8 @@ export default function HabitsPage() {
                   <div className="p-1 flex flex-col gap-1">
                     {g.habits.map((habit) => {
                       const doneToday = todayCompleted.has(habit.id);
+                      const isEditing = editingId === habit.id;
+                      const isConfirmingDelete = confirmingDeleteId === habit.id;
                       const s = streaks[habit.id] ?? 0;
                       const b = bestStreaks[habit.id] ?? 0;
                       const wp = weeklyProgress[habit.id];
@@ -559,17 +590,52 @@ export default function HabitsPage() {
                           <div className="flex shrink-0 justify-end gap-1 border-t border-[var(--border)] pt-2 sm:border-t-0 sm:pt-0">
                             <button
                               onClick={() => openEdit(habit)}
-                              className="rounded-lg px-3 py-2 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-raised)] hover:text-[var(--text)] sm:px-2 sm:py-1"
+                              className="min-h-9 rounded-lg px-3 py-2 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-raised)] hover:text-[var(--text)] sm:min-h-0 sm:px-2 sm:py-1"
+                              aria-expanded={isEditing}
                             >
-                              Edit
+                              {isEditing ? "Editing" : "Edit"}
                             </button>
                             <button
-                              onClick={() => remove(habit.id)}
-                              className="rounded-lg px-3 py-2 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--danger-soft)] hover:text-[var(--danger)] sm:px-2 sm:py-1"
+                              onClick={() => { if (isEditing) cancelEdit(); setConfirmingDeleteId(habit.id); }}
+                              className="min-h-9 rounded-lg px-3 py-2 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-raised)] hover:text-[var(--text)] sm:min-h-0 sm:px-2 sm:py-1"
+                              aria-expanded={isConfirmingDelete}
                             >
                               Delete
                             </button>
                           </div>
+                          {isEditing && (
+                            <div id={`habit-edit-panel-${habit.id}`} className="border-t border-[var(--border)] bg-[var(--surface-soft)]/60 px-4 py-4">
+                              <div className="mb-3">
+                                <p className="text-sm font-semibold text-[var(--text)]">Edit this habit</p>
+                                <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">Changes apply to this habit only. Save or cancel right here.</p>
+                              </div>
+                              <div className="flex flex-col gap-4">
+                                {habitFormFields}
+                                <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                                  <Button variant="secondary" onClick={cancelEdit}>
+                                    Cancel
+                                  </Button>
+                                  <Button onClick={save} disabled={saving}>
+                                    {saving ? "Saving..." : "Save changes"}
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                          {isConfirmingDelete && (
+                            <div id={`habit-delete-panel-${habit.id}`} className="border-t border-[var(--border)] bg-[var(--surface-soft)]/70 px-4 py-4">
+                              <p className="text-sm font-semibold text-[var(--text)]">Delete this habit?</p>
+                              <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">This removes the habit from your list.</p>
+                              <div className="mt-3 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                                <Button variant="secondary" onClick={() => setConfirmingDeleteId(null)}>
+                                  Cancel
+                                </Button>
+                                <button onClick={() => remove(habit.id)} className="inline-flex min-h-10 items-center justify-center rounded-lg border border-[var(--danger)]/30 bg-[var(--danger-soft)] px-3 py-2 text-sm font-medium text-[var(--danger)] transition-colors hover:border-[var(--danger)]/50 sm:min-h-0 sm:py-1.5">
+                                  Delete
+                                </button>
+                              </div>
+                            </div>
+                          )}
                         </Card>
                       );
                     })}
@@ -583,29 +649,70 @@ export default function HabitsPage() {
                 <h3 className="mb-3 text-sm font-semibold text-[var(--text-muted)]">Other</h3>
                 <Card variant="subtle" className="border-[var(--border)]">
                   <div className="p-1 flex flex-col gap-1">
-                    {ungrouped.map((habit) => (
-                      <Card key={habit.id} variant="default" className="flex flex-col gap-3 px-4 py-3.5 transition-all duration-150 hover:border-[var(--border-strong)] hover:bg-[var(--surface-active)] sm:flex-row sm:items-center sm:py-3">
-                        <div className="min-w-0 flex-1">
-                          <p className="text-pretty text-sm font-semibold text-[var(--text)]">{habit.title}</p>
-                          <p className="mt-1.5 w-fit rounded-full bg-[var(--surface)] px-2 py-0.5 text-[10px] text-[var(--text-muted)]">{frequencyLabel(habit)}</p>
-                          <p className="mt-1 text-pretty text-[10px] text-[var(--text-muted)]">{getHabitGoalContext(habit.id)}</p>
-                        </div>
-                        <div className="flex shrink-0 justify-end gap-1 border-t border-[var(--border)] pt-2 sm:border-t-0 sm:pt-0 sm:justify-start">
-                          <button
-                            onClick={() => openEdit(habit)}
-                            className="rounded-lg px-3 py-2 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-raised)] hover:text-[var(--text)] sm:px-2 sm:py-1"
-                          >
-                            Edit
-                          </button>
-                            <button
-                              onClick={() => remove(habit.id)}
-                              className="rounded-lg px-3 py-2 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--danger-soft)] hover:text-[var(--danger)] sm:px-2 sm:py-1"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </Card>
-                    ))}
+                    {ungrouped.map((habit) => {
+                      const isEditing = editingId === habit.id;
+                      const isConfirmingDelete = confirmingDeleteId === habit.id;
+                      return (
+                        <Card key={habit.id} variant="default" className="overflow-hidden transition-all duration-150 hover:border-[var(--border-strong)] hover:bg-[var(--surface-active)]">
+                          <div className="flex flex-col gap-3 px-4 py-3.5 sm:flex-row sm:items-center sm:py-3">
+                            <div className="min-w-0 flex-1">
+                              <p className="text-pretty text-sm font-semibold text-[var(--text)]">{habit.title}</p>
+                              <p className="mt-1.5 w-fit rounded-full bg-[var(--surface)] px-2 py-0.5 text-[10px] text-[var(--text-muted)]">{frequencyLabel(habit)}</p>
+                              <p className="mt-1 text-pretty text-[10px] text-[var(--text-muted)]">{getHabitGoalContext(habit.id)}</p>
+                            </div>
+                            <div className="flex shrink-0 justify-end gap-1 border-t border-[var(--border)] pt-2 sm:border-t-0 sm:pt-0 sm:justify-start">
+                              <button
+                                onClick={() => openEdit(habit)}
+                                className="min-h-9 rounded-lg px-3 py-2 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-raised)] hover:text-[var(--text)] sm:min-h-0 sm:px-2 sm:py-1"
+                                aria-expanded={isEditing}
+                              >
+                                {isEditing ? "Editing" : "Edit"}
+                              </button>
+                              <button
+                                onClick={() => { if (isEditing) cancelEdit(); setConfirmingDeleteId(habit.id); }}
+                                className="min-h-9 rounded-lg px-3 py-2 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-raised)] hover:text-[var(--text)] sm:min-h-0 sm:px-2 sm:py-1"
+                                aria-expanded={isConfirmingDelete}
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </div>
+                          {isEditing && (
+                            <div id={`habit-edit-panel-${habit.id}`} className="border-t border-[var(--border)] bg-[var(--surface-soft)]/60 px-4 py-4">
+                              <div className="mb-3">
+                                <p className="text-sm font-semibold text-[var(--text)]">Edit this habit</p>
+                                <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">Changes apply to this habit only. Save or cancel right here.</p>
+                              </div>
+                              <div className="flex flex-col gap-4">
+                                {habitFormFields}
+                                <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                                  <Button variant="secondary" onClick={cancelEdit}>
+                                    Cancel
+                                  </Button>
+                                  <Button onClick={save} disabled={saving}>
+                                    {saving ? "Saving..." : "Save changes"}
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                          {isConfirmingDelete && (
+                            <div id={`habit-delete-panel-${habit.id}`} className="border-t border-[var(--border)] bg-[var(--surface-soft)]/70 px-4 py-4">
+                              <p className="text-sm font-semibold text-[var(--text)]">Delete this habit?</p>
+                              <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">This removes the habit from your list.</p>
+                              <div className="mt-3 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                                <Button variant="secondary" onClick={() => setConfirmingDeleteId(null)}>
+                                  Cancel
+                                </Button>
+                                <button onClick={() => remove(habit.id)} className="inline-flex min-h-10 items-center justify-center rounded-lg border border-[var(--danger)]/30 bg-[var(--danger-soft)] px-3 py-2 text-sm font-medium text-[var(--danger)] transition-colors hover:border-[var(--danger)]/50 sm:min-h-0 sm:py-1.5">
+                                  Delete
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </Card>
+                      );
+                    })}
                   </div>
                 </Card>
               </section>
