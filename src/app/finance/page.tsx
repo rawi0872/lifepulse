@@ -666,7 +666,7 @@ export default function FinancePage() {
         </div>
 
         <p className="break-words text-center text-xs text-[var(--text-muted)]">
-          Private manual tracker. No bank connection. Not financial, investment, tax, or debt advice.
+          Private manual tracker. No bank connection. Not financial advice. Not investment, tax, or debt advice.
         </p>
       </div>
     </DashboardNav>
