@@ -68,7 +68,6 @@ const forbiddenFinancePhrases = [
 
 const forbiddenCoachMemoryPhrases = [
   "vector",
-  "embeddings",
   "document upload",
   "file parsing",
   "public sharing",

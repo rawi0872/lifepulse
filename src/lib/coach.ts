@@ -274,7 +274,7 @@ export function getCoachInsights(data: CoachData): CoachInsight[] {
         "medium",
         "Open Weekly Review",
         "/weekly-review",
-        "It\u2019s late in the week \u2014 consider a review",
+        "It's late in the week; a review may be useful",
         "weekly_review_reminder"
       )
     );
