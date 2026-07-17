@@ -39,6 +39,7 @@ Example rows are placeholders. Replace them with real tester feedback as it arri
 | R1-018 | 2026-07-17 | Internal QA | /tasks, /habits | Product activation | P2 | Sparse Tasks/Habits pages can still make first-time users unsure what visible action to create after onboarding explains the loop. | No | Yes | Improve empty/sparse guidance with concrete examples and a compact return-to-Today path, without changing creation or completion behavior | Fixed pending production verification |  |
 | R1-019 | 2026-07-17 | Tester 1 / Internal QA | /body | Product activation | P2 | Body first-use flow made current weight, water, and food logging harder to find than expected; number inputs also needed polished non-native spinner styling. | Yes | Yes | Improve discoverability and safe manual-check-in framing for current weight, water, and food without schema or save behavior changes | Fixed pending production verification |  |
 | R1-020 | 2026-07-17 | Internal QA | /mind | Product activation | P2 | Mind first-use can feel vague or unclear compared with the newly polished Body page; users may not know whether it is a private check-in, a mental health app, or a dashboard. | No | Yes | Improve safe manual check-in framing and discoverability without schema or save changes | Fixed pending production verification |  |
+| R1-021 | 2026-07-17 | Internal QA | /finance | Product activation | P2 | Finance first-use can feel unclear unless income/expense logging, privacy, and non-advice boundaries are explicit. | No | Yes | Improve safe manual-money framing and discoverability without schema or save changes | Fixed pending production verification |  |
 
 ## Common Repeated Issues
 
@@ -51,6 +52,7 @@ Group similar issues here after at least two testers mention the same theme.
 - Sparse action pages: Tasks and Habits must make the first visible action obvious for new or sparse users (`R1-018`). Current decision: improve empty/sparse guidance with concrete examples and a compact return-to-Today path only.
 - Body first-use discoverability: Body must make current weight, water, and food logging obvious without sounding medical or judgmental (`R1-003`, `R1-004`, `R1-005`, `R1-019`). Current decision: polish manual-check-in UI/copy only, with no schema or save changes.
 - Mind first-use discoverability: Mind must feel like a simple private check-in, not therapy, diagnosis, or a vague dashboard (`R1-020`). Current decision: improve safe manual-check-in framing and discoverability without schema or save changes.
+- Finance first-use discoverability: Finance must make income/expense logging, privacy, no bank connection, and non-advice boundaries explicit (`R1-021`). Current decision: improve safe manual-money framing and discoverability without schema or save changes.
 
 ## Top Fixes Selected
 

@@ -165,6 +165,12 @@ export default function FinancePage() {
     setShowTxForm(false);
   }
 
+  function startTransaction(type: "income" | "expense") {
+    resetTxForm();
+    setTxType(type);
+    setShowTxForm(true);
+  }
+
   function editTransaction(tx: FinanceTransaction) {
     setTxTitle(tx.title);
     setTxAmount(String(tx.amount));
@@ -369,18 +375,36 @@ export default function FinancePage() {
   return (
     <DashboardNav>
       <div className="mx-auto max-w-5xl overflow-x-hidden px-4 py-6 animate-fade-in sm:px-5 sm:py-8">
-        <div className="mb-8 min-w-0">
+        <div className="mb-6 min-w-0">
           <div className="flex min-w-0 items-center justify-between">
             <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">Manual money check-in</p>
               <h1 className="break-words text-2xl font-bold tracking-tight text-[var(--text)]">Finance</h1>
-              <p className="mt-0.5 break-words text-sm text-[var(--text-muted)]">
+              <p className="mt-1 max-w-2xl break-words text-sm leading-relaxed text-[var(--text-secondary)]">
                 {hasData
-                  ? `Know where your money is going ${monthRange.label.toLowerCase()}.`
-                  : "Track your money moves."}
+                  ? `Review manually logged income and expenses for ${monthRange.label.toLowerCase()}.`
+                  : "Log income and expenses manually so you can notice where money went."}
                 <HelpPopover title="What is Finance?" className="ml-1.5">
-                  <p>Finance is a manual tracker. Add income, expenses, budgets, and accounts to understand your money flow. No bank connection. Not financial advice.</p>
+                  <p>Finance is a private manual tracker. Add income and expenses to understand your money flow. No bank connection. Not financial, investment, tax, or debt advice.</p>
                 </HelpPopover>
               </p>
+              <p className="mt-1 break-words text-xs text-[var(--text-muted)]">
+                Weekly Review can use logged entries as context. One entry is enough to start.
+              </p>
+            </div>
+          </div>
+          <div className="mt-4 grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-3">
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-3">
+              <span className="block text-xs font-semibold text-[var(--text)]">Income</span>
+              <span className="mt-1 block text-[10px] leading-relaxed text-[var(--text-muted)]">Money that came in, such as pay, client payment, or gift.</span>
+            </div>
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-3">
+              <span className="block text-xs font-semibold text-[var(--text)]">Expense</span>
+              <span className="mt-1 block text-[10px] leading-relaxed text-[var(--text-muted)]">Money that went out, such as food, transport, or subscription.</span>
+            </div>
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-3">
+              <span className="block text-xs font-semibold text-[var(--text)]">Boundaries</span>
+              <span className="mt-1 block text-[10px] leading-relaxed text-[var(--text-muted)]">Private tracking only. No bank connection or advice.</span>
             </div>
           </div>
           <div className="mt-3 flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -415,21 +439,27 @@ export default function FinancePage() {
 
         {!hasData && (
           <>
-            <InfoTip id="finance" title="Start with one money move" className="mb-4">
+            <InfoTip id="finance" title="Start with one income or expense" className="mb-4">
               <ol className="list-inside list-decimal space-y-1 break-words">
-                <li>Add an account, like Cash.</li>
-                <li>Add one expense, like Food.</li>
-                <li>Add one income, like Gift or Salary.</li>
-                <li>Create one budget for a category you care about.</li>
+                <li>Choose Expense for money that went out, like Food or Transport.</li>
+                <li>Choose Income for money that came in, like Paycheck or Client payment.</li>
+                <li>Amount, date, category, and note are manual entries only.</li>
+                <li>Your weekly review becomes clearer as you log.</li>
               </ol>
             </InfoTip>
             <Card className="mb-6 p-5 text-center sm:p-6">
-              <p className="mb-4 break-words text-sm text-[var(--text-muted)]">
-                Add your first transaction to start seeing charts, trends, and insights.
+              <p className="mb-2 break-words text-sm font-medium text-[var(--text)]">One entry is enough to start.</p>
+              <p className="mx-auto mb-4 max-w-lg break-words text-sm leading-relaxed text-[var(--text-muted)]">
+                Start with one income or expense. Manual entries only; this is for awareness, not advice.
               </p>
-              <Button onClick={() => { resetTxForm(); setShowTxForm(true); }} size="sm">
-                Add your first transaction
-              </Button>
+              <div className="flex flex-col justify-center gap-2 sm:flex-row">
+                <Button onClick={() => startTransaction("expense")} size="sm">
+                  Log an expense
+                </Button>
+                <Button onClick={() => startTransaction("income")} size="sm" variant="secondary">
+                  Log income
+                </Button>
+              </div>
             </Card>
           </>
         )}
@@ -495,7 +525,7 @@ export default function FinancePage() {
                 <h3 className="mb-3 break-words text-sm font-medium text-[var(--text-secondary)]">
                   Smart Insights
                   <HelpPopover title="Smart Insights" className="ml-1">
-                    <p>These insights are calculated from manually logged finance data. They highlight logged spending patterns, budget usage, and changes from last month.</p>
+                  <p>These insights are calculated from manually logged finance data. They summarize logged spending patterns, budget usage, and changes from last month without financial advice.</p>
                   </HelpPopover>
                 </h3>
                 <FinanceInsights insights={insights} />
@@ -507,11 +537,14 @@ export default function FinancePage() {
         <div className="mb-8">
           <div className="mb-3 flex min-w-0 items-center justify-between gap-3">
             <h3 className="min-w-0 break-words text-sm font-medium text-[var(--text-secondary)]">
-              {editingTxId ? "Edit Transaction" : "Add Transaction"}
+              {editingTxId ? "Edit income or expense" : "Log income or expense"}
+              <HelpPopover title="Income or expense" className="ml-1">
+                <p>Use Expense for money that went out and Income for money that came in. The entry is manual and only saves when you press Add transaction.</p>
+              </HelpPopover>
             </h3>
             {!showTxForm ? (
-              <Button size="sm" variant="secondary" onClick={() => { resetTxForm(); setShowTxForm(true); }}>
-                + New
+              <Button size="sm" variant="secondary" onClick={() => startTransaction("expense")}>
+                + Income/expense
               </Button>
             ) : (
               <Button size="sm" variant="ghost" onClick={resetTxForm}>
@@ -633,7 +666,7 @@ export default function FinancePage() {
         </div>
 
         <p className="break-words text-center text-xs text-[var(--text-muted)]">
-          Manual tracker. Not financial advice. No bank connection.
+          Private manual tracker. No bank connection. Not financial, investment, tax, or debt advice.
         </p>
       </div>
     </DashboardNav>
