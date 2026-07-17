@@ -198,14 +198,14 @@ async function assertTodayAccessible(page, timeout = 20000) {
   await expect(body).not.toContainText("Failed to load dashboard", { timeout: 10000 });
 
   const goodHeading = page.getByRole("heading", { name: /Good / }).first();
-  const todayHeader = page.getByText("Today Command Center").first();
+  const todayCore = page.getByText("Daily focus").first();
   const firstLoop = page.getByText("First Life Pulse loop").first();
   const stableTodayContentVisible = await goodHeading.isVisible().catch(() => false)
-    || await todayHeader.isVisible().catch(() => false)
+    || await todayCore.isVisible().catch(() => false)
     || await firstLoop.isVisible().catch(() => false);
 
   if (!stableTodayContentVisible) {
-    await expect(goodHeading.or(todayHeader).or(firstLoop).first()).toBeVisible({ timeout });
+    await expect(goodHeading.or(todayCore).or(firstLoop).first()).toBeVisible({ timeout });
   }
 
   return true;

@@ -33,9 +33,10 @@ const EMAIL = env.LIFE_PULSE_TEST_EMAIL;
 const PASSWORD = env.LIFE_PULSE_TEST_PASSWORD;
 const ERROR_SCREENSHOT_PATH = "screenshot-today-command-center-prod-error.png";
 
-const requiredCommandCenterText = [
-  "Today Command Center",
-  "Active ecosystem",
+const requiredTodayCoreText = [
+  "Daily focus",
+  "Start with one priority.",
+  "Quick capture",
   "Daily execution",
   "Life Pulse context",
 ];
@@ -187,7 +188,7 @@ async function main() {
     await expect(page.getByRole("heading", { name: /Good / })).toBeVisible({ timeout: 20000 });
     pass("Today page loaded");
 
-    for (const text of requiredCommandCenterText) {
+    for (const text of requiredTodayCoreText) {
       await expectBodyText(page, text);
     }
 

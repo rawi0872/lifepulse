@@ -40,7 +40,7 @@ const viewports = [
 ];
 
 const routes = [
-  { path: "/today", label: "Today", text: ["Today Command Center", "Daily execution", "Life Pulse context", "Personal OS", "Good "] },
+  { path: "/today", label: "Today", text: ["Good ", "Daily focus", "Start with one priority.", "Quick capture", "Daily execution"] },
   { path: "/tasks", label: "Tasks", text: ["Tasks"] },
   { path: "/habits", label: "Habits", text: ["Habits"] },
   { path: "/goals", label: "Goals", text: ["Goals"] },
