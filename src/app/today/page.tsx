@@ -96,6 +96,13 @@ interface FirstLoopGuideStep {
   href?: string;
 }
 
+interface ReviewHandoffRow {
+  label: string;
+  contributesTo: string;
+  status: string;
+  active: boolean;
+}
+
 function formatGoalContext(goals: LinkedGoal[]): string | undefined {
   if (goals.length === 0) return undefined;
 
@@ -734,7 +741,11 @@ function TodayContent() {
           amount: 10,
         });
 
-        toast({ type: "success", title: "Habit logged!", description: "+10 XP added to today's momentum." });
+        toast({
+          type: "success",
+          title: "Habit logged!",
+          description: "+10 XP added. This habit will appear in action trends.",
+        });
         setCompletedHabitIds(new Set([...completedHabitIds, habitId]));
         setTpwCounts((prev) => ({ ...prev, [habitId]: (prev[habitId] ?? 0) + 1 }));
         setTodayXp((prev) => prev + 10);
@@ -776,7 +787,11 @@ function TodayContent() {
     if (!result.success) return;
 
     if (isDone) {
-      toast({ type: "success", title: "Task completed!", description: "+25 XP added to today's momentum." });
+      toast({
+        type: "success",
+        title: "Task completed!",
+        description: "+25 XP added. This task will appear in your weekly rhythm.",
+      });
       setTasks((prev) =>
         prev.map((t) =>
           t.id === taskId
@@ -810,6 +825,11 @@ function TodayContent() {
       ),
     );
     if (isDone) {
+      toast({
+        type: "success",
+        title: "Project action completed!",
+        description: "This action will appear in your weekly rhythm. Reflect tonight to add context.",
+      });
       setTodayXp((prev) => prev + 25);
       setTotalXp((prev) => prev + 25);
     } else {
@@ -835,6 +855,42 @@ function TodayContent() {
   const ecosystemModules = getRecommendedModules(intendedUse)
     .filter((module) => module.href && module.status !== "planned")
     .slice(0, 8);
+  const reviewHandoffRows = useMemo<ReviewHandoffRow[]>(() => {
+    const manualContextLogged = bodyLoggedToday || mindLoggedToday || financeHasTx;
+
+    return [
+      {
+        label: "Priority/action",
+        contributesTo: "Weekly rhythm",
+        status: hasPriority ? (hasCompletedPriority ? "Priority complete" : "Priority set") : "Not set yet",
+        active: hasPriority,
+      },
+      {
+        label: "Tasks/habits",
+        contributesTo: "Action trends",
+        status: visibleActionDone ? "Visible action logged" : "Still missing today",
+        active: visibleActionDone,
+      },
+      {
+        label: "Reflection",
+        contributesTo: "Journal and Weekly Review",
+        status: hasJournal ? "Reflection saved" : "Still missing today",
+        active: hasJournal,
+      },
+      {
+        label: "Body/Mind/Finance logs",
+        contributesTo: "Manual context",
+        status: manualContextLogged ? "Context available" : "Optional today",
+        active: manualContextLogged,
+      },
+      {
+        label: "Review later",
+        contributesTo: "Weekly Review / Insights",
+        status: visibleActionDone && hasJournal ? "Ready for Weekly Review" : "Building private history",
+        active: visibleActionDone && hasJournal,
+      },
+    ];
+  }, [bodyLoggedToday, financeHasTx, hasCompletedPriority, hasJournal, hasPriority, mindLoggedToday, visibleActionDone]);
 
   if (loading) {
     return (
@@ -1092,6 +1148,8 @@ function TodayContent() {
         </Card>
       </section>
 
+      <TodayReviewHandoff rows={reviewHandoffRows} />
+
       <section id="evening-reflection" className="scroll-mt-24">
         <Card className="mb-6 overflow-hidden border-white/[0.09] bg-[linear-gradient(180deg,rgba(244,247,251,0.026),rgba(244,247,251,0.006)),var(--surface)]">
           <div className="border-b border-[var(--border)] px-4 py-4 sm:px-5">
@@ -1141,10 +1199,19 @@ function TodayContent() {
                   <div className="flex flex-col items-start justify-between gap-2 rounded-lg bg-[var(--surface)] px-3 py-3 sm:flex-row sm:items-center sm:gap-3 sm:py-2">
                     <div className="min-w-0">
                       <p className="text-xs font-medium text-[var(--text)]">Weekly memory review</p>
-                      <p className="text-[10px] text-[var(--text-muted)]">Review tasks, habits, reflections, and signals from what you logged.</p>
+                      <p className="text-[10px] text-[var(--text-muted)]">Close the week with tasks, habits, reflections, and manual signals from what you logged.</p>
                     </div>
                     <Link href="/weekly-review" className="shrink-0 rounded-md py-1 text-[10px] font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] sm:py-0">
                       Open Weekly Review
+                    </Link>
+                  </div>
+                  <div className="flex flex-col items-start justify-between gap-2 rounded-lg bg-[var(--surface)] px-3 py-3 sm:flex-row sm:items-center sm:gap-3 sm:py-2">
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium text-[var(--text)]">Broader patterns</p>
+                      <p className="text-[10px] text-[var(--text-muted)]">Insights shows action trends from logged activity across recent days.</p>
+                    </div>
+                    <Link href="/insights" className="shrink-0 rounded-md py-1 text-[10px] font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] sm:py-0">
+                      View Insights
                     </Link>
                   </div>
                 </div>
@@ -1250,6 +1317,43 @@ function TodayContextLink({
       <span className="min-w-0 flex-1 truncate">{label}</span>
       <span className={`shrink-0 text-[10px] ${statusClassName}`}>{status} &rarr;</span>
     </Link>
+  );
+}
+
+function TodayReviewHandoff({ rows }: { rows: ReviewHandoffRow[] }) {
+  return (
+    <Card variant="subtle" className="mb-6 overflow-hidden border-[var(--border)] bg-[linear-gradient(180deg,rgba(122,162,199,0.055),rgba(244,247,251,0.012)),var(--surface-soft)]">
+      <div className="border-b border-[var(--border)] px-4 py-3.5 sm:px-5 sm:py-4">
+        <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--accent)]">Private review payoff</p>
+            <h2 className="mt-1 text-base font-semibold tracking-[-0.02em] text-[var(--text)]">Today builds your review</h2>
+            <p className="mt-1 max-w-2xl text-xs leading-relaxed text-[var(--text-muted)]">
+              Each manual log adds private context for Weekly Review and broader patterns in Insights. No AI summaries or external processing.
+            </p>
+          </div>
+          <div className="flex shrink-0 flex-wrap gap-2 text-xs">
+            <Link href="/weekly-review" className="inline-flex min-h-10 items-center rounded-lg border border-[var(--accent)]/20 bg-[var(--accent-soft)] px-3 font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0 sm:bg-transparent sm:py-1.5">
+              Open Weekly Review
+            </Link>
+            <Link href="/insights" className="inline-flex min-h-10 items-center rounded-lg border border-[var(--border)] px-3 font-medium text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/25 hover:text-[var(--accent)] sm:min-h-0 sm:py-1.5">
+              View Insights
+            </Link>
+          </div>
+        </div>
+      </div>
+      <div className="grid min-w-0 divide-y divide-[var(--border)] sm:grid-cols-5 sm:divide-x sm:divide-y-0">
+        {rows.map((row) => (
+          <div key={row.label} className="min-w-0 px-4 py-3 sm:px-3">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">{row.label}</p>
+            <p className="mt-1 text-xs font-medium text-[var(--text)]">{row.contributesTo}</p>
+            <p className={`mt-1 text-[10px] leading-snug ${row.active ? "text-[var(--accent)]" : "text-[var(--text-muted)]"}`}>
+              {row.status}
+            </p>
+          </div>
+        ))}
+      </div>
+    </Card>
   );
 }
 

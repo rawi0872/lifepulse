@@ -38,8 +38,9 @@ Life Pulse needs Weekly Review and Insights to answer clearer questions from log
 3. Weekly Review v3: add section-level “what changed this week” summaries using deterministic counts only. Shipped as Deadline Prompt #2.
 4. Weekly Review v4: add bounded current-week versus previous-week comparison using minimal previous-week data. Shipped as Deadline Prompt #3.
 5. Insights v1: add bounded last-7-days trend surfaces for habits, tasks, reflection, body, mind, finance, and active system signals. Shipped as Deadline Prompt #4.
-6. Insights v2: add 4-week trend comparisons using existing timestamps and manual logs.
-7. Review v5: add user-controlled filters for current week, last week, and month, without adding new storage.
+6. Today review handoff: make Today explain how priority, action, reflection, and manual context become Weekly Review and Insights value. Shipped as Deadline Prompt #5.
+7. Insights v2: add 4-week trend comparisons using existing timestamps and manual logs.
+8. Review v5: add user-controlled filters for current week, last week, and month, without adding new storage.
 
 ## Current Weekly Review v2 Scope
 
@@ -72,6 +73,14 @@ Life Pulse needs Weekly Review and Insights to answer clearer questions from log
 - Replaced top score-like snapshot copy with factual logged-day, action-day, reflection-day, and task-completion summaries.
 - Quiet-state copy stays neutral: not enough logged activity yet; quiet areas are not judgments; no AI summaries or external processing.
 - 4-week trend comparisons, deeper domain-specific insights, server-side aggregates, and richer charts remain deferred until performance-aware data windows are designed.
+
+## Deadline Prompt #5 Today Review Handoff Scope
+
+- Added a compact `/today` handoff that explains how priorities, tasks, habits, reflection, and body/mind/finance logs become Weekly Review and Insights value.
+- Handoff statuses are derived only from existing Today state: priority presence/completion, visible task or habit action, reflection presence, and optional manual context logs.
+- Kept Weekly Review and Insights links compact and below the primary daily action area so Today still prioritizes daily focus, one visible action, reflection, then review payoff.
+- Updated post-action feedback copy so completed tasks and habits clarify that logged actions appear in weekly rhythm/action trends.
+- No new data architecture, schema changes, AI summaries, external processing, or heavy Today queries were added.
 
 ## Deferred From v2
 

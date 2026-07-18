@@ -150,9 +150,9 @@ export function MissionControl({
                   <p className="mt-1 text-[11px] leading-relaxed text-[var(--text-muted)]">
                     {visibleActionDone
                       ? hasJournal
-                        ? "First loop complete. Come back tomorrow with one more data point."
-                        : "Good. Capture what changed tonight so Weekly Review has context."
-                      : "Priority complete. Next: complete one visible action."}
+                        ? "First loop complete. Today now has private review history."
+                        : "Priority and action logged. Reflect tonight so Weekly Review has context."
+                      : "Priority complete. Next: complete one visible action for your weekly rhythm."}
                   </p>
                 </div>
               )}
