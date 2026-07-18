@@ -35,14 +35,18 @@ const ERROR_SCREENSHOT_PATH = "screenshot-journal-prod-error.png";
 
 const requiredJournalText = [
   "Journal",
-  "Your private space to reflect",
+  "Your private history for daily reflections written from Today and weekly reviews saved from Weekly Review.",
+  "Return to Today reflection",
+  "Open Weekly Review",
 ];
 
 const requiredSearchFilterText = [
+  "Daily reflections",
+  "Weekly reviews",
   "All moods",
   "All energy levels",
   "Showing",
-  "Private manual reflection library. No AI summaries or external processing.",
+  "Private manual history. No AI summaries or external processing.",
 ];
 
 const riskyJournalText = [

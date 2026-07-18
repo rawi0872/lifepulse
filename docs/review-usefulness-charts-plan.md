@@ -40,8 +40,9 @@ Life Pulse needs Weekly Review and Insights to answer clearer questions from log
 5. Insights v1: add bounded last-7-days trend surfaces for habits, tasks, reflection, body, mind, finance, and active system signals. Shipped as Deadline Prompt #4.
 6. Today review handoff: make Today explain how priority, action, reflection, and manual context become Weekly Review and Insights value. Shipped as Deadline Prompt #5.
 7. Weekly Review closing flow: make the end of review turn into one next-week focus, Save to Journal, and return-to-Today handoff. Shipped as Deadline Prompt #6.
-8. Insights v2: add 4-week trend comparisons using existing timestamps and manual logs.
-9. Review v5: add user-controlled filters for current week, last week, and month, without adding new storage.
+8. Journal private history: make daily reflections and saved weekly reviews easier to recognize, filter, and return to. Shipped as Deadline Prompt #7.
+9. Insights v2: add 4-week trend comparisons using existing timestamps and manual logs.
+10. Review v5: add user-controlled filters for current week, last week, and month, without adding new storage.
 
 ## Current Weekly Review v2 Scope
 
@@ -90,6 +91,14 @@ Life Pulse needs Weekly Review and Insights to answer clearer questions from log
 - Clarified Save to Journal copy: the review saves to today&apos;s private Journal entry with the weekly review prefix and no AI summaries or external processing.
 - Added post-save feedback from local UI state with links to return to Today or open Journal.
 - Preserved existing save behavior, storage, queries, XP logic, and manual/private review boundaries.
+
+## Deadline Prompt #7 Journal Private History Scope
+
+- Refined `/journal` into a clearer private-history destination for daily reflections and saved weekly reviews.
+- Detects likely saved weekly reviews from existing journal content using the `Weekly Reflection (...)` prefix written by the current Weekly Review Save to Journal flow.
+- Added client-side entry type filters for All, Daily reflections, and Weekly reviews using already-loaded `journal_entries` only.
+- Weekly review entries now show a recognizable label, saved-week context when available, and an optional next-week focus preview parsed from existing content.
+- No new storage, schema, queries, AI summaries, advice, scoring, Journal edit/delete, or Weekly Review save behavior changes were added.
 
 ## Deferred From v2
 
