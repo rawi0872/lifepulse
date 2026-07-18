@@ -305,8 +305,8 @@ export default function TasksPage() {
 
     toast({
       type: "success",
-      title: task.status !== "done" ? "Task completed" : "Task reopened",
-      description: task.status !== "done" ? "+25 XP added to today's momentum." : undefined,
+      title: task.status !== "done" ? "Visible action logged" : "Task reopened",
+      description: task.status !== "done" ? "+25 XP added. This task will appear in your weekly rhythm. Return to Today to reflect." : undefined,
     });
     reloadTasks();
   }
@@ -669,6 +669,14 @@ export default function TasksPage() {
                         </span>
                       )}
                         </div>
+                        {isDone && (
+                          <div className="mt-2 flex min-w-0 flex-col gap-1 text-[10px] leading-relaxed text-[var(--text-muted)] sm:flex-row sm:items-center sm:gap-2">
+                            <span>This task will appear in your weekly rhythm.</span>
+                            <Link href="/today#evening-reflection" className="font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)]">
+                              Reflect from Today &rarr;
+                            </Link>
+                          </div>
+                        )}
                     </div>
                   </div>
 

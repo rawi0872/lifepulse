@@ -11,6 +11,7 @@ interface NextBestActionProps {
   hasHighPriorityTasks: boolean;
   hasGoalWithoutLinks: boolean;
   hasJournalToday: boolean;
+  visibleActionDone: boolean;
   hasContent: boolean;
   hasWorkoutThisWeek: boolean;
   hasNutritionToday: boolean;
@@ -68,6 +69,58 @@ const actionIcons: Record<string, React.ReactNode> = {
 };
 
 export function NextBestAction(props: NextBestActionProps) {
+  if (props.visibleActionDone && !props.hasJournalToday) {
+    return (
+      <Card variant="subtle" className="mb-4 overflow-hidden border-[var(--success)]/20 bg-[var(--success-soft)]/10">
+        <div className="border-b border-[var(--success)]/10 px-4 py-2.5">
+          <p className="text-[10px] font-semibold tracking-[0.14em] text-[var(--success)]">
+            Next action
+          </p>
+        </div>
+        <div className="p-4">
+          <p className="text-sm font-medium text-[var(--text)]">Visible action logged</p>
+          <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
+            This will appear in your weekly rhythm. Reflect tonight to add the context around what happened.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2 text-xs">
+            <Link href="/today#evening-reflection" className="rounded-md border border-[var(--success)]/20 bg-[var(--success-soft)] px-3 py-2 font-medium text-[var(--success)] transition-colors hover:border-[var(--success)]/35 sm:py-1.5">
+              Reflect tonight
+            </Link>
+            <Link href="/weekly-review" className="rounded-md border border-[var(--border)] px-3 py-2 text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/25 hover:text-[var(--accent)] sm:py-1.5">
+              Weekly Review later
+            </Link>
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
+  if (props.visibleActionDone && props.hasJournalToday) {
+    return (
+      <Card variant="subtle" className="mb-4 overflow-hidden border-white/[0.08] bg-[var(--surface-soft)]/75">
+        <div className="border-b border-white/[0.06] px-4 py-2.5">
+          <p className="text-[10px] font-semibold tracking-[0.14em] text-[var(--text-muted)]">
+            Next action
+          </p>
+        </div>
+        <div className="p-4">
+          <p className="text-sm font-medium text-[var(--text)]">Today has action and reflection</p>
+          <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
+            The daily loop has enough context for now. Weekly Review will use these logs when the week closes.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2 text-xs">
+            <Link href="/weekly-review" className="rounded-md border border-[var(--accent)]/20 bg-[var(--accent-soft)] px-3 py-2 font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:py-1.5">
+              Open Weekly Review
+            </Link>
+            <Link href="/journal" className="rounded-md border border-[var(--border)] px-3 py-2 text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/25 hover:text-[var(--accent)] sm:py-1.5">
+              View Journal
+            </Link>
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
   const coachData: CoachData = {
     bodyLoggedToday: props.hasBodyLogged,
     mindLoggedToday: props.hasMindLogged,

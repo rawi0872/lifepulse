@@ -43,8 +43,9 @@ Life Pulse needs Weekly Review and Insights to answer clearer questions from log
 8. Journal private history: make daily reflections and saved weekly reviews easier to recognize, filter, and return to. Shipped as Deadline Prompt #7.
 9. First-week experience: guide new users from the first Today loop through repeated daily loops, Weekly Review, Insights, and Journal without new storage, AI, scoring, advice, or heavy queries. Shipped as Deadline Prompt #10.
 10. First-session sequencing: make Today, Tasks/Habits, Journal, Weekly Review, and later Insights the explicit first-session route order while keeping optional modules available. Shipped as Deadline Prompt #11.
-11. Insights v2: add 4-week trend comparisons using existing timestamps and manual logs.
-12. Review v5: add user-controlled filters for current week, last week, and month, without adding new storage.
+11. First action completion flow: make completed tasks and habits hand off into reflection and later review using existing Today state and row copy only. Shipped as Deadline Prompt #12.
+12. Insights v2: add 4-week trend comparisons using existing timestamps and manual logs.
+13. Review v5: add user-controlled filters for current week, last week, and month, without adding new storage.
 
 ## Current Weekly Review v2 Scope
 
@@ -115,6 +116,13 @@ Life Pulse needs Weekly Review and Insights to answer clearer questions from log
 - Grouped the Today ecosystem strip into Start today, Support the loop, Review later, Optional context, and Build later so optional modules do not read as day-1 requirements.
 - Kept DashboardNav route labels stable while clarifying mobile More copy and loop connector labels.
 - No analytics, tracking storage, schema, new modules, CRUD behavior changes, XP changes, AI, advice, or heavy queries were added.
+
+## Deadline Prompt #12 First Action Completion Flow Scope
+
+- Added a compact `/today` post-action handoff when an existing visible task or habit is logged.
+- Made Today&apos;s Next Best Action switch to reflection after a visible action is complete, and to Weekly Review / Journal once action and reflection are both present.
+- Updated task and habit completion toasts plus completed-row copy on `/tasks` and `/habits` so logged actions point back to Today reflection and weekly rhythm.
+- Reused existing completion and reflection state only; no new queries, storage, analytics, XP changes, task semantics, habit semantics, AI, advice, or automation were added.
 
 ## Deferred From v2
 

@@ -744,8 +744,8 @@ function TodayContent() {
 
         toast({
           type: "success",
-          title: "Habit logged!",
-          description: "+10 XP added. This habit will appear in action trends.",
+          title: "Visible action logged",
+          description: "+10 XP added. This habit will appear in your weekly rhythm. Reflect tonight to add context.",
         });
         setCompletedHabitIds(new Set([...completedHabitIds, habitId]));
         setTpwCounts((prev) => ({ ...prev, [habitId]: (prev[habitId] ?? 0) + 1 }));
@@ -790,8 +790,8 @@ function TodayContent() {
     if (isDone) {
       toast({
         type: "success",
-        title: "Task completed!",
-        description: "+25 XP added. This task will appear in your weekly rhythm.",
+        title: "Visible action logged",
+        description: "+25 XP added. This task will appear in your weekly rhythm. Reflect tonight to add context.",
       });
       setTasks((prev) =>
         prev.map((t) =>
@@ -1070,6 +1070,7 @@ function TodayContent() {
               hasHighPriorityTasks={tasks.some((t) => t.priority === "high" && t.status === "todo")}
               hasGoalWithoutLinks={hasGoalWithoutLinks}
               hasJournalToday={hasJournal}
+              visibleActionDone={visibleActionDone}
               hasContent={hasContent}
               hasWorkoutThisWeek={hasWorkoutThisWeek}
               hasNutritionToday={hasNutritionToday}
@@ -1134,6 +1135,10 @@ function TodayContent() {
                 </div>
               </Card>
             ) : null}
+
+            {visibleActionDone && (
+              <VisibleActionLoggedHandoff hasJournal={hasJournal} />
+            )}
 
             {allDone && (
               <div className="flex items-center gap-2 rounded-lg border border-[var(--success)]/20 bg-[var(--success-soft)]/10 px-3 py-2 text-xs font-medium text-[var(--success)]">
@@ -1418,6 +1423,38 @@ function FirstVisibleActionGuide({
               Reflect tonight
             </a>
           )}
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function VisibleActionLoggedHandoff({ hasJournal }: { hasJournal: boolean }) {
+  return (
+    <Card variant="subtle" className="border-[var(--success)]/20 bg-[var(--success-soft)]/10">
+      <div className="flex flex-col gap-3 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:py-3">
+        <div className="min-w-0">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--success)]">
+            Visible action logged
+          </p>
+          <p className="mt-1 text-sm font-medium text-[var(--text)]">
+            This will appear in your weekly rhythm.
+          </p>
+          <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
+            {hasJournal
+              ? "Reflection is saved too. Weekly Review will have both action and context."
+              : "Reflect tonight to add context around what happened."}
+          </p>
+        </div>
+        <div className="flex shrink-0 flex-wrap gap-2 text-xs">
+          {!hasJournal && (
+            <a href="#evening-reflection" className="rounded-md border border-[var(--success)]/20 bg-[var(--success-soft)] px-3 py-2 font-medium text-[var(--success)] transition-colors hover:border-[var(--success)]/35 sm:py-1.5">
+              Reflect tonight
+            </a>
+          )}
+          <Link href="/weekly-review" className="rounded-md border border-[var(--border)] px-3 py-2 text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/25 hover:text-[var(--accent)] sm:py-1.5">
+            Weekly Review later
+          </Link>
         </div>
       </div>
     </Card>

@@ -294,7 +294,7 @@ export default function HabitsPage() {
         });
 
         setTodayCompleted((prev) => new Set([...prev, habitId]));
-        toast({ type: "success", title: "Habit logged.", description: "+10 XP added to today's momentum." });
+        toast({ type: "success", title: "Visible action logged", description: "+10 XP added. This habit will appear in your weekly rhythm. Return to Today to reflect." });
       } else {
         const { data: logs } = await supabase
           .from("habit_logs")
@@ -652,6 +652,14 @@ export default function HabitsPage() {
                               )}
                               </div>
                               <p className="mt-1 text-pretty text-[10px] text-[var(--text-muted)]">{getHabitGoalContext(habit.id)}</p>
+                              {doneToday && (
+                                <div className="mt-2 flex min-w-0 flex-col gap-1 text-[10px] leading-relaxed text-[var(--text-muted)] sm:flex-row sm:items-center sm:gap-2">
+                                  <span>This habit will appear in your weekly rhythm.</span>
+                                  <Link href="/today#evening-reflection" className="font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)]">
+                                    Reflect from Today &rarr;
+                                  </Link>
+                                </div>
+                              )}
                               {habit.frequency === "times_per_week" && wp && (
                                 <div className="mt-1.5 h-1 w-full max-w-32 overflow-hidden rounded-full bg-[var(--surface)] sm:max-w-24">
                                   <div
