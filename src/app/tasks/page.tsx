@@ -107,7 +107,7 @@ export default function TasksPage() {
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
-  const supabase = createClient();
+  const [supabase] = useState(() => createClient());
 
   useEffect(() => {
     let cancelled = false;

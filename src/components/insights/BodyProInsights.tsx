@@ -13,7 +13,7 @@ function getLocalDateDaysAgo(daysAgo: number): string {
 }
 
 export function BodyProInsights() {
-  const supabase = createClient();
+  const [supabase] = useState(() => createClient());
   const [data, setData] = useState<{
     weeklyWorkouts: number;
     weeklyMinutes: number;

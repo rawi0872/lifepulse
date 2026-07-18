@@ -94,7 +94,7 @@ export default function InsightsPage() {
   const [trendLoading, setTrendLoading] = useState(true);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const supabase = createClient();
+  const [supabase] = useState(() => createClient());
   const today = getTodayDateString();
   const weekStart = getWeekStartDate();
 

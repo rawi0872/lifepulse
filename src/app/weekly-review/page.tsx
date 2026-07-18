@@ -146,7 +146,7 @@ export default function WeeklyReviewPage() {
 
 function WeeklyReviewContent() {
   const router = useRouter();
-  const supabase = createClient();
+  const [supabase] = useState(() => createClient());
   const today = getTodayDateString();
   const weekStart = getWeekStartDate();
   const weekDates = useMemo(() => getWeekDates(), []);
@@ -491,14 +491,21 @@ function WeeklyReviewContent() {
   if (loading || !data) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-6 sm:py-8">
+        <div className="mb-5">
+          <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--accent)]">Weekly Review</p>
+          <h1 className="text-xl font-bold text-[var(--text)] sm:text-2xl">Preparing your week...</h1>
+          <p className="mt-1 text-sm leading-relaxed text-[var(--text-muted)]">
+            Loading this week first. Previous-week comparison can finish after the main review appears.
+          </p>
+        </div>
         <div className="animate-pulse space-y-4">
-            <div className="h-8 w-48 rounded bg-[var(--surface)] sm:w-64" />
-            <div className="h-4 w-40 rounded bg-[var(--surface)] sm:w-48" />
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+          <div className="h-20 rounded-2xl border border-[var(--border)] bg-[var(--surface)]" />
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
             {Array.from({ length: 8 }).map((_, i) => (
               <div key={i} className="h-24 rounded-lg bg-[var(--surface)]" />
             ))}
           </div>
+          <div className="h-36 rounded-2xl border border-[var(--border)] bg-[var(--surface)]" />
         </div>
       </div>
     );

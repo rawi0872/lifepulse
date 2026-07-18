@@ -38,7 +38,7 @@ const DEFAULT_INCOME_CATEGORIES = ["Salary", "Freelance", "Gift", "Other income"
 
 
 export default function FinancePage() {
-  const supabase = createClient();
+  const [supabase] = useState(() => createClient());
   const router = useRouter();
   const cancelledRef = useRef(false);
 

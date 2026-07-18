@@ -30,6 +30,11 @@ interface ClassifiedJournalEntry extends JournalEntry {
 
 const MOOD_LABELS = ["Awful", "Bad", "Okay", "Good", "Great"];
 const MOOD_EMOJIS = ["😖", "😟", "😐", "😊", "🔥"];
+const JOURNAL_DATE_FORMATTER = new Intl.DateTimeFormat("en-US", {
+  weekday: "long",
+  month: "short",
+  day: "numeric",
+});
 
 const REFLECTION_PROMPTS = [
   "What went well today?",
@@ -47,7 +52,7 @@ export default function JournalPage() {
   const [entryFilter, setEntryFilter] = useState<EntryFilter>("all");
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const supabase = createClient();
+  const [supabase] = useState(() => createClient());
 
   useEffect(() => {
     let cancelled = false;
@@ -58,7 +63,7 @@ export default function JournalPage() {
 
       const { data } = await supabase
         .from("journal_entries")
-        .select("*")
+        .select("id, entry_date, content, mood, energy, created_at")
         .eq("user_id", user.id)
         .order("entry_date", { ascending: false });
 
@@ -81,30 +86,31 @@ export default function JournalPage() {
     if (d.toDateString() === today.toDateString()) return "Today";
     if (d.toDateString() === yesterday.toDateString()) return "Yesterday";
 
-    return new Intl.DateTimeFormat("en-US", {
-      weekday: "long",
-      month: "short",
-      day: "numeric",
-    }).format(d);
+    return JOURNAL_DATE_FORMATTER.format(d);
   }
 
   const classifiedEntries = useMemo(() => entries.map(classifyJournalEntry), [entries]);
-  const weeklyReviewCount = classifiedEntries.filter((entry) => entry.kind === "weekly").length;
+  const weeklyReviewCount = useMemo(
+    () => classifiedEntries.filter((entry) => entry.kind === "weekly").length,
+    [classifiedEntries]
+  );
   const dailyReflectionCount = classifiedEntries.length - weeklyReviewCount;
-  const normalizedSearch = searchQuery.trim().toLowerCase();
-  const filteredEntries = classifiedEntries.filter((entry) => {
-    const moodLabel = entry.mood != null ? MOOD_LABELS[entry.mood - 1] ?? "" : "";
-    const typeLabel = entry.kind === "weekly" ? "weekly review saved from weekly review" : "daily reflection written from today";
-    const matchesMood = !selectedMood || String(entry.mood ?? "") === selectedMood;
-    const matchesEnergy = !selectedEnergy || String(entry.energy ?? "") === selectedEnergy;
-    const matchesEntryType = entryFilter === "all" || entry.kind === entryFilter;
-    const searchableText = [entry.content, moodLabel, typeLabel, entry.weeklyReviewWeek, entry.nextWeekFocus, entry.entry_date, formatEntryDate(entry.entry_date)]
-      .filter(Boolean)
-      .join(" ")
-      .toLowerCase();
-    const matchesSearch = !normalizedSearch || searchableText.includes(normalizedSearch);
-    return matchesMood && matchesEnergy && matchesEntryType && matchesSearch;
-  });
+  const filteredEntries = useMemo(() => {
+    const normalizedSearch = searchQuery.trim().toLowerCase();
+    return classifiedEntries.filter((entry) => {
+      const moodLabel = entry.mood != null ? MOOD_LABELS[entry.mood - 1] ?? "" : "";
+      const typeLabel = entry.kind === "weekly" ? "weekly review saved from weekly review" : "daily reflection written from today";
+      const matchesMood = !selectedMood || String(entry.mood ?? "") === selectedMood;
+      const matchesEnergy = !selectedEnergy || String(entry.energy ?? "") === selectedEnergy;
+      const matchesEntryType = entryFilter === "all" || entry.kind === entryFilter;
+      const searchableText = [entry.content, moodLabel, typeLabel, entry.weeklyReviewWeek, entry.nextWeekFocus, entry.entry_date, formatEntryDate(entry.entry_date)]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      const matchesSearch = !normalizedSearch || searchableText.includes(normalizedSearch);
+      return matchesMood && matchesEnergy && matchesEntryType && matchesSearch;
+    });
+  }, [classifiedEntries, entryFilter, searchQuery, selectedEnergy, selectedMood]);
 
   if (loading) {
     return (

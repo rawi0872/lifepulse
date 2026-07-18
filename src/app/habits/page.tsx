@@ -80,7 +80,7 @@ export default function HabitsPage() {
   const [togglingHabitId, setTogglingHabitId] = useState<string | null>(null);
   const { toast } = useToast();
   const router = useRouter();
-  const supabase = createClient();
+  const [supabase] = useState(() => createClient());
   const today = getTodayDateString();
   const weekStart = getWeekStartDate();
 

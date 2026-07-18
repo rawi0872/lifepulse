@@ -192,7 +192,7 @@ function TodayContent() {
   const [goalPreviewLinks, setGoalPreviewLinks] = useState<{ goal_id: string | null; linked_type: string | null }[]>([]);
 
   const router = useRouter();
-  const supabase = createClient();
+  const [supabase] = useState(() => createClient());
   const { toast } = useToast();
   const today = getTodayDateString();
   const weekStart = getWeekStartDate();

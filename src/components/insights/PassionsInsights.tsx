@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Card } from "@/components/ui/card";
 
 export function PassionsInsights() {
-  const supabase = createClient();
+  const [supabase] = useState(() => createClient());
   const [data, setData] = useState<{
     activePassions: number;
     weeklySessions: number;

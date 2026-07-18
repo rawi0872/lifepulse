@@ -37,7 +37,7 @@ interface HabitInfo { id: string; title: string; streak: number; completionRate:
 
 function BodyContent() {
   const router = useRouter();
-  const supabase = createClient();
+  const [supabase] = useState(() => createClient());
   const { toast } = useToast();
 
   const [activeTab, setActiveTab] = useState<TabId>("overview");
@@ -174,7 +174,7 @@ function BodyContent() {
     setSaving(false);
   }
 
-  if (loading) return null;
+  if (loading) return <RouteLoadingState label="Body" detail="Loading today's body context." />;
 
   return (
     <div className="animate-fade-in overflow-x-hidden px-4 py-5 md:p-6">
@@ -234,5 +234,23 @@ export default function BodyPage() {
     <DashboardNav>
       <BodyContent />
     </DashboardNav>
+  );
+}
+
+function RouteLoadingState({ label, detail }: { label: string; detail: string }) {
+  return (
+    <div className="overflow-x-hidden px-4 py-5 md:p-6">
+      <div className="mx-auto max-w-5xl min-w-0">
+        <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--accent)]">{label}</p>
+        <h1 className="text-xl font-bold text-[var(--text)]">Preparing your check-in...</h1>
+        <p className="mt-1 text-sm text-[var(--text-muted)]">{detail}</p>
+        <div className="mt-6 grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <div key={index} className="h-24 animate-pulse rounded-xl border border-[var(--border)] bg-[var(--surface)]" />
+          ))}
+        </div>
+        <div className="mt-6 h-64 animate-pulse rounded-2xl border border-[var(--border)] bg-[var(--surface)]" />
+      </div>
+    </div>
   );
 }
