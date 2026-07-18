@@ -13,6 +13,7 @@ This tracks follow-up work after the Round 1 perceived-loading pass. Keep change
 - Deadline Prompt #9 narrowed oversized `select("*")` route reads on Today, Habits, Tasks, Body, Mind, Finance, Projects, and Goals while preserving all existing metric meanings.
 - Deadline Prompt #13 moved Today project/goal context and all-history habit streak work out of the first useful render while preserving final Today meanings.
 - Deadline Prompt #14 audited exact totals and full-history reads; safe fixes reduced count-only Insights payloads and Finance joined transaction payloads while preserving exact XP, streak, and balance meanings.
+- Deadline Prompt #15 produced the design-only aggregate/caching plan for exact XP, streak, finance balance, and private-history performance work; no schema or production behavior changed.
 - Full network idle can still be around 5 seconds because background Supabase requests continue after first useful paint.
 
 ## Deadline Prompt #8 Performance Pass 2
@@ -57,6 +58,44 @@ This tracks follow-up work after the Round 1 perceived-loading pass. Keep change
 - Intentionally preserved: all-time XP, level, realm XP, habit current/best streaks, finance balance meaning, Journal lifetime history, task/habit completion behavior, and finance CRUD behavior.
 - Future database prompt should design aggregate/RPC work explicitly before implementation: XP totals, realm XP, habit streak summaries, finance account balances, and optional Journal pagination/search.
 
+## Deadline Prompt #15 Exact Aggregates And Caching Plan
+
+This section is design-only. Do not implement these areas together; each database change should be one focused prompt with migration review, RLS review, backfill, rollback notes, and production smoke checks.
+
+| Area | Current bottleneck | Exact meaning to preserve | Recommended approach | Why this approach | Required schema/RPC/trigger work | Backfill requirement | RLS/security concern | Test coverage needed | Risk level | Recommended prompt number for implementation |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| XP totals | `/today`, `/insights`, `/body`, and `/mind` sum `xp_events` rows for all-time, today, and realm XP. | All-time XP, current level, today XP, realm XP, and task/habit XP event meaning. | First implement exact RPC sum queries for total/today/realm XP; add summary table only if RPC latency remains visible. | RPC removes row transfer without changing write behavior; summary table/triggers add more failure modes and should come second. | RPC such as `get_xp_totals()` using authenticated user context; optional later `user_xp_totals` / `user_realm_xp_totals` plus trigger on `xp_events`. | RPC needs none; summary table needs backfill from `xp_events` grouped by user and realm/source mapping. | RPC must derive `auth.uid()` internally and never accept arbitrary user IDs from the client; summary table must have owner-only RLS if exposed. | Unit SQL fixtures for task/habit XP insert/delete, duplicate prevention, today boundary, realm mapping, and parity with current client sums. | Medium for RPC, high for trigger summaries. | #16 for XP RPC; summary table only after measuring RPC. |
+| Habit streaks | `/today`, `/habits`, and `/insights` need all `habit_logs` dates to compute current and best streaks. | Current streak, best streak, today/week completion, `times_per_week` behavior, grace period for today, rest-day handling, and no fake streaks. | Implement an exact streak RPC that accepts habit IDs or returns per-user habit streaks from existing `habit_logs`; defer persisted summaries. | Current TypeScript streak logic has nuanced date semantics; RPC can centralize exact calculation without cache invalidation bugs. | SQL or PL/pgSQL RPC mirroring `getCurrentStreak`, `getBestStreak`, and `getWeeklyProgress`; optional later `habit_streak_summaries` only after parity is proven. | RPC needs none; summary table needs backfill for every habit and recalculation after historical log changes. | RPC must only return rows for `auth.uid()` habits/logs; if accepting habit IDs, enforce ownership inside the function. | Golden tests comparing JS helper outputs to RPC outputs for daily, weekdays, `times_per_week`, today toggled on/off, missed days, rest days, and best-ever streaks. | Medium-high because semantic drift is easy. | #17 after XP RPC; summary only after parity tests. |
+| Finance balances | `/finance` exact balances require all transaction amounts plus account starting balances. | Current account balance, transaction count, income/expense totals where claimed, account currency separation, editable transaction list behavior, and no advice. | Implement exact balance RPC for account balances; defer balance snapshot table/triggers until transaction volume proves RPC insufficient. | RPC keeps write paths simple and handles edits/deletes exactly at read time; snapshots/triggers must handle insert/update/delete/account moves perfectly. | RPC such as `get_finance_account_balances()` summing `finance_transactions` by account with starting balances; optional later `finance_account_balances` maintained by triggers. | RPC needs none; snapshot table needs backfill per account from starting balance plus all linked transactions. | RPC must use `auth.uid()` and respect finance account ownership; no cross-user account/category leakage through joins. | SQL fixtures for insert, update amount/type/account/date, delete, null account, deleted account with `on delete set null`, mixed currencies, and parity with current client `computeAnalytics`. | Medium for RPC, high for snapshots/triggers. | #18 after streak RPC. |
+| Journal and full editable lists | `/journal` and editable routes can grow because full history/list rows are needed for search, filters, and edit screens. | Private history access, no hidden data, existing search/filter expectations, and exact editable state. | Add explicit pagination/infinite-load design before implementation; start with Journal if history grows, leave editable lists full until there is real scale pressure. | Pagination is safer than aggregates for history, but it changes UI expectations and search scope if done carelessly. | No schema initially; route query changes plus UI copy for loaded/all history. Optional indexed search later. | None for simple pagination. | Owner-only RLS already protects rows; UI must avoid implying unloaded rows were searched. | Route tests for page loading, load-more behavior, filters/search scope copy, no blank states, and no data loss from edit/delete screens. | Low-medium for Journal pagination, medium for editable lists. | #19 or later; after exact aggregate bottlenecks. |
+
+Recommended staged implementation order:
+
+1. XP RPC first before 18/8/26 if one aggregate area is chosen, because it reduces repeated all-time XP row transfer on Today and Insights without touching task/habit write semantics.
+2. Habit streak RPC second only after parity tests are written against the current JS streak helpers; this is high product-risk because streak meaning is visible and nuanced.
+3. Finance balance RPC third; it is valuable but Prompt #14 already reduced payload size, and trigger/snapshot designs are too risky before the simpler exact RPC is measured.
+4. Journal/private-history pagination last; it should wait for clear user-data scale or tester feedback because it can change search/filter expectations.
+
+Before 18/8/26:
+
+- Prefer one exact aggregate implementation prompt at a time.
+- Start with XP RPC if performance still blocks perceived readiness.
+- Keep summary tables/triggers out unless RPC results prove insufficient and tests are already in place.
+- Keep all visible numbers exact; no estimates, fake caches, or recent-window substitutions.
+
+After v1:
+
+- Consider XP and finance summary tables only with transactional trigger tests and a backfill/repair script.
+- Consider persisted habit streak summaries only after RPC parity is proven across real edge cases.
+- Add Journal and full-list pagination/search once private history volume justifies a UI change.
+
+Options intentionally rejected for near-term release:
+
+- Materialized views, because refresh timing introduces stale exact metrics unless carefully managed.
+- Broad route-level caching for user-specific exact totals, because invalidation after task/habit/finance writes is easy to get wrong.
+- Implementing XP, streaks, and finance aggregates in one migration, because rollback and semantic QA would be too large.
+- Approximate totals or recent-window replacements for metrics that imply all-time/current/exact meaning.
+
 ## Next Opportunities
 
 - Shape route-specific query payloads so high-traffic pages fetch only fields used above the fold.
@@ -66,3 +105,4 @@ This tracks follow-up work after the Round 1 perceived-loading pass. Keep change
 - Deeper work deferred from Prompt #8: server-side aggregation, broader historical windows, route-level data loaders, caching strategy, and cross-route query consolidation.
 - Deeper work deferred from Prompt #9: exact server aggregates for all-time XP, cached habit streak summaries, cached Finance account balances, and route-level data loaders for editable all-list pages.
 - Deeper work deferred from Prompt #14: exact XP/realm XP aggregate design, deterministic habit streak aggregate design, finance account balance snapshot or RPC design, and Journal pagination/search that preserves private-history meaning.
+- Deeper work deferred from Prompt #15: implementing XP RPC, habit streak RPC, finance balance RPC, and Journal pagination in separate future prompts with tests and migration review.
