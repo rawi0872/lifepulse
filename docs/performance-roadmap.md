@@ -15,6 +15,7 @@ This tracks follow-up work after the Round 1 perceived-loading pass. Keep change
 - Deadline Prompt #14 audited exact totals and full-history reads; safe fixes reduced count-only Insights payloads and Finance joined transaction payloads while preserving exact XP, streak, and balance meanings.
 - Deadline Prompt #15 produced the design-only aggregate/caching plan for exact XP, streak, finance balance, and private-history performance work; no schema or production behavior changed.
 - Deadline Prompt #16 added the exact XP totals RPC migration and switched Today and Insights displayed total/today XP through a safe RPC helper with client-read fallback until hosted Supabase has the function applied.
+- Deadline Prompt #19 added a read-only production network audit and confirmed the live XP RPC is used by Today and Insights; remaining exact-history reads are realm XP, habit streaks, and finance balances.
 - Full network idle can still be around 5 seconds because background Supabase requests continue after first useful paint.
 
 ## Deadline Prompt #8 Performance Pass 2
@@ -108,6 +109,23 @@ Options intentionally rejected for near-term release:
 - No summary tables, triggers, materialized views, XP write changes, level threshold changes, or XP amount changes were added.
 - Production remains safe before hosted Supabase migration application because `loadExactXpTotals()` falls back to the previous exact client-side reads if the RPC is unavailable; the row-transfer performance benefit starts only after `00017_xp_totals_rpc.sql` is applied to hosted Supabase.
 
+## Deadline Prompt #19 Production Network Audit
+
+Read-only phone 390x844 production audit using `npm run test:prod:network-audit`:
+
+| Route | Visible timing | Network idle | Supabase REST | Supabase RPC | XP RPC observed | Remaining exact-history signal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `/today` | 2219ms | 8627ms | 26 | 2 | Yes | No `xp_events` REST read; deferred unbounded `habit_logs` remains for exact streaks. |
+| `/insights` | 2271ms | 7454ms | 26 | 1 | Yes | One `xp_events` REST read remains for exact realm XP mapping; unbounded `habit_logs` remains for current/best streaks. |
+| `/habits` | 1277ms | 7457ms | 5 | 0 | No | Unbounded `habit_logs` remains for exact current/best streaks. |
+| `/finance` | 745ms | 5626ms | 5 | 0 | No | Unbounded lightweight `finance_transactions(account_id, amount, type)` remains for exact balances. |
+| `/weekly-review` | 736ms | 6334ms | 24 | 0 | No | Reads are bounded to current/previous week or latest-only signals. |
+
+- XP RPC result: `/today` no longer uses REST `xp_events` reads for displayed total/today XP; `/insights` uses the RPC for displayed total/today XP but keeps `xp_events` rows for realm XP.
+- Remaining performance options: realm XP RPC, habit streak RPC, and finance balance RPC all remain possible, but each carries more semantic/parity risk than the exact total XP RPC.
+- Recommendation after measurement: stop aggregate/RPC performance work for the next deadline prompt and return to domain depth or beta-readiness UX unless new tester data shows these remaining exact reads are blocking real use.
+- If performance work resumes, choose only one area: habit streak RPC has the clearest repeated route impact (`/today`, `/insights`, `/habits`), but it needs strict parity tests against `src/lib/streaks.ts` before any migration.
+
 ## Next Opportunities
 
 - Shape route-specific query payloads so high-traffic pages fetch only fields used above the fold.
@@ -119,3 +137,4 @@ Options intentionally rejected for near-term release:
 - Deeper work deferred from Prompt #14: exact XP/realm XP aggregate design, deterministic habit streak aggregate design, finance account balance snapshot or RPC design, and Journal pagination/search that preserves private-history meaning.
 - Deeper work deferred from Prompt #15: implementing XP RPC, habit streak RPC, finance balance RPC, and Journal pagination in separate future prompts with tests and migration review.
 - Deeper work deferred from Prompt #16: realm XP RPC design, habit streak RPC, finance balance RPC, and any summary-table work after exact RPC behavior is measured.
+- Deeper work deferred from Prompt #19: realm XP RPC, habit streak RPC, and finance balance RPC; do not implement multiple aggregate RPCs in one prompt.
