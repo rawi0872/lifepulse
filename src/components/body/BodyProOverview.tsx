@@ -45,6 +45,27 @@ export function BodyProOverview({
   const todayMetrics = bodyMetrics.find((m) => m.entry_date === new Date().toISOString().slice(0, 10)) ?? null;
   const caloriesToday = nutritionToday.reduce((s, n) => s + (n.calories ?? 0), 0);
   const proteinToday = nutritionToday.reduce((s, n) => s + (n.protein_g ?? 0), 0);
+  const bodyEntriesThisWeek = bodyMetrics.slice(0, 7);
+  const latestBodyEntry = bodyEntriesThisWeek[0] ?? null;
+  const loggedSignalCount = bodyEntriesThisWeek.reduce((sum, entry) => {
+    return sum + [
+      entry.sleep_hours,
+      entry.sleep_quality,
+      entry.energy,
+      entry.steps,
+      entry.workout_minutes,
+      entry.weight_kg,
+      entry.resting_heart_rate,
+      entry.recovery_score,
+    ].filter((value) => value !== null).length;
+  }, 0);
+  const reviewContextItems = [
+    bodyEntriesThisWeek.length > 0 ? `${bodyEntriesThisWeek.length} body check-in${bodyEntriesThisWeek.length !== 1 ? "s" : ""}` : null,
+    workoutsThisWeek > 0 ? `${workoutsThisWeek} workout${workoutsThisWeek !== 1 ? "s" : ""}` : null,
+    nutritionToday.length > 0 ? `${nutritionToday.length} food entr${nutritionToday.length === 1 ? "y" : "ies"} today` : null,
+    waterToday > 0 ? `${formatNumber(waterToday)} ml water today` : null,
+    latestHealthNote ? "latest health note" : null,
+  ].filter((item): item is string => Boolean(item));
 
   return (
     <div className="min-w-0 space-y-6">
@@ -137,6 +158,41 @@ export function BodyProOverview({
           active={waterToday > 0}
         />
       </div>
+
+      <PulseCard title="This week's body context" accent="success" description="Feeds Weekly Review">
+        <div className="p-4 sm:p-5">
+          {reviewContextItems.length > 0 ? (
+            <>
+              <p className="max-w-2xl text-sm leading-relaxed text-[var(--text-secondary)]">
+                Based on what you logged, Weekly Review has manual body context from {reviewContextItems.join(", ")}.
+              </p>
+              <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)]/70 px-3 py-3">
+                  <span className="block text-xs font-semibold text-[var(--text)]">Logged signals</span>
+                  <span className="mt-1 block text-[10px] leading-relaxed text-[var(--text-muted)]">
+                    {loggedSignalCount > 0 ? `${loggedSignalCount} fields across recent entries` : "No metric fields filled yet."}
+                  </span>
+                </div>
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)]/70 px-3 py-3">
+                  <span className="block text-xs font-semibold text-[var(--text)]">Latest entry</span>
+                  <span className="mt-1 block text-[10px] leading-relaxed text-[var(--text-muted)]">
+                    {latestBodyEntry ? new Date(latestBodyEntry.entry_date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" }) : "No body entry yet."}
+                  </span>
+                </div>
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)]/70 px-3 py-3">
+                  <span className="block text-xs font-semibold text-[var(--text)]">Private review</span>
+                  <span className="mt-1 block text-[10px] leading-relaxed text-[var(--text-muted)]">Manual context only. Not medical advice.</span>
+                </div>
+              </div>
+            </>
+          ) : (
+            <EmptyState
+              message="No recent body context yet."
+              description="A few logged entries make Weekly Review more useful. Manual context only; not medical advice."
+            />
+          )}
+        </div>
+      </PulseCard>
 
       <div className="grid min-w-0 grid-cols-1 gap-6 md:grid-cols-2">
         <div className="space-y-6">

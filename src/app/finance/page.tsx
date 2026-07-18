@@ -366,6 +366,9 @@ export default function FinancePage() {
 
   const budgetTotal = budgets.reduce((s, b) => s + Number(b.amount), 0);
   const budgetPct = budgetTotal > 0 ? Math.round((analytics.currentMonthExpenses / budgetTotal) * 100) : 0;
+  const incomeCountThisMonth = currentMonthTransactions.filter((tx) => tx.type === "income").length;
+  const expenseCountThisMonth = currentMonthTransactions.filter((tx) => tx.type === "expense").length;
+  const latestTransaction = currentMonthTransactions[0] ?? null;
 
   if (loading) {
     return (
@@ -510,6 +513,39 @@ export default function FinancePage() {
               />
             </div>
 
+            <Card className="mb-6 min-w-0 p-4 sm:p-5">
+              <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">Manual context</p>
+                  <h3 className="mt-1 break-words text-sm font-semibold text-[var(--text)]">This month&apos;s money context</h3>
+                  <p className="mt-1 max-w-2xl break-words text-sm leading-relaxed text-[var(--text-secondary)]">
+                    Based on what you logged for {monthRange.label.toLowerCase()}, Weekly Review has {analytics.transactionCountThisMonth} transaction{analytics.transactionCountThisMonth !== 1 ? "s" : ""}: {incomeCountThisMonth} income and {expenseCountThisMonth} expense entr{expenseCountThisMonth === 1 ? "y" : "ies"}.
+                  </p>
+                </div>
+                <span className="shrink-0 rounded-full bg-[var(--surface-soft)] px-2.5 py-1 text-[10px] font-medium text-[var(--text-muted)]">
+                  Not financial advice
+                </span>
+              </div>
+              <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-3">
+                  <span className="block text-xs font-semibold text-[var(--text)]">Latest entry</span>
+                  <span className="mt-1 block break-words text-[10px] leading-relaxed text-[var(--text-muted)]">
+                    {latestTransaction ? `${latestTransaction.title} - ${formatCurrency(Number(latestTransaction.amount))}` : "No entry for this month."}
+                  </span>
+                </div>
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-3">
+                  <span className="block text-xs font-semibold text-[var(--text)]">Top category</span>
+                  <span className="mt-1 block break-words text-[10px] leading-relaxed text-[var(--text-muted)]">
+                    {analytics.biggestCategory ? `${analytics.biggestCategory.categoryName} - ${formatCurrency(analytics.biggestCategory.amount)}` : "No expense category logged."}
+                  </span>
+                </div>
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-3">
+                  <span className="block text-xs font-semibold text-[var(--text)]">Private review</span>
+                  <span className="mt-1 block text-[10px] leading-relaxed text-[var(--text-muted)]">Manual entries only. No bank connection, AI summaries, or external processing.</span>
+                </div>
+              </div>
+            </Card>
+
             <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
               <Card className="min-w-0 p-4 sm:p-5">
                 <h3 className="mb-4 break-words text-sm font-medium text-[var(--text-secondary)]">
@@ -536,9 +572,9 @@ export default function FinancePage() {
             {insights.length > 0 && (
               <div className="mb-6">
                 <h3 className="mb-3 break-words text-sm font-medium text-[var(--text-secondary)]">
-                  Smart Insights
-                  <HelpPopover title="Smart Insights" className="ml-1">
-                  <p>These insights are calculated from manually logged finance data. They summarize logged spending patterns, budget usage, and changes from last month without financial advice.</p>
+                  Review Context
+                  <HelpPopover title="Review Context" className="ml-1">
+                  <p>These notes are calculated from manually logged finance data. They summarize logged money context, budget usage, and changes from last month without financial advice.</p>
                   </HelpPopover>
                 </h3>
                 <FinanceInsights insights={insights} />

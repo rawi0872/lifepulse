@@ -9,22 +9,16 @@ interface MindMetricsSummaryProps {
   recent: MindMetrics[];
 }
 
-function scoreLabel(val: number): string {
-  if (val >= 4) return "High";
-  if (val >= 3) return "Moderate";
-  return "Low";
-}
-
 export function MindMetricsSummary({ recent }: MindMetricsSummaryProps) {
   const hasData = recent.length > 0;
 
   return (
-    <PulseCard title="Recent Mind Data" accent="accent" description="Last 7 days">
+    <PulseCard title="Recent mind context" accent="accent" description="Last 7 days">
       {!hasData ? (
         <div className="p-4">
           <EmptyState
             message="No mind metrics logged yet."
-            description="Use the form to start tracking daily signals."
+            description="A few private check-ins make broader patterns easier to review."
           />
         </div>
       ) : (
@@ -35,7 +29,7 @@ export function MindMetricsSummary({ recent }: MindMetricsSummaryProps) {
             const parts: string[] = [];
             if (entry.mood !== null) parts.push(`Mood ${entry.mood}/5`);
             if (entry.focus !== null) parts.push(`Focus ${entry.focus}/5`);
-            if (entry.stress !== null) parts.push(`Stress ${scoreLabel(entry.stress)}`);
+            if (entry.stress !== null) parts.push(`Stress ${entry.stress}/5`);
             if (entry.tags && entry.tags.length > 0) parts.push(entry.tags.join(", "));
 
             return (

@@ -137,6 +137,18 @@ function MindContent() {
   }
 
   const todayMetrics = mindMetrics.find((m) => m.entry_date === getTodayDate()) ?? null;
+  const mindEntriesThisWeek = mindMetrics.slice(0, 7);
+  const latestMindEntry = mindEntriesThisWeek[0] ?? null;
+  const latestJournalEntry = journalEntries[0] ?? null;
+  const loggedMindSignalCount = mindEntriesThisWeek.reduce((sum, entry) => {
+    return sum + [entry.mood, entry.stress, entry.focus, entry.clarity, entry.motivation].filter((value) => value !== null).length;
+  }, 0);
+  const mindContextItems = [
+    mindEntriesThisWeek.length > 0 ? `${mindEntriesThisWeek.length} mind check-in${mindEntriesThisWeek.length !== 1 ? "s" : ""}` : null,
+    journalEntries.length > 0 ? `${journalEntries.length} recent journal entr${journalEntries.length === 1 ? "y" : "ies"}` : null,
+    mindHabits.length > 0 ? `${mindHabits.length} mind habit${mindHabits.length !== 1 ? "s" : ""}` : null,
+    mindTaskCount > 0 ? `${mindTaskCount} open task${mindTaskCount !== 1 ? "s" : ""}` : null,
+  ].filter((item): item is string => Boolean(item));
 
   if (loading) return <RouteLoadingState label="Mind" detail="Loading today's private check-in context." />;
 
@@ -193,6 +205,48 @@ function MindContent() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           } trend={mindXp > 0 ? "up" : "neutral"} active={mindXp > 0} />
+        </div>
+
+        <div className="mb-6">
+          <PulseCard title="This week's mind context" accent="accent" description="Feeds Weekly Review">
+            <div className="p-4 sm:p-5">
+              {mindContextItems.length > 0 ? (
+                <>
+                  <p className="max-w-2xl text-sm leading-relaxed text-[var(--text-secondary)]">
+                    Based on what you logged, Weekly Review has private mind context from {mindContextItems.join(", ")}.
+                  </p>
+                  <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                    <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)]/70 px-3 py-3">
+                      <span className="block text-xs font-semibold text-[var(--text)]">Logged signals</span>
+                      <span className="mt-1 block text-[10px] leading-relaxed text-[var(--text-muted)]">
+                        {loggedMindSignalCount > 0 ? `${loggedMindSignalCount} fields across recent check-ins` : "No metric fields filled yet."}
+                      </span>
+                    </div>
+                    <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)]/70 px-3 py-3">
+                      <span className="block text-xs font-semibold text-[var(--text)]">Latest check-in</span>
+                      <span className="mt-1 block text-[10px] leading-relaxed text-[var(--text-muted)]">
+                        {latestMindEntry ? new Date(latestMindEntry.entry_date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" }) : "No mind check-in yet."}
+                      </span>
+                    </div>
+                    <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)]/70 px-3 py-3">
+                      <span className="block text-xs font-semibold text-[var(--text)]">Journal context</span>
+                      <span className="mt-1 block text-[10px] leading-relaxed text-[var(--text-muted)]">
+                        {latestJournalEntry ? `Latest journal entry ${new Date(latestJournalEntry.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}` : "No recent journal entry."}
+                      </span>
+                    </div>
+                  </div>
+                  <p className="mt-3 text-[10px] leading-relaxed text-[var(--text-muted)]">
+                    Private review context only. No AI summaries or external processing. Not clinical care or medical guidance.
+                  </p>
+                </>
+              ) : (
+                <EmptyState
+                  message="No recent mind context yet."
+                  description="A few private check-ins or journal entries make broader patterns easier to review."
+                />
+              )}
+            </div>
+          </PulseCard>
         </div>
 
         <div className="mb-6">

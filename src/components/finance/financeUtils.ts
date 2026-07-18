@@ -287,7 +287,7 @@ export function computeInsights(analytics: FinanceAnalytics, monthLabel: string)
       type: "neutral",
       icon: "→",
       title: "No transactions yet",
-      description: `Add your first transaction for ${monthLabel} to start tracking.`,
+      description: `Add your first manual transaction for ${monthLabel} to create review context.`,
     });
     return insights;
   }
@@ -297,14 +297,14 @@ export function computeInsights(analytics: FinanceAnalytics, monthLabel: string)
       insights.push({
         type: "positive",
         icon: "↑",
-        title: "Net cashflow increased",
+        title: "Net cashflow changed",
         description: `Up ${analytics.netDelta}% vs last month. Logged income is above logged expenses this month.`,
       });
     } else if (analytics.currentMonthNet < 0) {
       insights.push({
         type: "warning",
         icon: "!",
-        title: "Logged expenses above income",
+        title: "Expenses above income",
         description: `Logged expenses are ${formatCurrency(Math.abs(analytics.currentMonthNet))} above logged income this month.`,
       });
     }
@@ -315,7 +315,7 @@ export function computeInsights(analytics: FinanceAnalytics, monthLabel: string)
       type: "neutral",
       icon: "•",
       title: `Top category: ${analytics.biggestCategory.categoryName}`,
-      description: `${analytics.biggestCategory.percentage}% of expenses — ${formatCurrency(analytics.biggestCategory.amount)}`,
+      description: `${analytics.biggestCategory.percentage}% of expenses - ${formatCurrency(analytics.biggestCategory.amount)}`,
     });
   }
 
@@ -323,8 +323,8 @@ export function computeInsights(analytics: FinanceAnalytics, monthLabel: string)
     insights.push({
       type: "warning",
       icon: "↑",
-      title: "Expenses rising",
-      description: `Spending is up ${analytics.expensesDelta}% compared to last month.`,
+      title: "Expenses changed",
+      description: `Logged expenses are up ${analytics.expensesDelta}% compared to last month.`,
     });
   }
 
@@ -332,8 +332,8 @@ export function computeInsights(analytics: FinanceAnalytics, monthLabel: string)
     insights.push({
       type: "positive",
       icon: "↓",
-      title: "Expenses dropped",
-      description: `Spending decreased ${Math.abs(analytics.expensesDelta)}% from last month.`,
+      title: "Expenses changed",
+      description: `Logged expenses decreased ${Math.abs(analytics.expensesDelta)}% from last month.`,
     });
   }
 
@@ -362,7 +362,7 @@ export function computeInsights(analytics: FinanceAnalytics, monthLabel: string)
       type: "neutral",
       icon: "•",
       title: "Highest expense",
-      description: `${analytics.highestExpense.title} — ${formatCurrency(analytics.highestExpense.amount)}`,
+      description: `${analytics.highestExpense.title} - ${formatCurrency(analytics.highestExpense.amount)}`,
     });
   }
 

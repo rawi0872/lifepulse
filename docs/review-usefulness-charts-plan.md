@@ -44,8 +44,9 @@ Life Pulse needs Weekly Review and Insights to answer clearer questions from log
 9. First-week experience: guide new users from the first Today loop through repeated daily loops, Weekly Review, Insights, and Journal without new storage, AI, scoring, advice, or heavy queries. Shipped as Deadline Prompt #10.
 10. First-session sequencing: make Today, Tasks/Habits, Journal, Weekly Review, and later Insights the explicit first-session route order while keeping optional modules available. Shipped as Deadline Prompt #11.
 11. First action completion flow: make completed tasks and habits hand off into reflection and later review using existing Today state and row copy only. Shipped as Deadline Prompt #12.
-12. Insights v2: add 4-week trend comparisons using existing timestamps and manual logs.
-13. Review v5: add user-controlled filters for current week, last week, and month, without adding new storage.
+12. Domain depth pass: make Body, Mind, and Finance explain their manual context value for Weekly Review using already-loaded data only. Shipped as Deadline Prompt #20.
+13. Insights v2: add 4-week trend comparisons using existing timestamps and manual logs.
+14. Review v5: add user-controlled filters for current week, last week, and month, without adding new storage.
 
 ## Current Weekly Review v2 Scope
 
@@ -123,6 +124,15 @@ Life Pulse needs Weekly Review and Insights to answer clearer questions from log
 - Made Today&apos;s Next Best Action switch to reflection after a visible action is complete, and to Weekly Review / Journal once action and reflection are both present.
 - Updated task and habit completion toasts plus completed-row copy on `/tasks` and `/habits` so logged actions point back to Today reflection and weekly rhythm.
 - Reused existing completion and reflection state only; no new queries, storage, analytics, XP changes, task semantics, habit semantics, AI, advice, or automation were added.
+
+## Deadline Prompt #20 Domain Depth Scope
+
+- Added compact Body, Mind, and Finance context panels that explain how recent manual logs feed Weekly Review and broader patterns.
+- Body context uses already-loaded body metrics, workouts, nutrition, water, latest weight, and health note props only.
+- Mind context uses already-loaded mind metrics, journal entries, mind habits, and open task count only.
+- Finance context uses already-loaded monthly transactions and existing analytics only; balance calculations and transaction semantics are unchanged.
+- Reframed Finance notes from "Smart Insights" to review context and kept copy factual, private, and non-advisory.
+- No new queries, schema, migrations, RPCs, summary tables, AI summaries, external processing, scoring, advice, CRUD changes, XP changes, or finance balance changes were added.
 
 ## Deferred From v2
 
