@@ -208,7 +208,7 @@ export function DashboardNav({ children }: { children: React.ReactNode }) {
             <div className="mb-3 flex items-center justify-between">
               <div>
                 <h2 className="text-base font-semibold tracking-[-0.02em] text-[var(--text)]">More</h2>
-                <p className="mt-0.5 text-xs text-[var(--text-muted)]">Deeper tools are here when you need them.</p>
+                <p className="mt-0.5 text-xs text-[var(--text-muted)]">Start with Today. These routes are optional or later.</p>
               </div>
               <button
                 onClick={() => setMoreOpen(false)}

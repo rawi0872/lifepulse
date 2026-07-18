@@ -6,7 +6,7 @@ export function FinalSummary() {
       {[
         { label: "Start in Today", desc: "Set one priority first", icon: "🧭" },
         { label: "First loop clear", desc: "One visible action, then reflect", icon: "🔄" },
-        { label: "Review later", desc: "After a few days, close the week", icon: "🎯" },
+        { label: "Review later", desc: "Weekly Review first, Insights later", icon: "🎯" },
       ].map((item) => (
         <div
           key={item.label}

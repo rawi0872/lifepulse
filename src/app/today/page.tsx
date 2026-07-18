@@ -1446,7 +1446,7 @@ function FirstLoopGuide({
       : !visibleActionDone
         ? "Priority complete. Next: complete one visible action."
         : !hasJournal
-          ? "Good. Reflect tonight so the day has context."
+          ? "Action logged. Reflect tonight so the day has context."
           : "One loop is enough for today. Repeat it for a few days, then close the week.";
 
   return (
@@ -1507,6 +1507,17 @@ function FirstLoopGuide({
         <p className="mt-3 text-[10px] leading-relaxed text-[var(--text-muted)]">
           Body, Mind, and Finance are optional context. Weekly Review and Insights stay based on what you log, private and manual.
         </p>
+        <div className="mt-3 flex min-w-0 flex-wrap gap-1.5 text-[10px] text-[var(--text-muted)]">
+          <span className="rounded-full border border-[var(--accent)]/20 bg-[var(--accent-soft)] px-2 py-1 text-[var(--accent)]">Today</span>
+          <span className="py-1">→</span>
+          <span className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-2 py-1">Tasks/Habits</span>
+          <span className="py-1">→</span>
+          <span className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-2 py-1">Journal</span>
+          <span className="py-1">→</span>
+          <span className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-2 py-1">Weekly Review</span>
+          <span className="py-1">→</span>
+          <span className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-2 py-1">Insights later</span>
+        </div>
       </div>
     </Card>
   );

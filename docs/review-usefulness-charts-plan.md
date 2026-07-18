@@ -42,8 +42,9 @@ Life Pulse needs Weekly Review and Insights to answer clearer questions from log
 7. Weekly Review closing flow: make the end of review turn into one next-week focus, Save to Journal, and return-to-Today handoff. Shipped as Deadline Prompt #6.
 8. Journal private history: make daily reflections and saved weekly reviews easier to recognize, filter, and return to. Shipped as Deadline Prompt #7.
 9. First-week experience: guide new users from the first Today loop through repeated daily loops, Weekly Review, Insights, and Journal without new storage, AI, scoring, advice, or heavy queries. Shipped as Deadline Prompt #10.
-10. Insights v2: add 4-week trend comparisons using existing timestamps and manual logs.
-11. Review v5: add user-controlled filters for current week, last week, and month, without adding new storage.
+10. First-session sequencing: make Today, Tasks/Habits, Journal, Weekly Review, and later Insights the explicit first-session route order while keeping optional modules available. Shipped as Deadline Prompt #11.
+11. Insights v2: add 4-week trend comparisons using existing timestamps and manual logs.
+12. Review v5: add user-controlled filters for current week, last week, and month, without adding new storage.
 
 ## Current Weekly Review v2 Scope
 
@@ -107,6 +108,13 @@ Life Pulse needs Weekly Review and Insights to answer clearer questions from log
 - Reused existing Today state only: priority presence/completion, visible task or habit completion, today's reflection, and optional Body/Mind/Finance context.
 - Tightened onboarding final handoff and sparse copy in Weekly Review, Insights, and Journal so new users know to start with Today and let Review/Insights become useful after a few logged days.
 - No new storage, schema, AI, scoring, advice, CRUD changes, XP changes, or heavy queries were added.
+
+## Deadline Prompt #11 First-Session Sequencing Scope
+
+- Made the first-session route order explicit in `/today`: Today, Tasks/Habits, Journal, Weekly Review, then Insights later.
+- Grouped the Today ecosystem strip into Start today, Support the loop, Review later, Optional context, and Build later so optional modules do not read as day-1 requirements.
+- Kept DashboardNav route labels stable while clarifying mobile More copy and loop connector labels.
+- No analytics, tracking storage, schema, new modules, CRUD behavior changes, XP changes, AI, advice, or heavy queries were added.
 
 ## Deferred From v2
 

@@ -9,9 +9,9 @@ interface DailyLoopConnectorProps {
 
 const steps: { key: LoopStep; label: string; href: string }[] = [
   { key: "today", label: "Today", href: "/today" },
-  { key: "action", label: "Action", href: "/today#daily-execution" },
-  { key: "reflect", label: "Reflect", href: "/today#evening-reflection" },
-  { key: "review", label: "Review", href: "/weekly-review" },
+  { key: "action", label: "Tasks/Habits", href: "/today#daily-execution" },
+  { key: "reflect", label: "Journal", href: "/today#evening-reflection" },
+  { key: "review", label: "Weekly Review", href: "/weekly-review" },
 ];
 
 export function DailyLoopConnector({ activeStep, note }: DailyLoopConnectorProps) {
@@ -40,6 +40,9 @@ export function DailyLoopConnector({ activeStep, note }: DailyLoopConnectorProps
           </div>
         ))}
       </div>
+      <p className="mt-2 text-[10px] leading-relaxed text-[var(--text-muted)]">
+        Insights is for broader patterns after logged activity exists.
+      </p>
     </div>
   );
 }
