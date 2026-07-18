@@ -36,9 +36,10 @@ Life Pulse needs Weekly Review and Insights to answer clearer questions from log
 1. Weekly Review v1: add daily rhythm chart and fix weekly task counts to use this week only. Shipped.
 2. Weekly Review v2: add existing-data trend surfaces for daily action mix, reflection rhythm, and mind check-in trends. Shipped.
 3. Weekly Review v3: add section-level “what changed this week” summaries using deterministic counts only. Shipped as Deadline Prompt #2.
-4. Insights v1: add reusable small bar chart primitives for habits, tasks, body, mind, and finance signals.
-5. Insights v2: add 4-week trend comparisons using existing timestamps and manual logs.
-6. Review v4: add user-controlled filters for current week, last week, and month, without adding new storage.
+4. Weekly Review v4: add bounded current-week versus previous-week comparison using minimal previous-week data. Shipped as Deadline Prompt #3.
+5. Insights v1: add reusable small bar chart primitives for habits, tasks, body, mind, and finance signals.
+6. Insights v2: add 4-week trend comparisons using existing timestamps and manual logs.
+7. Review v5: add user-controlled filters for current week, last week, and month, without adding new storage.
 
 ## Current Weekly Review v2 Scope
 
@@ -55,10 +56,18 @@ Life Pulse needs Weekly Review and Insights to answer clearer questions from log
 - Sparse state uses factual copy: “This week is still quiet,” “A few tasks, habits, or reflections will make this review clearer,” and “No judgment - quiet weeks still count.”
 - The section is memoized from loaded weekly data and adds no new Supabase queries.
 
+## Deadline Prompt #3 Previous-Week Scope
+
+- Added a compact “Compared with last week” section after “What changed this week.”
+- Previous-week data is bounded to one week only and uses minimal date/count fields: habit log dates, completed task timestamps, journal entry dates, mind entry dates, body entry dates, nutrition log dates, and finance transaction dates.
+- Comparison copy is factual and neutral: “+N from last week,” “Same as last week,” or “N fewer than last week.”
+- The current-week page renders first; previous-week comparison hydrates as secondary data to avoid blocking the main review.
+- 4-week comparisons remain deferred until performance-aware data windows are designed.
+
 ## Deferred From v2
 
 - Multi-week comparisons: requires broader date windows and careful performance checks.
-- Performance-aware data windows: needed before 4-week comparisons or current-week versus prior-week comparisons.
+- Performance-aware data windows: needed before 4-week comparisons or broader historical filters.
 - Rich finance trend charts: safe later, but daily money charts need more currency handling and would add clutter in this slice.
 - Body trend strip: safe later, but Weekly Review already has many body/nutrition metrics and mind trends provide a clearer first depth upgrade.
 - Goal/project progress history: useful later, but current data mostly shows current active/link state rather than historical change.

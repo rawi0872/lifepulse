@@ -44,6 +44,28 @@ interface WeeklyChangeSummaryData {
   isQuiet: boolean;
 }
 
+interface PreviousWeekData {
+  activityByDay: ActivityDay[];
+  habitLogs: number;
+  completedTasks: number;
+  reflections: number;
+  mindCheckins: number;
+  bodyNutritionCheckins: number;
+  financeEntries: number;
+}
+
+interface WeeklyComparisonRow {
+  label: string;
+  current: number;
+  previous: number;
+  detail: string;
+}
+
+interface WeeklyComparisonData {
+  rows: WeeklyComparisonRow[];
+  isSparse: boolean;
+}
+
 function getWeekDates(): string[] {
   const start = new Date(getWeekStartDate());
   const dates: string[] = [];
@@ -53,6 +75,12 @@ function getWeekDates(): string[] {
     dates.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`);
   }
   return dates;
+}
+
+function addDays(dateString: string, days: number): string {
+  const date = new Date(`${dateString}T12:00:00`);
+  date.setDate(date.getDate() + days);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
 interface WeekData {
@@ -126,6 +154,8 @@ function WeeklyReviewContent() {
   const isWeekend = todayDow === 0 || todayDow === 6;
 
   const [data, setData] = useState<WeekData | null>(null);
+  const [previousWeekData, setPreviousWeekData] = useState<PreviousWeekData | null>(null);
+  const [comparisonLoading, setComparisonLoading] = useState(true);
   const [reflection, setReflection] = useState({
     wentWell: "",
     feltDifficult: "",
@@ -143,8 +173,13 @@ function WeeklyReviewContent() {
     if (!user) { router.push("/login"); return; }
 
     const weekEnd = weekDates[6];
+    const previousWeekDates = weekDates.map((date) => addDays(date, -7));
+    const previousWeekStart = previousWeekDates[0];
+    const previousWeekEnd = previousWeekDates[6];
     const knowledgeWeekStart = toLocalDateBoundaryIso(weekStart, "start");
     const knowledgeWeekEnd = toLocalDateBoundaryIso(weekEnd, "end");
+    setComparisonLoading(true);
+    setPreviousWeekData(null);
 
     const [
       habitsRes, tasksRes, workoutsRes, journalRes,
@@ -349,6 +384,60 @@ function WeeklyReviewContent() {
       topPassion,
     });
     setLoading(false);
+
+    try {
+      const [prevHabitsRes, prevTasksRes, prevJournalRes, prevMindRes, prevBodyRes, prevNutritionRes, prevFinanceRes] = await Promise.all([
+        supabase.from("habit_logs").select("completed_date").eq("user_id", user.id).gte("completed_date", previousWeekStart).lte("completed_date", previousWeekEnd),
+        supabase.from("tasks").select("completed_at").eq("user_id", user.id).eq("status", "done").gte("completed_at", `${previousWeekStart}T00:00:00`).lte("completed_at", `${previousWeekEnd}T23:59:59`),
+        supabase.from("journal_entries").select("entry_date").eq("user_id", user.id).gte("entry_date", previousWeekStart).lte("entry_date", previousWeekEnd),
+        supabase.from("mind_metrics").select("entry_date").eq("user_id", user.id).gte("entry_date", previousWeekStart).lte("entry_date", previousWeekEnd),
+        supabase.from("body_metrics").select("entry_date").eq("user_id", user.id).gte("entry_date", previousWeekStart).lte("entry_date", previousWeekEnd),
+        supabase.from("nutrition_logs").select("log_date").eq("user_id", user.id).gte("log_date", previousWeekStart).lte("log_date", previousWeekEnd),
+        supabase.from("finance_transactions").select("transaction_date").eq("user_id", user.id).gte("transaction_date", previousWeekStart).lte("transaction_date", previousWeekEnd),
+      ]);
+
+      const prevHabitLogs = (prevHabitsRes.data ?? []) as { completed_date?: string | null }[];
+      const prevCompletedTasks = (prevTasksRes.data ?? []) as { completed_at?: string | null }[];
+      const prevJournalEntries = (prevJournalRes.data ?? []) as { entry_date?: string | null }[];
+      const prevMindEntries = (prevMindRes.data ?? []) as { entry_date?: string | null }[];
+      const prevBodyEntries = (prevBodyRes.data ?? []) as { entry_date?: string | null }[];
+      const prevNutritionEntries = (prevNutritionRes.data ?? []) as { log_date?: string | null }[];
+      const prevFinanceEntries = (prevFinanceRes.data ?? []) as { transaction_date?: string | null }[];
+
+      setPreviousWeekData({
+        activityByDay: previousWeekDates.map((date, index) => {
+          const habits = prevHabitLogs.filter((log) => log.completed_date === date).length;
+          const tasks = prevCompletedTasks.filter((task) => task.completed_at?.slice(0, 10) === date).length;
+          const reflections = prevJournalEntries.filter((entry) => entry.entry_date === date).length;
+          const mind = prevMindEntries.filter((entry) => entry.entry_date === date).length;
+          const body = prevBodyEntries.filter((entry) => entry.entry_date === date).length;
+          const nutrition = prevNutritionEntries.filter((entry) => entry.log_date === date).length;
+          const finance = prevFinanceEntries.filter((entry) => entry.transaction_date === date).length;
+
+          return {
+            label: WEEKDAYS[index],
+            habits,
+            tasks,
+            reflections,
+            mind,
+            body,
+            nutrition,
+            finance,
+            total: habits + tasks + reflections + mind + body + nutrition + finance,
+          };
+        }),
+        habitLogs: prevHabitLogs.length,
+        completedTasks: prevCompletedTasks.length,
+        reflections: prevJournalEntries.length,
+        mindCheckins: prevMindEntries.length,
+        bodyNutritionCheckins: prevBodyEntries.length + prevNutritionEntries.length,
+        financeEntries: prevFinanceEntries.length,
+      });
+    } catch (comparisonError) {
+      console.warn("Failed to load previous-week comparison", comparisonError);
+    } finally {
+      setComparisonLoading(false);
+    }
   }, [supabase, router, weekDates, weekStart]);
 
   useEffect(() => {
@@ -385,6 +474,10 @@ function WeeklyReviewContent() {
   };
 
   const weeklyChangeSummary = useMemo(() => data ? buildWeeklyChangeSummary(data) : null, [data]);
+  const weeklyComparison = useMemo(
+    () => data && previousWeekData ? buildWeeklyComparison(data, previousWeekData) : null,
+    [data, previousWeekData]
+  );
 
   if (loading || !data) {
     return (
@@ -497,6 +590,17 @@ function WeeklyReviewContent() {
           A deterministic read on logged days, quiet days, and activity rhythm. Based on logged activity only.
         </p>
         <WeeklyChangeSummary summary={weeklyChangeSummary} />
+      </section>
+
+      <section className="mb-8">
+        <div className="mb-3 flex min-w-0 items-center gap-2">
+          <span className="h-4 w-1 rounded-full bg-gradient-to-b from-[var(--accent)] to-[var(--accent-strong)]" />
+          <h2 className="min-w-0 break-words text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Compared with last week</h2>
+        </div>
+        <p className="mb-3 text-xs text-[var(--text-muted)]">
+          A bounded comparison between this week and the previous week. Based on logged activity only.
+        </p>
+        <WeeklyComparison summary={weeklyComparison} loading={comparisonLoading} />
       </section>
 
       <section className="mb-8">
@@ -835,6 +939,104 @@ function WeeklyChangeSummary({ summary }: { summary: WeeklyChangeSummaryData | n
       </p>
     </Card>
   );
+}
+
+function WeeklyComparison({ summary, loading }: { summary: WeeklyComparisonData | null; loading: boolean }) {
+  if (loading) {
+    return (
+      <Card className="min-w-0 p-4 sm:p-5">
+        <div className="space-y-3 animate-pulse">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <div key={index} className="h-14 rounded-xl bg-[var(--surface-soft)]" />
+          ))}
+        </div>
+      </Card>
+    );
+  }
+
+  if (!summary) {
+    return (
+      <Card className="min-w-0 border-dashed border-[var(--border)] bg-black/[0.08] p-4 text-center sm:p-5">
+        <p className="text-sm font-semibold text-[var(--text)]">Comparison becomes clearer after another logged week.</p>
+        <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">No judgment - quiet weeks still count.</p>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="min-w-0 overflow-hidden border-[var(--border)] bg-[var(--surface)]">
+      {summary.isSparse && (
+        <div className="border-b border-[var(--border)] bg-black/[0.08] px-4 py-3 sm:px-5">
+          <p className="text-sm font-semibold text-[var(--text)]">Comparison becomes clearer after another logged week.</p>
+          <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">No judgment - quiet weeks still count.</p>
+        </div>
+      )}
+      <div className="divide-y divide-[var(--border)]">
+        {summary.rows.map((row) => (
+          <div key={row.label} className="grid min-w-0 gap-3 px-4 py-3.5 sm:grid-cols-[1fr_auto] sm:items-center sm:px-5">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-[var(--text)]">{row.label}</p>
+              <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">{row.detail}</p>
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:w-44">
+              <ComparisonValue label="This week" value={row.current} />
+              <ComparisonValue label="Last week" value={row.previous} />
+            </div>
+          </div>
+        ))}
+      </div>
+      <p className="border-t border-[var(--border)] px-4 py-3 text-[10px] leading-relaxed text-[var(--text-muted)] sm:px-5">
+        Private manual comparison. No AI summaries or external processing.
+      </p>
+    </Card>
+  );
+}
+
+function ComparisonValue({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2 text-center">
+      <p className="text-base font-semibold tabular-nums text-[var(--text)]">{value}</p>
+      <p className="mt-0.5 text-[9px] font-medium uppercase tracking-[0.1em] text-[var(--text-muted)]">{label}</p>
+    </div>
+  );
+}
+
+function buildWeeklyComparison(data: WeekData, previous: PreviousWeekData): WeeklyComparisonData {
+  const currentLoggedDays = data.activityByDay.filter((day) => day.total > 0).length;
+  const previousLoggedDays = previous.activityByDay.filter((day) => day.total > 0).length;
+  const currentBodyNutrition = data.activityByDay.reduce((sum, day) => sum + day.body + day.nutrition, 0);
+  const currentFinanceEntries = data.activityByDay.reduce((sum, day) => sum + day.finance, 0);
+  const previousTotal = previous.activityByDay.reduce((sum, day) => sum + day.total, 0);
+  const currentTotal = data.activityByDay.reduce((sum, day) => sum + day.total, 0);
+
+  const rows: WeeklyComparisonRow[] = [
+    makeComparisonRow("Logged days", currentLoggedDays, previousLoggedDays),
+    makeComparisonRow("Habit logs", data.habitCount, previous.habitLogs),
+    makeComparisonRow("Completed tasks", data.taskCount, previous.completedTasks),
+    makeComparisonRow("Reflections", data.weeklyJournalEntries, previous.reflections),
+    makeComparisonRow("Mind check-ins", data.mindCheckins, previous.mindCheckins),
+    makeComparisonRow("Manual check-ins", currentBodyNutrition + currentFinanceEntries, previous.bodyNutritionCheckins + previous.financeEntries),
+  ];
+
+  return {
+    rows,
+    isSparse: currentTotal < 3 || previousTotal < 3,
+  };
+}
+
+function makeComparisonRow(label: string, current: number, previous: number): WeeklyComparisonRow {
+  return {
+    label,
+    current,
+    previous,
+    detail: formatDifference(current - previous),
+  };
+}
+
+function formatDifference(diff: number): string {
+  if (diff === 0) return "Same as last week.";
+  if (diff > 0) return `+${diff} from last week.`;
+  return `${Math.abs(diff)} fewer than last week.`;
 }
 
 function buildWeeklyChangeSummary(data: WeekData): WeeklyChangeSummaryData {
