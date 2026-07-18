@@ -12,6 +12,7 @@ import {
 } from "@/lib/utils";
 import { getCurrentStreak, getWeeklyProgress } from "@/lib/streaks";
 import { toggleTaskCompletion } from "@/lib/taskCompletion";
+import { loadExactXpTotals } from "@/lib/xpTotals";
 import { DashboardNav } from "@/components/DashboardNav";
 import { JournalSection } from "@/components/JournalSection";
 import { XpDisplay } from "@/components/XpDisplay";
@@ -395,7 +396,7 @@ function TodayContent() {
           return;
         }
 
-        const [profileRes, habitsRes, tasksRes, journalRes, weekLogsRes, xpRes, totalXpRes] = await Promise.all([
+        const [profileRes, habitsRes, tasksRes, journalRes, weekLogsRes, xpTotals] = await Promise.all([
           supabase
             .from("profiles")
             .select("intended_use")
@@ -422,15 +423,7 @@ function TodayContent() {
             .select("habit_id, completed_date")
             .eq("user_id", user.id)
             .gte("completed_date", weekStart),
-          supabase
-            .from("xp_events")
-            .select("amount")
-            .eq("user_id", user.id)
-            .gte("created_at", getTodayStartISO()),
-          supabase
-            .from("xp_events")
-            .select("amount")
-            .eq("user_id", user.id),
+          loadExactXpTotals(supabase, user.id, getTodayStartISO()),
         ]);
 
         if (cancelled) return;
@@ -461,12 +454,8 @@ function TodayContent() {
           setWeeklyProgressMap(wMap);
         }
         if (tasksRes.data) setTasks(tasksRes.data as unknown as Task[]);
-        if (xpRes.data) {
-          setTodayXp(xpRes.data.reduce((sum, e) => sum + e.amount, 0));
-        }
-        if (totalXpRes.data) {
-          setTotalXp(totalXpRes.data.reduce((sum, e) => sum + e.amount, 0));
-        }
+        setTodayXp(xpTotals.todayXp);
+        setTotalXp(xpTotals.totalXp);
 
         setLoading(false);
 
@@ -620,7 +609,7 @@ function TodayContent() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const [tasksRes, habitsRes, projectTasksRes, allLogsRes, xpRes, totalXpRes, taskProjectsRes, taskGoalLinksRes, taskGoalsRes] = await Promise.all([
+    const [tasksRes, habitsRes, projectTasksRes, allLogsRes, xpTotals, taskProjectsRes, taskGoalLinksRes, taskGoalsRes] = await Promise.all([
       supabase
         .from("tasks")
         .select("id, title, description, priority, due_date, status, completed_at, project_id, realms(name, color, icon), projects(title)")
@@ -643,15 +632,7 @@ function TodayContent() {
         .from("habit_logs")
         .select("habit_id, completed_date")
         .eq("user_id", user.id),
-      supabase
-        .from("xp_events")
-        .select("amount")
-        .eq("user_id", user.id)
-        .gte("created_at", getTodayStartISO()),
-      supabase
-        .from("xp_events")
-        .select("amount")
-        .eq("user_id", user.id),
+      loadExactXpTotals(supabase, user.id, getTodayStartISO()),
       supabase
         .from("projects")
         .select("id, title, status")
@@ -703,12 +684,8 @@ function TodayContent() {
       setWeeklyProgressMap(wMap);
     }
 
-    if (xpRes.data) {
-      setTodayXp(xpRes.data.reduce((sum: number, e: { amount: number }) => sum + e.amount, 0));
-    }
-    if (totalXpRes.data) {
-      setTotalXp(totalXpRes.data.reduce((sum: number, e: { amount: number }) => sum + e.amount, 0));
-    }
+    setTodayXp(xpTotals.todayXp);
+    setTotalXp(xpTotals.totalXp);
 
     setSuggestedHidden(false);
   }

@@ -14,6 +14,7 @@ This tracks follow-up work after the Round 1 perceived-loading pass. Keep change
 - Deadline Prompt #13 moved Today project/goal context and all-history habit streak work out of the first useful render while preserving final Today meanings.
 - Deadline Prompt #14 audited exact totals and full-history reads; safe fixes reduced count-only Insights payloads and Finance joined transaction payloads while preserving exact XP, streak, and balance meanings.
 - Deadline Prompt #15 produced the design-only aggregate/caching plan for exact XP, streak, finance balance, and private-history performance work; no schema or production behavior changed.
+- Deadline Prompt #16 added the exact XP totals RPC migration and switched Today and Insights displayed total/today XP through a safe RPC helper with client-read fallback until hosted Supabase has the function applied.
 - Full network idle can still be around 5 seconds because background Supabase requests continue after first useful paint.
 
 ## Deadline Prompt #8 Performance Pass 2
@@ -96,6 +97,17 @@ Options intentionally rejected for near-term release:
 - Implementing XP, streaks, and finance aggregates in one migration, because rollback and semantic QA would be too large.
 - Approximate totals or recent-window replacements for metrics that imply all-time/current/exact meaning.
 
+## Deadline Prompt #16 Exact XP RPC
+
+- Added migration `supabase/migrations/00017_xp_totals_rpc.sql` defining `public.get_xp_totals(p_today_start timestamptz)`.
+- The function uses `auth.uid()` internally, runs as `security invoker`, relies on existing owner-only `xp_events` RLS, and returns exact `total_xp` plus exact `today_xp` for the local-day boundary supplied by the client.
+- `/today` first load and reload paths now call `loadExactXpTotals()` for displayed total XP and today XP.
+- `/insights` now calls `loadExactXpTotals()` for displayed total XP, today XP, level, and level progress, while keeping the existing `xp_events(amount, source_type, source_id)` read for realm XP mapping.
+- Realm XP remains client-side because current realm totals depend on mapping task and habit-log source IDs to realm IDs; adding realm XP to this RPC would risk changing meaning without a dedicated design.
+- `/body` and `/mind` realm XP reads remain client-side because they are realm-specific and not equivalent to global total/today XP.
+- No summary tables, triggers, materialized views, XP write changes, level threshold changes, or XP amount changes were added.
+- Production remains safe before hosted Supabase migration application because `loadExactXpTotals()` falls back to the previous exact client-side reads if the RPC is unavailable; the row-transfer performance benefit starts only after `00017_xp_totals_rpc.sql` is applied to hosted Supabase.
+
 ## Next Opportunities
 
 - Shape route-specific query payloads so high-traffic pages fetch only fields used above the fold.
@@ -106,3 +118,4 @@ Options intentionally rejected for near-term release:
 - Deeper work deferred from Prompt #9: exact server aggregates for all-time XP, cached habit streak summaries, cached Finance account balances, and route-level data loaders for editable all-list pages.
 - Deeper work deferred from Prompt #14: exact XP/realm XP aggregate design, deterministic habit streak aggregate design, finance account balance snapshot or RPC design, and Journal pagination/search that preserves private-history meaning.
 - Deeper work deferred from Prompt #15: implementing XP RPC, habit streak RPC, finance balance RPC, and Journal pagination in separate future prompts with tests and migration review.
+- Deeper work deferred from Prompt #16: realm XP RPC design, habit streak RPC, finance balance RPC, and any summary-table work after exact RPC behavior is measured.

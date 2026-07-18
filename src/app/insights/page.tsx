@@ -6,10 +6,11 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { DashboardNav } from "@/components/DashboardNav";
 import { Card } from "@/components/ui/card";
-import { getTodayDateString, getWeekStartDate } from "@/lib/utils";
+import { getTodayDateString, getTodayStartISO, getWeekStartDate } from "@/lib/utils";
 import { getLevelInfo, getOverallTitle } from "@/lib/levels";
 import { formatMoney } from "@/lib/config";
 import { getCurrentStreak, getBestStreak } from "@/lib/streaks";
+import { loadExactXpTotals } from "@/lib/xpTotals";
 import { InsightSkeleton } from "@/components/insights/InsightSkeleton";
 import { LevelOverviewCard } from "@/components/insights/LevelOverviewCard";
 import { MomentumGrid } from "@/components/insights/MomentumGrid";
@@ -118,9 +119,9 @@ export default function InsightsPage() {
       setTrendLoading(true);
       setTrendData(null);
 
-      const [xpRes, todayXpRes, habitsRes, tasksRes, realmsRes, journalRes, habitLogsRes, projectsRes, goalsRes, goalLinksRes] = await Promise.all([
+      const [xpRes, xpTotals, habitsRes, tasksRes, realmsRes, journalRes, habitLogsRes, projectsRes, goalsRes, goalLinksRes] = await Promise.all([
         supabase.from("xp_events").select("amount,source_type,source_id").eq("user_id", user.id),
-        supabase.from("xp_events").select("amount").eq("user_id", user.id).gte("created_at", `${today}T00:00:00`),
+        loadExactXpTotals(supabase, user.id, getTodayStartISO()),
         supabase.from("habits").select("id,frequency,days_of_week,times_per_week,realm_id").eq("user_id", user.id),
         supabase.from("tasks").select("id,status,realm_id").eq("user_id", user.id),
         supabase.from("realms").select("id,name,color,icon").eq("user_id", user.id).order("sort_order"),
@@ -133,11 +134,8 @@ export default function InsightsPage() {
 
       if (cancelled) return;
 
-      if (xpRes.data) {
-        const total = xpRes.data.reduce((s: number, e: { amount: number }) => s + e.amount, 0);
-        setTotalXp(total);
-      }
-      if (todayXpRes.data) setTodayXp(todayXpRes.data.reduce((s: number, e: { amount: number }) => s + e.amount, 0));
+      setTotalXp(xpTotals.totalXp);
+      setTodayXp(xpTotals.todayXp);
       if (journalRes.count !== null) setJournalCount(journalRes.count);
 
       if (habitsRes.data) {
