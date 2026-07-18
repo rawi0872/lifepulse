@@ -164,6 +164,7 @@ function WeeklyReviewContent() {
     oneWin: "",
   });
   const [planFocus, setPlanFocus] = useState("");
+  const [reviewSaved, setReviewSaved] = useState(false);
   const [savingReflection, setSavingReflection] = useState(false);
   const [loading, setLoading] = useState(true);
   const planFocusId = useId();
@@ -451,6 +452,7 @@ function WeeklyReviewContent() {
   }, [loadData]);
 
   const handleSaveReflection = async () => {
+    setReviewSaved(false);
     setSavingReflection(true);
     const text = [
       reflection.wentWell && `## What went well\n${reflection.wentWell}`,
@@ -469,8 +471,15 @@ function WeeklyReviewContent() {
 
     if (error) {
       console.error("Failed to save reflection to journal:", error);
+    } else {
+      setReviewSaved(true);
     }
     setSavingReflection(false);
+  };
+
+  const updateReflectionField = (field: keyof typeof reflection, value: string) => {
+    setReviewSaved(false);
+    setReflection((current) => ({ ...current, [field]: value }));
   };
 
   const weeklyChangeSummary = useMemo(() => data ? buildWeeklyChangeSummary(data) : null, [data]);
@@ -764,102 +773,130 @@ function WeeklyReviewContent() {
         </section>
       )}
 
-      {/* ── 5. Reflection Prompts ──────────────────────────────────── */}
+      {/* ── Close The Week ─────────────────────────────────────────── */}
       <section className="mb-8">
         <div className="mb-3 flex min-w-0 items-center gap-2">
           <span className="h-4 w-1 rounded-full bg-gradient-to-b from-[var(--accent)] to-[var(--accent-strong)]" />
-          <h2 className="min-w-0 break-words text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Weekly reset</h2>
+          <h2 className="min-w-0 break-words text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Close the week</h2>
         </div>
         <p className="mb-3 text-xs text-[var(--text-muted)]">
-          Name what worked, what slipped, and what next week needs. Save the review to your private Journal when it feels useful.
+          Turn this manual review into one small focus, save it to your private Journal, then return to Today when you are ready.
         </p>
-        <PulseCard title="Weekly Reflection" accent="accent">
-          <div className="space-y-4 p-3.5 sm:p-4">
+        <PulseCard title="Turn this review into next week" accent="accent">
+          <div className="space-y-5 p-3.5 sm:p-4">
             <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)]/70 px-3 py-3 text-xs leading-relaxed text-[var(--text-muted)]">
-              Write as much or as little as you need. This saves a manual review note to today&apos;s Journal entry with a weekly review prefix.
+              Use the prompts to capture what changed, what to carry forward, what to reduce, and one focus to carry into next week. This is a manual review based on what you logged.
             </div>
-            <ReflectionField
-              label="What went well this week?"
-              value={reflection.wentWell}
-              onChange={(v) => setReflection((r) => ({ ...r, wentWell: v }))}
-            />
-            <ReflectionField
-              label="What felt difficult?"
-              value={reflection.feltDifficult}
-              onChange={(v) => setReflection((r) => ({ ...r, feltDifficult: v }))}
-            />
-            <ReflectionField
-              label="What will I focus on next week?"
-              value={reflection.focusNextWeek}
-              onChange={(v) => setReflection((r) => ({ ...r, focusNextWeek: v }))}
-            />
-            <ReflectionField
-              label="What can I reduce or avoid?"
-              value={reflection.reduceOrAvoid}
-              onChange={(v) => setReflection((r) => ({ ...r, reduceOrAvoid: v }))}
-            />
-            <ReflectionField
-              label="What is one win I want to remember?"
-              value={reflection.oneWin}
-              onChange={(v) => setReflection((r) => ({ ...r, oneWin: v }))}
-            />
-            <div className="flex justify-stretch pt-2 sm:justify-end">
-              <button
-                onClick={handleSaveReflection}
-                disabled={savingReflection || Object.values(reflection).every((v) => !v)}
-                className="min-h-11 w-full rounded-lg bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-40 sm:w-auto sm:min-h-0 sm:py-2 sm:text-xs"
-              >
-                {savingReflection ? "Saving..." : "Save to Journal"}
-              </button>
+
+            <div className="rounded-2xl border border-[var(--accent)]/20 bg-[var(--accent-soft)]/10 p-3.5 sm:p-4">
+              <ReflectionField
+                label="Choose one focus to carry into next week"
+                value={reflection.focusNextWeek}
+                onChange={(v) => updateReflectionField("focusNextWeek", v)}
+                placeholder="Keep it small enough to remember."
+              />
+              <p className="mt-2 text-[10px] leading-relaxed text-[var(--text-muted)]">
+                This saves with the weekly review note. It is a note for you, not an automatic task.
+              </p>
             </div>
-            <p className="text-[10px] leading-relaxed text-[var(--text-muted)]">
-              Save keeps the same behavior: it writes this weekly reflection into today&rsquo;s private Journal entry. No AI summaries or external processing.
-            </p>
-          </div>
-        </PulseCard>
-      </section>
 
-      {/* ── Plan Next Week ─────────────────────────────────────────── */}
-      <section className="mb-8">
-        <div className="mb-3 flex min-w-0 items-center gap-2">
-          <span className="h-4 w-1 rounded-full bg-gradient-to-b from-[var(--accent)] to-[var(--accent-strong)]" />
-          <h2 className="min-w-0 break-words text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Next week focus</h2>
-        </div>
-        <p className="mb-3 text-xs text-[var(--text-muted)]">
-          Use your current signals to choose a realistic next step.
-        </p>
-        <PulseCard title="Plan Ahead" accent="accent">
-          <div className="mb-4 min-w-0 px-3.5 pt-3.5 sm:px-4 sm:pt-4">
-            <label htmlFor={planFocusId} className="mb-1.5 block break-words text-xs font-medium text-[var(--text)]">Top focus for next week</label>
-            <p className="mb-2 text-[10px] leading-relaxed text-[var(--text-muted)]">A private planning note for this screen. Use it to choose one realistic adjustment.</p>
-            <input
-              id={planFocusId}
-              type="text"
-              value={planFocus}
-              onChange={(e) => setPlanFocus(e.target.value)}
-              placeholder="What is the most important thing to accomplish?"
-              className="min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text)] placeholder-[var(--text-muted)] outline-none transition-colors focus:border-[var(--accent)] sm:min-h-0"
-            />
-          </div>
+            <div className="grid gap-4 lg:grid-cols-2">
+              <ReflectionField
+                label="What changed this week?"
+                value={reflection.wentWell}
+                onChange={(v) => updateReflectionField("wentWell", v)}
+                placeholder="Name what stood out from the week."
+              />
+              <ReflectionField
+                label="What felt difficult?"
+                value={reflection.feltDifficult}
+                onChange={(v) => updateReflectionField("feltDifficult", v)}
+              />
+              <ReflectionField
+                label="What can I reduce or avoid?"
+                value={reflection.reduceOrAvoid}
+                onChange={(v) => updateReflectionField("reduceOrAvoid", v)}
+              />
+              <ReflectionField
+                label="What is one win I want to remember?"
+                value={reflection.oneWin}
+                onChange={(v) => updateReflectionField("oneWin", v)}
+              />
+            </div>
 
-          <div className="min-w-0 px-3.5 pb-3.5 sm:px-4 sm:pb-4">
-            <p className="mb-2 text-xs font-medium text-[var(--text)]">Suggested actions</p>
-            <div className="space-y-1.5">
-              {nextActions.map((action, i) => (
-                <Link
-                  key={i}
-                  href={action.href}
-                  className="flex min-h-11 min-w-0 items-center gap-2 rounded-lg px-3 py-2.5 text-xs text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-active)] hover:text-[var(--text)] sm:min-h-0 sm:py-2"
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)]/70 p-3.5 sm:p-4">
+              <label htmlFor={planFocusId} className="mb-1.5 block break-words text-xs font-medium text-[var(--text)]">Small focus note for this screen</label>
+              <p className="mb-2 text-[10px] leading-relaxed text-[var(--text-muted)]">A private planning note while this page is open. It does not create a task, habit, goal, or new saved field.</p>
+              <input
+                id={planFocusId}
+                type="text"
+                value={planFocus}
+                onChange={(e) => setPlanFocus(e.target.value)}
+                placeholder="One thing to remember next week"
+                className="min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text)] placeholder-[var(--text-muted)] outline-none transition-colors focus:border-[var(--accent)]"
+              />
+            </div>
+
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-3.5 sm:p-4">
+              <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-[var(--text)]">Save this review to today&apos;s private Journal entry.</p>
+                  <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
+                    Save writes the reflection prompts above into Journal with a weekly review prefix. You can return to it from Journal. No AI summaries or external processing.
+                  </p>
+                </div>
+                <button
+                  onClick={handleSaveReflection}
+                  disabled={savingReflection || Object.values(reflection).every((v) => !v)}
+                  className="min-h-11 w-full shrink-0 rounded-lg bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-40 sm:w-auto"
                 >
-                  <svg className="h-3.5 w-3.5 shrink-0 text-[var(--accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />
-                  </svg>
-                  <span className="min-w-0 break-words">{action.text}</span>
-                </Link>
-              ))}
-              {nextActions.length === 0 && (
-                <p className="text-xs text-[var(--text-muted)]">No optional prompts right now.</p>
+                  {savingReflection ? "Saving..." : "Save to Journal"}
+                </button>
+              </div>
+
+              {reviewSaved && (
+                <div className="mt-3 rounded-xl border border-[var(--success)]/20 bg-[var(--success-soft)]/10 px-3 py-3 text-xs text-[var(--text-muted)]">
+                  <p className="font-semibold text-[var(--success)]">Weekly review saved to Journal.</p>
+                  <p className="mt-1 leading-relaxed">Next: return to Today when you are ready, or open Journal to review the saved entry.</p>
+                  <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                    <Link href="/today" className="inline-flex min-h-10 items-center justify-center rounded-lg border border-[var(--accent)]/20 bg-[var(--accent-soft)] px-3 font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)]">
+                      Return to Today
+                    </Link>
+                    <Link href="/journal" className="inline-flex min-h-10 items-center justify-center rounded-lg border border-[var(--border)] px-3 font-medium text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/25 hover:text-[var(--accent)]">
+                      Open Journal
+                    </Link>
+                  </div>
+                </div>
               )}
+            </div>
+
+            <div className="min-w-0 rounded-2xl border border-dashed border-[var(--border)] bg-black/[0.08] p-3.5 sm:p-4">
+              <p className="mb-2 text-xs font-medium text-[var(--text)]">Optional follow-up paths</p>
+              <div className="space-y-1.5">
+                {nextActions.map((action, i) => (
+                  <Link
+                    key={i}
+                    href={action.href}
+                    className="flex min-h-11 min-w-0 items-center gap-2 rounded-lg px-3 py-2.5 text-xs text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-active)] hover:text-[var(--text)]"
+                  >
+                    <svg className="h-3.5 w-3.5 shrink-0 text-[var(--accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />
+                    </svg>
+                    <span className="min-w-0 break-words">{action.text}</span>
+                  </Link>
+                ))}
+                {nextActions.length === 0 && (
+                  <p className="text-xs text-[var(--text-muted)]">No optional prompts right now.</p>
+                )}
+              </div>
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                <Link href="/today" className="inline-flex min-h-10 items-center justify-center rounded-lg border border-[var(--accent)]/20 bg-[var(--accent-soft)] px-3 text-xs font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:bg-transparent">
+                  Return to Today
+                </Link>
+                <Link href="/journal" className="inline-flex min-h-10 items-center justify-center rounded-lg border border-[var(--border)] px-3 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/25 hover:text-[var(--accent)]">
+                  Open Journal
+                </Link>
+              </div>
             </div>
           </div>
         </PulseCard>
@@ -875,7 +912,7 @@ function WeeklyReviewContent() {
             </svg>
             <span className="min-w-0 break-words">Open Coach</span>
           </span>
-          <span className="min-w-0 break-words text-xs text-[var(--text-muted)]">See recommended next actions &rarr;</span>
+          <span className="min-w-0 break-words text-xs text-[var(--text-muted)]">Review optional prompts &rarr;</span>
         </Link>
       </section>
     </div>
@@ -1091,7 +1128,17 @@ function buildWeeklyChangeSummary(data: WeekData): WeeklyChangeSummaryData {
   return { items, isQuiet };
 }
 
-function ReflectionField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+function ReflectionField({
+  label,
+  value,
+  onChange,
+  placeholder = "Write a few words, or leave it blank.",
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+}) {
   const fieldId = useId();
 
   return (
@@ -1102,7 +1149,7 @@ function ReflectionField({ label, value, onChange }: { label: string; value: str
         value={value}
         onChange={(e) => onChange(e.target.value)}
         rows={3}
-        placeholder="Write a few words, or leave it blank."
+        placeholder={placeholder}
         className="min-h-32 w-full resize-none rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3.5 py-3 text-base leading-relaxed text-[var(--text)] placeholder-[var(--text-muted)] outline-none transition-colors focus:border-[var(--accent)] sm:min-h-24 sm:px-3 sm:py-2.5 sm:text-sm"
       />
     </div>

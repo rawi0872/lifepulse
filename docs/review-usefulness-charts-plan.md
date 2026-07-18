@@ -39,8 +39,9 @@ Life Pulse needs Weekly Review and Insights to answer clearer questions from log
 4. Weekly Review v4: add bounded current-week versus previous-week comparison using minimal previous-week data. Shipped as Deadline Prompt #3.
 5. Insights v1: add bounded last-7-days trend surfaces for habits, tasks, reflection, body, mind, finance, and active system signals. Shipped as Deadline Prompt #4.
 6. Today review handoff: make Today explain how priority, action, reflection, and manual context become Weekly Review and Insights value. Shipped as Deadline Prompt #5.
-7. Insights v2: add 4-week trend comparisons using existing timestamps and manual logs.
-8. Review v5: add user-controlled filters for current week, last week, and month, without adding new storage.
+7. Weekly Review closing flow: make the end of review turn into one next-week focus, Save to Journal, and return-to-Today handoff. Shipped as Deadline Prompt #6.
+8. Insights v2: add 4-week trend comparisons using existing timestamps and manual logs.
+9. Review v5: add user-controlled filters for current week, last week, and month, without adding new storage.
 
 ## Current Weekly Review v2 Scope
 
@@ -81,6 +82,14 @@ Life Pulse needs Weekly Review and Insights to answer clearer questions from log
 - Kept Weekly Review and Insights links compact and below the primary daily action area so Today still prioritizes daily focus, one visible action, reflection, then review payoff.
 - Updated post-action feedback copy so completed tasks and habits clarify that logged actions appear in weekly rhythm/action trends.
 - No new data architecture, schema changes, AI summaries, external processing, or heavy Today queries were added.
+
+## Deadline Prompt #6 Weekly Review Closing Flow Scope
+
+- Refined the end of `/weekly-review` into a clearer close-the-week flow after summaries, comparisons, and charts.
+- Made the existing saved next-week focus reflection field central: one small focus to carry into next week, saved with the weekly review note.
+- Clarified Save to Journal copy: the review saves to today&apos;s private Journal entry with the weekly review prefix and no AI summaries or external processing.
+- Added post-save feedback from local UI state with links to return to Today or open Journal.
+- Preserved existing save behavior, storage, queries, XP logic, and manual/private review boundaries.
 
 ## Deferred From v2
 
