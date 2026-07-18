@@ -41,10 +41,13 @@ const projectTaskContextText = [
   "Linked tasks",
   "Open tasks",
   "Completed tasks",
+  "Next action",
   "Next task",
 ];
 
 const projectGoalContextText = [
+  "Linked goal:",
+  "No linked goal yet",
   "Goal:",
   "Supports goals:",
   "No linked goals yet",
@@ -167,7 +170,7 @@ async function main() {
     if (hasProjectSections) {
       pass("Project sections are visible");
       const hasTaskContext = projectTaskContextText.some((text) => bodyText.includes(text));
-      const hasNoLinkedTasks = bodyText.includes("No linked tasks yet");
+      const hasNoLinkedTasks = bodyText.includes("No next action yet") || bodyText.includes("No linked tasks yet");
       const hasGoalContext = projectGoalContextText.some((text) => bodyText.includes(text));
 
       if (!hasTaskContext && !hasNoLinkedTasks) {
@@ -184,10 +187,10 @@ async function main() {
       if (hasNoLinkedTasks) {
         pass("Project no-linked-tasks state is visible");
       }
-      if (bodyText.includes("Goal:") || bodyText.includes("Supports goals:")) {
+      if (bodyText.includes("Linked goal:") || bodyText.includes("Goal:") || bodyText.includes("Supports goals:")) {
         pass("Project linked-goal context is visible");
       }
-      if (bodyText.includes("No linked goals yet")) {
+      if (bodyText.includes("No linked goal yet") || bodyText.includes("No linked goals yet")) {
         pass("Project no-linked-goals state is visible");
       }
     } else {

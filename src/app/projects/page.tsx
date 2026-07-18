@@ -438,7 +438,7 @@ export default function ProjectsPage() {
         {projects.length > 0 && projects.length <= 2 && (
           <div className="mb-4 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2">
             <p className="text-xs text-[var(--text-muted)]">
-              Projects turn bigger goals into next actions. Each task completed moves the project forward.
+              Projects turn bigger goals into next visible actions. Add or complete one linked task, then review the movement in Weekly Review.
             </p>
           </div>
         )}
@@ -506,7 +506,7 @@ export default function ProjectsPage() {
                   </div>
                   {isPrimary && projects.length <= 2 && (
                     <p className="mb-3 text-xs text-[var(--text-muted)]">
-                      Each project is one outcome. Break it into tasks, then execute them one at a time.
+                      Each project is one outcome. Break it into tasks, then make one step visible in Today.
                     </p>
                   )}
                   <div className={`flex min-w-0 flex-col gap-3 ${isPrimary ? "" : "opacity-60 hover:opacity-100 transition-opacity"}`}>
@@ -610,7 +610,10 @@ function ProjectTaskContext({
   return (
     <div className="min-w-0 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-3 sm:py-2.5">
       {context.totalTasks === 0 ? (
-        <p className="text-xs text-[var(--text-muted)]">No linked tasks yet</p>
+        <div className="min-w-0">
+          <p className="text-xs font-medium text-[var(--text-secondary)]">No next action yet</p>
+          <p className="mt-1 text-[10px] leading-relaxed text-[var(--text-muted)]">Add one task to make this project visible in Today and Weekly Review.</p>
+        </div>
       ) : (
         <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 flex-wrap gap-2 text-[10px] text-[var(--text-muted)]">
@@ -619,14 +622,14 @@ function ProjectTaskContext({
             <span>Completed tasks: {context.completedTasks}</span>
           </div>
           <div className="min-w-0 text-pretty text-xs text-[var(--text-muted)] sm:max-w-[55%]">
-            <span className="font-medium text-[var(--text-secondary)]">Next task: </span>
+            <span className="font-medium text-[var(--text-secondary)]">Next action: </span>
             {context.nextTask ? (
               <span className="min-w-0">
                 <span className="text-[var(--text)]">{context.nextTask.title}</span>
                 {context.nextTask.due_date && <span> &middot; due {context.nextTask.due_date}</span>}
               </span>
             ) : (
-              <span>No open tasks</span>
+              <span>No open tasks. Add one task if this project still needs a visible step.</span>
             )}
           </div>
         </div>
@@ -639,7 +642,8 @@ function ProjectGoalContext({ goals }: { goals: LinkedGoal[] }) {
   if (goals.length === 0) {
     return (
       <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-3 sm:py-2.5">
-        <p className="text-xs text-[var(--text-muted)]">No linked goals yet</p>
+        <p className="text-xs font-medium text-[var(--text-secondary)]">No linked goal yet</p>
+        <p className="mt-1 text-[10px] leading-relaxed text-[var(--text-muted)]">Link a goal when this project supports a larger outcome. Quiet projects still count.</p>
       </div>
     );
   }
@@ -654,7 +658,8 @@ function ProjectGoalContext({ goals }: { goals: LinkedGoal[] }) {
 
   return (
     <div className="min-w-0 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-3 sm:py-2.5">
-      <p className="text-pretty text-xs text-[var(--text-muted)]">{label}</p>
+      <p className="text-pretty text-xs text-[var(--text-muted)]"><span className="font-medium text-[var(--text-secondary)]">Linked goal:</span> {label.replace(/^Goal: /, "").replace(/^Supports goals: /, "")}</p>
+      <p className="mt-1 text-[10px] leading-relaxed text-[var(--text-muted)]">Based on links you created. Project actions can appear in Today and Weekly Review.</p>
     </div>
   );
 }

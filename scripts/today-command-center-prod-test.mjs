@@ -66,6 +66,8 @@ const conditionalExecutionBridgeText = [
 const conditionalExecutionBridgeStatusText = [
   "Some active goals are not connected to projects, tasks, or habits yet.",
   "Your active goals are connected to action.",
+  "Some active goals are not connected to projects, tasks, or habits yet. Add one task or link one project to make a goal actionable.",
+  "Active goals are connected to action. Completed tasks will appear in your weekly rhythm.",
 ];
 
 const riskyTodayMemoryText = [

@@ -809,7 +809,7 @@ function TodayContent() {
     if (isDone) {
       toast({
         type: "success",
-        title: "Project action completed!",
+        title: "Project action completed",
         description: "This action will appear in your weekly rhythm. Reflect tonight to add context.",
       });
       setTodayXp((prev) => prev + 25);
@@ -1074,7 +1074,7 @@ function TodayContent() {
                       </svg>
                     </button>
                     <div className="min-w-0 flex-1">
-                      <p className="text-[10px] font-medium tracking-wider text-[var(--accent)]">Project next action</p>
+                      <p className="text-[10px] font-medium tracking-wider text-[var(--accent)]">Project action for today</p>
                       <p className="text-pretty text-sm font-medium text-[var(--text)]">{suggestedTask.title}</p>
                       <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 sm:mt-0.5">
                         <span className="min-w-0 text-[10px] text-[var(--text-muted)]">From: {suggestedTask.projects.title}</span>
@@ -1105,13 +1105,13 @@ function TodayContent() {
             ) : hasContent ? (
               <Card variant="subtle" className="border-dashed border-[var(--border)] bg-black/10">
                 <div className="px-4 py-3.5 sm:py-3">
-                  <p className="text-[10px] font-medium text-[var(--text-muted)]">No project action queued</p>
+                  <p className="text-[10px] font-medium text-[var(--text-muted)]">No project action for today</p>
                   <p className="mt-0.5 text-xs text-[var(--text-muted)]">
                     Complete one visible task or habit below, or{' '}
                     <Link href="/tasks" className="text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)]">
                       capture a task
                     </Link>
-                    {' '}for later.
+                    {' '}to make goal or project work visible in Today.
                   </p>
                 </div>
               </Card>
@@ -1257,8 +1257,8 @@ function TodayContent() {
         {activeGoalsCount > 0 && (
           <Card variant="subtle" className="overflow-hidden border-dashed border-[var(--border)] bg-[var(--surface-soft)]/55">
             <div className="border-b border-[var(--border)] px-4 py-3 sm:py-2.5">
-              <p className="text-[10px] font-medium tracking-wider text-[var(--text-muted)]">Optional goal context</p>
-              <p className="mt-1 text-xs text-[var(--text-muted)]">Later, connect today&apos;s actions to the goals they support.</p>
+              <p className="text-[10px] font-medium tracking-wider text-[var(--text-muted)]">Execution bridge</p>
+              <p className="mt-1 text-xs text-[var(--text-muted)]">Today is where goal and project work becomes visible action. One visible step is enough.</p>
             </div>
             <div className="grid min-w-0 grid-cols-2 gap-0 divide-x divide-y divide-[var(--border)] sm:grid-cols-4 sm:divide-y-0">
               <ExecutionBridgeMetric label="Active goals" value={activeGoalsCount} />
@@ -1269,8 +1269,8 @@ function TodayContent() {
             <div className="border-t border-[var(--border)] px-4 py-3.5 sm:py-3">
               <p className="text-xs text-[var(--text-muted)]">
                 {unlinkedGoalsCount > 0
-                  ? "Some active goals are not connected to projects, tasks, or habits yet."
-                  : "Your active goals are connected to action."}
+                  ? "Some active goals are not connected to projects, tasks, or habits yet. Add one task or link one project to make a goal actionable."
+                  : "Active goals are connected to action. Completed tasks will appear in your weekly rhythm."}
               </p>
               <div className="mt-3 flex flex-wrap gap-2 text-xs sm:mt-2">
                 <Link href="/goals" className="rounded-md py-1 text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:py-0">Open Goals</Link>

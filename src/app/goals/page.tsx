@@ -28,6 +28,20 @@ interface GoalActionLinkCounts {
   total: number;
 }
 
+interface GoalProjectRef {
+  id: string;
+  name: string;
+}
+
+interface GoalTaskRef {
+  id: string;
+  title: string;
+  status: string | null;
+  due_date: string | null;
+  completed_at: string | null;
+  project_id: string | null;
+}
+
 const emptyActionLinkCounts: GoalActionLinkCounts = {
   projects: 0,
   tasks: 0,
@@ -54,8 +68,8 @@ function GoalsContent() {
   const [confirmingDeleteGoalId, setConfirmingDeleteGoalId] = useState<string | null>(null);
   const [expandedGoalId, setExpandedGoalId] = useState<string | null>(null);
   const [links, setLinks] = useState<GoalLink[]>([]);
-  const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
-  const [tasks, setTasks] = useState<{ id: string; title: string }[]>([]);
+  const [projects, setProjects] = useState<GoalProjectRef[]>([]);
+  const [tasks, setTasks] = useState<GoalTaskRef[]>([]);
   const [habits, setHabits] = useState<{ id: string; title: string }[]>([]);
 
   useEffect(() => {
@@ -93,7 +107,7 @@ function GoalsContent() {
           .order("name"),
         supabase
           .from("tasks")
-          .select("id, title")
+          .select("id, title, status, due_date, completed_at, project_id")
           .eq("user_id", user.id)
           .order("title"),
         supabase
@@ -109,7 +123,7 @@ function GoalsContent() {
       if (realmsRes.data) setRealms(realmsRes.data as RealmInfo[]);
       if (linksRes.data) setLinks(linksRes.data as GoalLink[]);
       if (projectsRes.data) setProjects(projectsRes.data);
-      if (tasksRes.data) setTasks(tasksRes.data);
+      if (tasksRes.data) setTasks(tasksRes.data as GoalTaskRef[]);
       if (habitsRes.data) setHabits(habitsRes.data);
       setLoading(false);
     }
@@ -141,7 +155,7 @@ function GoalsContent() {
       supabase.from("realms").select("id, name, color, icon").eq("user_id", user.id).order("name"),
       supabase.from("goal_links").select("id, user_id, goal_id, linked_type, linked_id, created_at").eq("user_id", user.id).order("created_at", { ascending: true }),
       supabase.from("projects").select("id, name").eq("user_id", user.id).order("name"),
-      supabase.from("tasks").select("id, title").eq("user_id", user.id).order("title"),
+      supabase.from("tasks").select("id, title, status, due_date, completed_at, project_id").eq("user_id", user.id).order("title"),
       supabase.from("habits").select("id, title").eq("user_id", user.id).order("title"),
     ]);
     if (goalsRes.data) setGoals(goalsRes.data as unknown as Goal[]);
@@ -149,7 +163,7 @@ function GoalsContent() {
     if (realmsRes.data) setRealms(realmsRes.data as RealmInfo[]);
     if (linksRes.data) setLinks(linksRes.data as GoalLink[]);
     if (projectsRes.data) setProjects(projectsRes.data);
-    if (tasksRes.data) setTasks(tasksRes.data);
+    if (tasksRes.data) setTasks(tasksRes.data as GoalTaskRef[]);
     if (habitsRes.data) setHabits(habitsRes.data);
   }
 
@@ -186,6 +200,33 @@ function GoalsContent() {
   const getNextMilestone = (goalId: string) => {
     const ms = getMilestonesForGoal(goalId).filter((m) => !m.completed_at).sort((a, b) => a.sort_order - b.sort_order);
     return ms[0];
+  };
+
+  const getGoalExecutionContext = (goal: Goal, goalMilestones: GoalMilestone[]) => {
+    const goalLinks = links.filter((link) => link.goal_id === goal.id);
+    const linkedProjectIds = new Set(goalLinks.filter((link) => link.linked_type === "project").map((link) => link.linked_id));
+    const linkedTaskIds = new Set(goalLinks.filter((link) => link.linked_type === "task").map((link) => link.linked_id));
+    const linkedTasks = tasks.filter((task) => linkedTaskIds.has(task.id) || (task.project_id !== null && linkedProjectIds.has(task.project_id)));
+    const openTasks = linkedTasks.filter((task) => task.status !== "done");
+    const completedTasks = linkedTasks.filter((task) => task.status === "done");
+    const nextTask = [...openTasks].sort((a, b) => {
+      if (a.due_date && b.due_date) return a.due_date.localeCompare(b.due_date);
+      if (a.due_date) return -1;
+      if (b.due_date) return 1;
+      return a.title.localeCompare(b.title);
+    })[0] ?? null;
+    const latestCompletedTask = [...completedTasks].filter((task) => task.completed_at).sort((a, b) => (b.completed_at ?? "").localeCompare(a.completed_at ?? ""))[0] ?? null;
+    const latestCompletedMilestone = [...goalMilestones].filter((milestone) => milestone.completed_at).sort((a, b) => (b.completed_at ?? "").localeCompare(a.completed_at ?? ""))[0] ?? null;
+
+    return {
+      goalLinks,
+      linkedTasks,
+      openTaskCount: openTasks.length,
+      completedTaskCount: completedTasks.length,
+      nextTask,
+      latestCompletedTask,
+      latestCompletedMilestone,
+    };
   };
 
   async function handleSave(data: GoalFormData) {
@@ -370,6 +411,7 @@ function GoalsContent() {
             const goalMilestones = getMilestonesForGoal(goal.id);
             const nextMs = getNextMilestone(goal.id);
             const actionLinkCounts = actionLinksByGoal[goal.id] ?? emptyActionLinkCounts;
+            const executionContext = getGoalExecutionContext(goal, goalMilestones);
             const actionLinkSummary = [
               formatActionLinkCount(actionLinkCounts.projects, "project", "projects"),
               formatActionLinkCount(actionLinkCounts.tasks, "task", "tasks"),
@@ -424,11 +466,33 @@ function GoalsContent() {
                 )}
                 <div className="mt-1 min-w-0 rounded-md border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2.5 text-[10px] text-[var(--text-muted)] sm:py-2">
                   {actionLinkCounts.total > 0 ? (
-                    <span>
-                      <span className="font-medium text-[var(--text-secondary)]">Supports:</span> {actionLinkSummary}
-                    </span>
+                    <div className="min-w-0 space-y-1.5">
+                      <p>
+                        <span className="font-medium text-[var(--text-secondary)]">Connected work:</span> {actionLinkSummary}
+                      </p>
+                      <div className="grid min-w-0 gap-1.5 sm:grid-cols-3">
+                        <span className="min-w-0 rounded bg-[var(--surface)] px-2 py-1">
+                          <span className="font-medium text-[var(--text-secondary)]">Next visible action:</span>{" "}
+                          {executionContext.nextTask ? executionContext.nextTask.title : "No open linked task"}
+                        </span>
+                        <span className="min-w-0 rounded bg-[var(--surface)] px-2 py-1">
+                          <span className="font-medium text-[var(--text-secondary)]">Recent movement:</span>{" "}
+                          {executionContext.latestCompletedTask
+                            ? executionContext.latestCompletedTask.title
+                            : executionContext.latestCompletedMilestone
+                              ? executionContext.latestCompletedMilestone.title
+                              : "No completed linked work yet"}
+                        </span>
+                        <span className="min-w-0 rounded bg-[var(--surface)] px-2 py-1">
+                          <span className="font-medium text-[var(--text-secondary)]">Review:</span> feeds Weekly Review
+                        </span>
+                      </div>
+                    </div>
                   ) : (
-                    <span>No action links yet</span>
+                    <div className="min-w-0 space-y-1">
+                      <p className="font-medium text-[var(--text-secondary)]">Needs an action</p>
+                      <p>Add one task or link one project to make this goal actionable. This becomes clearer after a few visible actions.</p>
+                    </div>
                   )}
                 </div>
                 {(() => {

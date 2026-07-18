@@ -45,8 +45,9 @@ Life Pulse needs Weekly Review and Insights to answer clearer questions from log
 10. First-session sequencing: make Today, Tasks/Habits, Journal, Weekly Review, and later Insights the explicit first-session route order while keeping optional modules available. Shipped as Deadline Prompt #11.
 11. First action completion flow: make completed tasks and habits hand off into reflection and later review using existing Today state and row copy only. Shipped as Deadline Prompt #12.
 12. Domain depth pass: make Body, Mind, and Finance explain their manual context value for Weekly Review using already-loaded data only. Shipped as Deadline Prompt #20.
-13. Insights v2: add 4-week trend comparisons using existing timestamps and manual logs.
-14. Review v5: add user-controlled filters for current week, last week, and month, without adding new storage.
+13. Goals/Projects execution depth: make goals and projects show connected work, next visible action, and review handoff using existing links/tasks only. Shipped as Deadline Prompt #21.
+14. Insights v2: add 4-week trend comparisons using existing timestamps and manual logs.
+15. Review v5: add user-controlled filters for current week, last week, and month, without adding new storage.
 
 ## Current Weekly Review v2 Scope
 
@@ -134,6 +135,15 @@ Life Pulse needs Weekly Review and Insights to answer clearer questions from log
 - Reframed Finance notes from "Smart Insights" to review context and kept copy factual, private, and non-advisory.
 - No new queries, schema, migrations, RPCs, summary tables, AI summaries, external processing, scoring, advice, CRUD changes, XP changes, or finance balance changes were added.
 
+## Deadline Prompt #21 Goals/Projects Execution Depth Scope
+
+- Added collapsed Goals execution context from existing goal links, milestones, tasks, and project-task relationships: connected work, next visible action, recent movement, and Weekly Review handoff.
+- Improved Goals sparse state so goals with no linked work explain that one task or linked project makes the goal actionable.
+- Improved Projects context using existing project tasks and goal links: next action, linked goal, open/completed task counts, and no-next-action guidance.
+- Clarified Today, Weekly Review, and Insights copy so project/goal work is framed as visible action and manual review context.
+- Updated focused production smoke expectations for the new execution-depth labels.
+- No new queries, schema, migrations, RPCs, summary tables, AI summaries, external processing, automation, CRUD changes, task completion changes, goal/project/task linking changes, or XP changes were added.
+
 ## Deferred From v2
 
 - Multi-week comparisons: requires broader date windows and careful performance checks.
@@ -141,6 +151,7 @@ Life Pulse needs Weekly Review and Insights to answer clearer questions from log
 - Rich finance trend charts: safe later, but daily money charts need more currency handling and would add clutter in this slice.
 - Body trend strip: safe later, but Weekly Review already has many body/nutrition metrics and mind trends provide a clearer first depth upgrade.
 - Goal/project progress history: useful later, but current data mostly shows current active/link state rather than historical change.
+- Goal/project movement timelines: useful later, but per-goal or per-project history would need careful bounded query design or new data modeling.
 
 ## Safety Boundaries
 

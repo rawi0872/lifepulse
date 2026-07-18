@@ -149,21 +149,29 @@ async function main() {
     }
 
     const hasNoGoalsState = bodyText.includes("No goals yet");
+    const connectedWorkCount = await page.getByText(/^Connected work:/).count();
     const supportsCount = await page.getByText(/^Supports:/).count();
     const noActionLinksCount = await page.getByText("No action links yet", { exact: true }).count();
+    const needsActionCount = await page.getByText("Needs an action", { exact: true }).count();
 
     if (hasNoGoalsState) {
       skip("Goals action-link visibility is data-dependent and not visible for this account/goal state");
     } else {
       pass("Goal cards/list rows are visible");
-      if (supportsCount === 0 && noActionLinksCount === 0) {
-        throw new Error("Goal cards are visible, but neither Supports: nor No action links yet was found.");
+      if (connectedWorkCount === 0 && supportsCount === 0 && noActionLinksCount === 0 && needsActionCount === 0) {
+        throw new Error("Goal cards are visible, but no connected-work or sparse-action text was found.");
+      }
+      if (connectedWorkCount > 0) {
+        pass(`Goals connected-work text is visible: ${connectedWorkCount} row(s)`);
       }
       if (supportsCount > 0) {
         pass(`Goals support action-link text is visible: ${supportsCount} row(s)`);
       }
       if (noActionLinksCount > 0) {
         pass(`Goals no-action-links text is visible: ${noActionLinksCount} row(s)`);
+      }
+      if (needsActionCount > 0) {
+        pass(`Goals needs-action text is visible: ${needsActionCount} row(s)`);
       }
     }
 

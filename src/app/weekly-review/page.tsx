@@ -693,7 +693,7 @@ function WeeklyReviewContent() {
           <h2 className="min-w-0 break-words text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Execution and progress</h2>
         </div>
         <p className="mb-3 text-xs text-[var(--text-muted)]">
-          Tasks, projects, habits, goals, and milestones that moved forward.
+          Goal-connected work logged this week from tasks, projects, habits, and milestones.
         </p>
         <div className="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-4">
           <MetricCard label="Active goals" value={data.activeGoals} />
@@ -710,7 +710,7 @@ function WeeklyReviewContent() {
             <h2 className="min-w-0 break-words text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Goal alignment</h2>
           </div>
           <p className="mb-3 text-xs text-[var(--text-muted)]">
-            A read-only view of whether active goals are connected to projects, tasks, or habits.
+            Based on tasks and links you created. Review manually which goals have connected work.
           </p>
           <div className="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-4">
             <MetricCard label="Active goals" value={data.activeGoals} />
@@ -724,8 +724,8 @@ function WeeklyReviewContent() {
           </div>
           <p className="mt-3 text-center text-[10px] text-[var(--text-muted)]">
             {data.unlinkedGoals > 0
-              ? "Some active goals are not connected to projects, tasks, or habits yet."
-              : "Your active goals are connected to action."}
+              ? "Some active goals are not connected to projects, tasks, or habits yet. Add one task or link one project to make a goal actionable."
+              : "Active goals are connected to visible work."}
           </p>
         </section>
       )}

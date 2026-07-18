@@ -69,7 +69,7 @@ export function MindPulseSection({ tasks, doneTaskCount, tasksLength, taskContex
                 {(context?.projectTitle || context?.goalContext) && (
                   <div className="flex min-w-0 flex-wrap gap-1.5 pl-0 text-[10px] text-[var(--text-muted)] sm:pl-10">
                     {context.projectTitle && (
-                      <span className="min-w-0 rounded-full bg-[var(--surface)] px-2 py-1 sm:py-0.5">Project: {context.projectTitle}</span>
+                      <span className="min-w-0 rounded-full bg-[var(--surface)] px-2 py-1 sm:py-0.5">Project action: {context.projectTitle}</span>
                     )}
                     {context.goalContext && (
                       <span className="min-w-0 rounded-full bg-[var(--accent-soft)] px-2 py-1 text-[var(--accent)] sm:py-0.5">{context.goalContext}</span>

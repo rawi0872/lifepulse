@@ -500,7 +500,7 @@ export default function InsightsPage() {
               Execution alignment
             </h2>
             <p className="mb-3 text-xs text-[var(--text-muted)]">
-              A read-only view of whether active goals are connected to projects, tasks, or habits.
+              Based on tasks and links you created. Review manually which goals have connected work.
             </p>
             <div className="mb-6 grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-4">
               <Card variant="default" className="flex min-h-[100px] min-w-0 flex-col p-3.5 sm:p-4">
@@ -511,12 +511,12 @@ export default function InsightsPage() {
               <Card variant="default" className="flex min-h-[100px] min-w-0 flex-col p-3.5 sm:p-4">
                 <p className="break-words text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Goals with action links</p>
                 <p className="mt-2 text-2xl font-bold text-[var(--text)]">{linkedGoalsCount}</p>
-                <p className="mt-auto break-words pt-2 text-[10px] leading-snug text-[var(--text-muted)]">Connected to action</p>
+                <p className="mt-auto break-words pt-2 text-[10px] leading-snug text-[var(--text-muted)]">Connected work</p>
               </Card>
               <Card variant="default" className="flex min-h-[100px] min-w-0 flex-col p-3.5 sm:p-4">
                 <p className="break-words text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Goals without action links</p>
                 <p className="mt-2 text-2xl font-bold text-[var(--text)]">{unlinkedGoalsCount}</p>
-                <p className="mt-auto break-words pt-2 text-[10px] leading-snug text-[var(--text-muted)]">No action link yet</p>
+                <p className="mt-auto break-words pt-2 text-[10px] leading-snug text-[var(--text-muted)]">Needs an action</p>
               </Card>
               <Card variant="default" className="flex min-h-[100px] min-w-0 flex-col p-3.5 sm:p-4">
                 <p className="break-words text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Action links</p>
@@ -528,8 +528,8 @@ export default function InsightsPage() {
             </div>
             <p className="mb-6 text-center text-[10px] text-[var(--text-muted)]">
               {unlinkedGoalsCount > 0
-                ? "Some active goals are not connected to projects, tasks, or habits yet."
-                : "Your active goals are connected to action."}
+                ? "Some active goals are not connected to projects, tasks, or habits yet. Add one task or link one project to make a goal actionable."
+                : "Active goals are connected to visible work."}
             </p>
           </>
         )}
@@ -777,8 +777,8 @@ function DomainSignals({
       label: "System activity",
       value: `${activeGoalsCount} goals / ${activeProjectCount} projects`,
       detail: financeHasData
-        ? "Finance entries appeared this month."
-        : "No finance entries are visible in this month window.",
+        ? "Goal and project counts sit beside manual context from this month."
+        : "Goal and project counts show the execution system you created.",
     },
   ];
 
