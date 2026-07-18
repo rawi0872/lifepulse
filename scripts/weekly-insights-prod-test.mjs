@@ -43,8 +43,11 @@ const requiredWeeklyReviewText = [
   "Nutrition days",
   "Water logged",
   "Protein avg",
-  "Weekly reset",
-  "Next week focus",
+  "Close the week",
+  "Turn this review into next week",
+  "Choose one focus to carry into next week",
+  "Save this review to today's private Journal entry.",
+  "Optional follow-up paths",
 ];
 
 const requiredInsightsText = [
