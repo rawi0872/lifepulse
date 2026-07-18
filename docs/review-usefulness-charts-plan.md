@@ -35,7 +35,7 @@ Life Pulse needs Weekly Review and Insights to answer clearer questions from log
 
 1. Weekly Review v1: add daily rhythm chart and fix weekly task counts to use this week only. Shipped.
 2. Weekly Review v2: add existing-data trend surfaces for daily action mix, reflection rhythm, and mind check-in trends. Shipped.
-3. Weekly Review v3: add section-level “what changed this week” summaries using deterministic counts only.
+3. Weekly Review v3: add section-level “what changed this week” summaries using deterministic counts only. Shipped as Deadline Prompt #2.
 4. Insights v1: add reusable small bar chart primitives for habits, tasks, body, mind, and finance signals.
 5. Insights v2: add 4-week trend comparisons using existing timestamps and manual logs.
 6. Review v4: add user-controlled filters for current week, last week, and month, without adding new storage.
@@ -48,9 +48,17 @@ Life Pulse needs Weekly Review and Insights to answer clearer questions from log
 - Kept sparse states factual: “This becomes clearer after a few logged days” and “No judgment - quiet weeks still count.”
 - Kept the review flow as summary, rhythm/trends, section details, reflection prompts, and Save to Journal.
 
+## Deadline Prompt #2 Summary Scope
+
+- Added a deterministic “What changed this week” section between the weekly summary cards and trend charts.
+- Summary cards use the existing Weekly Review weekly payload only: logged days, habit days, completed task days, reflection days, mind check-in days, body/nutrition days, finance entry days, most active day, and quiet days.
+- Sparse state uses factual copy: “This week is still quiet,” “A few tasks, habits, or reflections will make this review clearer,” and “No judgment - quiet weeks still count.”
+- The section is memoized from loaded weekly data and adds no new Supabase queries.
+
 ## Deferred From v2
 
 - Multi-week comparisons: requires broader date windows and careful performance checks.
+- Performance-aware data windows: needed before 4-week comparisons or current-week versus prior-week comparisons.
 - Rich finance trend charts: safe later, but daily money charts need more currency handling and would add clutter in this slice.
 - Body trend strip: safe later, but Weekly Review already has many body/nutrition metrics and mind trends provide a clearer first depth upgrade.
 - Goal/project progress history: useful later, but current data mostly shows current active/link state rather than historical change.

@@ -21,6 +21,29 @@ interface MindTrendDay {
   hasEntry: boolean;
 }
 
+interface ActivityDay {
+  label: string;
+  habits: number;
+  tasks: number;
+  reflections: number;
+  mind: number;
+  body: number;
+  nutrition: number;
+  finance: number;
+  total: number;
+}
+
+interface WeeklySummaryItem {
+  label: string;
+  value: string;
+  detail: string;
+}
+
+interface WeeklyChangeSummaryData {
+  items: WeeklySummaryItem[];
+  isQuiet: boolean;
+}
+
 function getWeekDates(): string[] {
   const start = new Date(getWeekStartDate());
   const dates: string[] = [];
@@ -75,6 +98,7 @@ interface WeekData {
   financeHasMixedCurrencies: boolean;
   rhythmByDay: { label: string; habits: number; tasks: number; reflections: number }[];
   mindByDay: MindTrendDay[];
+  activityByDay: ActivityDay[];
   bodyLoggedToday: boolean;
   mindLoggedToday: boolean;
   hasWorkoutThisWeek: boolean;
@@ -132,7 +156,7 @@ function WeeklyReviewContent() {
       supabase.from("tasks").select("id, completed_at").eq("user_id", user.id).eq("status", "done").gte("completed_at", `${weekStart}T00:00:00`).lte("completed_at", `${weekEnd}T23:59:59`),
       supabase.from("workouts").select("duration_minutes").eq("user_id", user.id).gte("workout_date", weekStart).lte("workout_date", weekEnd),
       supabase.from("journal_entries").select("id").eq("user_id", user.id).gte("entry_date", weekStart).lte("entry_date", weekEnd),
-      supabase.from("body_metrics").select("energy, sleep_hours").eq("user_id", user.id).gte("entry_date", weekStart).lte("entry_date", weekEnd),
+      supabase.from("body_metrics").select("entry_date, energy, sleep_hours").eq("user_id", user.id).gte("entry_date", weekStart).lte("entry_date", weekEnd),
       supabase.from("mind_metrics").select("entry_date, mood, focus, stress").eq("user_id", user.id).gte("entry_date", weekStart).lte("entry_date", weekEnd),
       supabase.from("nutrition_logs").select("id, log_date, protein_g, water_ml").eq("user_id", user.id).gte("log_date", weekStart).lte("log_date", weekEnd),
       supabase.from("body_measurements").select("weight_kg").eq("user_id", user.id).order("measurement_date", { ascending: false }).limit(1),
@@ -163,7 +187,7 @@ function WeeklyReviewContent() {
         .eq("user_id", user.id),
     ]);
 
-    const bodyMetrics = (bodyRes.data ?? []) as { energy?: number | null; sleep_hours?: number | null }[];
+    const bodyMetrics = (bodyRes.data ?? []) as { entry_date?: string | null; energy?: number | null; sleep_hours?: number | null }[];
     const mindMetrics = (mindRes.data ?? []) as { entry_date?: string | null; mood?: number | null; focus?: number | null; stress?: number | null }[];
     const nutritionLogs = (nutritionRes.data ?? []) as { log_date?: string | null; protein_g?: number | null; water_ml?: number | null }[];
     const habitLogs = (habitsRes.data ?? []) as { completed_date?: string | null }[];
@@ -202,6 +226,7 @@ function WeeklyReviewContent() {
     const financeTransactions = (financeRes.data ?? []) as {
       amount?: number | string | null;
       type?: string | null;
+      transaction_date?: string | null;
       finance_accounts?: { currency?: string | null } | { currency?: string | null }[] | null;
     }[];
 
@@ -249,6 +274,28 @@ function WeeklyReviewContent() {
       };
     });
 
+    const activityByDay = weekDates.map((date, index) => {
+      const habits = habitLogs.filter((log) => log.completed_date === date).length;
+      const tasks = completedTasks.filter((task) => task.completed_at?.slice(0, 10) === date).length;
+      const reflections = journalMemoryEntries.filter((entry) => entry.entry_date === date).length;
+      const mind = mindMetrics.filter((entry) => entry.entry_date === date).length;
+      const body = bodyMetrics.filter((entry) => entry.entry_date === date).length;
+      const nutrition = nutritionLogs.filter((entry) => entry.log_date === date).length;
+      const finance = financeTransactions.filter((entry) => entry.transaction_date === date).length;
+
+      return {
+        label: WEEKDAYS[index],
+        habits,
+        tasks,
+        reflections,
+        mind,
+        body,
+        nutrition,
+        finance,
+        total: habits + tasks + reflections + mind + body + nutrition + finance,
+      };
+    });
+
     setData({
       weekDates,
       habitCount: (habitsRes.data ?? []).length,
@@ -292,6 +339,7 @@ function WeeklyReviewContent() {
       financeHasMixedCurrencies,
       rhythmByDay,
       mindByDay,
+      activityByDay,
       bodyLoggedToday: bodyMetrics.length > 0,
       mindLoggedToday: mindMetrics.length > 0,
       hasWorkoutThisWeek: (workoutsRes.data ?? []).length > 0,
@@ -335,6 +383,8 @@ function WeeklyReviewContent() {
     }
     setSavingReflection(false);
   };
+
+  const weeklyChangeSummary = useMemo(() => data ? buildWeeklyChangeSummary(data) : null, [data]);
 
   if (loading || !data) {
     return (
@@ -436,6 +486,17 @@ function WeeklyReviewContent() {
           <MetricCard label="Passion sessions" value={data.passionSessions} sub={`${data.passionMinutes} min`} />
           <MetricCard label="Nutrition logs" value={data.nutritionCount} />
         </div>
+      </section>
+
+      <section className="mb-8">
+        <div className="mb-3 flex min-w-0 items-center gap-2">
+          <span className="h-4 w-1 rounded-full bg-gradient-to-b from-[var(--accent)] to-[var(--accent-strong)]" />
+          <h2 className="min-w-0 break-words text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">What changed this week</h2>
+        </div>
+        <p className="mb-3 text-xs text-[var(--text-muted)]">
+          A deterministic read on logged days, quiet days, and activity rhythm. Based on logged activity only.
+        </p>
+        <WeeklyChangeSummary summary={weeklyChangeSummary} />
       </section>
 
       <section className="mb-8">
@@ -745,6 +806,87 @@ function MetricCard({ label, value, sub }: { label: string; value: string | numb
       {sub !== undefined && <p className="mt-0.5 break-words text-[9px] leading-snug text-[var(--text-muted)] [overflow-wrap:anywhere]">{sub}</p>}
     </Card>
   );
+}
+
+function WeeklyChangeSummary({ summary }: { summary: WeeklyChangeSummaryData | null }) {
+  if (!summary) return null;
+
+  return (
+    <Card className="min-w-0 overflow-hidden border-[var(--border)] bg-[linear-gradient(180deg,rgba(244,247,251,0.035),rgba(244,247,251,0.01)),var(--surface)]">
+      {summary.isQuiet && (
+        <div className="border-b border-[var(--border)] bg-black/[0.08] px-4 py-3 sm:px-5">
+          <p className="text-sm font-semibold text-[var(--text)]">This week is still quiet.</p>
+          <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
+            A few tasks, habits, or reflections will make this review clearer. No judgment - quiet weeks still count.
+          </p>
+        </div>
+      )}
+      <div className="grid min-w-0 gap-3 p-4 sm:grid-cols-2 sm:p-5">
+        {summary.items.map((item) => (
+          <div key={item.label} className="min-w-0 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)]/70 p-3.5">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.13em] text-[var(--text-muted)]">{item.label}</p>
+            <p className="mt-2 break-words text-xl font-semibold tracking-[-0.03em] text-[var(--text)]">{item.value}</p>
+            <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">{item.detail}</p>
+          </div>
+        ))}
+      </div>
+      <p className="border-t border-[var(--border)] px-4 py-3 text-[10px] leading-relaxed text-[var(--text-muted)] sm:px-5">
+        Private weekly context from your logged activity. No AI summaries or external processing.
+      </p>
+    </Card>
+  );
+}
+
+function buildWeeklyChangeSummary(data: WeekData): WeeklyChangeSummaryData {
+  const activeDays = data.activityByDay.filter((day) => day.total > 0);
+  const quietDays = data.activityByDay.filter((day) => day.total === 0);
+  const habitDays = data.activityByDay.filter((day) => day.habits > 0).length;
+  const taskDays = data.activityByDay.filter((day) => day.tasks > 0).length;
+  const reflectionDays = data.activityByDay.filter((day) => day.reflections > 0).length;
+  const mindDays = data.activityByDay.filter((day) => day.mind > 0).length;
+  const bodyOrNutritionDays = data.activityByDay.filter((day) => day.body > 0 || day.nutrition > 0).length;
+  const financeDays = data.activityByDay.filter((day) => day.finance > 0).length;
+  const mostActiveDay = [...data.activityByDay].sort((a, b) => b.total - a.total)[0];
+  const isQuiet = activeDays.length <= 1 || data.activityByDay.reduce((sum, day) => sum + day.total, 0) < 3;
+
+  const items: WeeklySummaryItem[] = [
+    {
+      label: "Logged days",
+      value: `${activeDays.length} / 7`,
+      detail: `${activeDays.length} day${activeDays.length === 1 ? "" : "s"} had at least one logged signal this week.`,
+    },
+    {
+      label: "Action rhythm",
+      value: `${habitDays} habit / ${taskDays} task`,
+      detail: `Habits appeared on ${habitDays} day${habitDays === 1 ? "" : "s"}; completed tasks appeared on ${taskDays} day${taskDays === 1 ? "" : "s"}.`,
+    },
+    {
+      label: "Reflection rhythm",
+      value: `${reflectionDays} day${reflectionDays === 1 ? "" : "s"}`,
+      detail: reflectionDays > 0
+        ? `Journal entries appeared on ${reflectionDays} day${reflectionDays === 1 ? "" : "s"}.`
+        : "No reflection days were logged in this week window.",
+    },
+    {
+      label: "Manual check-ins",
+      value: `${mindDays} mind / ${bodyOrNutritionDays} body`,
+      detail: `Mind check-ins appeared on ${mindDays} day${mindDays === 1 ? "" : "s"}; body or nutrition logs appeared on ${bodyOrNutritionDays} day${bodyOrNutritionDays === 1 ? "" : "s"}.`,
+    },
+    {
+      label: "Most active day",
+      value: mostActiveDay.total > 0 ? mostActiveDay.label : "-",
+      detail: mostActiveDay.total > 0
+        ? `${mostActiveDay.label} had ${mostActiveDay.total} logged signal${mostActiveDay.total === 1 ? "" : "s"}, based on logged activity.`
+        : "No active day is visible yet from this week window.",
+    },
+    {
+      label: "Quiet days",
+      value: `${quietDays.length}`,
+      detail: `${quietDays.length} day${quietDays.length === 1 ? "" : "s"} had no logged activity in this review window${financeDays > 0 ? `; finance entries appeared on ${financeDays} day${financeDays === 1 ? "" : "s"}.` : "."}`,
+    },
+  ];
+
+  return { items, isQuiet };
 }
 
 function ReflectionField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
