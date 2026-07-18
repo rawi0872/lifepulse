@@ -1334,7 +1334,7 @@ function TodayReviewHandoff({ rows }: { rows: ReviewHandoffRow[] }) {
           </div>
           <div className="flex shrink-0 flex-wrap gap-2 text-xs">
             <Link href="/weekly-review" className="inline-flex min-h-10 items-center rounded-lg border border-[var(--accent)]/20 bg-[var(--accent-soft)] px-3 font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0 sm:bg-transparent sm:py-1.5">
-              Open Weekly Review
+              Weekly Review
             </Link>
             <Link href="/insights" className="inline-flex min-h-10 items-center rounded-lg border border-[var(--border)] px-3 font-medium text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/25 hover:text-[var(--accent)] sm:min-h-0 sm:py-1.5">
               View Insights
