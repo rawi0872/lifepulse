@@ -82,13 +82,13 @@ export default function FinancePage() {
       if (!user) { router.replace("/login"); return; }
 
       const [accountsRes, categoriesRes, txRes, budgetsRes] = await Promise.all([
-        supabase.from("finance_accounts").select("*").eq("user_id", user.id).order("created_at"),
-        supabase.from("finance_categories").select("*").eq("user_id", user.id).order("created_at"),
+        supabase.from("finance_accounts").select("id, name, type, starting_balance, currency").eq("user_id", user.id).order("created_at"),
+        supabase.from("finance_categories").select("id, name, type, color, icon").eq("user_id", user.id).order("created_at"),
         supabase.from("finance_transactions")
-          .select("*, finance_accounts(name, type, currency), finance_categories(name, type, color)")
+          .select("id, account_id, category_id, amount, type, title, note, transaction_date, finance_accounts(name, type, currency), finance_categories(name, type, color)")
           .eq("user_id", user.id)
           .order("transaction_date", { ascending: false }),
-        supabase.from("finance_budgets").select("*, finance_categories(name, type, color)")
+        supabase.from("finance_budgets").select("id, category_id, month, amount, finance_categories(name, type, color)")
           .eq("user_id", user.id)
           .eq("month", `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, "0")}-01`),
       ]);
@@ -101,8 +101,8 @@ export default function FinancePage() {
 
         setAccounts(accountsRes.data ?? []);
         setCategories(categoriesRes.data ?? []);
-        setTransactions(txRes.data ?? []);
-        setBudgets(budgetsRes.data ?? []);
+        setTransactions((txRes.data ?? []) as unknown as FinanceTransaction[]);
+        setBudgets((budgetsRes.data ?? []) as unknown as FinanceBudget[]);
 
         if ((categoriesRes.data ?? []).length === 0) {
           await seedDefaultCategories(user.id);
@@ -127,7 +127,7 @@ export default function FinancePage() {
       ];
       const { error } = await supabase.from("finance_categories").insert(defaults);
       if (error) throw error;
-      const { data } = await supabase.from("finance_categories").select("*").eq("user_id", userId);
+      const { data } = await supabase.from("finance_categories").select("id, name, type, color, icon").eq("user_id", userId);
       if (data) setCategories(data);
     } catch {
     } finally {

@@ -72,8 +72,8 @@ function MindContent() {
         supabase.from("journal_entries").select("id, mood, energy, content, reflection_prompt, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(30),
         supabase.from("habits").select("id, title, realms!inner(name)").eq("user_id", user.id).eq("realms.name", MIND_REALM),
         supabase.from("tasks").select("id, title, status, realms!inner(name)").eq("user_id", user.id).neq("status", "done").eq("realms.name", MIND_REALM),
-        supabase.from("xp_events").select("id, amount, realm").eq("user_id", user.id).eq("realm", MIND_REALM),
-        supabase.from("mind_metrics").select("*").eq("user_id", user.id).order("entry_date", { ascending: false }).limit(14),
+        supabase.from("xp_events").select("amount").eq("user_id", user.id).eq("realm", MIND_REALM),
+        supabase.from("mind_metrics").select("id, user_id, entry_date, mood, stress, focus, clarity, motivation, reflection, tags, created_at, updated_at").eq("user_id", user.id).order("entry_date", { ascending: false }).limit(14),
       ]);
 
       if (cancelled) return;

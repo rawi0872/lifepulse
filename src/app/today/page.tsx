@@ -403,11 +403,11 @@ function TodayContent() {
             .single(),
           supabase
             .from("habits")
-            .select("*, realms(name, color, icon)")
+            .select("id, title, description, frequency, days_of_week, times_per_week, realms(name, color, icon)")
             .eq("user_id", user.id),
           supabase
             .from("tasks")
-            .select("*, realms(name, color, icon), projects(title)")
+            .select("id, title, description, priority, due_date, status, completed_at, project_id, realms(name, color, icon), projects(title)")
             .eq("user_id", user.id)
             .or(`due_date.eq.${today},and(due_date.lt.${today},status.eq.todo),and(due_date.is.null,status.eq.todo)`)
             .order("due_date", { ascending: true }),
@@ -419,7 +419,7 @@ function TodayContent() {
             .maybeSingle(),
           supabase
             .from("tasks")
-            .select("*, projects!inner(title), realms(name, color, icon)")
+            .select("id, title, status, due_date, project_id, projects!inner(title), realms(name, color, icon)")
             .eq("user_id", user.id)
             .not("project_id", "is", null)
             .eq("status", "todo")
@@ -447,7 +447,7 @@ function TodayContent() {
           setIntendedUse(resolveIntendedUse(profileRes.data.intended_use));
         }
         if (journalRes.data) setHasJournal(true);
-        if (projectTasksRes.data) setProjectTasks(projectTasksRes.data as ProjectTask[]);
+        if (projectTasksRes.data) setProjectTasks(projectTasksRes.data as unknown as ProjectTask[]);
         if (taskProjectsRes.data) setTaskProjects(taskProjectsRes.data as TaskProjectContext[]);
         if (taskGoalLinksRes.data) setTaskGoalLinks(taskGoalLinksRes.data as GoalLink[]);
         if (taskGoalsRes.data) {
@@ -474,7 +474,7 @@ function TodayContent() {
         if (cancelled) return;
 
         if (habitsRes.data) {
-          const habits = habitsRes.data as Habit[];
+          const habits = habitsRes.data as unknown as Habit[];
           setHabits(habits);
 
           const logsByHabit: Record<string, string[]> = {};
@@ -502,7 +502,7 @@ function TodayContent() {
           setStreakMap(sMap);
           setWeeklyProgressMap(wMap);
         }
-        if (tasksRes.data) setTasks(tasksRes.data as Task[]);
+        if (tasksRes.data) setTasks(tasksRes.data as unknown as Task[]);
         if (xpRes.data) {
           setTodayXp(xpRes.data.reduce((sum, e) => sum + e.amount, 0));
         }
@@ -618,17 +618,17 @@ function TodayContent() {
     const [tasksRes, habitsRes, projectTasksRes, allLogsRes, xpRes, totalXpRes, taskProjectsRes, taskGoalLinksRes, taskGoalsRes] = await Promise.all([
       supabase
         .from("tasks")
-        .select("*, realms(name, color, icon), projects(title)")
+        .select("id, title, description, priority, due_date, status, completed_at, project_id, realms(name, color, icon), projects(title)")
         .eq("user_id", user.id)
         .or(`due_date.eq.${today},and(due_date.lt.${today},status.eq.todo),and(due_date.is.null,status.eq.todo)`)
         .order("due_date", { ascending: true }),
       supabase
         .from("habits")
-        .select("*, realms(name, color, icon)")
+        .select("id, title, description, frequency, days_of_week, times_per_week, realms(name, color, icon)")
         .eq("user_id", user.id),
       supabase
         .from("tasks")
-        .select("*, projects!inner(title), realms(name, color, icon)")
+        .select("id, title, status, due_date, project_id, projects!inner(title), realms(name, color, icon)")
         .eq("user_id", user.id)
         .not("project_id", "is", null)
         .eq("status", "todo")
@@ -662,14 +662,14 @@ function TodayContent() {
         .eq("user_id", user.id),
     ]);
 
-    if (tasksRes.data) setTasks(tasksRes.data as Task[]);
-    if (projectTasksRes.data) setProjectTasks(projectTasksRes.data as ProjectTask[]);
+    if (tasksRes.data) setTasks(tasksRes.data as unknown as Task[]);
+    if (projectTasksRes.data) setProjectTasks(projectTasksRes.data as unknown as ProjectTask[]);
     if (taskProjectsRes.data) setTaskProjects(taskProjectsRes.data as TaskProjectContext[]);
     if (taskGoalLinksRes.data) setTaskGoalLinks(taskGoalLinksRes.data as GoalLink[]);
     if (taskGoalsRes.data) setLinkedGoals(taskGoalsRes.data as LinkedGoal[]);
 
     if (habitsRes.data) {
-      const habits = habitsRes.data as Habit[];
+      const habits = habitsRes.data as unknown as Habit[];
       setHabits(habits);
 
       const logsByHabit: Record<string, string[]> = {};

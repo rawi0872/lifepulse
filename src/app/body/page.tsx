@@ -90,13 +90,13 @@ function BodyContent() {
         supabase.from("habits").select("id, title, realms!inner(name)").eq("user_id", user.id).eq("realms.name", BODY_REALM),
         supabase.from("tasks").select("id, title, status, priority, realms!inner(name)").eq("user_id", user.id).neq("status", "done").eq("realms.name", BODY_REALM),
         supabase.from("journal_entries").select("id, energy, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(30),
-        supabase.from("xp_events").select("id, amount, realm").eq("user_id", user.id).eq("realm", BODY_REALM),
+        supabase.from("xp_events").select("amount").eq("user_id", user.id).eq("realm", BODY_REALM),
         supabase.from("habit_logs").select("id, habit_id, logged_date").eq("user_id", user.id).gte("logged_date", new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10)),
-        supabase.from("body_metrics").select("*").eq("user_id", user.id).order("entry_date", { ascending: false }).limit(14),
+        supabase.from("body_metrics").select("id, user_id, entry_date, sleep_hours, sleep_quality, energy, steps, workout_minutes, weight_kg, resting_heart_rate, recovery_score, notes, created_at, updated_at").eq("user_id", user.id).order("entry_date", { ascending: false }).limit(14),
         supabase.from("workouts").select("id, workout_date, duration_minutes").eq("user_id", user.id).gte("workout_date", weekStartStr),
-        supabase.from("nutrition_logs").select("*").eq("user_id", user.id).eq("log_date", today),
+        supabase.from("nutrition_logs").select("id, user_id, log_date, meal_name, calories, protein_g, carbs_g, fat_g, water_ml, notes, created_at").eq("user_id", user.id).eq("log_date", today),
         supabase.from("body_measurements").select("weight_kg").eq("user_id", user.id).order("measurement_date", { ascending: false }).limit(1),
-        supabase.from("health_notes").select("*").eq("user_id", user.id).order("note_date", { ascending: false }).order("created_at", { ascending: false }).limit(1),
+        supabase.from("health_notes").select("id, user_id, note_date, category, severity, title, notes, created_at").eq("user_id", user.id).order("note_date", { ascending: false }).order("created_at", { ascending: false }).limit(1),
       ]);
 
       if (cancelled) return;

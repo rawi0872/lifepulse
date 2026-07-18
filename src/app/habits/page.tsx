@@ -109,12 +109,12 @@ export default function HabitsPage() {
     const [habitsRes, realmsRes, logsRes, goalLinksRes, goalsRes] = await Promise.all([
       supabase
         .from("habits")
-        .select("*, realms(name, color, icon)")
+        .select("id, title, description, frequency, days_of_week, times_per_week, realm_id, created_at, realms(id, name, color, icon)")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false }),
       supabase
         .from("realms")
-        .select("*")
+        .select("id, name, color, icon")
         .eq("user_id", user.id)
         .order("sort_order"),
       supabase
@@ -134,7 +134,7 @@ export default function HabitsPage() {
 
     if (cancelledRef.current) return;
     if (habitsRes.data) {
-      const habits = habitsRes.data as Habit[];
+      const habits = habitsRes.data as unknown as Habit[];
       setHabits(habits);
 
       const logsByHabit: Record<string, string[]> = {};

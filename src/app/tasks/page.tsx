@@ -119,12 +119,12 @@ export default function TasksPage() {
       const [tasksRes, realmsRes, projectsRes, taskProjectsRes, goalLinksRes, goalsRes] = await Promise.all([
         supabase
           .from("tasks")
-          .select("*, realms(name, color, icon), projects(title)")
+          .select("id, title, description, priority, due_date, status, completed_at, realm_id, project_id, created_at, realms(id, name, color, icon), projects(title)")
           .eq("user_id", user.id)
           .order("created_at", { ascending: false }),
         supabase
           .from("realms")
-          .select("*")
+          .select("id, name, color, icon")
           .eq("user_id", user.id)
           .order("sort_order"),
         supabase
@@ -149,7 +149,7 @@ export default function TasksPage() {
       ]);
 
       if (cancelled) return;
-      if (tasksRes.data) setTasks(tasksRes.data as Task[]);
+      if (tasksRes.data) setTasks(tasksRes.data as unknown as Task[]);
       if (realmsRes.data) setRealms(realmsRes.data as Realm[]);
       if (projectsRes.data) setProjects(projectsRes.data as Project[]);
       if (taskProjectsRes.data) setTaskProjects(taskProjectsRes.data as TaskProjectContext[]);
@@ -262,7 +262,7 @@ export default function TasksPage() {
     const [tasksRes, goalLinksRes, goalsRes] = await Promise.all([
       supabase
         .from("tasks")
-        .select("*, realms(name, color, icon), projects(title)")
+        .select("id, title, description, priority, due_date, status, completed_at, realm_id, project_id, created_at, realms(id, name, color, icon), projects(title)")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false }),
       supabase
@@ -276,7 +276,7 @@ export default function TasksPage() {
         .eq("user_id", user.id),
     ]);
 
-    if (tasksRes.data) setTasks(tasksRes.data as Task[]);
+    if (tasksRes.data) setTasks(tasksRes.data as unknown as Task[]);
     if (goalLinksRes.data) setGoalLinks(goalLinksRes.data as GoalLink[]);
     if (goalsRes.data) setLinkedGoals(goalsRes.data as LinkedGoal[]);
   }

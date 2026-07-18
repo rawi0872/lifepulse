@@ -42,7 +42,7 @@ function formatActionLinkCount(count: number, singular: string, plural: string) 
 
 function GoalsContent() {
   const router = useRouter();
-  const supabase = createClient();
+  const [supabase] = useState(() => createClient());
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -68,12 +68,12 @@ function GoalsContent() {
       const [goalsRes, milestonesRes, realmsRes, linksRes, projectsRes, tasksRes, habitsRes] = await Promise.all([
         supabase
           .from("goals")
-          .select("*, realms(name, color, icon)")
+          .select("id, user_id, realm_id, title, description, why, status, priority, target_date, completed_at, created_at, updated_at, realms(name, color, icon)")
           .eq("user_id", user.id)
           .order("created_at", { ascending: false }),
         supabase
           .from("goal_milestones")
-          .select("*")
+          .select("id, goal_id, user_id, title, description, due_date, completed_at, sort_order, created_at, updated_at")
           .eq("user_id", user.id)
           .order("sort_order", { ascending: true }),
         supabase
@@ -83,7 +83,7 @@ function GoalsContent() {
           .order("name"),
         supabase
           .from("goal_links")
-          .select("*")
+          .select("id, user_id, goal_id, linked_type, linked_id, created_at")
           .eq("user_id", user.id)
           .order("created_at", { ascending: true }),
         supabase
@@ -104,7 +104,7 @@ function GoalsContent() {
       ]);
 
       if (cancelled) return;
-      if (goalsRes.data) setGoals(goalsRes.data as Goal[]);
+      if (goalsRes.data) setGoals(goalsRes.data as unknown as Goal[]);
       if (milestonesRes.data) setMilestones(milestonesRes.data as GoalMilestone[]);
       if (realmsRes.data) setRealms(realmsRes.data as RealmInfo[]);
       if (linksRes.data) setLinks(linksRes.data as GoalLink[]);
@@ -136,15 +136,15 @@ function GoalsContent() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     const [goalsRes, milestonesRes, realmsRes, linksRes, projectsRes, tasksRes, habitsRes] = await Promise.all([
-      supabase.from("goals").select("*, realms(name, color, icon)").eq("user_id", user.id).order("created_at", { ascending: false }),
-      supabase.from("goal_milestones").select("*").eq("user_id", user.id).order("sort_order", { ascending: true }),
+      supabase.from("goals").select("id, user_id, realm_id, title, description, why, status, priority, target_date, completed_at, created_at, updated_at, realms(name, color, icon)").eq("user_id", user.id).order("created_at", { ascending: false }),
+      supabase.from("goal_milestones").select("id, goal_id, user_id, title, description, due_date, completed_at, sort_order, created_at, updated_at").eq("user_id", user.id).order("sort_order", { ascending: true }),
       supabase.from("realms").select("id, name, color, icon").eq("user_id", user.id).order("name"),
-      supabase.from("goal_links").select("*").eq("user_id", user.id).order("created_at", { ascending: true }),
+      supabase.from("goal_links").select("id, user_id, goal_id, linked_type, linked_id, created_at").eq("user_id", user.id).order("created_at", { ascending: true }),
       supabase.from("projects").select("id, name").eq("user_id", user.id).order("name"),
       supabase.from("tasks").select("id, title").eq("user_id", user.id).order("title"),
       supabase.from("habits").select("id, title").eq("user_id", user.id).order("title"),
     ]);
-    if (goalsRes.data) setGoals(goalsRes.data as Goal[]);
+    if (goalsRes.data) setGoals(goalsRes.data as unknown as Goal[]);
     if (milestonesRes.data) setMilestones(milestonesRes.data as GoalMilestone[]);
     if (realmsRes.data) setRealms(realmsRes.data as RealmInfo[]);
     if (linksRes.data) setLinks(linksRes.data as GoalLink[]);

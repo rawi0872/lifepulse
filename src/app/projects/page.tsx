@@ -84,7 +84,7 @@ export default function ProjectsPage() {
   const [newTaskPriority, setNewTaskPriority] = useState("medium");
 
   const router = useRouter();
-  const supabase = createClient();
+  const [supabase] = useState(() => createClient());
 
   useEffect(() => {
     let cancelled = false;
@@ -96,7 +96,7 @@ export default function ProjectsPage() {
       const [projectsRes, tasksRes, realmsRes, linksRes, goalsRes] = await Promise.all([
         supabase
           .from("projects")
-          .select("*, realms(name, color, icon)")
+          .select("id, title, description, status, deadline, progress, realm_id, created_at, updated_at, realms(id, name, color, icon)")
           .eq("user_id", user.id)
           .order("created_at", { ascending: false }),
         supabase
@@ -106,7 +106,7 @@ export default function ProjectsPage() {
           .not("project_id", "is", null),
         supabase
           .from("realms")
-          .select("*")
+          .select("id, name, color, icon")
           .eq("user_id", user.id)
           .order("sort_order"),
         supabase
@@ -121,7 +121,7 @@ export default function ProjectsPage() {
       ]);
 
       if (cancelled) return;
-      if (projectsRes.data) setProjects(projectsRes.data as Project[]);
+      if (projectsRes.data) setProjects(projectsRes.data as unknown as Project[]);
       if (tasksRes.data) setLinkedTasks(tasksRes.data as LinkedTask[]);
       if (realmsRes.data) setRealms(realmsRes.data as Realm[]);
       if (linksRes.data) {
@@ -258,13 +258,13 @@ export default function ProjectsPage() {
     if (!user) return;
 
     const [projectsRes, tasksRes, linksRes, goalsRes] = await Promise.all([
-      supabase.from("projects").select("*, realms(name, color, icon)").eq("user_id", user.id).order("created_at", { ascending: false }),
+      supabase.from("projects").select("id, title, description, status, deadline, progress, realm_id, created_at, updated_at, realms(id, name, color, icon)").eq("user_id", user.id).order("created_at", { ascending: false }),
       supabase.from("tasks").select("id, title, status, priority, due_date, project_id").eq("user_id", user.id).not("project_id", "is", null),
       supabase.from("goal_links").select("goal_id, linked_type, linked_id").eq("user_id", user.id).eq("linked_type", "project"),
       supabase.from("goals").select("id, title, status").eq("user_id", user.id),
     ]);
 
-    if (projectsRes.data) setProjects(projectsRes.data as Project[]);
+    if (projectsRes.data) setProjects(projectsRes.data as unknown as Project[]);
     if (tasksRes.data) setLinkedTasks(tasksRes.data as LinkedTask[]);
     if (linksRes.data) {
       setGoalLinks(linksRes.data as GoalLink[]);
