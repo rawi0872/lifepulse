@@ -4,9 +4,9 @@ export function FinalSummary() {
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
       {[
-        { label: "Life areas ready", desc: "Keep the defaults or edit later", icon: "🧭" },
-        { label: "Daily loop clear", desc: "Today, action, reflect, review", icon: "🔄" },
-        { label: "First step chosen", desc: "Open Today and set one priority", icon: "🎯" },
+        { label: "Start in Today", desc: "Set one priority first", icon: "🧭" },
+        { label: "First loop clear", desc: "One visible action, then reflect", icon: "🔄" },
+        { label: "Review later", desc: "After a few days, close the week", icon: "🎯" },
       ].map((item) => (
         <div
           key={item.label}

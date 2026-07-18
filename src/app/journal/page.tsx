@@ -173,7 +173,7 @@ export default function JournalPage() {
           <EmptyState
             eyebrow="Private journal"
             title="Your private history will appear here."
-            message="Write from Today, save weekly reviews from Weekly Review, then return here to see what changed over time."
+            message="Reflect from Today during the week, save Weekly Review on day 7, then return here to see what changed over time."
             description="No judgment. Quiet weeks still count. No AI summaries, sharing, or external processing."
             action={(
               <div className="flex flex-col items-center justify-center gap-2 sm:flex-row">

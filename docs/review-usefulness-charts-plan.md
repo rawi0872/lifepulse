@@ -41,8 +41,9 @@ Life Pulse needs Weekly Review and Insights to answer clearer questions from log
 6. Today review handoff: make Today explain how priority, action, reflection, and manual context become Weekly Review and Insights value. Shipped as Deadline Prompt #5.
 7. Weekly Review closing flow: make the end of review turn into one next-week focus, Save to Journal, and return-to-Today handoff. Shipped as Deadline Prompt #6.
 8. Journal private history: make daily reflections and saved weekly reviews easier to recognize, filter, and return to. Shipped as Deadline Prompt #7.
-9. Insights v2: add 4-week trend comparisons using existing timestamps and manual logs.
-10. Review v5: add user-controlled filters for current week, last week, and month, without adding new storage.
+9. First-week experience: guide new users from the first Today loop through repeated daily loops, Weekly Review, Insights, and Journal without new storage, AI, scoring, advice, or heavy queries. Shipped as Deadline Prompt #10.
+10. Insights v2: add 4-week trend comparisons using existing timestamps and manual logs.
+11. Review v5: add user-controlled filters for current week, last week, and month, without adding new storage.
 
 ## Current Weekly Review v2 Scope
 
@@ -99,6 +100,13 @@ Life Pulse needs Weekly Review and Insights to answer clearer questions from log
 - Added client-side entry type filters for All, Daily reflections, and Weekly reviews using already-loaded `journal_entries` only.
 - Weekly review entries now show a recognizable label, saved-week context when available, and an optional next-week focus preview parsed from existing content.
 - No new storage, schema, queries, AI summaries, advice, scoring, Journal edit/delete, or Weekly Review save behavior changes were added.
+
+## Deadline Prompt #10 First-Week Experience Scope
+
+- Refined `/today` from a first-loop guide into a compact first-week path: Day 1 Today loop, Days 2-3 repeat, Days 4-6 optional context, Day 7 Weekly Review and Journal.
+- Reused existing Today state only: priority presence/completion, visible task or habit completion, today's reflection, and optional Body/Mind/Finance context.
+- Tightened onboarding final handoff and sparse copy in Weekly Review, Insights, and Journal so new users know to start with Today and let Review/Insights become useful after a few logged days.
+- No new storage, schema, AI, scoring, advice, CRUD changes, XP changes, or heavy queries were added.
 
 ## Deferred From v2
 

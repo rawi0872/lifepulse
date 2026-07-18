@@ -92,6 +92,7 @@ interface TodayTaskExecutionContext {
 
 interface FirstLoopGuideStep {
   label: string;
+  detail: string;
   done: boolean;
   href?: string;
 }
@@ -843,21 +844,39 @@ function TodayContent() {
   const hasPriority = priorities.length > 0;
   const hasCompletedPriority = priorities.some((priority) => priority.done);
   const visibleActionDone = completedHabitCount > 0 || doneTaskCount > 0;
+  const manualContextLogged = bodyLoggedToday || mindLoggedToday || financeHasTx;
   const firstLoopComplete = hasPriority && hasCompletedPriority && visibleActionDone && hasJournal;
   const showFirstLoopGuide = !firstLoopGuideDismissed && !firstLoopComplete;
   const firstLoopSteps: FirstLoopGuideStep[] = [
-    { label: "Set one priority", done: hasPriority },
-    { label: "Complete one visible action", done: visibleActionDone, href: visibleActionDone ? undefined : "#daily-execution" },
-    { label: "Reflect tonight", done: hasJournal, href: hasJournal ? undefined : "#evening-reflection" },
-    { label: "Review the week", done: false, href: "/weekly-review" },
+    {
+      label: "Day 1: Start with Today",
+      detail: "Set one priority, complete one visible action, and reflect tonight.",
+      done: firstLoopComplete,
+      href: !visibleActionDone ? "#daily-execution" : !hasJournal ? "#evening-reflection" : undefined,
+    },
+    {
+      label: "Days 2-3: Repeat the loop",
+      detail: "Add one small task or habit only when it helps the day.",
+      done: visibleActionDone && hasJournal,
+      href: visibleActionDone ? undefined : "#daily-execution",
+    },
+    {
+      label: "Days 4-6: Add optional context",
+      detail: "Body, Mind, and Finance are optional context, not extra homework.",
+      done: manualContextLogged,
+    },
+    {
+      label: "Day 7: Close the week",
+      detail: "Open Weekly Review, save it to Journal, then return to Today.",
+      done: visibleActionDone && hasJournal,
+      href: "/weekly-review",
+    },
   ];
   const copy = TODAY_COPY[intendedUse];
   const ecosystemModules = getRecommendedModules(intendedUse)
     .filter((module) => module.href && module.status !== "planned")
     .slice(0, 8);
   const reviewHandoffRows = useMemo<ReviewHandoffRow[]>(() => {
-    const manualContextLogged = bodyLoggedToday || mindLoggedToday || financeHasTx;
-
     return [
       {
         label: "Priority/action",
@@ -890,7 +909,7 @@ function TodayContent() {
         active: visibleActionDone && hasJournal,
       },
     ];
-  }, [bodyLoggedToday, financeHasTx, hasCompletedPriority, hasJournal, hasPriority, mindLoggedToday, visibleActionDone]);
+  }, [hasCompletedPriority, hasJournal, hasPriority, manualContextLogged, visibleActionDone]);
 
   if (loading) {
     return (
@@ -1428,17 +1447,17 @@ function FirstLoopGuide({
         ? "Priority complete. Next: complete one visible action."
         : !hasJournal
           ? "Good. Reflect tonight so the day has context."
-          : "First loop complete. A few days of logs give you a clearer weekly picture.";
+          : "One loop is enough for today. Repeat it for a few days, then close the week.";
 
   return (
     <Card variant="subtle" className="mb-4 overflow-hidden border-[var(--accent)]/18 bg-[linear-gradient(180deg,rgba(122,162,199,0.07),rgba(244,247,251,0.018)),var(--surface-soft)]">
       <div className="p-4 sm:p-5">
         <div className="flex min-w-0 items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--accent)]">First Life Pulse loop</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--accent)]">Your first Life Pulse week</p>
             <p className="mt-1 text-sm font-semibold text-[var(--text)]">{nextMessage}</p>
             <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
-              What you log today becomes context for Weekly Review.
+              Start with Today. The other areas become useful after a few logged days.
             </p>
           </div>
           <button
@@ -1450,15 +1469,15 @@ function FirstLoopGuide({
           </button>
         </div>
 
-        <div className="mt-4 grid gap-2 sm:grid-cols-4">
+        <div className="mt-4 grid gap-2 sm:grid-cols-2">
           {steps.map((step, index) => {
             const content = (
-              <div className={`flex min-w-0 items-center gap-2 rounded-lg border px-3 py-2 text-xs transition-colors ${
+              <div className={`flex min-w-0 items-start gap-2 rounded-lg border px-3 py-2.5 text-xs transition-colors ${
                 step.done
                   ? "border-[var(--success)]/20 bg-[var(--success-soft)]/10 text-[var(--text-secondary)]"
                   : "border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)]"
               }`}>
-                <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] ${
+                <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] ${
                   step.done
                     ? "border-[var(--success)]/40 bg-[var(--success)]/80 text-white"
                     : "border-[var(--border-strong)] text-[var(--text-muted)]"
@@ -1469,7 +1488,10 @@ function FirstLoopGuide({
                     </svg>
                   ) : index + 1}
                 </span>
-                <span className="min-w-0 text-pretty leading-snug">{step.label}</span>
+                <span className="min-w-0 text-pretty leading-snug">
+                  <span className="block font-medium text-[var(--text-secondary)]">{step.label}</span>
+                  <span className="mt-0.5 block text-[10px] leading-relaxed text-[var(--text-muted)]">{step.detail}</span>
+                </span>
               </div>
             );
 
@@ -1482,6 +1504,9 @@ function FirstLoopGuide({
             );
           })}
         </div>
+        <p className="mt-3 text-[10px] leading-relaxed text-[var(--text-muted)]">
+          Body, Mind, and Finance are optional context. Weekly Review and Insights stay based on what you log, private and manual.
+        </p>
       </div>
     </Card>
   );

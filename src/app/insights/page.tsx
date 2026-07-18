@@ -402,7 +402,7 @@ export default function InsightsPage() {
             Patterns across your activity, consistency, and active life areas.
           </p>
           <p className="mt-2 max-w-2xl break-words text-sm leading-relaxed text-[var(--text-secondary)]">
-            Insights are based on tasks, habits, reflections, and manual logs you add. Sparse data means fewer signals; more logged days make the picture clearer.
+            Insights are based on tasks, habits, reflections, and optional manual context you add. During the first week, start with Today and let patterns build from a few logged days.
           </p>
         </div>
 
@@ -411,7 +411,7 @@ export default function InsightsPage() {
             <div className="p-4 text-center sm:p-5">
               <p className="text-sm font-semibold text-[var(--text)]">Not enough logged signal yet.</p>
               <p className="mx-auto mt-1 max-w-xl text-xs leading-relaxed text-[var(--text-muted)]">
-                Complete a few tasks or habits, write a reflection, or add body and mind check-ins. Insights stay private and only reflect what you log.
+                Start with Today: one priority, one visible action, and a reflection. Insights stay private and only reflect what you log.
               </p>
               <Link href="/today" className="mt-3 inline-flex min-h-10 items-center rounded-md text-xs font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] sm:min-h-0">
                 Start in Today &rarr;
@@ -917,7 +917,7 @@ function QuietNotice() {
     <div className="mt-4 rounded-xl border border-dashed border-[var(--border)] bg-black/[0.08] px-4 py-5 text-center">
       <p className="text-sm font-medium text-[var(--text)]">Not enough logged activity yet.</p>
       <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
-        This becomes useful after a few days of tasks, habits, and reflections.
+        This becomes useful after a few Today loops: one visible action and one reflection at a time.
       </p>
     </div>
   );

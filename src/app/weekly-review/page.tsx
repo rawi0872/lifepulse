@@ -567,7 +567,7 @@ function WeeklyReviewContent() {
           <div className="p-4 text-center sm:p-5">
             <p className="text-sm font-semibold text-[var(--text)]">Your weekly picture is still forming.</p>
             <p className="mx-auto mt-1 max-w-xl text-xs leading-relaxed text-[var(--text-muted)]">
-              Log a few tasks, habits, reflections, body or mind check-ins, or manual finance entries this week. This review becomes clearer as private history collects. No shame if the week is quiet.
+              A few Today loops make this clearer: one priority, one visible action, and a reflection. Body, Mind, and Finance are optional context. No judgment - quiet weeks still count.
             </p>
             <Link href="/today" className="mt-3 inline-flex min-h-11 items-center rounded-lg border border-[var(--accent)]/20 bg-[var(--accent-soft)] px-3 text-xs font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] sm:min-h-0 sm:border-0 sm:bg-transparent sm:px-0">
               Return to Today &rarr;
