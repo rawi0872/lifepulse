@@ -18,6 +18,7 @@ import type {
 } from "@/components/finance/types";
 import {
   formatCurrency,
+  get6MonthRange,
   getMonthRange,
   computeAnalytics,
   computeInsights,
@@ -50,13 +51,14 @@ export default function FinancePage() {
   const [accounts, setAccounts] = useState<FinanceAccount[]>([]);
   const [categories, setCategories] = useState<FinanceCategory[]>([]);
   const [transactions, setTransactions] = useState<FinanceTransaction[]>([]);
+  const [balanceTransactions, setBalanceTransactions] = useState<Pick<FinanceTransaction, "account_id" | "amount" | "type">[]>([]);
   const [budgets, setBudgets] = useState<FinanceBudget[]>([]);
 
   const monthRange = getMonthRange(currentMonth);
 
   const analytics = useMemo(
-    () => computeAnalytics({ transactions, budgets, accounts, currentMonth }),
-    [transactions, budgets, accounts, currentMonth]
+    () => computeAnalytics({ transactions, balanceTransactions, budgets, accounts, currentMonth }),
+    [transactions, balanceTransactions, budgets, accounts, currentMonth]
   );
 
   const insights = useMemo(
@@ -81,13 +83,20 @@ export default function FinancePage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.replace("/login"); return; }
 
-      const [accountsRes, categoriesRes, txRes, budgetsRes] = await Promise.all([
+      const sixMonthRange = get6MonthRange(currentMonth);
+
+      const [accountsRes, categoriesRes, txRes, balanceTxRes, budgetsRes] = await Promise.all([
         supabase.from("finance_accounts").select("id, name, type, starting_balance, currency").eq("user_id", user.id).order("created_at"),
         supabase.from("finance_categories").select("id, name, type, color, icon").eq("user_id", user.id).order("created_at"),
         supabase.from("finance_transactions")
           .select("id, account_id, category_id, amount, type, title, note, transaction_date, finance_accounts(name, type, currency), finance_categories(name, type, color)")
           .eq("user_id", user.id)
+          .gte("transaction_date", sixMonthRange.start)
+          .lte("transaction_date", sixMonthRange.end)
           .order("transaction_date", { ascending: false }),
+        supabase.from("finance_transactions")
+          .select("account_id, amount, type")
+          .eq("user_id", user.id),
         supabase.from("finance_budgets").select("id, category_id, month, amount, finance_categories(name, type, color)")
           .eq("user_id", user.id)
           .eq("month", `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, "0")}-01`),
@@ -97,11 +106,13 @@ export default function FinancePage() {
         if (accountsRes.error) throw accountsRes.error;
         if (categoriesRes.error) throw categoriesRes.error;
         if (txRes.error) throw txRes.error;
+        if (balanceTxRes.error) throw balanceTxRes.error;
         if (budgetsRes.error) throw budgetsRes.error;
 
         setAccounts(accountsRes.data ?? []);
         setCategories(categoriesRes.data ?? []);
         setTransactions((txRes.data ?? []) as unknown as FinanceTransaction[]);
+        setBalanceTransactions((balanceTxRes.data ?? []) as Pick<FinanceTransaction, "account_id" | "amount" | "type">[]);
         setBudgets((budgetsRes.data ?? []) as unknown as FinanceBudget[]);
 
         if ((categoriesRes.data ?? []).length === 0) {

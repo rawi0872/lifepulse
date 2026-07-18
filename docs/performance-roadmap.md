@@ -12,6 +12,7 @@ This tracks follow-up work after the Round 1 perceived-loading pass. Keep change
 - `/body` and `/mind` now show calm loading frames instead of blank screens while initial data loads.
 - Deadline Prompt #9 narrowed oversized `select("*")` route reads on Today, Habits, Tasks, Body, Mind, Finance, Projects, and Goals while preserving all existing metric meanings.
 - Deadline Prompt #13 moved Today project/goal context and all-history habit streak work out of the first useful render while preserving final Today meanings.
+- Deadline Prompt #14 audited exact totals and full-history reads; safe fixes reduced count-only Insights payloads and Finance joined transaction payloads while preserving exact XP, streak, and balance meanings.
 - Full network idle can still be around 5 seconds because background Supabase requests continue after first useful paint.
 
 ## Deadline Prompt #8 Performance Pass 2
@@ -39,6 +40,23 @@ This tracks follow-up work after the Round 1 perceived-loading pass. Keep change
 - Today reflection now uses a stable Supabase client and an explicit today-entry select list to avoid repeated reload risk and oversized entry reads.
 - Deferred: server aggregates, route-level loaders, caching strategy, database summary tables, cached streak summaries, cached XP totals, cached finance balances, and any deeper Today architecture rewrite.
 
+## Deadline Prompt #14 Exact Totals And History Audit
+
+| Metric/read | Current route | Current reason it is heavy | Safe fix done now | Deferred fix | Risk |
+| --- | --- | --- | --- | --- | --- |
+| All-time XP / current level | `/today`, `/insights` | Exact total XP is calculated from every XP event. | Kept explicit `amount` / source columns only; no date window added. | Server-side XP aggregate, RPC, or cached user XP total maintained transactionally. | Client read grows with lifetime XP event history. |
+| Realm XP | `/insights`, `/body`, `/mind` | Realm totals need exact XP event sums and, for Insights, source-to-realm mapping. | Preserved exact reads; kept selected columns narrow. | Realm XP aggregate keyed by user/realm, or RPC that sums without returning rows. | Insights remains sensitive to large XP histories. |
+| Habit current and best streaks | `/today`, `/habits`, `/insights` | Exact current/best streaks require full habit completion history. | Today already hydrates full habit history secondarily; retained narrow `habit_id, completed_date` reads. | Cached streak summaries or streak RPC with deterministic semantics. | Large habit histories still affect network idle and Habits/Insights load. |
+| Finance exact account balances | `/finance` | Balances require all account transactions plus starting balance. | Split Finance reads: exact balance math now uses lightweight all-history `account_id, amount, type`; joined transaction rows are limited to the selected six-month chart/list window. | Account balance snapshots, ledger aggregate, or balance RPC. | Balance query still grows with all transaction history, but payload is smaller. |
+| Finance monthly charts/list | `/finance`, `/insights`, `/weekly-review`, `/today` | Charts need selected month, previous month, six-month, or week/month windows. | Kept route windows bounded; Finance full joined transaction read now bounded to the selected six-month range. | Server monthly aggregates if transaction volume becomes high. | Chart queries can grow within active month windows. |
+| Journal lifetime history | `/journal`, `/insights` | Journal route intentionally shows private lifetime history with search/filter. | Insights lifetime/monthly journal counts now use exact count-only head queries; Journal history left exact. | Pagination/search design for Journal, not a silent limit. | Journal page can grow with private history. |
+| Editable full lists | `/tasks`, `/habits`, `/projects`, `/goals` | Routes show editable all-list state and filters. | No semantic narrowing beyond existing explicit columns. | Pagination or route-level loaders when editable lists become large. | Large editable lists still load client-side. |
+
+- Highest-impact safe fix shipped now: Finance no longer downloads all historical joined transaction rows just to compute exact balances.
+- Count-only fix shipped now: Insights journal lifetime/month counts and active project count use exact head/count reads instead of returning rows.
+- Intentionally preserved: all-time XP, level, realm XP, habit current/best streaks, finance balance meaning, Journal lifetime history, task/habit completion behavior, and finance CRUD behavior.
+- Future database prompt should design aggregate/RPC work explicitly before implementation: XP totals, realm XP, habit streak summaries, finance account balances, and optional Journal pagination/search.
+
 ## Next Opportunities
 
 - Shape route-specific query payloads so high-traffic pages fetch only fields used above the fold.
@@ -47,3 +65,4 @@ This tracks follow-up work after the Round 1 perceived-loading pass. Keep change
 - Add lightweight route timing checks to production smoke tests only after the beta UX stabilizes.
 - Deeper work deferred from Prompt #8: server-side aggregation, broader historical windows, route-level data loaders, caching strategy, and cross-route query consolidation.
 - Deeper work deferred from Prompt #9: exact server aggregates for all-time XP, cached habit streak summaries, cached Finance account balances, and route-level data loaders for editable all-list pages.
+- Deeper work deferred from Prompt #14: exact XP/realm XP aggregate design, deterministic habit streak aggregate design, finance account balance snapshot or RPC design, and Journal pagination/search that preserves private-history meaning.

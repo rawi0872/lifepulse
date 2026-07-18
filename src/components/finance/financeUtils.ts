@@ -11,6 +11,8 @@ import type {
 } from "./types";
 import { formatMoney, getAppCurrency } from "@/lib/config";
 
+type BalanceTransaction = Pick<FinanceTransaction, "account_id" | "amount" | "type">;
+
 export function formatCurrency(amount: number, currency = getAppCurrency()): string {
   return formatMoney(amount, 2, currency);
 }
@@ -79,11 +81,13 @@ export function getCategoryColor(categoryId: string): string {
 
 export function computeAnalytics({
   transactions,
+  balanceTransactions = transactions,
   budgets,
   accounts,
   currentMonth,
 }: {
   transactions: FinanceTransaction[];
+  balanceTransactions?: BalanceTransaction[];
   budgets: FinanceBudget[];
   accounts: FinanceAccount[];
   currentMonth: Date;
@@ -224,7 +228,7 @@ export function computeAnalytics({
   const transactionCountThisMonth = currentMonthTxs.length;
 
   const accountBalances: AccountBalance[] = accounts.map((account) => {
-    const accountTxs = transactions.filter((tx) => tx.account_id === account.id);
+    const accountTxs = balanceTransactions.filter((tx) => tx.account_id === account.id);
     const incomeTotal = accountTxs
       .filter((tx) => tx.type === "income")
       .reduce((sum, tx) => sum + Number(tx.amount), 0);

@@ -124,9 +124,9 @@ export default function InsightsPage() {
         supabase.from("habits").select("id,frequency,days_of_week,times_per_week,realm_id").eq("user_id", user.id),
         supabase.from("tasks").select("id,status,realm_id").eq("user_id", user.id),
         supabase.from("realms").select("id,name,color,icon").eq("user_id", user.id).order("sort_order"),
-        supabase.from("journal_entries").select("id").eq("user_id", user.id),
+        supabase.from("journal_entries").select("id", { count: "exact", head: true }).eq("user_id", user.id),
         supabase.from("habit_logs").select("id,habit_id,completed_date").eq("user_id", user.id),
-        supabase.from("projects").select("status").eq("user_id", user.id),
+        supabase.from("projects").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("status", "active"),
         supabase.from("goals").select("id,status").eq("user_id", user.id),
         supabase.from("goal_links").select("goal_id, linked_type").eq("user_id", user.id),
       ]);
@@ -138,7 +138,7 @@ export default function InsightsPage() {
         setTotalXp(total);
       }
       if (todayXpRes.data) setTodayXp(todayXpRes.data.reduce((s: number, e: { amount: number }) => s + e.amount, 0));
-      if (journalRes.data) setJournalCount(journalRes.data.length);
+      if (journalRes.count !== null) setJournalCount(journalRes.count);
 
       if (habitsRes.data) {
         setHabitCount(habitsRes.data.length);
@@ -156,9 +156,7 @@ export default function InsightsPage() {
         setDoneTaskCount(tasksRes.data.filter((t: { status: string }) => t.status === "done").length);
       }
 
-      if (projectsRes.data) {
-        setActiveProjectCount(projectsRes.data.filter((p: { status: string }) => p.status === "active").length);
-      }
+      if (projectsRes.count !== null) setActiveProjectCount(projectsRes.count);
 
       if (goalsRes.data) {
         const activeGoals = goalsRes.data.filter((goal: { status?: string }) => goal.status === "active") as { id: string }[];
@@ -262,7 +260,7 @@ export default function InsightsPage() {
             .gte("transaction_date", monthStart)
             .lte("transaction_date", monthEnd),
           supabase.from("journal_entries")
-            .select("id, entry_date, mood, energy")
+            .select("id", { count: "exact", head: true })
             .eq("user_id", user.id)
             .gte("entry_date", monthStart)
             .lte("entry_date", monthEnd),
@@ -340,11 +338,10 @@ export default function InsightsPage() {
           setFinanceHasMixedCurrencies(currencyList.length > 1);
           setFinanceHasData(financeTransactions.length > 0);
 
-          const journalMemoryEntries = (journalMemoryRes.data ?? []) as { id: string; entry_date?: string | null; mood?: string | null; energy?: number | null }[];
           const knowledgeMemoryItems = (knowledgeMemoryRes.data ?? []) as { title?: string | null; type?: string | null; category?: string | null }[];
           const latestKnowledge = knowledgeMemoryItems[0];
 
-          setJournalEntriesThisMonth(journalMemoryEntries.length);
+          setJournalEntriesThisMonth(journalMemoryRes.count ?? 0);
           setKnowledgeItemsThisMonth(knowledgeMemoryItems.length);
           setLatestKnowledgeTitle(makeMemoryLabel(latestKnowledge?.title ?? null));
           setLatestKnowledgeType(makeMemoryLabel(latestKnowledge?.type ?? null));
