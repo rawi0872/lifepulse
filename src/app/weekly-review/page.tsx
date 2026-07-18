@@ -13,6 +13,14 @@ import { formatCurrency } from "@/components/finance/financeUtils";
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
+interface MindTrendDay {
+  label: string;
+  mood: number | null;
+  focus: number | null;
+  stress: number | null;
+  hasEntry: boolean;
+}
+
 function getWeekDates(): string[] {
   const start = new Date(getWeekStartDate());
   const dates: string[] = [];
@@ -66,6 +74,7 @@ interface WeekData {
   financeCurrency: string | null;
   financeHasMixedCurrencies: boolean;
   rhythmByDay: { label: string; habits: number; tasks: number; reflections: number }[];
+  mindByDay: MindTrendDay[];
   bodyLoggedToday: boolean;
   mindLoggedToday: boolean;
   hasWorkoutThisWeek: boolean;
@@ -124,7 +133,7 @@ function WeeklyReviewContent() {
       supabase.from("workouts").select("duration_minutes").eq("user_id", user.id).gte("workout_date", weekStart).lte("workout_date", weekEnd),
       supabase.from("journal_entries").select("id").eq("user_id", user.id).gte("entry_date", weekStart).lte("entry_date", weekEnd),
       supabase.from("body_metrics").select("energy, sleep_hours").eq("user_id", user.id).gte("entry_date", weekStart).lte("entry_date", weekEnd),
-      supabase.from("mind_metrics").select("mood, focus, stress").eq("user_id", user.id).gte("entry_date", weekStart).lte("entry_date", weekEnd),
+      supabase.from("mind_metrics").select("entry_date, mood, focus, stress").eq("user_id", user.id).gte("entry_date", weekStart).lte("entry_date", weekEnd),
       supabase.from("nutrition_logs").select("id, log_date, protein_g, water_ml").eq("user_id", user.id).gte("log_date", weekStart).lte("log_date", weekEnd),
       supabase.from("body_measurements").select("weight_kg").eq("user_id", user.id).order("measurement_date", { ascending: false }).limit(1),
       supabase.from("passions").select("id, name").eq("user_id", user.id).eq("status", "active"),
@@ -155,7 +164,7 @@ function WeeklyReviewContent() {
     ]);
 
     const bodyMetrics = (bodyRes.data ?? []) as { energy?: number | null; sleep_hours?: number | null }[];
-    const mindMetrics = (mindRes.data ?? []) as { mood?: number | null; focus?: number | null; stress?: number | null }[];
+    const mindMetrics = (mindRes.data ?? []) as { entry_date?: string | null; mood?: number | null; focus?: number | null; stress?: number | null }[];
     const nutritionLogs = (nutritionRes.data ?? []) as { log_date?: string | null; protein_g?: number | null; water_ml?: number | null }[];
     const habitLogs = (habitsRes.data ?? []) as { completed_date?: string | null }[];
     const completedTasks = (tasksRes.data ?? []) as { completed_at?: string | null }[];
@@ -229,6 +238,17 @@ function WeeklyReviewContent() {
       reflections: journalMemoryEntries.filter((entry) => entry.entry_date === date).length,
     }));
 
+    const mindByDay = weekDates.map((date, index) => {
+      const entries = mindMetrics.filter((entry) => entry.entry_date === date);
+      return {
+        label: WEEKDAYS[index],
+        mood: avg(entries.map((entry) => entry.mood)),
+        focus: avg(entries.map((entry) => entry.focus)),
+        stress: avg(entries.map((entry) => entry.stress)),
+        hasEntry: entries.length > 0,
+      };
+    });
+
     setData({
       weekDates,
       habitCount: (habitsRes.data ?? []).length,
@@ -271,6 +291,7 @@ function WeeklyReviewContent() {
       financeCurrency,
       financeHasMixedCurrencies,
       rhythmByDay,
+      mindByDay,
       bodyLoggedToday: bodyMetrics.length > 0,
       mindLoggedToday: mindMetrics.length > 0,
       hasWorkoutThisWeek: (workoutsRes.data ?? []).length > 0,
@@ -420,12 +441,19 @@ function WeeklyReviewContent() {
       <section className="mb-8">
         <div className="mb-3 flex min-w-0 items-center gap-2">
           <span className="h-4 w-1 rounded-full bg-gradient-to-b from-[var(--accent)] to-[var(--accent-strong)]" />
-          <h2 className="min-w-0 break-words text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Weekly rhythm</h2>
+          <h2 className="min-w-0 break-words text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Weekly rhythm and trends</h2>
         </div>
         <p className="mb-3 text-xs text-[var(--text-muted)]">
-          Habits, completed tasks, and reflections by day. This is based only on logged activity from this week.
+          Daily bars and strips show what changed across the week. This is based only on logged activity from this week.
         </p>
-        <WeeklyRhythmChart rows={data.rhythmByDay} />
+        <div className="space-y-3">
+          <WeeklyRhythmChart rows={data.rhythmByDay} />
+          <div className="grid min-w-0 gap-3 lg:grid-cols-2">
+            <DailyActionBars rows={data.rhythmByDay} />
+            <ReflectionRhythm rows={data.rhythmByDay} />
+          </div>
+          <MindTrendStrip rows={data.mindByDay} />
+        </div>
       </section>
 
       {(data.weeklyJournalEntries > 0 || data.weeklyKnowledgeItems > 0) && (
@@ -596,12 +624,12 @@ function WeeklyReviewContent() {
               onChange={(v) => setReflection((r) => ({ ...r, feltDifficult: v }))}
             />
             <ReflectionField
-              label="What should I focus on next week?"
+              label="What will I focus on next week?"
               value={reflection.focusNextWeek}
               onChange={(v) => setReflection((r) => ({ ...r, focusNextWeek: v }))}
             />
             <ReflectionField
-              label="What should I reduce or avoid?"
+              label="What can I reduce or avoid?"
               value={reflection.reduceOrAvoid}
               onChange={(v) => setReflection((r) => ({ ...r, reduceOrAvoid: v }))}
             />
@@ -768,6 +796,171 @@ function WeeklyRhythmChart({ rows }: { rows: { label: string; habits: number; ta
         <span>Reflections: journal entries</span>
       </div>
     </Card>
+  );
+}
+
+function DailyActionBars({ rows }: { rows: { label: string; habits: number; tasks: number; reflections: number }[] }) {
+  const maxValue = Math.max(1, ...rows.flatMap((row) => [row.habits, row.tasks]));
+  const hasAnyAction = rows.some((row) => row.habits > 0 || row.tasks > 0);
+
+  return (
+    <Card className="min-w-0 p-4 sm:p-5">
+      <div className="mb-4 min-w-0">
+        <p className="text-sm font-semibold text-[var(--text)]">Daily action mix</p>
+        <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
+          Habits and completed tasks by day. Logged this week only.
+        </p>
+      </div>
+      {!hasAnyAction ? (
+        <TrendEmptyState />
+      ) : (
+        <div className="space-y-3" aria-label="Daily habit and task completion bars">
+          {rows.map((row) => {
+            const habitWidth = Math.round((row.habits / maxValue) * 100);
+            const taskWidth = Math.round((row.tasks / maxValue) * 100);
+
+            return (
+              <div key={row.label} className="grid min-w-0 grid-cols-[2.5rem_1fr_auto] items-center gap-2 text-xs">
+                <span className="font-medium text-[var(--text-muted)]">{row.label}</span>
+                <div className="min-w-0 space-y-1.5">
+                  <div className="h-2 overflow-hidden rounded-full bg-[var(--surface-soft)] ring-1 ring-inset ring-[var(--border)]">
+                    <div className="h-full rounded-full bg-[var(--accent)]" style={{ width: `${habitWidth}%` }} />
+                  </div>
+                  <div className="h-2 overflow-hidden rounded-full bg-[var(--surface-soft)] ring-1 ring-inset ring-[var(--border)]">
+                    <div className="h-full rounded-full bg-[var(--success)]" style={{ width: `${taskWidth}%` }} />
+                  </div>
+                </div>
+                <span className="text-right text-[10px] tabular-nums text-[var(--text-muted)]">
+                  {row.habits}h / {row.tasks}t
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      <div className="mt-4 flex flex-wrap gap-3 text-[10px] text-[var(--text-muted)]">
+        <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-[var(--accent)]" />Habits</span>
+        <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-[var(--success)]" />Tasks</span>
+      </div>
+    </Card>
+  );
+}
+
+function ReflectionRhythm({ rows }: { rows: { label: string; reflections: number }[] }) {
+  const reflectionDays = rows.filter((row) => row.reflections > 0).length;
+
+  return (
+    <Card className="min-w-0 p-4 sm:p-5">
+      <div className="mb-4 min-w-0">
+        <p className="text-sm font-semibold text-[var(--text)]">Reflection rhythm</p>
+        <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
+          Which days had private reflection activity. No judgment - quiet weeks still count.
+        </p>
+      </div>
+      <div className="grid grid-cols-7 gap-2" aria-label="Reflection rhythm by day">
+        {rows.map((row) => (
+          <div key={row.label} className="min-w-0 text-center">
+            <div
+              className={`mx-auto flex h-10 w-full max-w-10 items-center justify-center rounded-2xl border text-xs font-semibold transition-colors ${
+                row.reflections > 0
+                  ? "border-[var(--accent)]/35 bg-[var(--accent-soft)] text-[var(--accent)]"
+                  : "border-[var(--border)] bg-[var(--surface-soft)] text-[var(--text-muted)]"
+              }`}
+              title={`${row.label}: ${row.reflections} reflection${row.reflections === 1 ? "" : "s"}`}
+            >
+              {row.reflections > 0 ? row.reflections : "-"}
+            </div>
+            <p className="mt-1 text-[9px] font-medium text-[var(--text-muted)]">{row.label}</p>
+          </div>
+        ))}
+      </div>
+      <p className="mt-4 text-xs leading-relaxed text-[var(--text-muted)]">
+        {reflectionDays > 0
+          ? `${reflectionDays} day${reflectionDays === 1 ? "" : "s"} with reflection activity.`
+          : "This becomes clearer after a few logged reflection days."}
+      </p>
+    </Card>
+  );
+}
+
+function MindTrendStrip({ rows }: { rows: MindTrendDay[] }) {
+  const hasMindData = rows.some((row) => row.hasEntry);
+
+  return (
+    <Card className="min-w-0 p-4 sm:p-5">
+      <div className="mb-4 flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-[var(--text)]">Mind trend strip</p>
+          <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
+            Mood, focus, and stress from manual mind check-ins. Patterns from your entries only.
+          </p>
+        </div>
+        <span className="w-fit rounded-full border border-[var(--border)] bg-[var(--surface-soft)] px-2.5 py-1 text-[10px] text-[var(--text-muted)]">
+          Private manual review
+        </span>
+      </div>
+      {!hasMindData ? (
+        <TrendEmptyState />
+      ) : (
+        <div className="space-y-4" aria-label="Mind trend strip by day">
+          <TrendMetricRow label="Mood" rows={rows} accessor={(row) => row.mood} color="var(--accent)" />
+          <TrendMetricRow label="Focus" rows={rows} accessor={(row) => row.focus} color="var(--success)" />
+          <TrendMetricRow label="Stress" rows={rows} accessor={(row) => row.stress} color="var(--warning)" />
+        </div>
+      )}
+      <p className="mt-4 text-[10px] leading-relaxed text-[var(--text-muted)]">
+        Factual check-in values only. No clinical interpretation, treatment guidance, or AI analysis.
+      </p>
+    </Card>
+  );
+}
+
+function TrendMetricRow({
+  label,
+  rows,
+  accessor,
+  color,
+}: {
+  label: string;
+  rows: MindTrendDay[];
+  accessor: (row: MindTrendDay) => number | null;
+  color: string;
+}) {
+  return (
+    <div className="min-w-0">
+      <div className="mb-1.5 flex items-center justify-between gap-3">
+        <span className="text-xs font-medium text-[var(--text-secondary)]">{label}</span>
+        <span className="text-[10px] text-[var(--text-muted)]">1-5 logged value</span>
+      </div>
+      <div className="grid grid-cols-7 gap-2">
+        {rows.map((row) => {
+          const value = accessor(row);
+          const height = value === null ? 4 : Math.max(8, Math.round((value / 5) * 44));
+
+          return (
+            <div key={`${label}-${row.label}`} className="flex min-w-0 flex-col items-center gap-1.5">
+              <div className="flex h-12 w-full max-w-7 items-end rounded-full bg-[var(--surface-soft)] p-1 ring-1 ring-inset ring-[var(--border)]">
+                <div
+                  className="w-full rounded-full transition-all"
+                  style={{ height, backgroundColor: value === null ? "var(--border)" : color, opacity: value === null ? 0.7 : 0.9 }}
+                  title={`${row.label}: ${value === null ? "No entry" : `${value}/5`}`}
+                />
+              </div>
+              <span className="text-[9px] text-[var(--text-muted)]">{row.label}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function TrendEmptyState() {
+  return (
+    <div className="rounded-xl border border-dashed border-[var(--border)] bg-black/[0.08] px-4 py-5 text-center">
+      <p className="text-sm font-medium text-[var(--text)]">This becomes clearer after a few logged days.</p>
+      <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">No judgment - quiet weeks still count.</p>
+    </div>
   );
 }
 
