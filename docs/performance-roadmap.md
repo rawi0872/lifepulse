@@ -6,6 +6,7 @@ This tracks follow-up work after the Round 1 perceived-loading pass. Keep change
 
 - Core protected routes are static client shells that fetch Supabase data after auth.
 - `/today` and `/insights` now render primary content before secondary module signals finish loading.
+- `/insights` keeps the primary render split and hydrates bounded last-7-days trend signals after the main page appears.
 - Full network idle can still be around 5 seconds locally because background Supabase requests continue after first useful paint.
 
 ## Next Opportunities

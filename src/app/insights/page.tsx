@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
@@ -9,17 +9,7 @@ import { Card } from "@/components/ui/card";
 import { getTodayDateString, getWeekStartDate } from "@/lib/utils";
 import { getLevelInfo, getOverallTitle } from "@/lib/levels";
 import { formatMoney } from "@/lib/config";
-import { HelpPopover } from "@/components/HelpPopover";
 import { getCurrentStreak, getBestStreak } from "@/lib/streaks";
-import {
-  RealmRadarChart,
-  RealmRadarExpandedDialog,
-  computeRealmScores,
-  getStrongestRealm,
-  getWeakestRealm,
-  computeBalanceScore,
-  generateSuggestion,
-} from "@/components/insights/RealmRadarChart";
 import { InsightSkeleton } from "@/components/insights/InsightSkeleton";
 import { LevelOverviewCard } from "@/components/insights/LevelOverviewCard";
 import { MomentumGrid } from "@/components/insights/MomentumGrid";
@@ -29,11 +19,43 @@ import { RealmLevelList } from "@/components/insights/RealmLevelList";
 import { BodyProInsights } from "@/components/insights/BodyProInsights";
 import { PassionsInsights } from "@/components/insights/PassionsInsights";
 
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
 interface RealmXp {
   name: string;
   color: string;
   icon: string;
   xp: number;
+}
+
+interface InsightTrendDay {
+  date: string;
+  label: string;
+  tasks: number;
+  habits: number;
+  reflections: number;
+  mind: number;
+  body: number;
+  nutrition: number;
+  finance: number;
+  total: number;
+}
+
+interface InsightTrendData {
+  days: InsightTrendDay[];
+  taskDays: number;
+  completedTasks: number;
+  habitDays: number;
+  habitLogs: number;
+  reflectionDays: number;
+  reflections: number;
+  mindDays: number;
+  mindCheckins: number;
+  bodyNutritionDays: number;
+  bodyNutritionCheckins: number;
+  financeDays: number;
+  financeEntries: number;
+  loggedDays: number;
 }
 
 export default function InsightsPage() {
@@ -68,7 +90,8 @@ export default function InsightsPage() {
   const [latestKnowledgeTitle, setLatestKnowledgeTitle] = useState<string | null>(null);
   const [latestKnowledgeType, setLatestKnowledgeType] = useState<string | null>(null);
   const [topKnowledgeType, setTopKnowledgeType] = useState<string | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [trendData, setTrendData] = useState<InsightTrendData | null>(null);
+  const [trendLoading, setTrendLoading] = useState(true);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const supabase = createClient();
@@ -89,6 +112,11 @@ export default function InsightsPage() {
       const monthEnd = `${year}-${month}-${String(lastDay).padStart(2, "0")}`;
       const knowledgeMonthStart = toLocalDateBoundaryIso(monthStart, "start");
       const knowledgeMonthEnd = toLocalDateBoundaryIso(monthEnd, "end");
+      const recentDates = getRecentDates(today, 7);
+      const recentStart = recentDates[0];
+      const recentEnd = recentDates[recentDates.length - 1];
+      setTrendLoading(true);
+      setTrendData(null);
 
       const [xpRes, todayXpRes, habitsRes, tasksRes, realmsRes, journalRes, habitLogsRes, projectsRes, goalsRes, goalLinksRes] = await Promise.all([
         supabase.from("xp_events").select("amount,source_type,source_id").eq("user_id", user.id),
@@ -216,7 +244,18 @@ export default function InsightsPage() {
       setLoading(false);
 
       try {
-        const [financeRes, journalMemoryRes, knowledgeMemoryRes] = await Promise.all([
+        const [
+          financeRes,
+          journalMemoryRes,
+          knowledgeMemoryRes,
+          recentTasksRes,
+          recentHabitLogsRes,
+          recentJournalRes,
+          recentMindRes,
+          recentBodyRes,
+          recentNutritionRes,
+          recentFinanceRes,
+        ] = await Promise.all([
           supabase.from("finance_transactions")
             .select("amount, type, transaction_date, account_id, finance_accounts(currency)")
             .eq("user_id", user.id)
@@ -233,6 +272,42 @@ export default function InsightsPage() {
             .gte("created_at", knowledgeMonthStart)
             .lte("created_at", knowledgeMonthEnd)
             .order("created_at", { ascending: false }),
+          supabase.from("tasks")
+            .select("completed_at")
+            .eq("user_id", user.id)
+            .eq("status", "done")
+            .gte("completed_at", `${recentStart}T00:00:00`)
+            .lte("completed_at", `${recentEnd}T23:59:59`),
+          supabase.from("habit_logs")
+            .select("completed_date")
+            .eq("user_id", user.id)
+            .gte("completed_date", recentStart)
+            .lte("completed_date", recentEnd),
+          supabase.from("journal_entries")
+            .select("entry_date")
+            .eq("user_id", user.id)
+            .gte("entry_date", recentStart)
+            .lte("entry_date", recentEnd),
+          supabase.from("mind_metrics")
+            .select("entry_date")
+            .eq("user_id", user.id)
+            .gte("entry_date", recentStart)
+            .lte("entry_date", recentEnd),
+          supabase.from("body_metrics")
+            .select("entry_date")
+            .eq("user_id", user.id)
+            .gte("entry_date", recentStart)
+            .lte("entry_date", recentEnd),
+          supabase.from("nutrition_logs")
+            .select("log_date")
+            .eq("user_id", user.id)
+            .gte("log_date", recentStart)
+            .lte("log_date", recentEnd),
+          supabase.from("finance_transactions")
+            .select("transaction_date")
+            .eq("user_id", user.id)
+            .gte("transaction_date", recentStart)
+            .lte("transaction_date", recentEnd),
         ]);
 
         if (!cancelled) {
@@ -274,9 +349,20 @@ export default function InsightsPage() {
           setLatestKnowledgeTitle(makeMemoryLabel(latestKnowledge?.title ?? null));
           setLatestKnowledgeType(makeMemoryLabel(latestKnowledge?.type ?? null));
           setTopKnowledgeType(getTopValue(knowledgeMemoryItems.map((item) => item.type ?? null)));
+          setTrendData(buildInsightTrendData(recentDates, {
+            tasks: (recentTasksRes.data ?? []) as { completed_at?: string | null }[],
+            habits: (recentHabitLogsRes.data ?? []) as { completed_date?: string | null }[],
+            reflections: (recentJournalRes.data ?? []) as { entry_date?: string | null }[],
+            mind: (recentMindRes.data ?? []) as { entry_date?: string | null }[],
+            body: (recentBodyRes.data ?? []) as { entry_date?: string | null }[],
+            nutrition: (recentNutritionRes.data ?? []) as { log_date?: string | null }[],
+            finance: (recentFinanceRes.data ?? []) as { transaction_date?: string | null }[],
+          }));
         }
       } catch (secondaryError) {
         console.warn("Failed to load secondary Insights signals", secondaryError);
+      } finally {
+        if (!cancelled) setTrendLoading(false);
       }
     }
 
@@ -289,22 +375,18 @@ export default function InsightsPage() {
   const overallTitle = getOverallTitle(levelInfo.level);
   const taskCompletionRate = taskCount > 0 ? Math.round((doneTaskCount / taskCount) * 100) : 0;
   const weekHabitRate = weekDueHabits > 0 ? Math.round((weekHabitLogs / weekDueHabits) * 100) : null;
-  const insightSignalCount = totalXp + journalEntriesThisMonth + knowledgeItemsThisMonth + financeTransactionCount + weekHabitLogs;
+  const insightSignalCount = totalXp + journalEntriesThisMonth + knowledgeItemsThisMonth + financeTransactionCount + weekHabitLogs + (trendData?.loggedDays ?? 0);
   const hasSparseSignals = insightSignalCount === 0;
-
-  // Shared scoring for both the card and the dialog
-  const scoredRealms = realmXp.length > 0
-    ? computeRealmScores(realmXp, (xp) => {
-        const info = getLevelInfo(xp);
-        return { level: info.level, progressPercent: info.progressPercent };
-      })
-    : [];
-  const strongest = scoredRealms.length > 0 ? getStrongestRealm(scoredRealms) : null;
-  const weakest = scoredRealms.length > 0 ? getWeakestRealm(scoredRealms) : null;
-  const balanceScore = scoredRealms.length > 0 ? computeBalanceScore(scoredRealms) : null;
-  const suggestion = generateSuggestion(strongest, weakest);
-
-  const handleOpenDialog = useCallback(() => setDialogOpen(true), []);
+  const quietAreas = useMemo(
+    () => buildQuietAreas(trendData, {
+      activeProjectCount,
+      activeGoalsCount,
+      financeHasData,
+      journalEntriesThisMonth,
+      knowledgeItemsThisMonth,
+    }),
+    [activeGoalsCount, activeProjectCount, financeHasData, journalEntriesThisMonth, knowledgeItemsThisMonth, trendData]
+  );
 
   if (loading) return <InsightSkeleton />;
 
@@ -347,35 +429,37 @@ export default function InsightsPage() {
           totalXp={totalXp}
         />
 
+        <InsightOverview trendData={trendData} trendLoading={trendLoading} />
+
         <section className="mb-6">
           <h2 className="mb-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">
             Pattern snapshot
           </h2>
           <div className="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-4">
             <Card variant="subtle" className="flex min-h-[100px] min-w-0 flex-col p-3.5 sm:p-4">
-              <p className="break-words text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Strongest area</p>
+              <p className="break-words text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Logged days</p>
               <p className="mt-2 break-words text-base font-bold leading-tight text-[var(--text)] sm:text-lg">
-                {strongest ? `${strongest.icon} ${strongest.name}` : "\u2014"}
+                {trendData ? `${trendData.loggedDays} / 7` : "-"}
               </p>
               <p className="mt-auto break-words pt-2 text-[10px] leading-snug text-[var(--text-muted)]">
-                {strongest ? `${Math.round(strongest.score)}% signal` : "No area signal yet"}
+                Last 7 days
               </p>
             </Card>
             <Card variant="subtle" className="flex min-h-[100px] min-w-0 flex-col p-3.5 sm:p-4">
-              <p className="break-words text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Needs attention</p>
+              <p className="break-words text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Action days</p>
               <p className="mt-2 break-words text-base font-bold leading-tight text-[var(--text)] sm:text-lg">
-                {weakest ? `${weakest.icon} ${weakest.name}` : "\u2014"}
+                {trendData ? `${countDaysWithAction(trendData)} / 7` : "-"}
               </p>
               <p className="mt-auto break-words pt-2 text-[10px] leading-snug text-[var(--text-muted)]">
-                {weakest ? `${Math.round(weakest.score)}% signal` : "No gap visible yet"}
+                Tasks or habits logged
               </p>
             </Card>
             <Card variant="subtle" className="flex min-h-[100px] min-w-0 flex-col p-3.5 sm:p-4">
-              <p className="break-words text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Balance</p>
+              <p className="break-words text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Reflection days</p>
               <p className="mt-2 break-words text-2xl font-bold text-[var(--accent)]">
-                {balanceScore !== null ? `${balanceScore}%` : "\u2014"}
+                {trendData ? `${trendData.reflectionDays}` : "-"}
               </p>
-              <p className="mt-auto break-words pt-2 text-[10px] leading-snug text-[var(--text-muted)]">Across active areas</p>
+              <p className="mt-auto break-words pt-2 text-[10px] leading-snug text-[var(--text-muted)]">Journal entries in last 7 days</p>
             </Card>
             <Card variant="subtle" className="flex min-h-[100px] min-w-0 flex-col p-3.5 sm:p-4">
               <p className="break-words text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Task completion</p>
@@ -389,186 +473,17 @@ export default function InsightsPage() {
           </div>
         </section>
 
-        {/* Life Balance Map */}
-        {(() => {
-          const hasAnyXp = realmXp.some((r) => r.xp > 0);
-
-          return (
-            <div className="mb-8">
-              <div className="mb-4 flex min-w-0 flex-wrap items-center justify-between gap-3">
-                <div className="flex min-w-0 items-center gap-1.5">
-                  <h2 className="min-w-0 break-words text-sm font-semibold text-[var(--text)]">Life Balance Map</h2>
-                  <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
-                    <HelpPopover title="How the map works">
-                      <p>Each angle represents one of your life areas. The farther a point extends outward, the more logged activity that area has received through completed habits, tasks, and projects.</p>
-                      <p className="mt-1.5">Your Life Balance Map shows where logged energy is accumulating and where attention may be thin.</p>
-                    </HelpPopover>
-                  </div>
-                </div>
-                <button
-                  onClick={handleOpenDialog}
-                  className="flex min-h-9 items-center gap-1.5 rounded-md px-2 text-[10px] font-medium uppercase tracking-[0.1em] text-[var(--text-muted)] transition-colors hover:text-[var(--text-secondary)] sm:min-h-0 sm:px-0"
-                  aria-label="Open Life Balance Map details"
-                >
-                  <span>Expand</span>
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-                    <path d="M4 2h6v6M10 2L2 10" />
-                  </svg>
-                </button>
-              </div>
-
-              {scoredRealms.length === 0 ? (
-                <Card variant="subtle" className="border-dashed border-[var(--border)]">
-                  <div className="flex flex-col items-center justify-center p-10 text-center">
-                    <div className="mb-6 h-[140px] w-[140px] opacity-30 select-none pointer-events-none">
-                      <RealmRadarChart realms={[]} />
-                    </div>
-                    <p className="text-sm text-[var(--text-muted)]">
-                      Your balance map will take shape as you complete logged actions across your life areas.
-                    </p>
-                    <p className="mt-1 text-xs text-[var(--text-muted)]">
-                      Complete tasks, habits, and projects connected to life areas to shape your map.
-                    </p>
-                  </div>
-                </Card>
-              ) : (
-                <div
-                  role="button"
-                  tabIndex={0}
-                  onClick={handleOpenDialog}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      handleOpenDialog();
-                    }
-                  }}
-                  aria-label="Open Life Balance Map details"
-                  className="cursor-pointer group"
-                >
-                  <Card className="overflow-hidden border-[var(--border-strong)] transition-all duration-200 group-hover:border-[var(--accent)]/20 group-hover:shadow-sm group-hover:shadow-[var(--accent)]/5">
-                    <div className="flex min-w-0 flex-col gap-6 p-4 sm:flex-row sm:items-center sm:gap-8 sm:p-7">
-                      {/* Chart */}
-                      <div className="mx-auto w-full max-w-[260px] shrink-0 sm:mx-0 sm:max-w-[320px]">
-                        <RealmRadarChart realms={scoredRealms} />
-                      </div>
-
-                      {/* Analysis panel */}
-                      <div className="flex-1 min-w-0">
-                        {hasAnyXp ? (
-                          <div className="flex flex-col gap-4">
-                            <p className="text-xs text-[var(--text-muted)]">
-                              Your Life Balance Map shows where logged energy is accumulating and where attention may be thin.
-                            </p>
-
-                            <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
-                              <div className="min-w-0 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3.5">
-                                <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">
-                                  Strongest
-                                </p>
-                                {strongest && (
-                                  <div className="mt-1.5">
-                                    <div className="flex min-w-0 flex-wrap items-center gap-2">
-                                      <span className="text-sm">{strongest.icon}</span>
-                                      <span className="min-w-0 break-words text-sm font-semibold text-[var(--text)]">{strongest.name}</span>
-                                      <span className="ml-auto text-[13px] font-bold tabular-nums" style={{ color: strongest.color }}>
-                                        {Math.round(strongest.score)}%
-                                      </span>
-                                    </div>
-                                    <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-[var(--surface-soft)]">
-                                      <div
-                                        className="h-full rounded-full transition-all"
-                                        style={{ width: `${strongest.score}%`, backgroundColor: strongest.color, opacity: 0.6 }}
-                                      />
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                              <div className="min-w-0 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3.5">
-                                <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">
-                                  Needs attention
-                                </p>
-                                {weakest && (
-                                  <div className="mt-1.5">
-                                    <div className="flex min-w-0 flex-wrap items-center gap-2">
-                                      <span className="text-sm">{weakest.icon}</span>
-                                      <span className="min-w-0 break-words text-sm font-semibold text-[var(--text)]">{weakest.name}</span>
-                                      <span className="text-[13px] font-bold tabular-nums ml-auto text-[var(--text-muted)]">
-                                        {Math.round(weakest.score)}%
-                                      </span>
-                                    </div>
-                                    <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-[var(--surface-soft)]">
-                                      <div
-                                        className="h-full rounded-full transition-all"
-                                        style={{ width: `${weakest.score}%`, backgroundColor: "var(--text-muted)", opacity: 0.25 }}
-                                      />
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-
-                            {balanceScore !== null && (
-                              <div className="flex min-w-0 flex-wrap items-center gap-2.5 pl-0.5">
-                                <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">
-                                  Balance
-                                </span>
-                                    <div className="flex min-w-0 flex-wrap items-center gap-2">
-                                  <span
-                                    className="text-sm font-bold tabular-nums"
-                                    style={{
-                                      color: balanceScore >= 70
-                                        ? "var(--success)"
-                                        : balanceScore >= 40
-                                        ? "var(--warning)"
-                                        : "var(--text-secondary)",
-                                    }}
-                                  >
-                                    {balanceScore}%
-                                  </span>
-                                  <div className="h-1.5 min-w-20 flex-1 overflow-hidden rounded-full bg-[var(--surface-soft)] sm:w-28 sm:flex-none">
-                                    <div
-                                      className="h-full rounded-full transition-all"
-                                      style={{
-                                        width: `${balanceScore}%`,
-                                        backgroundColor: balanceScore >= 70
-                                          ? "var(--success)"
-                                          : balanceScore >= 40
-                                          ? "var(--warning)"
-                                          : "var(--text-secondary)",
-                                        opacity: 0.55,
-                                      }}
-                                    />
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-
-                            {suggestion && (
-                              <p className="text-xs leading-relaxed text-[var(--text-muted)] border-t border-[var(--border)] pt-3.5">
-                                {suggestion}
-                              </p>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="flex flex-col gap-2">
-                            <p className="text-xs text-[var(--text-muted)]">
-                              Your Life Balance Map shows where logged energy is accumulating and where attention may be thin.
-                            </p>
-                            <div className="rounded-lg border border-dashed border-[var(--border)] bg-[var(--surface-soft)] p-4 text-center">
-                              <p className="text-xs text-[var(--text-muted)]">
-                                Complete habits and tasks to start shaping your balance map.
-                              </p>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </Card>
-                </div>
-              )}
-            </div>
-          );
-        })()}
+        <ActivityTrends trendData={trendData} trendLoading={trendLoading} />
+        <DomainSignals
+          trendData={trendData}
+          activeProjectCount={activeProjectCount}
+          activeGoalsCount={activeGoalsCount}
+          financeHasData={financeHasData}
+          journalEntriesThisMonth={journalEntriesThisMonth}
+          knowledgeItemsThisMonth={knowledgeItemsThisMonth}
+        />
+        <QuietAreas areas={quietAreas} trendLoading={trendLoading} />
+        <ReviewLinks />
 
         {/* Momentum */}
         <h2 className="mb-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">
@@ -717,45 +632,6 @@ export default function InsightsPage() {
           <PassionsInsights />
         </div>
 
-        <div className="mb-6 space-y-2">
-          <Link
-            href="/weekly-review"
-            className="flex min-h-11 min-w-0 items-center justify-between gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 text-xs font-medium text-[var(--text)] transition-colors hover:bg-[var(--surface)]"
-          >
-            <span className="flex min-w-0 items-center gap-2">
-              <svg className="h-4 w-4 text-[var(--accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
-              </svg>
-              <span className="min-w-0 break-words">Run Weekly Review</span>
-            </span>
-            <span className="text-[var(--text-muted)]">&rarr;</span>
-          </Link>
-          <Link
-            href="/knowledge"
-            className="flex min-h-11 min-w-0 items-center justify-between gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 text-xs font-medium text-[var(--text)] transition-colors hover:bg-[var(--surface)]"
-          >
-            <span className="flex min-w-0 items-center gap-2">
-              <svg className="h-4 w-4 text-[var(--accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
-              </svg>
-              <span className="min-w-0 break-words">Open Knowledge</span>
-            </span>
-            <span className="text-[var(--text-muted)]">&rarr;</span>
-          </Link>
-          <Link
-            href="/coach"
-            className="flex min-h-11 min-w-0 flex-col gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 text-xs font-medium text-[var(--text)] transition-colors hover:bg-[var(--surface)] sm:flex-row sm:items-center sm:justify-between"
-          >
-            <span className="flex min-w-0 items-center gap-2">
-              <svg className="h-4 w-4 text-[var(--accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />
-              </svg>
-              <span className="min-w-0 break-words">Review recommended next actions</span>
-            </span>
-            <span className="min-w-0 break-words text-[var(--text-muted)]">See recommended next actions &rarr;</span>
-          </Link>
-        </div>
-
         {/* Weekly consistency */}
         <h2 className="mb-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">
           Consistency pattern
@@ -780,18 +656,6 @@ export default function InsightsPage() {
           bestEverStreak={bestEverStreak}
         />
 
-        {/* Expanded dialog */}
-        <RealmRadarExpandedDialog
-          open={dialogOpen}
-          onClose={() => setDialogOpen(false)}
-          scoredRealms={scoredRealms}
-          realmXp={realmXp}
-          strongest={strongest}
-          weakest={weakest}
-          balanceScore={balanceScore}
-          suggestion={suggestion}
-        />
-
         {/* Life area levels — bottom section */}
         <RealmLevelList realmXp={realmXp} />
       </div>
@@ -802,6 +666,355 @@ export default function InsightsPage() {
 function formatFinanceSignalAmount(amount: number, currency: string | null, hasMixedCurrencies: boolean): string {
   if (hasMixedCurrencies) return "Mixed currencies";
   return formatMoney(amount, 2, currency ?? undefined);
+}
+
+function InsightOverview({ trendData, trendLoading }: { trendData: InsightTrendData | null; trendLoading: boolean }) {
+  return (
+    <section className="mb-6">
+      <h2 className="mb-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">
+        Insight overview
+      </h2>
+      <Card className="min-w-0 overflow-hidden border-[var(--border)] bg-[linear-gradient(180deg,rgba(244,247,251,0.035),rgba(244,247,251,0.01)),var(--surface)]">
+        <div className="p-4 sm:p-5">
+          <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-[var(--text)]">Recent patterns from logged activity</p>
+              <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
+                Insights shows broad patterns from manual entries. Weekly Review is the deeper weekly close-out.
+              </p>
+            </div>
+            <span className="w-fit rounded-full border border-[var(--border)] bg-[var(--surface-soft)] px-2.5 py-1 text-[10px] text-[var(--text-muted)]">
+              Last 7 days
+            </span>
+          </div>
+
+          {trendLoading && !trendData ? (
+            <div className="mt-4 grid gap-3 sm:grid-cols-4">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <div key={index} className="h-20 animate-pulse rounded-xl bg-[var(--surface-soft)]" />
+              ))}
+            </div>
+          ) : trendData ? (
+            <div className="mt-4 grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-4">
+              <InsightCountCard label="Logged days" value={`${trendData.loggedDays} / 7`} detail="Any manual signal" />
+              <InsightCountCard label="Tasks completed" value={trendData.completedTasks} detail={`${trendData.taskDays} day${trendData.taskDays === 1 ? "" : "s"}`} />
+              <InsightCountCard label="Habits logged" value={trendData.habitLogs} detail={`${trendData.habitDays} day${trendData.habitDays === 1 ? "" : "s"}`} />
+              <InsightCountCard label="Reflections" value={trendData.reflections} detail={`${trendData.reflectionDays} day${trendData.reflectionDays === 1 ? "" : "s"}`} />
+            </div>
+          ) : (
+            <QuietNotice />
+          )}
+        </div>
+        <p className="border-t border-[var(--border)] px-4 py-3 text-[10px] leading-relaxed text-[var(--text-muted)] sm:px-5">
+          Private manual context from what you enter. No AI summaries or external processing.
+        </p>
+      </Card>
+    </section>
+  );
+}
+
+function ActivityTrends({ trendData, trendLoading }: { trendData: InsightTrendData | null; trendLoading: boolean }) {
+  return (
+    <section className="mb-6">
+      <h2 className="mb-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">
+        Activity trends
+      </h2>
+      <Card className="min-w-0 p-4 sm:p-5">
+        <div className="mb-4 min-w-0">
+          <p className="text-sm font-semibold text-[var(--text)]">7-day rhythm</p>
+          <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
+            Tasks, habits, reflections, and manual check-ins by day. Based on logged activity only.
+          </p>
+        </div>
+        {trendLoading && !trendData ? (
+          <div className="space-y-3 animate-pulse">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div key={index} className="h-10 rounded-xl bg-[var(--surface-soft)]" />
+            ))}
+          </div>
+        ) : trendData && trendData.loggedDays > 0 ? (
+          <div className="space-y-4" aria-label="Recent activity trend rows">
+            <TrendDotRow label="Tasks" days={trendData.days} accessor={(day) => day.tasks} />
+            <TrendDotRow label="Habits" days={trendData.days} accessor={(day) => day.habits} />
+            <TrendDotRow label="Reflections" days={trendData.days} accessor={(day) => day.reflections} />
+            <TrendDotRow label="Manual check-ins" days={trendData.days} accessor={(day) => day.mind + day.body + day.nutrition + day.finance} />
+          </div>
+        ) : (
+          <QuietNotice />
+        )}
+      </Card>
+    </section>
+  );
+}
+
+function DomainSignals({
+  trendData,
+  activeProjectCount,
+  activeGoalsCount,
+  financeHasData,
+  journalEntriesThisMonth,
+  knowledgeItemsThisMonth,
+}: {
+  trendData: InsightTrendData | null;
+  activeProjectCount: number;
+  activeGoalsCount: number;
+  financeHasData: boolean;
+  journalEntriesThisMonth: number;
+  knowledgeItemsThisMonth: number;
+}) {
+  const rows = [
+    {
+      label: "Actions",
+      value: trendData ? `${trendData.completedTasks} tasks / ${trendData.habitLogs} habits` : "-",
+      detail: trendData ? `Activity appeared on ${countDaysWithAction(trendData)} of the last 7 days.` : "Loading recent action pattern.",
+    },
+    {
+      label: "Reflection and memory",
+      value: trendData ? `${trendData.reflections} reflections` : "-",
+      detail: `${journalEntriesThisMonth} journal entries and ${knowledgeItemsThisMonth} knowledge items this month.`,
+    },
+    {
+      label: "Body and mind",
+      value: trendData ? `${trendData.mindCheckins} mind / ${trendData.bodyNutritionCheckins} body` : "-",
+      detail: trendData ? `${trendData.mindDays + trendData.bodyNutritionDays} logged day signals in the last 7 days.` : "Loading manual check-ins.",
+    },
+    {
+      label: "System activity",
+      value: `${activeGoalsCount} goals / ${activeProjectCount} projects`,
+      detail: financeHasData
+        ? "Finance entries appeared this month."
+        : "No finance entries are visible in this month window.",
+    },
+  ];
+
+  return (
+    <section className="mb-6">
+      <h2 className="mb-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">
+        Domain signals
+      </h2>
+      <Card className="min-w-0 overflow-hidden border-[var(--border)]">
+        <div className="divide-y divide-[var(--border)]">
+          {rows.map((row) => (
+            <div key={row.label} className="grid min-w-0 gap-2 px-4 py-3.5 sm:grid-cols-[11rem_1fr] sm:items-center sm:px-5">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-[var(--text)]">{row.label}</p>
+                <p className="mt-1 break-words text-base font-bold leading-tight text-[var(--accent)] sm:text-lg">{row.value}</p>
+              </div>
+              <p className="text-xs leading-relaxed text-[var(--text-muted)]">{row.detail}</p>
+            </div>
+          ))}
+        </div>
+      </Card>
+    </section>
+  );
+}
+
+function QuietAreas({ areas, trendLoading }: { areas: string[]; trendLoading: boolean }) {
+  return (
+    <section className="mb-6">
+      <h2 className="mb-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">
+        Quiet areas / needs more data
+      </h2>
+      <Card variant="subtle" className="min-w-0 border-dashed border-[var(--border)] bg-black/[0.08] p-4 sm:p-5">
+        {trendLoading ? (
+          <div className="h-16 animate-pulse rounded-xl bg-[var(--surface-soft)]" />
+        ) : areas.length > 0 ? (
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-[var(--text)]">Some areas are quiet because there is not enough logged data yet.</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {areas.map((area) => (
+                <span key={area} className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1 text-[10px] text-[var(--text-muted)]">
+                  {area}
+                </span>
+              ))}
+            </div>
+            <p className="mt-3 text-xs leading-relaxed text-[var(--text-muted)]">
+              Quiet areas are not failures - they just have less data.
+            </p>
+          </div>
+        ) : (
+          <p className="text-sm text-[var(--text-muted)]">Recent logged activity is visible across the tracked areas on this page.</p>
+        )}
+      </Card>
+    </section>
+  );
+}
+
+function ReviewLinks() {
+  return (
+    <section className="mb-6">
+      <h2 className="mb-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">
+        Manual review
+      </h2>
+      <div className="space-y-2">
+        <Link
+          href="/today"
+          className="flex min-h-11 min-w-0 items-center justify-between gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 text-xs font-medium text-[var(--text)] transition-colors hover:bg-[var(--surface)]"
+        >
+          <span className="min-w-0 break-words">Return to Today</span>
+          <span className="text-[var(--text-muted)]">&rarr;</span>
+        </Link>
+        <Link
+          href="/weekly-review"
+          className="flex min-h-11 min-w-0 items-center justify-between gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 text-xs font-medium text-[var(--text)] transition-colors hover:bg-[var(--surface)]"
+        >
+          <span className="min-w-0 break-words">Run Weekly Review</span>
+          <span className="text-[var(--text-muted)]">&rarr;</span>
+        </Link>
+      </div>
+      <p className="mt-3 text-[10px] leading-relaxed text-[var(--text-muted)]">
+        Insights shows broad patterns from logged activity. Weekly Review closes out the week in more detail. Both are based on what you enter manually.
+      </p>
+    </section>
+  );
+}
+
+function InsightCountCard({ label, value, detail }: { label: string; value: string | number; detail: string }) {
+  return (
+    <div className="min-w-0 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)]/70 p-3.5">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.13em] text-[var(--text-muted)]">{label}</p>
+      <p className="mt-2 break-words text-xl font-semibold tracking-[-0.03em] text-[var(--text)]">{value}</p>
+      <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">{detail}</p>
+    </div>
+  );
+}
+
+function TrendDotRow({ label, days, accessor }: { label: string; days: InsightTrendDay[]; accessor: (day: InsightTrendDay) => number }) {
+  const activeDays = days.filter((day) => accessor(day) > 0).length;
+
+  return (
+    <div className="min-w-0">
+      <div className="mb-2 flex min-w-0 items-center justify-between gap-3">
+        <span className="text-xs font-medium text-[var(--text-secondary)]">{label}</span>
+        <span className="shrink-0 text-[10px] text-[var(--text-muted)]">{activeDays} / 7 days</span>
+      </div>
+      <div className="grid grid-cols-7 gap-2">
+        {days.map((day) => {
+          const value = accessor(day);
+          return (
+            <div key={`${label}-${day.date}`} className="min-w-0 text-center">
+              <div
+                className={`mx-auto flex h-10 w-full max-w-10 items-center justify-center rounded-2xl border text-xs font-semibold transition-colors ${
+                  value > 0
+                    ? "border-[var(--accent)]/35 bg-[var(--accent-soft)] text-[var(--accent)]"
+                    : "border-[var(--border)] bg-[var(--surface-soft)] text-[var(--text-muted)]"
+                }`}
+                title={`${day.label}: ${value} logged`}
+              >
+                {value > 0 ? value : "-"}
+              </div>
+              <p className="mt-1 text-[9px] font-medium text-[var(--text-muted)]">{day.label}</p>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function QuietNotice() {
+  return (
+    <div className="mt-4 rounded-xl border border-dashed border-[var(--border)] bg-black/[0.08] px-4 py-5 text-center">
+      <p className="text-sm font-medium text-[var(--text)]">Not enough logged activity yet.</p>
+      <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
+        This becomes useful after a few days of tasks, habits, and reflections.
+      </p>
+    </div>
+  );
+}
+
+function getRecentDates(today: string, count: number): string[] {
+  return Array.from({ length: count }, (_, index) => addDays(today, index - count + 1));
+}
+
+function addDays(dateString: string, days: number): string {
+  const date = new Date(`${dateString}T12:00:00`);
+  date.setDate(date.getDate() + days);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function buildInsightTrendData(
+  dates: string[],
+  rows: {
+    tasks: { completed_at?: string | null }[];
+    habits: { completed_date?: string | null }[];
+    reflections: { entry_date?: string | null }[];
+    mind: { entry_date?: string | null }[];
+    body: { entry_date?: string | null }[];
+    nutrition: { log_date?: string | null }[];
+    finance: { transaction_date?: string | null }[];
+  }
+): InsightTrendData {
+  const days = dates.map((date) => {
+    const dayDate = new Date(`${date}T12:00:00`);
+    const tasks = rows.tasks.filter((row) => row.completed_at?.slice(0, 10) === date).length;
+    const habits = rows.habits.filter((row) => row.completed_date === date).length;
+    const reflections = rows.reflections.filter((row) => row.entry_date === date).length;
+    const mind = rows.mind.filter((row) => row.entry_date === date).length;
+    const body = rows.body.filter((row) => row.entry_date === date).length;
+    const nutrition = rows.nutrition.filter((row) => row.log_date === date).length;
+    const finance = rows.finance.filter((row) => row.transaction_date === date).length;
+
+    return {
+      date,
+      label: WEEKDAYS[dayDate.getDay()],
+      tasks,
+      habits,
+      reflections,
+      mind,
+      body,
+      nutrition,
+      finance,
+      total: tasks + habits + reflections + mind + body + nutrition + finance,
+    };
+  });
+
+  return {
+    days,
+    taskDays: days.filter((day) => day.tasks > 0).length,
+    completedTasks: rows.tasks.length,
+    habitDays: days.filter((day) => day.habits > 0).length,
+    habitLogs: rows.habits.length,
+    reflectionDays: days.filter((day) => day.reflections > 0).length,
+    reflections: rows.reflections.length,
+    mindDays: days.filter((day) => day.mind > 0).length,
+    mindCheckins: rows.mind.length,
+    bodyNutritionDays: days.filter((day) => day.body > 0 || day.nutrition > 0).length,
+    bodyNutritionCheckins: rows.body.length + rows.nutrition.length,
+    financeDays: days.filter((day) => day.finance > 0).length,
+    financeEntries: rows.finance.length,
+    loggedDays: days.filter((day) => day.total > 0).length,
+  };
+}
+
+function countDaysWithAction(trendData: InsightTrendData): number {
+  return trendData.days.filter((day) => day.tasks > 0 || day.habits > 0).length;
+}
+
+function buildQuietAreas(
+  trendData: InsightTrendData | null,
+  context: {
+    activeProjectCount: number;
+    activeGoalsCount: number;
+    financeHasData: boolean;
+    journalEntriesThisMonth: number;
+    knowledgeItemsThisMonth: number;
+  }
+): string[] {
+  if (!trendData) return [];
+
+  const areas: string[] = [];
+  if (trendData.completedTasks === 0) areas.push("Tasks");
+  if (trendData.habitLogs === 0) areas.push("Habits");
+  if (trendData.reflections === 0) areas.push("Reflections");
+  if (trendData.mindCheckins === 0) areas.push("Mind check-ins");
+  if (trendData.bodyNutritionCheckins === 0) areas.push("Body or nutrition");
+  if (trendData.financeEntries === 0 && !context.financeHasData) areas.push("Finance entries");
+  if (context.activeProjectCount === 0) areas.push("Active projects");
+  if (context.activeGoalsCount === 0) areas.push("Active goals");
+  if (context.journalEntriesThisMonth === 0 && context.knowledgeItemsThisMonth === 0) areas.push("Memory activity");
+
+  return areas.slice(0, 8);
 }
 
 function toLocalDateBoundaryIso(dateString: string, boundary: "start" | "end"): string {

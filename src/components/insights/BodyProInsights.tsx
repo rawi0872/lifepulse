@@ -45,22 +45,23 @@ export function BodyProInsights() {
 
       if (cancelled) return;
 
-      const workouts = (workoutRes.data ?? []) as { duration_minutes?: number | null }[];
-      const nutritionLogs = (nutritionRes.data ?? []) as { calories?: number | null; protein_g?: number | null; water_ml?: number | null; log_date?: string }[];
+      const workouts = (workoutRes.data ?? []) as { duration_minutes?: number | string | null }[];
+      const nutritionLogs = (nutritionRes.data ?? []) as { calories?: number | string | null; protein_g?: number | string | null; water_ml?: number | string | null; log_date?: string }[];
 
       const daysWithData = new Set(nutritionLogs.map((l) => l.log_date).filter(Boolean)).size;
-      const totalCalories = nutritionLogs.reduce((s, l) => s + (l.calories ?? 0), 0);
-      const totalProtein = nutritionLogs.reduce((s, l) => s + (l.protein_g ?? 0), 0);
-      const totalWater = nutritionLogs.reduce((s, l) => s + (l.water_ml ?? 0), 0);
+      const totalCalories = nutritionLogs.reduce((s, l) => s + toFiniteNumber(l.calories), 0);
+      const totalProtein = nutritionLogs.reduce((s, l) => s + toFiniteNumber(l.protein_g), 0);
+      const totalWater = nutritionLogs.reduce((s, l) => s + toFiniteNumber(l.water_ml), 0);
+      const latestWeight = ((measurementRes.data ?? []) as { weight_kg?: number | string | null }[])[0]?.weight_kg ?? null;
 
       setData({
         weeklyWorkouts: workouts.length,
-        weeklyMinutes: workouts.reduce((s, w) => s + (w.duration_minutes ?? 0), 0),
+        weeklyMinutes: workouts.reduce((s, w) => s + toFiniteNumber(w.duration_minutes), 0),
         avgDailyCalories: daysWithData > 0 ? Math.round(totalCalories / daysWithData) : null,
         avgDailyProtein: daysWithData > 0 ? Math.round((totalProtein / daysWithData) * 10) / 10 : null,
         nutritionDays: daysWithData,
         totalWaterMl: totalWater,
-        latestWeight: ((measurementRes.data ?? []) as { weight_kg?: number | null }[])[0]?.weight_kg ?? null,
+        latestWeight: latestWeight !== null ? toFiniteNumber(latestWeight) : null,
         healthNoteCount: healthRes.count ?? 0,
       });
     }
@@ -125,4 +126,9 @@ export function BodyProInsights() {
       </div>
     </Card>
   );
+}
+
+function toFiniteNumber(value: number | string | null | undefined): number {
+  const numberValue = Number(value ?? 0);
+  return Number.isFinite(numberValue) ? numberValue : 0;
 }

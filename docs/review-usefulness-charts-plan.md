@@ -37,7 +37,7 @@ Life Pulse needs Weekly Review and Insights to answer clearer questions from log
 2. Weekly Review v2: add existing-data trend surfaces for daily action mix, reflection rhythm, and mind check-in trends. Shipped.
 3. Weekly Review v3: add section-level “what changed this week” summaries using deterministic counts only. Shipped as Deadline Prompt #2.
 4. Weekly Review v4: add bounded current-week versus previous-week comparison using minimal previous-week data. Shipped as Deadline Prompt #3.
-5. Insights v1: add reusable small bar chart primitives for habits, tasks, body, mind, and finance signals.
+5. Insights v1: add bounded last-7-days trend surfaces for habits, tasks, reflection, body, mind, finance, and active system signals. Shipped as Deadline Prompt #4.
 6. Insights v2: add 4-week trend comparisons using existing timestamps and manual logs.
 7. Review v5: add user-controlled filters for current week, last week, and month, without adding new storage.
 
@@ -63,6 +63,15 @@ Life Pulse needs Weekly Review and Insights to answer clearer questions from log
 - Comparison copy is factual and neutral: “+N from last week,” “Same as last week,” or “N fewer than last week.”
 - The current-week page renders first; previous-week comparison hydrates as secondary data to avoid blocking the main review.
 - 4-week comparisons remain deferred until performance-aware data windows are designed.
+
+## Deadline Prompt #4 Insights Useful Trends Scope
+
+- Upgraded `/insights` from generic blocks to a deterministic trends page with an Insight overview, Activity trends, Domain signals, Quiet areas, and Manual review links.
+- Added a bounded last-7-days secondary trend payload using minimal date/count fields: completed task timestamps, habit log dates, journal entry dates, mind entry dates, body entry dates, nutrition log dates, and finance transaction dates.
+- Kept the primary Insights render split intact: level, momentum, and existing primary data render first; recent trends hydrate as secondary signals.
+- Replaced top score-like snapshot copy with factual logged-day, action-day, reflection-day, and task-completion summaries.
+- Quiet-state copy stays neutral: not enough logged activity yet; quiet areas are not failures; no AI summaries or external processing.
+- 4-week trend comparisons, deeper domain-specific insights, server-side aggregates, and richer charts remain deferred until performance-aware data windows are designed.
 
 ## Deferred From v2
 
