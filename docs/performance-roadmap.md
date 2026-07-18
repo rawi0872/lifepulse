@@ -11,6 +11,7 @@ This tracks follow-up work after the Round 1 perceived-loading pass. Keep change
 - `/journal` now fetches only rendered entry fields and memoizes entry classification, counts, and filtering.
 - `/body` and `/mind` now show calm loading frames instead of blank screens while initial data loads.
 - Deadline Prompt #9 narrowed oversized `select("*")` route reads on Today, Habits, Tasks, Body, Mind, Finance, Projects, and Goals while preserving all existing metric meanings.
+- Deadline Prompt #13 moved Today project/goal context and all-history habit streak work out of the first useful render while preserving final Today meanings.
 - Full network idle can still be around 5 seconds because background Supabase requests continue after first useful paint.
 
 ## Deadline Prompt #8 Performance Pass 2
@@ -28,6 +29,15 @@ This tracks follow-up work after the Round 1 perceived-loading pass. Keep change
 - Left Insights secondary trend reads unchanged because last-7-days and current-month reads were already bounded to the visible UI meaning.
 - Left exact all-time XP, realm XP, habit streak, best-ever streak, Finance account balance, Journal all-history, and editable route list reads unbounded where narrowing the date window would change metric meaning.
 - Finance still reads all transactions for exact account balances and six-month/current/previous month calculations; a future aggregate or cached balance strategy is needed before this can be reduced safely.
+
+## Deadline Prompt #13 Today-Specific Performance Pass
+
+- `/today` first useful render now waits only for the data needed to show the header, daily focus, quick capture, visible task/habit action state, today reflection state, and XP.
+- Project task suggestions, project title context, task goal context, optional goal preview details, Body/Mind/Finance context, Knowledge, Passions, and all-history habit streaks now hydrate after primary Today content appears.
+- Habit completion for Today still uses today/week logs before render so due habits, times-per-week status, and visible action status keep the same meaning.
+- Full habit history is still loaded to compute exact current streaks, but it no longer blocks the first useful Today screen.
+- Today reflection now uses a stable Supabase client and an explicit today-entry select list to avoid repeated reload risk and oversized entry reads.
+- Deferred: server aggregates, route-level loaders, caching strategy, database summary tables, cached streak summaries, cached XP totals, cached finance balances, and any deeper Today architecture rewrite.
 
 ## Next Opportunities
 

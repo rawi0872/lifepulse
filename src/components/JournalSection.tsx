@@ -22,7 +22,7 @@ export function JournalSection({ stats }: { stats?: JournalStats }) {
   const [entryId, setEntryId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
-  const supabase = createClient();
+  const [supabase] = useState(() => createClient());
   const today = getTodayDateString();
 
   const loadEntry = useCallback(async () => {
@@ -31,7 +31,7 @@ export function JournalSection({ stats }: { stats?: JournalStats }) {
 
     const { data } = await supabase
       .from("journal_entries")
-      .select("*")
+      .select("id, content, mood, energy")
       .eq("user_id", user.id)
       .eq("entry_date", today)
       .maybeSingle();

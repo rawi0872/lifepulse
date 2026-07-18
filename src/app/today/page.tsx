@@ -131,7 +131,6 @@ function TodayContent() {
   const [linkedGoals, setLinkedGoals] = useState<LinkedGoal[]>([]);
   const [todayXp, setTodayXp] = useState(0);
   const [totalXp, setTotalXp] = useState(0);
-  const [, setFirstName] = useState("");
   const [intendedUse, setIntendedUse] = useState<IntendedUse>("personal");
   const [hasJournal, setHasJournal] = useState(false);
   const [weeklyKnowledgeItems, setWeeklyKnowledgeItems] = useState(0);
@@ -201,7 +200,7 @@ function TodayContent() {
   const knowledgeWeekEnd = toLocalDateBoundaryIso(today, "end");
   const todayDow = getTodayDayOfWeek();
 
-  const dueHabits = habits.filter((h) => {
+  const dueHabits = useMemo(() => habits.filter((h) => {
     if (h.frequency === "daily") return true;
     if (h.frequency === "weekdays") {
       return h.days_of_week?.includes(todayDow) ?? false;
@@ -210,27 +209,27 @@ function TodayContent() {
       return (tpwCounts[h.id] ?? 0) < (h.times_per_week ?? 1);
     }
     return false;
-  });
+  }), [habits, todayDow, tpwCounts]);
 
-  const completedHabitCount = dueHabits.filter((h) => completedHabitIds.has(h.id)).length;
-  const doneTaskCount = tasks.filter((t) => t.status === "done").length;
+  const completedHabitCount = useMemo(() => dueHabits.filter((h) => completedHabitIds.has(h.id)).length, [completedHabitIds, dueHabits]);
+  const doneTaskCount = useMemo(() => tasks.filter((t) => t.status === "done").length, [tasks]);
   const [suggestedHidden, setSuggestedHidden] = useState(false);
-  const todoProjectTasks = projectTasks.filter((t) => t.status === "todo");
+  const todoProjectTasks = useMemo(() => projectTasks.filter((t) => t.status === "todo"), [projectTasks]);
   const suggestedTask = !suggestedHidden ? (todoProjectTasks[0] ?? null) : null;
-  const linkedGoalIds = new Set(goalPreviewLinks.map((link) => link.goal_id).filter(Boolean));
-  const activeGoalPreviews = goalPreviewGoals.filter((g) => g.status === "active");
-  const hasGoalWithoutLinks = activeGoalPreviews.length > 0 && activeGoalPreviews.some((goal) => !linkedGoalIds.has(goal.id));
-  const activeGoalIds = new Set(activeGoalPreviews.map((goal) => goal.id));
-  const activeGoalLinks = goalPreviewLinks.filter((link) => link.goal_id && activeGoalIds.has(link.goal_id));
+  const linkedGoalIds = useMemo(() => new Set(goalPreviewLinks.map((link) => link.goal_id).filter(Boolean)), [goalPreviewLinks]);
+  const activeGoalPreviews = useMemo(() => goalPreviewGoals.filter((g) => g.status === "active"), [goalPreviewGoals]);
+  const hasGoalWithoutLinks = useMemo(() => activeGoalPreviews.length > 0 && activeGoalPreviews.some((goal) => !linkedGoalIds.has(goal.id)), [activeGoalPreviews, linkedGoalIds]);
+  const activeGoalIds = useMemo(() => new Set(activeGoalPreviews.map((goal) => goal.id)), [activeGoalPreviews]);
+  const activeGoalLinks = useMemo(() => goalPreviewLinks.filter((link) => link.goal_id && activeGoalIds.has(link.goal_id)), [activeGoalIds, goalPreviewLinks]);
   const activeGoalsCount = activeGoalPreviews.length;
-  const linkedGoalsCount = new Set(activeGoalLinks.map((link) => link.goal_id).filter(Boolean)).size;
+  const linkedGoalsCount = useMemo(() => new Set(activeGoalLinks.map((link) => link.goal_id).filter(Boolean)).size, [activeGoalLinks]);
   const unlinkedGoalsCount = activeGoalsCount - linkedGoalsCount;
-  const projectLinksCount = activeGoalLinks.filter((link) => link.linked_type === "project").length;
-  const taskLinksCount = activeGoalLinks.filter((link) => link.linked_type === "task").length;
-  const habitLinksCount = activeGoalLinks.filter((link) => link.linked_type === "habit").length;
+  const projectLinksCount = useMemo(() => activeGoalLinks.filter((link) => link.linked_type === "project").length, [activeGoalLinks]);
+  const taskLinksCount = useMemo(() => activeGoalLinks.filter((link) => link.linked_type === "task").length, [activeGoalLinks]);
+  const habitLinksCount = useMemo(() => activeGoalLinks.filter((link) => link.linked_type === "habit").length, [activeGoalLinks]);
   const actionLinksCount = projectLinksCount + taskLinksCount + habitLinksCount;
   const goalMilestoneCount = goalPreviewMilestones.length;
-  const goalMilestoneDoneCount = goalPreviewMilestones.filter((milestone) => milestone.completed_at).length;
+  const goalMilestoneDoneCount = useMemo(() => goalPreviewMilestones.filter((milestone) => milestone.completed_at).length, [goalPreviewMilestones]);
   const goalPulseStatus = activeGoalsCount > 0
     ? `${activeGoalsCount} active${goalMilestoneCount > 0 ? ` · ${goalMilestoneDoneCount}/${goalMilestoneCount} milestones` : ""}`
     : "View";
@@ -396,10 +395,10 @@ function TodayContent() {
           return;
         }
 
-        const [profileRes, habitsRes, tasksRes, journalRes, projectTasksRes, taskProjectsRes, taskGoalLinksRes, taskGoalsRes] = await Promise.all([
+        const [profileRes, habitsRes, tasksRes, journalRes, weekLogsRes, xpRes, totalXpRes] = await Promise.all([
           supabase
             .from("profiles")
-            .select("first_name, intended_use")
+            .select("intended_use")
             .eq("user_id", user.id)
             .single(),
           supabase
@@ -419,48 +418,10 @@ function TodayContent() {
             .eq("entry_date", today)
             .maybeSingle(),
           supabase
-            .from("tasks")
-            .select("id, title, status, due_date, project_id, projects!inner(title), realms(name, color, icon)")
-            .eq("user_id", user.id)
-            .not("project_id", "is", null)
-            .eq("status", "todo")
-            .order("due_date", { ascending: true })
-            .limit(5),
-          supabase
-            .from("projects")
-            .select("id, title, status")
-            .eq("user_id", user.id),
-          supabase
-            .from("goal_links")
-            .select("goal_id, linked_type, linked_id")
-            .eq("user_id", user.id)
-            .eq("linked_type", "task"),
-          supabase
-            .from("goals")
-            .select("id, title, status, target_date")
-            .eq("user_id", user.id),
-        ]);
-
-        if (cancelled) return;
-
-        if (profileRes.data) {
-          setFirstName(profileRes.data.first_name ?? "");
-          setIntendedUse(resolveIntendedUse(profileRes.data.intended_use));
-        }
-        if (journalRes.data) setHasJournal(true);
-        if (projectTasksRes.data) setProjectTasks(projectTasksRes.data as unknown as ProjectTask[]);
-        if (taskProjectsRes.data) setTaskProjects(taskProjectsRes.data as TaskProjectContext[]);
-        if (taskGoalLinksRes.data) setTaskGoalLinks(taskGoalLinksRes.data as GoalLink[]);
-        if (taskGoalsRes.data) {
-          setLinkedGoals(taskGoalsRes.data as LinkedGoal[]);
-          setGoalPreviewGoals(taskGoalsRes.data as { id: string; status: string; target_date: string | null }[]);
-        }
-
-        const [allLogsRes, xpRes, totalXpRes] = await Promise.all([
-          supabase
             .from("habit_logs")
             .select("habit_id, completed_date")
-            .eq("user_id", user.id),
+            .eq("user_id", user.id)
+            .gte("completed_date", weekStart),
           supabase
             .from("xp_events")
             .select("amount")
@@ -474,18 +435,17 @@ function TodayContent() {
 
         if (cancelled) return;
 
+        if (profileRes.data) {
+          setIntendedUse(resolveIntendedUse(profileRes.data.intended_use));
+        }
+        if (journalRes.data) setHasJournal(true);
+
         if (habitsRes.data) {
           const habits = habitsRes.data as unknown as Habit[];
           setHabits(habits);
 
-          const logsByHabit: Record<string, string[]> = {};
-          allLogsRes.data?.forEach((l: { habit_id: string; completed_date: string }) => {
-            if (!logsByHabit[l.habit_id]) logsByHabit[l.habit_id] = [];
-            logsByHabit[l.habit_id].push(l.completed_date);
-          });
-
-          const todayLogs = allLogsRes.data?.filter((l: { completed_date: string }) => l.completed_date === today) ?? [];
-          const weekLogs = allLogsRes.data?.filter((l: { completed_date: string }) => l.completed_date >= weekStart) ?? [];
+          const weekLogs = weekLogsRes.data ?? [];
+          const todayLogs = weekLogs.filter((l: { completed_date: string }) => l.completed_date === today);
 
           setCompletedHabitIds(new Set(todayLogs.map((l: { habit_id: string }) => l.habit_id)));
 
@@ -493,14 +453,11 @@ function TodayContent() {
           weekLogs.forEach((l: { habit_id: string }) => { counts[l.habit_id] = (counts[l.habit_id] ?? 0) + 1; });
           setTpwCounts(counts);
 
-          const sMap: Record<string, number> = {};
           const wMap: Record<string, { completed: number; target: number } | null> = {};
           habits.forEach((h) => {
-            const dates = logsByHabit[h.id] ?? [];
-            sMap[h.id] = getCurrentStreak(dates, h.frequency, h.days_of_week);
+            const dates = weekLogs.filter((l: { habit_id: string }) => l.habit_id === h.id).map((l: { completed_date: string }) => l.completed_date);
             wMap[h.id] = getWeeklyProgress(dates, h.frequency, h.times_per_week, weekStart);
           });
-          setStreakMap(sMap);
           setWeeklyProgressMap(wMap);
         }
         if (tasksRes.data) setTasks(tasksRes.data as unknown as Task[]);
@@ -520,7 +477,7 @@ function TodayContent() {
           const lastDay = new Date(Number(year), Number(month), 0).getDate();
           const monthEnd = `${year}-${month}-${String(lastDay).padStart(2, "0")}`;
 
-          const [financeRes, bodyRes, mindRes, workoutRes, nutritionRes, passionsRes, sessionsRes, knowledgeWeekRes, goalMsRes, goalLinkRes] = await Promise.all([
+          const [financeRes, bodyRes, mindRes, workoutRes, nutritionRes, passionsRes, sessionsRes, knowledgeWeekRes, goalMsRes, goalLinkRes, projectTasksRes, taskProjectsRes, taskGoalLinksRes, taskGoalsRes, allHabitLogsRes] = await Promise.all([
             supabase
               .from("finance_transactions")
               .select("amount, type")
@@ -573,6 +530,31 @@ function TodayContent() {
               .from("goal_links")
               .select("goal_id, linked_type")
               .eq("user_id", user.id),
+            supabase
+              .from("tasks")
+              .select("id, title, status, due_date, project_id, projects!inner(title), realms(name, color, icon)")
+              .eq("user_id", user.id)
+              .not("project_id", "is", null)
+              .eq("status", "todo")
+              .order("due_date", { ascending: true })
+              .limit(5),
+            supabase
+              .from("projects")
+              .select("id, title, status")
+              .eq("user_id", user.id),
+            supabase
+              .from("goal_links")
+              .select("goal_id, linked_type, linked_id")
+              .eq("user_id", user.id)
+              .eq("linked_type", "task"),
+            supabase
+              .from("goals")
+              .select("id, title, status, target_date")
+              .eq("user_id", user.id),
+            supabase
+              .from("habit_logs")
+              .select("habit_id, completed_date")
+              .eq("user_id", user.id),
           ]);
 
           if (!cancelled) {
@@ -597,6 +579,28 @@ function TodayContent() {
             setWeeklyKnowledgeItems((knowledgeWeekRes.data ?? []).length);
             if (goalMsRes.data) setGoalPreviewMilestones(goalMsRes.data);
             if (goalLinkRes.data) setGoalPreviewLinks(goalLinkRes.data);
+            if (projectTasksRes.data) setProjectTasks(projectTasksRes.data as unknown as ProjectTask[]);
+            if (taskProjectsRes.data) setTaskProjects(taskProjectsRes.data as TaskProjectContext[]);
+            if (taskGoalLinksRes.data) setTaskGoalLinks(taskGoalLinksRes.data as GoalLink[]);
+            if (taskGoalsRes.data) {
+              setLinkedGoals(taskGoalsRes.data as LinkedGoal[]);
+              setGoalPreviewGoals(taskGoalsRes.data as { id: string; status: string; target_date: string | null }[]);
+            }
+            if (habitsRes.data && allHabitLogsRes.data) {
+              const habits = habitsRes.data as unknown as Habit[];
+              const logsByHabit: Record<string, string[]> = {};
+              allHabitLogsRes.data.forEach((l: { habit_id: string; completed_date: string }) => {
+                if (!logsByHabit[l.habit_id]) logsByHabit[l.habit_id] = [];
+                logsByHabit[l.habit_id].push(l.completed_date);
+              });
+
+              const sMap: Record<string, number> = {};
+              habits.forEach((h) => {
+                const dates = logsByHabit[h.id] ?? [];
+                sMap[h.id] = getCurrentStreak(dates, h.frequency, h.days_of_week);
+              });
+              setStreakMap(sMap);
+            }
           }
         } catch (secondaryError) {
           console.warn("Failed to load secondary Today signals", secondaryError);
