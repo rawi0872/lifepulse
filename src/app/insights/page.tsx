@@ -829,7 +829,7 @@ function QuietAreas({ areas, trendLoading }: { areas: string[]; trendLoading: bo
               ))}
             </div>
             <p className="mt-3 text-xs leading-relaxed text-[var(--text-muted)]">
-              Quiet areas are not failures - they just have less data.
+              Quiet areas are not judgments - they just have less data.
             </p>
           </div>
         ) : (

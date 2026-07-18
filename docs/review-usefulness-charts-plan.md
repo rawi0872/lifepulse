@@ -70,7 +70,7 @@ Life Pulse needs Weekly Review and Insights to answer clearer questions from log
 - Added a bounded last-7-days secondary trend payload using minimal date/count fields: completed task timestamps, habit log dates, journal entry dates, mind entry dates, body entry dates, nutrition log dates, and finance transaction dates.
 - Kept the primary Insights render split intact: level, momentum, and existing primary data render first; recent trends hydrate as secondary signals.
 - Replaced top score-like snapshot copy with factual logged-day, action-day, reflection-day, and task-completion summaries.
-- Quiet-state copy stays neutral: not enough logged activity yet; quiet areas are not failures; no AI summaries or external processing.
+- Quiet-state copy stays neutral: not enough logged activity yet; quiet areas are not judgments; no AI summaries or external processing.
 - 4-week trend comparisons, deeper domain-specific insights, server-side aggregates, and richer charts remain deferred until performance-aware data windows are designed.
 
 ## Deferred From v2
