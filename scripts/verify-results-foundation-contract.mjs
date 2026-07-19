@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const MIGRATION_FILE = path.resolve('supabase/migrations/00018_results_foundation.sql');
+const HARDENING_FILE = path.resolve('supabase/migrations/00019_results_rls_role_hardening.sql');
 const TYPES_FILE = path.resolve('src/lib/results/types.ts');
 const CONTRACT_FILE = path.resolve('src/lib/results/contract.ts');
 
@@ -39,6 +40,7 @@ function assertRegex(haystack, regex, context) {
 }
 
 const migration = read(MIGRATION_FILE);
+const hardening = read(HARDENING_FILE);
 const types = read(TYPES_FILE);
 const contract = read(CONTRACT_FILE);
 
@@ -190,8 +192,41 @@ console.log('\n--- No public/anonymous policies ---');
   assertNotIncludes(migration, 'TO public', 'No public role in policies');
 
 console.log('\n--- No SECURITY DEFINER except helper ---');
-// The metric_definition_is_archived is SECURITY INVOKER, not DEFINER
-assertNotIncludes(migration, 'SECURITY DEFINER', 'No SECURITY DEFINER on policies');
+  // The metric_definition_is_archived is SECURITY INVOKER, not DEFINER
+  assertNotIncludes(migration, 'SECURITY DEFINER', 'No SECURITY DEFINER on policies');
 
-console.log('\n--- All checks passed ---');
-console.log('\n=== Contract Verification Complete ===\n');
+  console.log('\n--- Hardening Migration (0019): Role restriction ---');
+  assertIncludes(hardening, 'revoke all on public.metric_definitions from anon', 'Revokes all from anon on definitions');
+  assertIncludes(hardening, 'revoke all on public.metric_definitions from public', 'Revokes all from public on definitions');
+  assertIncludes(hardening, 'revoke all on public.metric_entries from anon', 'Revokes all from anon on entries');
+  assertIncludes(hardening, 'revoke all on public.metric_entries from public', 'Revokes all from public on entries');
+
+  assertIncludes(hardening, 'grant select, insert, update, delete on public.metric_definitions to authenticated', 'Grants CRUD to authenticated on definitions');
+  assertIncludes(hardening, 'grant select, insert, update, delete on public.metric_entries to authenticated', 'Grants CRUD to authenticated on entries');
+
+  // Policy role alterations
+  assertIncludes(hardening, 'alter policy metric_definitions_select_own on public.metric_definitions to authenticated', 'Policy select_own to authenticated');
+  assertIncludes(hardening, 'alter policy metric_definitions_insert_own on public.metric_definitions to authenticated', 'Policy insert_own to authenticated');
+  assertIncludes(hardening, 'alter policy metric_definitions_update_own on public.metric_definitions to authenticated', 'Policy update_own to authenticated');
+  assertIncludes(hardening, 'alter policy metric_definitions_delete_own on public.metric_definitions to authenticated', 'Policy delete_own to authenticated');
+
+  assertIncludes(hardening, 'alter policy metric_entries_select_own on public.metric_entries to authenticated', 'Policy select_own to authenticated');
+  assertIncludes(hardening, 'alter policy metric_entries_insert_own on public.metric_entries to authenticated', 'Policy insert_own to authenticated');
+  assertIncludes(hardening, 'alter policy metric_entries_update_own on public.metric_entries to authenticated', 'Policy update_own to authenticated');
+  assertIncludes(hardening, 'alter policy metric_entries_delete_own on public.metric_entries to authenticated', 'Policy delete_own to authenticated');
+
+  // Ensure no policy targets public
+  assertNotIncludes(hardening, 'to public', 'No policy targets public role');
+  assertNotIncludes(hardening, 'TO PUBLIC', 'No policy targets PUBLIC role');
+
+  // Function EXECUTE hardening
+  assertIncludes(hardening, 'revoke execute on function public.metric_definition_is_archived(uuid) from anon', 'Revokes function EXECUTE from anon');
+  assertIncludes(hardening, 'revoke execute on function public.metric_definition_is_archived(uuid) from public', 'Revokes function EXECUTE from public');
+  assertIncludes(hardening, 'grant execute on function public.metric_definition_is_archived(uuid) to authenticated', 'Grants function EXECUTE to authenticated');
+
+  // Ensure transaction wrapper
+  assertIncludes(hardening, 'BEGIN;', 'Transaction begins');
+  assertIncludes(hardening, 'COMMIT;', 'Transaction commits');
+
+  console.log('\n--- All checks passed ---');
+  console.log('\n=== Contract Verification Complete ===\n');

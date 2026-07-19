@@ -1,7 +1,8 @@
 # Results Foundation — Hosted Migration Apply Guide
 
-## Migration File
-**supabase/migrations/00018_results_foundation.sql**
+## Migration Files
+**supabase/migrations/00018_results_foundation.sql** (must apply first)
+**supabase/migrations/00019_results_rls_role_hardening.sql** (must apply second)
 
 ## Tables Created
 1. `public.metric_definitions`
@@ -31,8 +32,16 @@
 ## Migration Apply Order
 1. Apply `supabase/migrations/00018_results_foundation.sql` in Supabase SQL Editor
 2. Wait for completion
-3. Verify schema (see Hosted Verification Queries below)
-4. **Only then** deploy application code
+3. Apply `supabase/migrations/00019_results_rls_role_hardening.sql` in Supabase SQL Editor
+4. Wait for completion
+5. Verify schema (see Hosted Verification Queries below)
+6. **Only then** deploy application code
+
+**Important:** 00018 must be applied before 00019. 00019 narrows Results access to authenticated users only:
+- `anon` and `PUBLIC` table privileges are revoked on both tables
+- `authenticated` receives SELECT, INSERT, UPDATE, DELETE on both tables
+- All eight Results policies target `authenticated` role
+- Function `public.metric_definition_is_archived(uuid)` EXECUTE is revoked from `anon` and `PUBLIC`, granted to `authenticated`
 
 ## Hosted Verification Queries
 
@@ -96,7 +105,7 @@ DELETE FROM metric_entries WHERE id = 'some_entry_id';
 -- Should succeed
 ```
 
-### 8. No Anonymous/Public Access
+### 8. No Anonymous/Public Access (Policies)
 ```sql
 SELECT polname FROM pg_policy
 WHERE polrelid IN ('metric_definitions'::regclass, 'metric_entries'::regclass)
@@ -111,6 +120,45 @@ INSERT INTO metric_entries (user_id, metric_definition_id, value, recorded_at)
 VALUES ('user_a_uuid', 'user_b_definition_uuid', 42, now());
 -- Should fail: composite FK requires definition.user_id = entries.user_id
 ```
+
+### 10. Table Privileges (00019 Hardening)
+```sql
+SELECT grantee, privilege_type
+FROM information_schema.table_privileges
+WHERE table_schema = 'public'
+  AND table_name IN ('metric_definitions','metric_entries')
+ORDER BY table_name, grantee;
+```
+Expected:
+- `authenticated` has SELECT, INSERT, UPDATE, DELETE on both tables
+- `anon` has no privileges on either table
+- `PUBLIC` has no privileges on either table
+
+### 11. Function EXECUTE Privileges (00019 Hardening)
+```sql
+SELECT
+  routine_schema,
+  routine_name,
+  grantee,
+  privilege_type
+FROM information_schema.routine_privileges
+WHERE routine_schema = 'public'
+  AND routine_name = 'metric_definition_is_archived'
+ORDER BY grantee;
+```
+Expected:
+- `authenticated` has EXECUTE
+- `anon` has no EXECUTE
+- `PUBLIC` has no EXECUTE
+
+### 12. Policy Roles (00019 Hardening)
+```sql
+SELECT polname, polcmd, polroles
+FROM pg_policy
+WHERE polrelid IN ('metric_definitions'::regclass, 'metric_entries'::regclass)
+ORDER BY polrelid, polcmd;
+```
+Expected: All eight policies show `polroles` containing only `authenticated` (no `anon`, no `public`)
 
 ## RLS Verification Procedure (Two Test Users)
 
