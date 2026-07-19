@@ -32,6 +32,9 @@ Phased implementation plan for the depth features identified in Tester #3 feedba
 - Goals: Link `metric_targets` to goals, auto-progress from entries
 - Coach: Deterministic rules using unified entries
 
+### Status
+**Prompt #32**: Implementation preparation only — blueprint documented in `docs/results-foundation-implementation-blueprint.md`. No production behavior changed. Stronger model required before migration implementation.
+
 ### Files/Tables
 - `supabase/migrations/XXX_results_system.sql`
 - `src/lib/results/adapters.ts`, `types.ts`, `hooks.ts`
