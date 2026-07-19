@@ -74,6 +74,7 @@ Example rows are placeholders. Replace them with real tester feedback as it arri
 | R1-053 | 2026-07-19 | Internal QA (Prompt #27) | Production / Chrome + mobile 390x844 | Docs, feedback workflow | Private beta feedback collection setup | P2 | Deadline Prompt #27 prepared private beta feedback workflow for 5–10 trusted testers. Created/updated: `docs/private-beta-tester-instructions.md` (what Life Pulse is, first 10 min path, 3–7 day testing, privacy/safety notes), `docs/private-beta-founder-runbook.md` (invite list, message template, triage process, severity, decision buckets, timeline, success criteria, what not to do), `docs/private-beta-feedback-template.md` (added internal triage format, severity levels, decision buckets, privacy reminder). No product code changes. | No | Yes | Docs-only preparation. Testers not yet invited. Ready to send invites. | Prepared. Docs updated. | None |
 | R1-054 | 2026-07-19 | Internal QA (Prompt #28) | /knowledge, /passions, /coach | Usefulness / copy | P2 | Knowledge, Passions, and Coach still feel shallow — don't clearly explain they're private/manual, connect to reflection/Weekly Review, or explain Coach's deterministic loop guidance. | No | Yes | Polish copy, layout, sparse states; add "No AI summaries or external processing" where appropriate; Coach must remain rule-based with no AI/advice claims | Fixed pending production verification |  |
 | R1-055 | 2026-07-19 | Internal QA (Prompt #30) | Full production audit | Release readiness | P1 | Deadline Prompt #30 performed final full production release audit. All QA suites pass: auth/onboarding, core loop, all 15 protected routes, mobile/tablet/desktop (390x844/768x1024/1280x900), security/safety, network audit with XP RPC active. No P0/P1 blockers. Coach smoke test updated for current copy. Release-readiness doc created. Private beta docs complete. | No | Yes | No product code changes required. Docs-only commit: release-readiness.md + issue-log.md | Complete. Ready for controlled private beta. |  |
+| R1-056 | 2026-07-19 | Tester #3 | Production / Chrome + mobile 390x844 | /habits, /today, /weekly-review, /body, /finance | Product depth / visible outcomes | P2 | Tester #3 feedback: (1) Show current streak and longest-ever streak more clearly. (2) Make long-term progress more visible. (3) Allow recording measurable results per life area (body measurements monthly, progress photos, business revenue/profit, skill benchmarks). (4) Need to see results, not only completed actions. | No | Yes | Design universal Results/Measurements system (Phase 1), Finance v2 (Phase 2), streak visibility (Phase 4), progress photos (Phase 5). Not a release blocker — P2 product-depth opportunity. | Documented in post-beta roadmap. |  |
 
 Group similar issues here after at least two testers mention the same theme.
 
@@ -149,10 +150,10 @@ Track decisions so the same request does not get reopened without new evidence.
 
 Complete this after the first tester wave.
 
-- Testers invited:
-- Testers completed first session:
-- Most common friction:
-- Highest severity issue:
-- Top shipped fix:
-- Deferred themes:
-- Recommendation before Round 2:
+- Testers invited: 3 (Tester 1, Tester 2, Tester 3)
+- Testers completed first session: 3
+- Most common friction: Cognitive overload / too much at once (Tester 1 R1-007, Tester 2 R1-009); First-session activation feels static after action (Tester 3 R1-015)
+- Highest severity issue: Auth/session safety (R1-001, R1-014) — fixed
+- Top shipped fix: Today-first guidance + first-week path + mobile nav grouping (R1-050, R1-051)
+- Deferred themes: 2FA/MFA, social/leagues, 4-week trends, body trend strip, rich finance charts, goal/project progress history, progress photos, AI assistant
+- Recommendation before Round 2: Invite 5-10 testers using `docs/private-beta-tester-instructions.md` and `docs/private-beta-founder-runbook.md`. Track feedback in `docs/private-beta-feedback-template.md`. Begin Phase 1 (Results/Measurements) design implementation after first feedback wave. Keep release stable — no schema migrations in next 2 weeks.
