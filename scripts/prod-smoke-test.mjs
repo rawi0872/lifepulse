@@ -432,7 +432,7 @@ async function main() {
       }
 
       // Look for Save button in the form
-      const saveBtn = page.locator('button:has-text("Save")');
+      const saveBtn = page.locator('button:has-text("Save")').first();
       if (await saveBtn.isVisible({ timeout: 3000 })) {
         await saveBtn.click();
         await page.waitForTimeout(2000);
@@ -483,7 +483,7 @@ async function main() {
         await titleInput.fill(`Smoke Test Task ${Date.now()}`);
       }
 
-      const saveBtn = page.locator('button:has-text("Save")');
+      const saveBtn = page.locator('button:has-text("Save")').first();
       if (await saveBtn.isVisible({ timeout: 3000 })) {
         await saveBtn.click();
         await page.waitForTimeout(2000);
@@ -525,7 +525,7 @@ async function main() {
     await page.waitForTimeout(2000);
 
     // Look for Save button in body metrics form
-    const saveBtn = page.locator('button:has-text("Save")');
+    const saveBtn = page.locator('button:has-text("Save")').first();
     if (await saveBtn.isVisible({ timeout: 5000 })) {
       await saveBtn.click();
       await page.waitForTimeout(2000);
@@ -618,7 +618,7 @@ async function main() {
     await page.goto(`${BASE}/body`, { waitUntil: "networkidle", timeout: 30000 });
     await page.waitForTimeout(2000);
 
-    const measureTab = page.locator('button:has-text("Measurements")');
+    const measureTab = page.locator('button:has-text("Weight & measurements")').first();
     if (await measureTab.isVisible({ timeout: 5000 })) {
       await measureTab.click();
       await page.waitForTimeout(1000);
@@ -676,7 +676,7 @@ async function main() {
     await page.goto(`${BASE}/mind`, { waitUntil: "networkidle", timeout: 30000 });
     await page.waitForTimeout(2000);
 
-    const saveBtn = page.locator('button:has-text("Save")');
+    const saveBtn = page.locator('button:has-text("Save")').first();
     if (await saveBtn.isVisible({ timeout: 5000 })) {
       await saveBtn.click();
       await page.waitForTimeout(2000);
@@ -712,7 +712,7 @@ async function main() {
         await titleInput.fill(`Smoke Test Goal ${Date.now()}`);
       }
 
-      const saveBtn = page.locator('button:has-text("Save")');
+      const saveBtn = page.locator('button:has-text("Save")').first();
       if (await saveBtn.isVisible({ timeout: 3000 })) {
         await saveBtn.click();
         await page.waitForTimeout(2000);
@@ -763,7 +763,7 @@ async function main() {
         await titleInput.fill(`Smoke Test Project ${Date.now()}`);
       }
 
-      const saveBtn = page.locator('button:has-text("Save")');
+      const saveBtn = page.locator('button:has-text("Save")').first();
       if (await saveBtn.isVisible({ timeout: 3000 })) {
         await saveBtn.click();
         await page.waitForTimeout(2000);
@@ -776,7 +776,7 @@ async function main() {
       const draftInput = page.locator('textarea, input[type="text"]').first();
       if (await draftInput.isVisible({ timeout: 3000 })) {
         await draftInput.fill(`Smoke Test Project ${Date.now()}`);
-        const saveBtn = page.locator('button:has-text("Save"), button:has-text("Create")');
+        const saveBtn = page.locator('button:has-text("Save"), button:has-text("Create")').first();
         if (await saveBtn.isVisible({ timeout: 3000 })) {
           await saveBtn.click();
           await page.waitForTimeout(2000);
@@ -805,7 +805,7 @@ async function main() {
     const journalTextarea = page.locator('textarea[placeholder*="journal"], textarea[placeholder*="Journal"], textarea[placeholder*="reflection"]');
     if (await journalTextarea.isVisible({ timeout: 3000 })) {
       await journalTextarea.fill(`Smoke test journal entry ${Date.now()}`);
-      const saveBtn = page.locator('button:has-text("Save")');
+      const saveBtn = page.locator('button:has-text("Save")').first();
       if (await saveBtn.isVisible({ timeout: 3000 })) {
         await saveBtn.click();
         await page.waitForTimeout(2000);
@@ -826,7 +826,7 @@ async function main() {
     await page.goto(`${BASE}/settings`, { waitUntil: "networkidle", timeout: 30000 });
     await page.waitForTimeout(2000);
 
-    const saveBtn = page.locator('button:has-text("Save")');
+    const saveBtn = page.locator('button:has-text("Save")').first();
     if (await saveBtn.isVisible({ timeout: 5000 })) {
       // Check if there's a profile form
       const firstNameInput = page.locator('#firstName, input[value*=""]').first();
@@ -1087,12 +1087,14 @@ async function main() {
 
     const sections = [
       { label: "Weekly Review - header", selector: "h1:has-text('Weekly Review')" },
-      { label: "Weekly Review - Week Summary section", selector: "text=Week Summary" },
-      { label: "Weekly Review - Body & Mind section", selector: "text=Body & Mind Review" },
-      { label: "Weekly Review - Goals & Growth section", selector: "text=Goals & Growth Review" },
-      { label: "Weekly Review - Passions Review section", selector: "text=Passions Review" },
-      { label: "Weekly Review - Reflection section", selector: "text=Reflection Prompts" },
-      { label: "Weekly Review - Plan Next Week section", selector: "text=Plan Next Week" },
+      { label: "Weekly Review - This week at a glance", selector: "text=This week at a glance" },
+      { label: "Weekly Review - What changed this week", selector: "text=What changed this week" },
+      { label: "Weekly Review - Compared with last week", selector: "text=Compared with last week" },
+      { label: "Weekly Review - Weekly rhythm and trends", selector: "text=Weekly rhythm and trends" },
+      { label: "Weekly Review - Body and mind signals", selector: "text=Body and mind signals" },
+      { label: "Weekly Review - Execution and progress", selector: "text=Execution and progress" },
+      { label: "Weekly Review - Creative and personal energy", selector: "text=Creative and personal energy" },
+      { label: "Weekly Review - Close the week", selector: "text=Close the week" },
     ];
 
     for (const { label, selector } of sections) {
