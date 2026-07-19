@@ -35,7 +35,8 @@ const ERROR_SCREENSHOT_PATH = "screenshot-coach-prod-error.png";
 
 const requiredCoachText = [
   "Life Pulse Coach",
-  "Optional prompts based on your logged activity",
+  "Rule-based loop guidance",
+  "Deterministic prompts based on what you log",
   "Safety framing",
   "Suggestions are optional prompts, not instructions",
   "Open Today",
