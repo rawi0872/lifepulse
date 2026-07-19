@@ -24,39 +24,74 @@ Phased implementation plan for the depth features identified in Tester #3 feedba
 **Dependencies**: Phase 0 gate passed
 **Primary Value**: Users see measurable outcomes, not just completed actions
 
-### Scope
-- New tables: `metric_definitions`, `metric_entries`, `metric_targets`, `result_milestones` + RLS
-- Adapters: Body, Mind, Finance, Passions, Goals → unified `MetricEntry[]`
-- Weekly Review: "Results This Week" section
-- Insights: "Result Trends" cards with sparklines
-- Goals: Link `metric_targets` to goals, auto-progress from entries
-- Coach: Deterministic rules using unified entries
+### Scope (Finalized Contract)
+- **Two tables only**: `metric_definitions`, `metric_entries`
+- **No `metric_targets` table in Phase 1** — baseline and optional target live on `metric_definitions` (`baseline_value`, `target_value`, `target_direction`)
+- **No `result_milestones` in Phase 1** — defer to Phase 3
+- **No template tables** — system templates are static TypeScript config in `src/lib/results/templates.ts`
+- **Manual and independent** — No Body, Mind, Finance, Passions, Goals, or device adapters in Phase 1
+- **No SWR/TanStack Query** — standard React patterns
+- **Migration**: `supabase/migrations/0018_results_foundation.sql`
+
+### Finalized Schema (Phase 1)
+
+#### `metric_definitions`
+| Column | Type | Constraints |
+|--------|-------|-------------|
+| `id` | `uuid` | PK, `gen_random_uuid()` |
+| `user_id` | `uuid` | FK → `auth.users(id)` CASCADE |
+| `domain` | `text` | CHECK IN (body,mind,finance,business,learning,skills,passions,goals,custom) |
+| `name` | `text` | 1–80 chars, unique per (user_id, domain) |
+| `description` | `text` | nullable |
+| `value_kind` | `text` | CHECK IN (number,count,percentage,duration,currency,rating) |
+| `unit` | `text` | not null |
+| `baseline_value` | `numeric(20,6)` | nullable |
+| `target_value` | `numeric(20,6)` | nullable |
+| `target_direction` | `text` | CHECK IN (increase,decrease,maintain,none) |
+| `cadence` | `text` | CHECK IN (daily,weekly,monthly,quarterly,yearly,custom,none) |
+| `archived` | `boolean` | default false |
+| `created_at` / `updated_at` | `timestamptz` | default now() |
+| **Unique** | `(user_id, domain, name)` | |
+
+#### `metric_entries`
+| Column | Type | Constraints |
+|--------|-------|-------------|
+| `id` | `uuid` | PK |
+| `user_id` | `uuid` | FK → `auth.users(id)` CASCADE |
+| `metric_definition_id` | `uuid` | FK → `metric_definitions(id)` CASCADE |
+| `value` | `numeric(20,6)` | not null |
+| `recorded_at` | `timestamptz` | default now() |
+| `notes` | `text` | nullable |
+| `created_at` | `timestamptz` | default now() |
+| **Composite FK** | `(metric_definition_id, user_id)` | → `metric_definitions(id, user_id)` CASCADE |
+
+**Indexes**: `idx_metric_entries_user_recorded (user_id, recorded_at DESC)`, `idx_metric_entries_definition (metric_definition_id)`
 
 ### Status
-**Prompt #32**: Implementation preparation only — blueprint documented in `docs/results-foundation-implementation-blueprint.md`. No production behavior changed. Stronger model required before migration implementation.
+**Prompt #32/33**: Implementation preparation only — contract finalized in `docs/results-foundation-implementation-blueprint.md` and `docs/results-measurements-system-design.md`. No production behavior changed. Stronger model required before migration implementation.
 
 ### Files/Tables
-- `supabase/migrations/XXX_results_system.sql`
-- `src/lib/results/adapters.ts`, `types.ts`, `hooks.ts`
-- `src/app/weekly-review/ResultsSection.tsx`
-- `src/app/insights/ResultTrendsCard.tsx`
-- `src/app/goals/GoalProgress.tsx`
+- `supabase/migrations/0018_results_foundation.sql`
+- `src/lib/results/types.ts`, `adapters.ts`, `calculations.ts`, `hooks.ts`, `templates.ts`
+- `src/app/results/page.tsx`, `src/components/results/MetricList.tsx`, `MetricDetail.tsx`, `EntryForm.tsx`, `HistoryList.tsx`, `TrendSparkline.tsx`
+- `src/lib/modules.ts` (add `results` module to "personal" category, status "preview")
+- `src/lib/coach.ts` (extend `CoachData` with results fields)
 
 ### Risks
-- Adapter performance (mitigate: memoize, bounded reads)
-- Domain meaning loss (mitigate: keep domain tables primary; adapters read-only)
+- Domain meaning loss (mitigate: keep domain tables primary; new tables are registry)
 - Privacy (mitigate: RLS per domain, no cross-domain queries)
+- Calculation edge cases (mitigate: single precision `numeric(20,6)`, validate per `value_kind`)
 
 ### Acceptance Criteria
-- [ ] Adapters return unified entries for all 6 domains
-- [ ] Weekly Review shows results section with ≥ 1 metric per domain with data
-- [ ] Insights shows trend for metrics with ≥ 8 entries
-- [ ] Goal progress updates from metric entries
+- [ ] `/results` loads, create metric, add entries, view history on 390×844
+- [ ] Composite FK blocks cross-user entry insertion
+- [ ] Archive hides from list but preserves history; new entries blocked
+- [ ] Delete definition cascades entries; no soft-delete on entries
 - [ ] All existing tests pass; network audit unchanged
+- [ ] No unsafe language in UI ("improving", "you should", "AI insight")
 
 ### Rollback
-- Drop new tables (no data migration)
-- Remove adapter imports
+- Drop `metric_entries`, `metric_definitions` (no data migration)
 - Feature flag: `NEXT_PUBLIC_RESULTS_SYSTEM=false`
 
 ---

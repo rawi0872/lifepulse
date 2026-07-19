@@ -115,10 +115,12 @@ In `MODULE_REGISTRY` (`src/lib/modules.ts`):
 
 ## Minimal Schema Blueprint (Phase 1)
 
-### Preference: Two Tables + Optional Target
-**Tables**: `metric_definitions`, `metric_entries`, `metric_targets` (optional — include for Goal linking)
+### Final Decision: Two Tables Only
+**Tables**: `metric_definitions`, `metric_entries`
 
-> **Do not include `result_milestones` in Phase 1** — defer to Phase 3.
+> **No `metric_targets` table in Phase 1** — baseline and optional target live on `metric_definitions`.
+> **No `result_milestones` in Phase 1** — defer to Phase 3.
+> **No system templates in database** — templates are static TypeScript config in `src/lib/results/templates.ts`.
 
 ---
 
@@ -128,21 +130,21 @@ In `MODULE_REGISTRY` (`src/lib/modules.ts`):
 |--------|----------------|----------|---------|------------|--------|
 | `id` | `uuid` | NO | `gen_random_uuid()` | PK | Unique identifier |
 | `user_id` | `uuid` | NO | — | FK → `auth.users(id)` ON DELETE CASCADE | Ownership |
-| `domain` | `text` | NO | — | CHECK IN ('body','mind','finance','passions','custom') | Domain grouping for RLS & UI |
+| `domain` | `text` | NO | — | CHECK IN ('body','mind','finance','business','learning','skills','passions','goals','custom') | Domain grouping for RLS & UI |
 | `name` | `text` | NO | — | `length(trim(name)) BETWEEN 1 AND 80` | Display name |
 | `description` | `text` | YES | — | — | Optional context |
-| `metric_type` | `text` | NO | — | CHECK IN ('numeric','duration','currency','percentage','count','rating') | Determines validation/formatting |
-| `unit` | `text` | NO | — | — | Display unit (e.g., 'kg', 'min', 'USD', '%', 'reps', 'score') |
-| `default_frequency` | `text` | YES | — | CHECK IN ('daily','weekly','monthly','quarterly','on_demand') | Suggested cadence |
-| `is_template` | `boolean` | NO | `false` | — | System-provided vs user-created |
+| `value_kind` | `text` | NO | — | CHECK IN ('number','count','percentage','duration','currency','rating') | Determines validation/formatting |
+| `unit` | `text` | NO | — | — | Display unit (e.g., 'kg', 'min', 'USD', '%', 'reps', 'score', 'BPM', 'points', 'ILS') |
+| `baseline_value` | `numeric(20,6)` | YES | — | — | Optional starting point |
+| `target_value` | `numeric(20,6)` | YES | — | — | Optional desired outcome |
+| `target_direction` | `text` | YES | — | CHECK IN ('increase','decrease','maintain','none') | Controls target context; 'none' = no target |
+| `cadence` | `text` | YES | — | CHECK IN ('daily','weekly','monthly','quarterly','yearly','custom','none') | Suggested recording cadence |
+| `archived` | `boolean` | NO | `false` | — | Soft archive; excludes from default list view |
 | `created_at` | `timestamptz` | NO | `now()` | — | Audit |
+| `updated_at` | `timestamptz` | NO | `now()` | — | Audit |
 | **Unique** | `(user_id, domain, name)` | — | — | — | One definition per name per domain per user |
 
-**System templates** (`is_template=true`, `user_id=null` or dedicated system user):
-- Body: Weight (numeric, kg, weekly), Body Fat % (percentage, %, monthly), Waist (numeric, cm, monthly), Bench Press 1RM (numeric, kg, monthly), Running 5k (duration, min, weekly)
-- Mind: Mood (rating, 1-5, daily), Stress (rating, 1-5, daily), Focus (rating, 1-5, daily)
-- Finance: Net Worth (currency, user currency, monthly), Monthly Savings Rate (percentage, %, monthly), Investment Return (percentage, %, quarterly)
-- Passions: Practice Time (duration, min, weekly), Pieces Completed (count, count, monthly), Skill Rating (rating, 1-10, quarterly)
+> **System templates** are static TypeScript config in `src/lib/results/templates.ts`, not database records.
 
 ---
 
@@ -152,43 +154,24 @@ In `MODULE_REGISTRY` (`src/lib/modules.ts`):
 |--------|----------------|----------|---------|------------|--------|
 | `id` | `uuid` | NO | `gen_random_uuid()` | PK | Unique identifier |
 | `user_id` | `uuid` | NO | — | FK → `auth.users(id)` ON DELETE CASCADE | Ownership (denormalized for RLS) |
-| `definition_id` | `uuid` | NO | — | FK → `metric_definitions(id)` ON DELETE CASCADE | Links to definition |
-| `value` | `numeric` | NO | — | — | Stored in definition's unit |
-| `original_value` | `numeric` | YES | — | — | If converted (e.g., currency) |
-| `original_unit` | `text` | YES | — | — | If different from definition |
-| `conversion_rate` | `numeric` | YES | — | — | If converted |
-| `entry_date` | `date` | NO | `current_date` | — | Measurement date |
+| `metric_definition_id` | `uuid` | NO | — | FK → `metric_definitions(id)` ON DELETE CASCADE | Links to definition |
+| `value` | `numeric(20,6)` | NO | — | — | Stored in definition's unit |
+| `recorded_at` | `timestamptz` | NO | `now()` | — | Measurement timestamp (date + time) |
 | `notes` | `text` | YES | — | — | Optional context |
-| `confidence` | `text` | YES | — | CHECK IN ('measured','estimated','self_reported') | Data quality |
-| `source` | `text` | YES | — | CHECK IN ('manual','calculated','imported','device') | Provenance |
-| `linked_goal_id` | `uuid` | YES | — | FK → `goals(id)` ON DELETE SET NULL | Goal linking |
-| `linked_project_id` | `uuid` | YES | — | FK → `projects(id)` ON DELETE SET NULL | Project linking |
 | `created_at` | `timestamptz` | NO | `now()` | — | Audit |
-| `updated_at` | `timestamptz` | NO | `now()` | — | Audit |
+| **Composite FK** | `(metric_definition_id, user_id)` | — | — | FK → `metric_definitions(id, user_id)` ON DELETE CASCADE | Prevents cross-user entry insertion |
 
 **Indexes**:
-- `idx_metric_entries_user_date` ON `(user_id, entry_date)`
-- `idx_metric_entries_definition_id` ON `(definition_id)`
+- `idx_metric_entries_user_recorded` ON `(user_id, recorded_at DESC)`
+- `idx_metric_entries_definition` ON `(metric_definition_id)`
 
 ---
 
-### `metric_targets` — Baselines and Targets (Optional for Phase 1, include for Goal linking)
-
-| Column | PostgreSQL Type | Nullable | Default | Constraint | Reason |
-|--------|----------------|----------|---------|------------|--------|
-| `id` | `uuid` | NO | `gen_random_uuid()` | PK | Unique identifier |
-| `user_id` | `uuid` | NO | — | FK → `auth.users(id)` ON DELETE CASCADE | Ownership |
-| `definition_id` | `uuid` | NO | — | FK → `metric_definitions(id)` ON DELETE CASCADE | Links to metric |
-| `baseline_value` | `numeric` | YES | — | — | Starting point |
-| `target_value` | `numeric` | YES | — | — | Desired outcome |
-| `target_date` | `date` | YES | — | — | When to achieve |
-| `target_type` | `text` | YES | — | CHECK IN ('minimum','maximum','exact','range') | Direction |
-| `range_min` | `numeric` | YES | — | — | If range type |
-| `range_max` | `numeric` | YES | — | — | If range type |
-| `active` | `boolean` | NO | `true` | — | Soft archive |
-| `created_at` | `timestamptz` | NO | `now()` | — | Audit |
-| `updated_at` | `timestamptz` | NO | `now()` | — | Audit |
-| **Unique** | `(definition_id)` WHERE `active` | — | — | — | One active target per metric |
+### Target and Baseline Handling (on `metric_definitions`)
+- `baseline_value` + `target_value` + `target_direction` live on the definition row
+- `target_direction` values: `'increase'` (higher = progress), `'decrease'` (lower = progress), `'maintain'` (stay near target), `'none'` (no target)
+- No separate `metric_targets` table in Phase 1
+- When `target_value` is null or `target_direction = 'none'`, target logic is disabled
 
 ---
 
@@ -202,32 +185,27 @@ In `MODULE_REGISTRY` (`src/lib/modules.ts`):
 
 ### How Should Metric Ownership Be Verified?
 - `metric_definitions`: `auth.uid() = user_id`
-- `metric_entries`: `auth.uid() = user_id` (denormalized) — **also** verify `definition_id` belongs to user via FK cascade (ON DELETE CASCADE ensures orphan prevention)
-- `metric_targets`: `auth.uid() = user_id`
+- `metric_entries`: `auth.uid() = user_id` (denormalized) — **also** FK `(metric_definition_id, user_id)` → `metric_definitions(id, user_id)` ON DELETE CASCADE ensures definition belongs to same user
+- No separate helper function needed — composite FK + cascade is sufficient
 
 ### How Should Cross-User Metric-Entry Insertion Be Blocked?
 - RLS on `metric_entries`: `auth.uid() = user_id` (denormalized)
-- FK `definition_id` → `metric_definitions(id)` ON DELETE CASCADE ensures definition belongs to same user (since `metric_definitions.user_id = auth.uid()`)
-- No separate helper function needed — cascade + denormalized `user_id` is sufficient
+- Composite FK `(metric_definition_id, user_id)` → `metric_definitions(id, user_id)` ON DELETE CASCADE ensures definition belongs to same user
+- No separate helper function needed — composite FK + cascade is sufficient
 
 ### Which Indexes Are Needed?
 ```sql
 CREATE INDEX idx_metric_definitions_user_domain ON metric_definitions(user_id, domain);
-CREATE INDEX idx_metric_entries_user_date ON metric_entries(user_id, entry_date);
-CREATE INDEX idx_metric_entries_definition_id ON metric_entries(definition_id);
-CREATE INDEX idx_metric_targets_definition_active ON metric_targets(definition_id) WHERE active;
+CREATE INDEX idx_metric_entries_user_recorded ON metric_entries(user_id, recorded_at DESC);
+CREATE INDEX idx_metric_entries_definition ON metric_entries(metric_definition_id);
 ```
 
 ### Which Foreign Keys and Composite Constraints?
 - `metric_definitions.user_id` → `auth.users(id)` ON DELETE CASCADE
 - `metric_entries.user_id` → `auth.users(id)` ON DELETE CASCADE
-- `metric_entries.definition_id` → `metric_definitions(id)` ON DELETE CASCADE
-- `metric_entries.linked_goal_id` → `goals(id)` ON DELETE SET NULL
-- `metric_entries.linked_project_id` → `projects(id)` ON DELETE SET NULL
-- `metric_targets.user_id` → `auth.users(id)` ON DELETE CASCADE
-- `metric_targets.definition_id` → `metric_definitions(id)` ON DELETE CASCADE
+- `metric_entries.metric_definition_id` → `metric_definitions(id)` ON DELETE CASCADE
+- **Composite FK**: `metric_entries(metric_definition_id, user_id)` → `metric_definitions(id, user_id)` ON DELETE CASCADE
 - **Unique**: `(user_id, domain, name)` on `metric_definitions`
-- **Unique**: `(definition_id)` WHERE `active` on `metric_targets`
 
 ### RLS Rules (Plain English + Pseudocode)
 
@@ -236,28 +214,21 @@ CREATE INDEX idx_metric_targets_definition_active ON metric_targets(definition_i
 - INSERT: `auth.uid() = user_id`
 - UPDATE: `auth.uid() = user_id`
 - DELETE: `auth.uid() = user_id`
-- System templates (`is_template = true, user_id IS NULL`): SELECT only for authenticated users
+- No system templates in DB (templates are static TS config)
 
 **`metric_entries`**:
 - SELECT: `auth.uid() = user_id`
-- INSERT: `auth.uid() = user_id` AND `definition_id` references a definition owned by user (enforced by FK cascade)
-- UPDATE: `auth.uid() = user_id`
-- DELETE: `auth.uid() = user_id`
-
-**`metric_targets`**:
-- SELECT: `auth.uid() = user_id`
-- INSERT: `auth.uid() = user_id`
+- INSERT: `auth.uid() = user_id` AND `metric_definition_id` references a definition owned by user (enforced by composite FK)
 - UPDATE: `auth.uid() = user_id`
 - DELETE: `auth.uid() = user_id`
 
 ### Archived Metrics Behavior
-- `is_template` on definitions: never archived, read-only for users
-- `metric_targets.active = false`: excluded from active target queries; history preserved
+- `archived = true` on definitions: excluded from default queries (`WHERE archived = false`); history preserved
 - No soft-delete on entries — hard delete only (user action)
-- Archived definitions: `is_template = false` + user can mark inactive (add `active boolean` column if needed later)
+- Archived definitions cannot accept new entries (application enforces)
 
 ### Cascading Deletion Behavior
-- Delete `metric_definition` → cascade deletes `metric_entries` + `metric_targets` (ON DELETE CASCADE)
+- Delete `metric_definition` → cascade deletes `metric_entries` (ON DELETE CASCADE)
 - Delete `user` → cascade deletes all three tables (ON DELETE CASCADE on `user_id`)
 
 ---
@@ -268,23 +239,22 @@ CREATE INDEX idx_metric_targets_definition_active ON metric_targets(definition_i
 
 | Kind | PostgreSQL Type | Example Units | Precision Rules |
 |------|----------------|---------------|-----------------|
-| **number** | `numeric(10,2)` | kg, cm, L, units | 2 decimal places max |
+| **number** | `numeric(20,6)` | kg, cm, L, units | Up to 6 decimal places |
 | **count** | `integer` | reps, pieces, sessions | Whole numbers only |
 | **percentage** | `numeric(6,2)` | % | 0.00–100.00, 2 decimals |
 | **duration** | `integer` (minutes) | min, h | Store minutes; display h:mm |
-| **currency** | `numeric(12,2)` | USD, ILS, EUR | 2 decimals, ISO-3 currency code |
+| **currency** | `numeric(20,6)` | USD, ILS, EUR | 6 decimals for precision; ISO-3 code in unit |
 | **rating** | `integer` | 1-5, 1-10, score | Whole numbers, bounded |
 
 ### PostgreSQL Numeric Precision for Stored Values
-- **Currency**: `numeric(12,2)` — matches Finance V2 (`amount numeric(12,2)`)
-- **General measurements**: `numeric(10,2)` — e.g., weight 123.45 kg, waist 85.50 cm
+- **General precision**: `numeric(20,6)` — supports currency (up to 6 decimals for crypto/fx), precise measurements, and large values
 - **Percentages**: `numeric(6,2)` — 0.00 to 100.00
 - **Counts**: `integer` — reps, steps, pieces
 - **Durations**: `integer` (minutes) — 30, 45, 90, 120
 - **Ratings**: `integer` — 1–5, 1–10
 
 ### Currency Rules
-- Each currency metric has **one** currency unit (from definition.unit = 'USD'/'ILS'/'EUR')
+- Each currency metric has **one** currency unit (from `definition.unit` = 'USD'/'ILS'/'EUR'/etc.)
 - USD and ILS values **must not be combined** in aggregates
 - No FX service in Phase 1
 - No automatic conversion — user enters rate manually if needed
@@ -296,11 +266,11 @@ CREATE INDEX idx_metric_targets_definition_active ON metric_targets(definition_i
 
 | Kind | Input Validation | Display Format | Edge Cases |
 |------|------------------|----------------|------------|
-| number | > 0, ≤ 999999.99, 2 decimals | `123.45 kg` | Zero allowed for some (weight > 0) |
+| number | > 0, ≤ 999999999.999999, 6 decimals | `123.456789 kg` | Zero allowed for some (weight > 0) |
 | count | integer ≥ 0 | `42 reps` | Zero valid |
 | percentage | 0–100, 2 decimals | `12.50%` | Previous value = 0 → "Percentage unavailable" |
 | duration | integer minutes ≥ 0 | `1h 30m` or `90 min` | Zero = "Not recorded" |
-| currency | > 0, 2 decimals, ISO-3 unit | `$1,234.56` or `₪4,500.00` | No conversion; show original always |
+| currency | > 0, 6 decimals, ISO-3 unit | `$1,234.567890` or `₪4,500.000000` | No conversion; show original always |
 | rating | integer within bounds (1–5 or 1–10) | `4/5` or `7/10` | — |
 
 ---
@@ -308,16 +278,16 @@ CREATE INDEX idx_metric_targets_definition_active ON metric_targets(definition_i
 ## Calculation Contract
 
 ### Chronological Sorting
-- Entries sorted by `entry_date` ASC, then `created_at` ASC for same-day ties
+- Entries sorted by `recorded_at` ASC, then `created_at` ASC for same-timestamp ties
 - Adapters must preserve this order
 
 ### Latest Entry
-- Most recent `entry_date` (DESC), then latest `created_at` for ties
+- Most recent `recorded_at` (DESC), then latest `created_at` for ties
 - Return `null` if no entries
 
 ### Previous Entry
-- Entry immediately before latest by `entry_date` (DESC)
-- If multiple entries on same date, use `created_at` DESC, skip the latest
+- Entry immediately before latest by `recorded_at` (DESC)
+- If multiple entries same timestamp, use `created_at` DESC, skip the latest
 - Return `null` if only one entry exists
 
 ### Absolute Change
@@ -336,17 +306,17 @@ latest.value - previous.value
 
 ### Baseline Change
 ```
-latest.value - target.baseline_value
+latest.value - definition.baseline_value
 ```
 - Null if baseline not set
 
 ### Target Distance
-| Target Type | Formula |
-|-------------|---------|
-| minimum | `target_value - latest.value` (positive = above minimum) |
-| maximum | `latest.value - target_value` (positive = below maximum) |
-| exact | `ABS(latest.value - target_value)` |
-| range | `CASE WHEN latest < range_min THEN range_min - latest WHEN latest > range_max THEN latest - range_max ELSE 0 END` |
+| Target Direction | Formula |
+|-----------------|---------|
+| increase | `target_value - latest.value` (positive = above target) |
+| decrease | `latest.value - target_value` (positive = below target) |
+| maintain | `ABS(latest.value - target_value)` |
+| none | null (no target logic) |
 
 ### One-Entry History
 - Latest = that entry
@@ -358,29 +328,28 @@ latest.value - target.baseline_value
 ### No Entries
 - All calculations return `null` with reason "No entries recorded"
 
-### Duplicate Dates
-- Multiple entries same date allowed (different `created_at`)
-- Latest = most recent `created_at` on that date
-- Previous = next most recent `created_at` on that date, or previous date
+### Duplicate Timestamps
+- Multiple entries same timestamp allowed (different `created_at`)
+- Latest = most recent `created_at` on that timestamp
+- Previous = next most recent `created_at` on that timestamp, or previous timestamp
 
 ### Deleted Entries
 - Hard delete → removed from all calculations
 - No soft-delete in Phase 1
 
 ### Archived Metrics
-- Archived definitions (`active = false` if added later): exclude from default queries, keep history
-- Archived targets (`active = false`): exclude from active target queries
+- Archived definitions (`archived = true`): exclude from default queries, keep history
+- Archived definitions cannot accept new entries (application enforces)
 
 ### Target Direction Semantics
 | Direction | "Better" Means |
 |-----------|----------------|
 | increase | Higher value = progress (e.g., bench press, savings) |
 | decrease | Lower value = progress (e.g., weight, body fat, debt) |
-| maintain | Value within range = progress (e.g., weight maintenance) |
-| minimum | Value ≥ target = achieved |
-| maximum | Value ≤ target = achieved |
+| maintain | Value within ±5% of target = progress (e.g., weight maintenance) |
+| none | No target logic |
 
-**Do not assume higher is always better.** Each metric definition should declare its `target_direction` (increase/decrease/maintain/none) — add this column in Phase 3 if needed.
+**Do not assume higher is always better.** Each metric definition declares its `target_direction`.
 
 ---
 
@@ -566,8 +535,8 @@ latest.value - target.baseline_value
 ### Explicitly Defer
 - Weekly Review aggregation → Phase 3
 - Insights aggregation → Phase 3
-- Goals/Projects linking (`metric_targets` → goals) → Phase 3
-- Body adapters (`body_metrics`/`body_measurements` → `metric_entries`) → Phase 1 adapters only, no UI integration
+- Goals/Projects linking → Phase 3
+- Body adapters (`body_metrics`/`body_measurements` → `metric_entries`) → not in Phase 1
 - Mind adapters → Phase 3
 - Finance adapters (Net Worth, Savings Rate, Cash Flow) → Phase 2 (Finance V2)
 - Passions adapters → Phase 3
@@ -578,10 +547,11 @@ latest.value - target.baseline_value
 - XP rewards → Never
 - Streak integration → Phase 4 (separate)
 - Currency conversion → Phase 2 (Finance V2)
+- Derived metrics (BMI, etc.) → Not in scope
 
 ### Optional Integration That Appears Tempting But Must Remain Deferred
 - **Body → Results auto-sync**: "When I log weight in Body, create metric entry" — creates hidden writes, breaks manual-first principle
-- **Goal progress from metrics**: Requires `metric_targets` + goal linking logic — Phase 3
+- **Goal progress from metrics**: Requires target linking logic — Phase 3
 - **Coach rules from results**: "Weight not logged in 14 days" — Phase 6
 - **Finance net worth as metric**: Requires Finance V2 multi-currency balance RPC — Phase 2
 
@@ -593,18 +563,20 @@ latest.value - target.baseline_value
 | Test | Description |
 |------|-------------|
 | Ownership | `metric_definitions` INSERT with another user's `user_id` fails |
-| Cross-user denial | `metric_entries` INSERT with `definition_id` owned by another user fails |
+| Cross-user denial | `metric_entries` INSERT with `metric_definition_id` owned by another user fails |
 | Invalid values | `value` = negative for weight fails CHECK; `percentage` > 100 fails |
-| Invalid enum | `metric_type` = 'invalid' fails CHECK |
-| Invalid FK | `definition_id` not in `metric_definitions` fails FK |
-| Archived metrics | `metric_definitions` with `active=false` excluded from default SELECT |
-| Deletion behavior | DELETE `metric_definition` cascades to `metric_entries` + `metric_targets` |
+| Invalid enum | `value_kind` = 'invalid' fails CHECK |
+| Invalid FK | `metric_definition_id` not in `metric_definitions` fails FK |
+| Composite FK | `metric_entries` INSERT with valid `metric_definition_id` but different `user_id` fails composite FK |
+| Archived metrics | `metric_definitions` with `archived=true` excluded from default SELECT |
+| Deletion behavior | DELETE `metric_definition` cascades to `metric_entries` |
+| Archive blocks entries | INSERT `metric_entries` for archived definition fails (CHECK or trigger) |
 
 ### Calculation Utilities (Pure Functions)
 | Test | Input | Expected |
 |------|-------|----------|
-| Latest + previous | `[{date:'2026-01-10',v:72},{date:'2026-01-05',v:73.7}]` | latest=72, prev=73.7 |
-| Chronological order | Mixed dates | Sorted by date ASC, created_at ASC |
+| Latest + previous | `[{recorded_at:'2026-01-10T10:00',v:72},{recorded_at:'2026-01-05T09:00',v:73.7}]` | latest=72, prev=73.7 |
+| Chronological order | Mixed timestamps | Sorted by `recorded_at` ASC, `created_at` ASC |
 | One entry | `[{v:72}]` | latest=72, prev=null |
 | Zero previous value | latest=5, previous=0 | pct_change=null, reason="Previous value was zero" |
 | Positive change | latest=80, prev=75 | abs=5, pct=+6.67% |
@@ -614,13 +586,13 @@ latest.value - target.baseline_value
 | Target distance (increase) | latest=85, target=90 (increase) | distance=5 |
 | Target distance (maintain range) | latest=72, range 70-75 | distance=0 |
 | Null safety | Any null input | Returns null + reason string |
-| Duplicate dates | Two entries same date, diff created_at | Latest = max created_at |
+| Duplicate timestamps | Two entries same timestamp, diff created_at | Latest = max created_at |
 
 ### UI Tests
 | Test | Description |
 |------|-------------|
 | Creation form | Fill all fields → metric appears in overview |
-| Entry form | Valid value + date → appears in history |
+| Entry form | Valid value + timestamp → appears in history |
 | Sparse states | No metrics → empty state with CTA; metric with no entries → empty state with CTA |
 | Archive | Archive metric → moves to Archived section, hidden from main list |
 | Deletion | Delete metric → confirmation → metric + entries gone |
@@ -734,128 +706,126 @@ Add row:
 
 ---
 
-## Verification
+## Final Phase 1 Contract Decision
 
-### Commands to Run (Only Documentation Files Should Change)
-```bash
-npm run lint
-npm run build
-git diff --check
-git status --short
+This section documents the exact database contract for Phase 1 Results & Measurements foundation, incorporating all founder decisions.
+
+### 1. Two-Table Decision
+**Two tables only**: `metric_definitions` + `metric_entries`. No `metric_targets`, no `result_milestones`, no template tables in Phase 1.
+
+### 2. Final Column Model
+
+#### `metric_definitions`
+| Column | Type | Nullable | Default | Constraints | Purpose |
+|--------|------|----------|---------|-------------|---------|
+| `id` | `uuid` | NO | `gen_random_uuid()` | PK | Unique identifier |
+| `user_id` | `uuid` | NO | — | FK → `auth.users(id)` ON DELETE CASCADE | Ownership |
+| `domain` | `text` | NO | — | CHECK IN ('body','mind','finance','business','learning','skills','passions','goals','custom') | Domain grouping for RLS & UI |
+| `name` | `text` | NO | — | `length(trim(name)) BETWEEN 1 AND 80` | Display name |
+| `description` | `text` | YES | — | — | Optional context |
+| `value_kind` | `text` | NO | — | CHECK IN ('number','count','percentage','duration','currency','rating') | Determines validation/formatting |
+| `unit` | `text` | NO | — | — | Display unit (kg, min, USD, %, reps, score, BPM, points, ILS) |
+| `baseline_value` | `numeric(20,6)` | YES | — | — | Optional starting point |
+| `target_value` | `numeric(20,6)` | YES | — | — | Optional desired outcome |
+| `target_direction` | `text` | YES | — | CHECK IN ('increase','decrease','maintain','none') | Controls target context; 'none' = no target |
+| `cadence` | `text` | YES | — | CHECK IN ('daily','weekly','monthly','quarterly','yearly','custom','none') | Suggested recording cadence |
+| `archived` | `boolean` | NO | `false` | — | Soft archive; excludes from default list view |
+| `created_at` | `timestamptz` | NO | `now()` | — | Audit |
+| `updated_at` | `timestamptz` | NO | `now()` | — | Audit |
+| **Unique** | `(user_id, domain, name)` | — | — | — | One definition per name per domain per user |
+
+#### `metric_entries`
+| Column | Type | Nullable | Default | Constraints | Purpose |
+|--------|------|----------|---------|-------------|---------|
+| `id` | `uuid` | NO | `gen_random_uuid()` | PK | Unique identifier |
+| `user_id` | `uuid` | NO | — | FK → `auth.users(id)` ON DELETE CASCADE | Ownership (denormalized for RLS) |
+| `metric_definition_id` | `uuid` | NO | — | FK → `metric_definitions(id)` ON DELETE CASCADE | Links to definition |
+| `value` | `numeric(20,6)` | NO | — | — | Stored in definition's unit |
+| `recorded_at` | `timestamptz` | NO | `now()` | — | Measurement timestamp (date + time) |
+| `notes` | `text` | YES | — | — | Optional context |
+| `created_at` | `timestamptz` | NO | `now()` | — | Audit |
+| **Composite FK** | `(metric_definition_id, user_id)` | — | — | FK → `metric_definitions(id, user_id)` ON DELETE CASCADE | Prevents cross-user entry insertion |
+
+**Indexes**:
+- `idx_metric_entries_user_recorded` ON `(user_id, recorded_at DESC)`
+- `idx_metric_entries_definition` ON `(metric_definition_id)`
+
+### 3. Numeric Precision Decision
+**Single precision for all stored values**: `numeric(20,6)` on `metric_entries.value`, `metric_definitions.baseline_value`, `metric_definitions.target_value`.
+
+- Supports all value kinds without per-type columns
+- 6 decimal places covers BPM (whole), kg (0.01), currency (0.01), percentage (0.0001), count (whole)
+- No `float`/`real`/`double precision` ever
+- Application validates per `value_kind` (e.g., count → integer, percentage → 0–100, rating → min/max bounds)
+- Currency: `unit` stores ISO-3 code (USD, ILS, EUR); no conversion in Phase 1
+
+### 4. Ownership and RLS Decision
+- **Denormalized `user_id` on `metric_entries`** + **composite FK** `(metric_definition_id, user_id)` → `metric_definitions(id, user_id)`
+- RLS policies:
+  - `metric_definitions`: `auth.uid() = user_id` for all operations
+  - `metric_entries`: `auth.uid() = user_id` for all operations; composite FK blocks cross-user inserts
+- No helper functions needed — composite FK + denormalized `user_id` is sufficient
+
+### 5. Archive and Delete Behavior
+- **Archive**: `archived` boolean on definition; `true` = hidden from default list, entries still readable, **new entries blocked** (application-level or CHECK constraint)
+- **Delete**: Hard delete only. Definition delete → cascades to entries. No soft-delete on entries.
+- **Cascade**: Definition delete → entries deleted. User delete → all three tables cascade.
+
+### 6. Important Constraints
+- **CHECK** on `value_kind` (6 values), `domain` (9 values), `target_direction` (4 values), `cadence` (7 values)
+- **Unique** on `(user_id, domain, name)` — one definition per name per domain per user
+- **Composite FK** `(metric_definition_id, user_id)` on `metric_entries` → `metric_definitions(id, user_id)` — blocks cross-user entry insertion
+- **Entry ordering**: `recorded_at` ASC, then `created_at` ASC for ties
+- **No duplicate prevention** on (definition, recorded_at) — multiple entries per timestamp allowed
+- **Archive blocks writes**: Application enforces no new entries for archived definitions
+
+### 7. Indexes
+- `idx_metric_definitions_user_domain` ON `metric_definitions(user_id, domain)`
+- `idx_metric_entries_user_recorded` ON `metric_entries(user_id, recorded_at DESC)`
+- `idx_metric_entries_definition` ON `metric_entries(metric_definition_id)`
+
+### 8. RLS Behavior
+| Table | SELECT | INSERT | UPDATE | DELETE |
+|-------|--------|--------|--------|--------|
+| `metric_definitions` | `auth.uid() = user_id` | `auth.uid() = user_id` | `auth.uid() = user_id` | `auth.uid() = user_id` |
+| `metric_entries` | `auth.uid() = user_id` | `auth.uid() = user_id` | `auth.uid() = user_id` | `auth.uid() = user_id` |
+
+System templates: none in DB (static TypeScript config only).
+
+### 9. Expected Query Shapes
+```sql
+-- List user's active definitions
+SELECT * FROM metric_definitions
+WHERE user_id = auth.uid() AND archived = false
+ORDER BY domain, name;
+
+-- Get entries for a definition (latest first)
+SELECT * FROM metric_entries
+WHERE metric_definition_id = $1 AND user_id = auth.uid()
+ORDER BY recorded_at DESC, created_at DESC
+LIMIT 50;
+
+-- Latest entry for a definition
+SELECT * FROM metric_entries
+WHERE metric_definition_id = $1 AND user_id = auth.uid()
+ORDER BY recorded_at DESC, created_at DESC
+LIMIT 1;
 ```
 
 ---
 
-## Final Report
+## Threat Review
 
-### 1. Status
-Documentation-only audit complete. No code, migrations, or SQL created.
-
-### 2. Latest Migration Number
-**00017** (`xp_totals_rpc.sql`)
-
-### 3. Existing Systems Reusable
-- PulseCard, MetricCard, SectionHeader, EmptyState
-- `streaks.ts`, `metricSummaries.ts`, `bodyMetrics.ts`, `bodyPro.ts`
-- Supabase client patterns, date utils, module registry
-- Production smoke test infrastructure
-- RLS ownership patterns (denormalized `user_id` + FK cascade)
-
-### 4. Recommended Minimal Schema
-**Two core tables + optional target**:
-- `metric_definitions` (what can be measured)
-- `metric_entries` (recorded measurements)
-- `metric_targets` (baselines + targets for Goal linking)
-
-### 5. Key RLS Decision
-Denormalized `user_id` on `metric_entries` + FK cascade to `metric_definitions` (which has `user_id`) → simple `auth.uid() = user_id` policies, cross-user insertion blocked by FK ownership.
-
-### 6. Numeric Precision Recommendation
-- `numeric(12,2)` currency (matches Finance V2)
-- `numeric(10,2)` general measurements
-- `numeric(6,2)` percentages
-- `integer` counts, durations (minutes), ratings
-- **Never** `float`/`real`/`double precision`
-
-### 7. UI Route Recommendation
-`/results` under **Personal** category, status **"preview"** in module registry. Phone-first 390×844 layout with header, 3-step path, metric list, create form, detail + sparkline.
-
-### 8. Test Plan Summary
-- DB contract: ownership, cross-user denial, invalid values/enums/FKs, archived exclusion, cascade delete
-- Calculations: latest/prev, chronological, one entry, zero previous, ±change, baseline, target distance (all directions), null safety, duplicate dates
-- UI: creation, entry, sparse states, archive, deletion, chart states, phone overflow, protected route, navigation, no unsafe language
-- Regression: all existing prod smoke suites + network audit
-
-### 9. Deployment Order Summary
-1. Strong-model review
-2. Migration creation (by stronger model)
-3. Local tests
-4. Manual hosted SQL apply
-5. Hosted schema verification
-6. App code commit
-7. Deploy
-10. Prod smoke + network audit
-11. Rollback via feature flag + code revert (schema drop only if essential)
-
-### 10. Files Created or Changed
-- **Created**: `docs/results-foundation-implementation-blueprint.md`
-- **Updated**: `docs/post-beta-depth-roadmap.md` (Prompt #32 marked as prep only)
-- **Updated**: `docs/private-beta-round-1-issue-log.md` (R1-057 added)
-
-### 11. Lint/Build Results
-```bash
-npm run lint   # passes (existing warnings only)
-npm run build  # passes
-git diff --check  # clean
-git status --short  # only docs/ files modified
-```
-
-### 12. Confirmation: No Production Code Changed
-Only documentation files modified. No schema, migrations, TypeScript, React, or SQL created.
-
-### 13. Confirmation: No Migration or SQL Created
-Migration `0018_results_foundation.sql` **not created** — awaiting stronger model review per safety rules.
-
-### 14. Git Status
-```
-M docs/post-beta-depth-roadmap.md
-M docs/private-beta-round-1-issue-log.md
-A docs/results-foundation-implementation-blueprint.md
-```
-
-### 15. Exact Unresolved Decisions
-| Decision | Options | Blocking? |
-|----------|---------|-----------|
-| `metric_definitions` add `target_direction` column? | increase/decrease/maintain/none — needed for "better" semantics | Phase 3 |
-| Separate `metric_entries.value` precision per type? | Single `numeric` vs per-type CHECK constraints | Phase 1 (decide in migration) |
-| System template seeding mechanism? | `user_id=null` + `is_template=true` vs dedicated system user | Migration |
-| Archive UX: separate tab vs filter? | Tab (current blueprint) vs filter chip | UI implementation |
-| Adapter memoization strategy? | `React.useMemo` per request vs SWR/React Query | Implementation |
-
-### 16. Exact Next Prompt for Stronger Model
-> **Implement Results Foundation migration and adapters per `docs/results-foundation-implementation-blueprint.md`**
->
-> **Deliverables**:
-> 1. `supabase/migrations/0018_results_foundation.sql` — exact schema per blueprint (definitions, entries, targets, indexes, RLS, triggers, helper functions)
-> 2. `src/lib/results/types.ts` — TypeScript interfaces matching schema
-> 3. `src/lib/results/adapters.ts` — read-only adapters for Body, Mind, Finance, Passions, Goals (bounded date windows, memoized)
-> 4. `src/lib/results/calculations.ts` — pure functions: latest, previous, absolute change, percentage change (zero-handled), baseline change, target distance (all 4 types), null safety
-> 5. `src/lib/results/hooks.ts` — `useMetricDefinitions`, `useMetricEntries`, `useCreateMetric`, `useAddEntry`, `useArchiveMetric`, `useDeleteMetric`
-> 6. `src/lib/results/templates.ts` — system template array matching blueprint table
-> 7. Update `src/lib/modules.ts` — add `results` module to "personal" category, status "preview"
-> 8. Unit tests for calculations + adapters
->
-> **Constraints**:
-> - No data migration
-> - No UI components
-> - No schema changes beyond this migration
-> - Adapters must be read-only, memoized, bounded (max 90-day window default)
-> - All numeric types per blueprint precision table
-> - RLS: denormalized `user_id` on entries + FK cascade ownership
-> - Feature flag `NEXT_PUBLIC_RESULTS_SYSTEM` guards all exports
->
-> **Verification**:
-> - `npm run lint` / `npm run build` pass
-> - Local migration applies cleanly
-> - Adapter tests pass with mocked Supabase
-> - Calculation tests cover all contract cases
+| Scenario | Prevention Mechanism |
+|----------|---------------------|
+| User A selects User B's definition | RLS on `metric_definitions` requires `auth.uid() = user_id` |
+| User A updates User B's definition | RLS on UPDATE requires `auth.uid() = user_id` |
+| User A deletes User B's definition | RLS on DELETE requires `auth.uid() = user_id` |
+| User A inserts entry under User B's definition | Composite FK `(metric_definition_id, user_id)` requires definition's `user_id` = entry's `user_id` = `auth.uid()` |
+| User A changes entry.user_id | RLS on UPDATE requires `auth.uid() = user_id`; no UPDATE on `user_id` column in app |
+| User A changes definition ownership | No UPDATE on `metric_definitions.user_id` in app; RLS blocks |
+| User A guesses UUIDs | RLS filters by `auth.uid()` — guessing yields zero rows |
+| Anonymous access | No policies for `anon` role; all tables require authenticated `auth.uid()` |
+| Writes to archived definitions | Application blocks INSERT on entries for archived definitions; CHECK constraint or trigger as backup |
+| Cascade deletion | `ON DELETE CASCADE` on both FKs — definition delete removes entries |
+| Extreme numeric values | `numeric(20,6)` bounds; app validates per `value_kind`; CHECK constraints for percentage/rating bounds |
