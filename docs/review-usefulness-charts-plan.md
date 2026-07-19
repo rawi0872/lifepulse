@@ -154,6 +154,14 @@ Life Pulse needs Weekly Review and Insights to answer clearer questions from log
 - Replaced one judgment-style Weekly Review wording instance while preserving the close-the-week flow and Save to Journal behavior.
 - No schema, migrations, RPCs, storage, analytics, auth changes, CRUD changes, task/habit/goal/project semantics changes, XP changes, finance meaning changes, AI, social, payments, advice, or new product systems were added.
 
+## Deadline Prompt #28 — Knowledge Passions Coach Usefulness Polish
+
+- Improved `/knowledge`: clarified private saved knowledge/history, connection to reflection/Weekly Review, sparse state, added "No AI summaries or external processing" to overview/add/recent.
+- Improved `/passions`: clarified manual practice/exploration tracking, recent/weekly context from existing data, sparse state, no performance scoring or talent judgment language.
+- Improved `/coach`: made rule-based/deterministic framing explicit, explains it guides through the Life Pulse loop (Today → reflection → Weekly Review → Insights), points to next manual step from existing state, no AI/advice/diagnosis claims.
+- Existing data only. Coach remains deterministic/rule-based. No schema, AI, advice, automation, or heavy queries added.
+- Docs updated: `docs/private-beta-round-1-issue-log.md`, `docs/review-usefulness-charts-plan.md`.
+
 ## Deferred From v2
 
 - Multi-week comparisons: requires broader date windows and careful performance checks.

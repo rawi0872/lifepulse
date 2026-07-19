@@ -72,8 +72,7 @@ Example rows are placeholders. Replace them with real tester feedback as it arri
 | R1-051 | 2026-07-19 | Internal QA (Prompt #23) | Production / Chrome + mobile 390x844 | /today, /goals, /projects, /weekly-review, /insights, /journal, More sheet | Private beta smoke rehearsal | P2 | Deadline Prompt #23 ran full first-10-minutes smoke rehearsal. All routes load, no horizontal overflow, safety copy verified, sparse/empty states clear. Two non-blocking findings: (1) Goals page lacks HelpPopover like Projects; (2) Main smoke test `button:has-text("Save")` matches 2 elements on Body page causing strict mode violation. No code changes made — both are test-script and nice-to-have copy issues, not blockers. Rehearsal passed — app is usable without founder explanation. | No | Yes | Rehearsal passed. No fixes needed. Testers can use the app without founder explanation. | Passed. No fixes. | None |
 | R1-052 | 2026-07-19 | Internal QA (Prompt #25) | Production / Chrome + mobile 390x844 | /onboarding, /today, /settings | Onboarding QA reset and e2e run | P1 | Deadline Prompt #25 reset the dedicated onboarding QA account (rawinasser01@gmail.com) via manual Supabase SQL, setting `onboarding_completed=false`, `intended_use=null`, clearing realms/habits/tasks. Then ran `npm run test:prod:onboarding` end-to-end: login -> onboarding welcome -> intended-use (Personal life) -> realm selection -> daily loop -> final CTA -> Today -> Settings setup card. All steps passed. No broken redirects, no hydration issues, first-session handoff copy verified (Today, one priority, one visible action, reflection, Weekly Review after a few days, Insights later). Mobile 390x844 no overflow. | No | Yes | Manual SQL reset of dedicated QA account; onboarding test now runs full e2e without skipping. All follow-up prod tests pass. | PASS | None |
 | R1-053 | 2026-07-19 | Internal QA (Prompt #27) | Production / Chrome + mobile 390x844 | Docs, feedback workflow | Private beta feedback collection setup | P2 | Deadline Prompt #27 prepared private beta feedback workflow for 5–10 trusted testers. Created/updated: `docs/private-beta-tester-instructions.md` (what Life Pulse is, first 10 min path, 3–7 day testing, privacy/safety notes), `docs/private-beta-founder-runbook.md` (invite list, message template, triage process, severity, decision buckets, timeline, success criteria, what not to do), `docs/private-beta-feedback-template.md` (added internal triage format, severity levels, decision buckets, privacy reminder). No product code changes. | No | Yes | Docs-only preparation. Testers not yet invited. Ready to send invites. | Prepared. Docs updated. | None |
-
-## Common Repeated Issues
+| R1-054 | 2026-07-19 | Internal QA (Prompt #28) | /knowledge, /passions, /coach | Usefulness / copy | P2 | Knowledge, Passions, and Coach still feel shallow — don't clearly explain they're private/manual, connect to reflection/Weekly Review, or explain Coach's deterministic loop guidance. | No | Yes | Polish copy, layout, sparse states; add "No AI summaries or external processing" where appropriate; Coach must remain rule-based with no AI/advice claims | Fixed pending production verification |  |
 
 Group similar issues here after at least two testers mention the same theme.
 
@@ -127,7 +126,7 @@ List only the top 1-3 fixes selected after reviewing the first feedback wave.
 
 | Date | Fix summary | Linked issue IDs | Commit | Production QA run |
 | --- | --- | --- | --- | --- |
-|  |  |  |  |  |
+| 2026-07-19 | Polish Knowledge, Passions, Coach usefulness — copy, layout, sparse states; clarify private/manual framing; Coach stays deterministic/rule-based | R1-053 |  |  |
 
 ## Deferred Requests
 

@@ -198,12 +198,12 @@ function PassionContent() {
 
   if (loading) return null;
 
-  return (
+return (
     <div className="animate-fade-in overflow-x-hidden px-4 py-5 md:p-6">
       <div className="mx-auto max-w-5xl min-w-0">
         <div className="mb-6 min-w-0">
           <h1 className="break-words text-2xl font-bold text-[var(--text)]">Passions</h1>
-          <p className="break-words text-sm text-[var(--text-muted)]">Your hobbies, skills, and creative pursuits.</p>
+          <p className="break-words text-sm text-[var(--text-muted)]">Manual practice and exploration tracking — private, no scoring, no talent judgment.</p>
         </div>
 
         {/* Tab Bar */}
@@ -263,13 +263,13 @@ function PassionContent() {
 
             {activePassions.length === 0 && (
               <PulseCard title="Passions" accent="accent">
-                <EmptyState title="Passions" message="No passions yet. Hobbies and skills you actively practice — music, sports, coding, art, or anything you want to grow in." action={<Link href="/passions" className="inline-flex min-h-10 items-center gap-1 text-xs font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0">Add your first passion &rarr;</Link>} />
+                <EmptyState title="Passions" message="No passions yet. Add a hobby, skill, or creative pursuit you actively practice — music, sports, coding, art, or anything you want to grow in. This is manual tracking for your own reflection." action={<Link href="/passions" className="inline-flex min-h-10 items-center gap-1 text-xs font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0">Add your first passion &rarr;</Link>} />
               </PulseCard>
             )}
 
             {activePassions.length > 0 && (
               <div className="grid min-w-0 grid-cols-1 gap-6 md:grid-cols-2">
-                <PulseCard title="Active Passions" accent="accent" description={`${activePassions.length} total`}>
+                <PulseCard title="Active Passions" accent="accent" description={`${activePassions.length} total — manual practice tracking for reflection and Weekly Review`}>
                   <div className="divide-y divide-[var(--border)]">
                     {activePassions.map((p) => {
                       const pSessions = sessions.filter((s) => s.passion_id === p.id);
@@ -379,7 +379,7 @@ function PassionContent() {
 
             {passions.length === 0 && (
               <PulseCard title="Your Passions" accent="accent">
-                <EmptyState title="My Passions" message="No passions created yet." action={<Link href="/passions" className="inline-flex min-h-10 items-center gap-1 text-xs font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0">Add a passion &rarr;</Link>} />
+                <EmptyState title="My Passions" message="No passions created yet. Add a hobby, skill, or creative pursuit you actively practice. This is manual tracking for your own reflection — no performance scoring or talent judgment." action={<Link href="/passions" className="inline-flex min-h-10 items-center gap-1 text-xs font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0">Add a passion &rarr;</Link>} />
               </PulseCard>
             )}
 
@@ -502,14 +502,14 @@ function PassionContent() {
               </PulseCard>
             )}
 
-            {sessions.length === 0 && (
-              <PulseCard title="Recent Sessions" accent="accent">
-                <EmptyState title="Recent Sessions" message="No sessions logged yet. Log your first practice session to start tracking time spent on your passions." action={<Link href="/passions" className="inline-flex min-h-10 items-center gap-1 text-xs font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0">Log a session &rarr;</Link>} />
+{sessions.length === 0 && (
+              <PulseCard title="Recent Sessions" accent="accent" description="Manual practice logging — no performance scoring">
+                <EmptyState title="Recent Sessions" message="No sessions logged yet. Log a practice session to track time spent on your passions. This feeds Weekly Review for manual reflection." action={<Link href="/passions" className="inline-flex min-h-10 items-center gap-1 text-xs font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0">Log a session &rarr;</Link>} />
               </PulseCard>
             )}
 
             {sessions.length > 0 && (
-              <PulseCard title="Recent Sessions" accent="accent" description={`${sessions.length} total`}>
+              <PulseCard title="Recent Sessions" accent="accent" description={`${sessions.length} total — recent practice context for Weekly Review`}>
                 <div data-testid="passion-sessions-list" className="divide-y divide-[var(--border)]">
                   {sessions.map((s) => {
                     const p = passionMap[s.passion_id];
@@ -550,7 +550,7 @@ function PassionContent() {
                 <EmptyState title="No passions yet" message="Create a passion first, then set milestones to mark progress on your journey." action={<Link href="/passions" className="inline-flex min-h-10 items-center gap-1 text-xs font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0">Add a passion &rarr;</Link>} />
               </PulseCard>
             ) : (
-              <PulseCard title="Add Milestone" accent="success">
+              <PulseCard title="Add Milestone" accent="success" description="Manual progress marker — no talent judgment">
                 <div className="grid min-w-0 grid-cols-1 gap-3 p-3.5 sm:grid-cols-2 sm:p-4">
                   <div className="flex min-w-0 flex-col gap-1 sm:col-span-2">
                     <label className="text-[10px] font-medium text-[var(--text-muted)]">Passion</label>
@@ -579,14 +579,14 @@ function PassionContent() {
               </PulseCard>
             )}
 
-            {milestones.length === 0 && (
-              <PulseCard title="Milestones" accent="success">
-                <EmptyState title="Milestones" message="No milestones yet. Set your first milestone to mark an achievement on your journey." action={<Link href="/passions" className="inline-flex min-h-10 items-center gap-1 text-xs font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0">Add a milestone &rarr;</Link>} />
+{milestones.length === 0 && (
+              <PulseCard title="Milestones" accent="success" description="Manual progress markers — no talent judgment">
+                <EmptyState title="Milestones" message="No milestones yet. Set a milestone to mark an achievement on your journey. This is manual tracking for your own reflection." action={<Link href="/passions" className="inline-flex min-h-10 items-center gap-1 text-xs font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0">Add a milestone &rarr;</Link>} />
               </PulseCard>
             )}
 
             {milestones.length > 0 && (
-              <PulseCard title="Milestones" accent="success" description={`${completedMilestones.length}/${milestones.length} completed`}>
+              <PulseCard title="Milestones" accent="success" description={`${completedMilestones.length}/${milestones.length} completed — manual progress markers for reflection`}>
                 <div className="divide-y divide-[var(--border)]">
                   {milestones.map((m) => {
                     const p = passionMap[m.passion_id];

@@ -227,14 +227,17 @@ function KnowledgeContent() {
               } trend="neutral" active={items.filter((i) => ["resource", "article", "book"].includes(i.type)).length > 0} />
             </div>
 
-            <PulseCard title="Your Knowledge Library" accent="accent" description="Store and organize what matters">
+            <PulseCard title="Your Knowledge Library" accent="accent" description="Private manual library — feeds Weekly Review">
               <div className="space-y-3 px-4 py-4">
                 <p className="text-pretty text-xs leading-relaxed text-[var(--text-muted)]">
-                  The Information System is where Life Pulse stores important knowledge, useful resources, ideas, lessons, and notes that should not disappear into random apps.
-                  Save articles, book notes, course takeaways, life lessons, and any reference material you want to keep.
+                  This is your private saved knowledge and history. Save notes, articles, ideas, lessons, and reference material manually.
+                  What you save here connects to reflection and Weekly Review — use it to capture what matters so it does not disappear into random apps.
                 </p>
-                {items.length === 0 && collections.length === 0 && (
-                  <EmptyState title="Overview" message="No knowledge items yet. Save notes, articles, ideas, and reference materials to organize what matters." action={<Link href="/knowledge" className="inline-flex min-h-10 items-center gap-1 text-xs font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0">Add your first item &rarr;</Link>} />
+                <p className="text-pretty text-[10px] text-[var(--text-muted)]">
+                  No AI summaries or external processing.
+                </p>
+{items.length === 0 && collections.length === 0 && (
+                  <EmptyState title="Overview" message="No knowledge items yet. Save notes, articles, ideas, and reference materials to organize what matters. This private manual library feeds Weekly Review and Insights. No AI summaries or external processing." action={<Link href="/knowledge" className="inline-flex min-h-10 items-center gap-1 text-xs font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0">Add your first item &rarr;</Link>} />
                 )}
               </div>
             </PulseCard>
@@ -244,7 +247,7 @@ function KnowledgeContent() {
         {/* ════════════════ ADD KNOWLEDGE ════════════════ */}
         {activeTab === "add" && (
           <div className="space-y-6">
-            <PulseCard title="Add Knowledge Item" accent="accent">
+            <PulseCard title="Add Knowledge Item" accent="accent" description="Private and manual — no AI summaries or external processing">
               <div className="grid min-w-0 grid-cols-1 gap-3 p-4 sm:grid-cols-2 sm:p-5">
                 <input type="text" placeholder="Title" value={itemForm.title}
                   onChange={(e) => setItemForm((f) => ({ ...f, title: e.target.value }))}
@@ -320,7 +323,7 @@ function KnowledgeContent() {
             </PulseCard>
 
             {collections.length === 0 ? (
-              <PulseCard title="Your Collections" accent="accent">
+              <PulseCard title="Your Collections" accent="accent" description="Private manual organization — no AI summaries or external processing">
                 <EmptyState title="Your Collections" message="No collections yet. Collections group related knowledge items together — like a folder for a topic or project." action={<Link href="/knowledge" className="inline-flex min-h-10 items-center gap-1 text-xs font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0">Create a collection &rarr;</Link>} />
               </PulseCard>
             ) : (
@@ -346,8 +349,8 @@ function KnowledgeContent() {
         {activeTab === "recent" && (
           <div>
             {items.length === 0 ? (
-              <PulseCard title="Recent Items" accent="accent">
-                <EmptyState title="Recent Items" message="No knowledge items yet. Add notes, links, articles, and reference material to build your personal library." action={<Link href="/knowledge" className="inline-flex min-h-10 items-center gap-1 text-xs font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0">Add your first item &rarr;</Link>} />
+              <PulseCard title="Recent Items" accent="accent" description="Private manual library — no AI summaries or external processing">
+                <EmptyState title="Recent Items" message="No knowledge items yet. Add notes, links, articles, and reference material to build your private library. What you save feeds Weekly Review." action={<Link href="/knowledge" className="inline-flex min-h-10 items-center gap-1 text-xs font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0">Add your first item &rarr;</Link>} />
               </PulseCard>
             ) : (
               <PulseCard title="Recent Items" accent="accent" description={`${items.length} total`}>

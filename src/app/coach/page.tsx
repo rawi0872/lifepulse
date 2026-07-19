@@ -166,10 +166,11 @@ function CoachContent() {
     <div className="mx-auto max-w-4xl overflow-x-hidden px-4 py-6 animate-fade-in sm:px-5 sm:py-8">
       {/* Header */}
       <div className="mb-6 min-w-0">
-        <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--accent)]">Manual guidance</p>
+        <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--accent)]">Rule-based loop guidance</p>
         <h1 className="break-words text-2xl font-bold text-[var(--text)]">Life Pulse Coach</h1>
         <p className="mt-1 break-words text-sm leading-relaxed text-[var(--text-muted)]">
-          Optional prompts based on your logged activity. Choose what fits, ignore what does not.{" "}
+          Deterministic prompts based on what you log. Coach guides you through the Life Pulse loop —
+          Today, reflection, Weekly Review, Insights — and points to the next manual step.
           {topPriority && (
             <span className="text-[var(--accent)]">
               Current prompt level: {topPriority}
@@ -180,14 +181,15 @@ function CoachContent() {
 
       <DailyLoopConnector
         activeStep="today"
-        note="Coach supports the manual loop: use Today to plan, complete one visible action, reflect, then review the week. It does not create anything for you."
+        note="Coach is deterministic rule-based guidance through the Life Pulse loop. It does not create anything for you — it points to your next manual step."
       />
 
       <Card variant="subtle" className="mb-6 border-[var(--border)] bg-[var(--surface-soft)]/75">
         <div className="p-4 sm:p-5">
           <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Safety framing</p>
           <p className="mt-2 text-sm leading-relaxed text-[var(--text-secondary)]">
-            Coach is rule-based manual guidance from what you log. Suggestions are optional prompts, not instructions, diagnosis, therapy, medical advice, or financial advice.
+            Coach is deterministic rule-based guidance from what you log. Suggestions are optional prompts, not instructions,
+            diagnosis, therapy, medical advice, or financial advice.
           </p>
           <p className="mt-2 text-xs leading-relaxed text-[var(--text-muted)]">
             No external AI processing, AI memory, embeddings, or automatic summaries are enabled. You stay in control.
@@ -232,14 +234,15 @@ function CoachContent() {
       </div>
 
       <p className="mb-6 text-xs leading-relaxed text-[var(--text-muted)]">
-        Coach checks logged activity, missing check-ins, weekly rhythm, and time-sensitive patterns. It only points you back to existing Life Pulse pages.
+        Coach checks logged activity, missing check-ins, weekly rhythm, and time-sensitive patterns.
+        It points you back to existing Life Pulse pages — your next manual step is one of: Today, reflection, Weekly Review, or Insights.
       </p>
 
       <section className="mb-8">
         <div className="mb-3 flex min-w-0 items-center gap-2">
           <span className="h-4 w-1 rounded-full bg-gradient-to-b from-[var(--accent)] to-[var(--accent-strong)]" />
           <h2 className="min-w-0 break-words text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">
-            Connected workflow
+            Connected workflow — your loop
           </h2>
         </div>
         <div className="grid gap-3 sm:grid-cols-3">
@@ -248,21 +251,21 @@ function CoachContent() {
             className="min-h-24 min-w-0 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-4 transition-colors hover:bg-[var(--surface)]"
           >
             <p className="break-words text-sm font-semibold text-[var(--text)]">Open Today</p>
-            <p className="mt-1 break-words text-xs text-[var(--text-muted)]">Turn one optional prompt into today&apos;s priority if it fits.</p>
+            <p className="mt-1 break-words text-xs text-[var(--text-muted)]">Set one priority, complete one visible action, reflect.</p>
           </Link>
           <Link
             href="/weekly-review"
             className="min-h-24 min-w-0 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-4 transition-colors hover:bg-[var(--surface)]"
           >
             <p className="break-words text-sm font-semibold text-[var(--text)]">Run Weekly Review</p>
-            <p className="mt-1 break-words text-xs text-[var(--text-muted)]">Reflect and choose next week&apos;s focus.</p>
+            <p className="mt-1 break-words text-xs text-[var(--text-muted)]">Reflect on the week, choose one focus for next week.</p>
           </Link>
           <Link
             href="/insights"
             className="min-h-24 min-w-0 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-4 transition-colors hover:bg-[var(--surface)]"
           >
             <p className="break-words text-sm font-semibold text-[var(--text)]">Open Insights</p>
-            <p className="mt-1 break-words text-xs text-[var(--text-muted)]">See read-only patterns from logged activity.</p>
+            <p className="mt-1 break-words text-xs text-[var(--text-muted)]">See deterministic trends from your logged activity.</p>
           </Link>
         </div>
       </section>
@@ -285,9 +288,9 @@ function CoachContent() {
               <svg className="mb-3 h-10 w-10 text-[var(--success)] opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <p className="text-sm text-[var(--text-muted)]">All areas look good!</p>
+              <p className="text-sm text-[var(--text-muted)]">All areas look good.</p>
               <p className="mt-1 text-xs text-[var(--text-muted)]">
-                No prompts right now. Review Today, run a Weekly Review, or keep logging habits, tasks, and check-ins.
+                No prompts right now. Open Today to set a priority, run a Weekly Review, or keep logging habits, tasks, and check-ins.
               </p>
             </div>
           </Card>
@@ -408,16 +411,17 @@ function CoachContent() {
             Transparent rule engine
           </h2>
         </div>
-        <PulseCard title="Rule-based guidance" accent="none" variant="subtle">
+        <PulseCard title="Rule-based guidance through the Life Pulse loop" accent="none" variant="subtle">
           <div className="space-y-2 px-3.5 py-3 sm:px-4">
             <p className="break-words text-xs leading-relaxed text-[var(--text-secondary)]">
-              Life Pulse Coach currently uses simple rules based on your logged data.
-              It checks logged activity, missing check-ins, weekly rhythm, and
-              time-sensitive patterns to surface optional next prompts.
+              Life Pulse Coach uses deterministic rules based on your logged data. It checks logged activity, missing check-ins,
+              weekly rhythm, and time-sensitive patterns to surface optional next prompts that point you back to existing Life Pulse pages.
             </p>
             <p className="break-words text-xs leading-relaxed text-[var(--text-muted)]">
-              No AI summaries, AI memory, embeddings, or external APIs are enabled. For now,
-              everything is transparent, deterministic, and based only on your logged activity.
+              No AI summaries, AI memory, embeddings, or external APIs are enabled. Coach is deterministic, private, and manual — you stay in control.
+            </p>
+            <p className="break-words text-xs leading-relaxed text-[var(--text-muted)]">
+              Coach guides the manual loop: Today → one visible action → reflection → Weekly Review → Insights.
             </p>
             <div className="pt-1">
               <p className="text-[10px] font-medium text-[var(--text-muted)]">
@@ -441,7 +445,8 @@ function CoachContent() {
       </section>
 
       <p className="text-[10px] text-[var(--text-muted)] text-center">
-        Coach does not provide medical, therapeutic, or financial advice. Prompts are optional and user-controlled.
+        Coach does not provide medical, therapeutic, or financial advice. No AI summaries, AI memory, embeddings, or external AI processing.
+        Prompts are optional and user-controlled.
       </p>
     </div>
   );
