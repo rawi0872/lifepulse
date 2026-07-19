@@ -56,14 +56,14 @@ const navGroups: NavGroup[] = [
     ],
   },
   {
-    label: "Build later",
+    label: "Organize bigger work",
     items: [
       { label: "Goals", href: "/goals", icon: icons.goals },
       { label: "Projects", href: "/projects", icon: icons.projects },
     ],
   },
   {
-    label: "Track later",
+    label: "Optional context",
     items: [
       { label: "Body", href: "/body", icon: icons.body },
       { label: "Mind", href: "/mind", icon: icons.mind },
@@ -73,7 +73,7 @@ const navGroups: NavGroup[] = [
     ],
   },
   {
-    label: "Review later",
+    label: "Review after logging",
     items: [
       { label: "Weekly Review", href: "/weekly-review", icon: icons.review },
       { label: "Insights", href: "/insights", icon: icons.insights },
@@ -96,7 +96,7 @@ const navGroups: NavGroup[] = [
 
 const mobilePrimaryItems = navGroups[0].items;
 
-const mobileMoreGroups = navGroups;
+const mobileMoreGroups = navGroups.slice(1);
 
 const mobileMoreItems = navGroups.slice(1).flatMap((group) => group.items);
 
@@ -208,7 +208,7 @@ export function DashboardNav({ children }: { children: React.ReactNode }) {
             <div className="mb-3 flex items-center justify-between">
               <div>
                 <h2 className="text-base font-semibold tracking-[-0.02em] text-[var(--text)]">More</h2>
-                <p className="mt-0.5 text-xs text-[var(--text-muted)]">Start with Today. These routes are optional or later.</p>
+                <p className="mt-0.5 text-xs text-[var(--text-muted)]">Start with Today. Use these routes to organize bigger work, review later, or add optional context.</p>
               </div>
               <button
                 onClick={() => setMoreOpen(false)}

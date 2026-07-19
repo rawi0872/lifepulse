@@ -15,7 +15,8 @@ export function TodayEcosystemStrip({ modules }: TodayEcosystemStripProps) {
     { label: "Support the loop", note: "Use Tasks or Habits for one visible action.", keys: ["tasks", "habits", "journal"] },
     { label: "Review later", note: "Useful after a few logged days.", keys: ["weeklyReview", "insights"] },
     { label: "Optional context", note: "Add only when it helps today's work.", keys: ["body", "mind", "finance"] },
-    { label: "Build later", note: "Available when the daily loop is clear.", keys: ["goals", "projects", "knowledge", "passions", "coach", "settings", "devices"] },
+    { label: "Organize bigger work", note: "Use Goals and Projects when tasks point toward a larger outcome.", keys: ["goals", "projects"] },
+    { label: "Later tools", note: "Available when the daily loop is clear.", keys: ["knowledge", "passions", "coach", "settings", "devices"] },
   ];
 
   const modulesByKey = new Map(modules.map((module) => [module.key, module]));

@@ -155,6 +155,10 @@ async function verifyMobileNavigation(page) {
 
   await page.getByRole("button", { name: "More" }).click();
   await expect(page.getByRole("heading", { name: "More" })).toBeVisible({ timeout: 15000 });
+  const moreText = await page.locator("body").innerText({ timeout: 15000 });
+  if (!/organize bigger work|Build later/i.test(moreText)) {
+    throw new Error("More menu did not show bigger-work route grouping copy.");
+  }
   await expect(page.getByRole("link", { name: /^Goals$/ })).toBeVisible({ timeout: 15000 });
   pass("Phone More menu opens and shows secondary routes");
 

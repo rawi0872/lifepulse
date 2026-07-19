@@ -46,8 +46,9 @@ Life Pulse needs Weekly Review and Insights to answer clearer questions from log
 11. First action completion flow: make completed tasks and habits hand off into reflection and later review using existing Today state and row copy only. Shipped as Deadline Prompt #12.
 12. Domain depth pass: make Body, Mind, and Finance explain their manual context value for Weekly Review using already-loaded data only. Shipped as Deadline Prompt #20.
 13. Goals/Projects execution depth: make goals and projects show connected work, next visible action, and review handoff using existing links/tasks only. Shipped as Deadline Prompt #21.
-14. Insights v2: add 4-week trend comparisons using existing timestamps and manual logs.
-15. Review v5: add user-controlled filters for current week, last week, and month, without adding new storage.
+14. Private beta readiness polish: clarify first-session route order, mobile More grouping, bigger-work planning, optional context, and review timing using copy/layout only. Shipped as Deadline Prompt #22.
+15. Insights v2: add 4-week trend comparisons using existing timestamps and manual logs.
+16. Review v5: add user-controlled filters for current week, last week, and month, without adding new storage.
 
 ## Current Weekly Review v2 Scope
 
@@ -143,6 +144,15 @@ Life Pulse needs Weekly Review and Insights to answer clearer questions from log
 - Clarified Today, Weekly Review, and Insights copy so project/goal work is framed as visible action and manual review context.
 - Updated focused production smoke expectations for the new execution-depth labels.
 - No new queries, schema, migrations, RPCs, summary tables, AI summaries, external processing, automation, CRUD changes, task completion changes, goal/project/task linking changes, or XP changes were added.
+
+## Deadline Prompt #22 Private Beta Readiness Scope
+
+- Audited `/today`, mobile navigation, `/goals`, `/projects`, `/weekly-review`, and secondary routes for first-session comprehension.
+- Kept Today focused on one priority, one visible action, reflection, and review later; no large tutorial or new data loading was added.
+- Made mobile More non-Core because Today, Tasks, Habits, and Journal already live in the bottom bar.
+- Clarified navigation and Today route-order grouping: Goals/Projects are for organizing bigger work, Body/Mind/Finance are optional context, and Weekly Review/Insights are for review after logging.
+- Replaced one judgment-style Weekly Review wording instance while preserving the close-the-week flow and Save to Journal behavior.
+- No schema, migrations, RPCs, storage, analytics, auth changes, CRUD changes, task/habit/goal/project semantics changes, XP changes, finance meaning changes, AI, social, payments, advice, or new product systems were added.
 
 ## Deferred From v2
 

@@ -535,7 +535,7 @@ function WeeklyReviewContent() {
         </p>
         <p className="mt-1 break-words text-sm text-[var(--text-muted)]">
           {dayLabels[0]} &ndash; {dayLabels[6]}
-          {isWeekend && <span className="mt-1 block text-xs text-[var(--accent)] sm:ml-2 sm:mt-0 sm:inline">Weekend &mdash; good time to reflect</span>}
+          {isWeekend && <span className="mt-1 block text-xs text-[var(--accent)] sm:ml-2 sm:mt-0 sm:inline">Weekend &mdash; time to reflect</span>}
         </p>
       </div>
 

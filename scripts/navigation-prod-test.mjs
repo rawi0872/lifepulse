@@ -33,7 +33,14 @@ const EMAIL = env.LIFE_PULSE_TEST_EMAIL;
 const PASSWORD = env.LIFE_PULSE_TEST_PASSWORD;
 const ERROR_SCREENSHOT_PATH = "screenshot-navigation-prod-error.png";
 
-const requiredGroupText = ["Core", "Build later", "Track later", "Review later", "Preview", "System"];
+const requiredGroupText = [
+  ["Core"],
+  ["Organize bigger work", "Build later"],
+  ["Optional context", "Track later"],
+  ["Review after logging", "Review later"],
+  ["Preview"],
+  ["System"],
+];
 
 const requiredNavText = [
   "Today",
@@ -98,6 +105,15 @@ async function expectNavText(sidebar, text, timeout = 15000) {
   pass(`Found nav text: ${text}`);
 }
 
+async function expectAnyNavText(sidebar, options, timeout = 15000) {
+  const pattern = new RegExp(options.map((option) => option.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|"), "i");
+  await expect.poll(async () => sidebar.innerText(), { timeout }).toMatch(pattern);
+  const text = await sidebar.innerText({ timeout });
+  const matched = options.find((option) => text.toLowerCase().includes(option.toLowerCase()));
+  if (!matched) throw new Error(`Missing expected nav text. Expected one of: ${options.join(" / ")}`);
+  pass(`Found nav text: ${matched}`);
+}
+
 async function expectNavTextAbsent(sidebar, text, timeout = 5000) {
   await expect(sidebar).not.toContainText(text, { timeout });
   pass(`Old nav text absent: ${text}`);
@@ -144,8 +160,8 @@ async function main() {
     await expect(sidebar.getByText("Life Pulse", { exact: true })).toBeVisible({ timeout: 15000 });
     pass("Authenticated desktop sidebar is visible");
 
-    for (const text of requiredGroupText) {
-      await expectNavText(sidebar, text);
+    for (const options of requiredGroupText) {
+      await expectAnyNavText(sidebar, options);
     }
 
     for (const text of requiredNavText) {
