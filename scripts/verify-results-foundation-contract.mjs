@@ -6,6 +6,7 @@ import path from 'node:path';
 
 const MIGRATION_FILE = path.resolve('supabase/migrations/00018_results_foundation.sql');
 const HARDENING_FILE = path.resolve('supabase/migrations/00019_results_rls_role_hardening.sql');
+const MINIMIZATION_FILE = path.resolve('supabase/migrations/00020_results_authenticated_privilege_minimization.sql');
 const TYPES_FILE = path.resolve('src/lib/results/types.ts');
 const CONTRACT_FILE = path.resolve('src/lib/results/contract.ts');
 
@@ -41,6 +42,7 @@ function assertRegex(haystack, regex, context) {
 
 const migration = read(MIGRATION_FILE);
 const hardening = read(HARDENING_FILE);
+const minimization = read(MINIMIZATION_FILE);
 const types = read(TYPES_FILE);
 const contract = read(CONTRACT_FILE);
 
@@ -227,6 +229,18 @@ console.log('\n--- No SECURITY DEFINER except helper ---');
   // Ensure transaction wrapper
   assertIncludes(hardening, 'BEGIN;', 'Transaction begins');
   assertIncludes(hardening, 'COMMIT;', 'Transaction commits');
+
+  console.log('\n--- Minimization Migration (0020): Authenticated privilege reduction ---');
+  assertIncludes(minimization, 'revoke all on table public.metric_definitions from authenticated', 'Revokes ALL from authenticated on definitions');
+  assertIncludes(minimization, 'revoke all on table public.metric_entries from authenticated', 'Revokes ALL from authenticated on entries');
+  assertIncludes(minimization, 'grant select, insert, update, delete', 'Grants CRUD to authenticated on definitions');
+  assertIncludes(minimization, 'on table public.metric_definitions', 'Grants CRUD to authenticated on definitions table');
+  assertIncludes(minimization, 'to authenticated', 'Grants to authenticated role');
+  assertNotIncludes(minimization, 'truncate', 'No TRUNCATE grant');
+  assertNotIncludes(minimization, 'trigger', 'No TRIGGER grant');
+  assertNotIncludes(minimization, 'references', 'No REFERENCES grant');
+  assertIncludes(minimization, 'BEGIN;', 'Transaction begins');
+  assertIncludes(minimization, 'COMMIT;', 'Transaction commits');
 
   console.log('\n--- All checks passed ---');
   console.log('\n=== Contract Verification Complete ===\n');

@@ -3,6 +3,7 @@
 ## Migration Files
 **supabase/migrations/00018_results_foundation.sql** (must apply first)
 **supabase/migrations/00019_results_rls_role_hardening.sql** (must apply second)
+**supabase/migrations/00020_results_authenticated_privilege_minimization.sql** (must apply third)
 
 ## Tables Created
 1. `public.metric_definitions`
@@ -34,14 +35,22 @@
 2. Wait for completion
 3. Apply `supabase/migrations/00019_results_rls_role_hardening.sql` in Supabase SQL Editor
 4. Wait for completion
-5. Verify schema (see Hosted Verification Queries below)
-6. **Only then** deploy application code
+5. Apply `supabase/migrations/00020_results_authenticated_privilege_minimization.sql` in Supabase SQL Editor
+6. Wait for completion
+7. Verify schema (see Hosted Verification Queries below)
+8. **Only then** deploy application code
 
-**Important:** 00018 must be applied before 00019. 00019 narrows Results access to authenticated users only:
-- `anon` and `PUBLIC` table privileges are revoked on both tables
-- `authenticated` receives SELECT, INSERT, UPDATE, DELETE on both tables
-- All eight Results policies target `authenticated` role
-- Function `public.metric_definition_is_archived(uuid)` EXECUTE is revoked from `anon` and `PUBLIC`, granted to `authenticated`
+**Important:** 00018 must be applied before 00019, which must be applied before 00020.
+- 00019 narrows Results access to authenticated users only:
+  - `anon` and `PUBLIC` table privileges are revoked on both tables
+  - `authenticated` receives SELECT, INSERT, UPDATE, DELETE on both tables
+  - All eight Results policies target `authenticated` role
+  - Function `public.metric_definition_is_archived(uuid)` EXECUTE is revoked from `anon` and `PUBLIC`, granted to `authenticated`
+- 00020 records the manual hosted least-privilege correction:
+  - `authenticated` ALL table privileges are revoked first
+  - Only SELECT, INSERT, UPDATE, DELETE are re-granted to `authenticated`
+  - No TRUNCATE, TRIGGER, or REFERENCES grants remain
+  - This migration has already been manually represented in the hosted state
 
 ## Hosted Verification Queries
 
@@ -159,6 +168,20 @@ WHERE polrelid IN ('metric_definitions'::regclass, 'metric_entries'::regclass)
 ORDER BY polrelid, polcmd;
 ```
 Expected: All eight policies show `polroles` containing only `authenticated` (no `anon`, no `public`)
+
+### 13. Table Privileges (00020 Minimization)
+```sql
+SELECT grantee, privilege_type
+FROM information_schema.table_privileges
+WHERE table_schema = 'public'
+  AND table_name IN ('metric_definitions','metric_entries')
+ORDER BY table_name, grantee;
+```
+Expected:
+- `authenticated` has exactly SELECT, INSERT, UPDATE, DELETE on both tables
+- `authenticated` has NO TRUNCATE, TRIGGER, REFERENCES on either table
+- `anon` has no privileges on either table
+- `PUBLIC` has no privileges on either table
 
 ## RLS Verification Procedure (Two Test Users)
 
