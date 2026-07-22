@@ -57,7 +57,7 @@ export interface MetricDefinitionRow {
 export interface MetricDefinitionInput {
   domain: ResultDomain;
   name: string;
-  description?: string;
+  description?: string | null;
   value_kind: ResultValueKind;
   unit: string;
   baseline_value?: string | number | null;
