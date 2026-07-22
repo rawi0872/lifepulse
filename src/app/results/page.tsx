@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DashboardNav } from "@/components/DashboardNav";
@@ -28,40 +28,52 @@ const DOMAIN_FILTERS: Array<{ value: ResultDomain | "all"; label: string }> = [
   { value: "custom", label: "Custom" },
 ];
 
+type MetricStatusFilter = "active" | "archived";
+
 function ResultsContent() {
   const router = useRouter();
   const { toast } = useToast();
   const [supabase] = useState(() => createClient());
+  const requestSeq = useRef(0);
+  const statusFilterRef = useRef<MetricStatusFilter>("active");
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<MetricStatusFilter>("active");
   const [activeDomain, setActiveDomain] = useState<ResultDomain | "all">("all");
   const [metrics, setMetrics] = useState<MetricDefinitionRow[]>([]);
   const [entries, setEntries] = useState<MetricEntryRow[]>([]);
 
-  const loadResults = useCallback(async () => {
+  const loadResults = useCallback(async (requestedStatus: MetricStatusFilter = statusFilter) => {
+    const seq = requestSeq.current + 1;
+    requestSeq.current = seq;
+    setLoading(true);
+    setLoadError(null);
+    setMetrics([]);
+    setEntries([]);
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      if (seq !== requestSeq.current) return;
       if (!user) {
         setMetrics([]);
         setEntries([]);
         setActiveDomain("all");
+        setStatusFilter("active");
         setShowCreateForm(false);
         setLoadError(null);
         router.replace("/login");
         return;
       }
 
-      setLoading(true);
-      setLoadError(null);
-
       const metricsRes = await supabase
         .from("metric_definitions")
         .select("id, user_id, domain, name, description, value_kind, unit, baseline_value, target_value, target_direction, cadence, archived, created_at, updated_at")
         .eq("user_id", user.id)
-        .eq("archived", false)
+        .eq("archived", requestedStatus === "archived")
         .order("created_at", { ascending: false });
 
+      if (seq !== requestSeq.current) return;
       if (metricsRes.error) throw metricsRes.error;
 
       const loadedMetrics = (metricsRes.data ?? []) as MetricDefinitionRow[];
@@ -81,20 +93,23 @@ function ResultsContent() {
         .order("recorded_at", { ascending: false })
         .limit(ENTRY_CONTEXT_LIMIT);
 
+      if (seq !== requestSeq.current) return;
       if (entriesRes.error) throw entriesRes.error;
       setEntries((entriesRes.data ?? []) as MetricEntryRow[]);
     } catch {
+      if (seq !== requestSeq.current) return;
       setLoadError("Results could not be loaded right now.");
       toast({ type: "error", title: "Failed to load results." });
     } finally {
-      setLoading(false);
+      if (seq === requestSeq.current) setLoading(false);
     }
-  }, [router, supabase, toast]);
+  }, [router, statusFilter, supabase, toast]);
 
   useEffect(() => {
+    statusFilterRef.current = statusFilter;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadResults();
-  }, [loadResults]);
+  }, [loadResults, statusFilter]);
 
   const entriesByMetric = useMemo(() => {
     const grouped: Record<string, MetricEntryRow[]> = {};
@@ -125,20 +140,42 @@ function ResultsContent() {
               <span>No automatic conversion or interpretation</span>
             </div>
           </div>
-          <Button onClick={() => setShowCreateForm((current) => !current)}>
-            {showCreateForm ? "Close" : "Create Metric"}
-          </Button>
+          {statusFilter === "active" && (
+            <Button onClick={() => setShowCreateForm((current) => !current)}>
+              {showCreateForm ? "Close" : "Create Metric"}
+            </Button>
+          )}
         </div>
 
-        {showCreateForm && (
+        {showCreateForm && statusFilter === "active" && (
           <CreateMetricForm
             onCancel={() => setShowCreateForm(false)}
             onSuccess={() => {
               setShowCreateForm(false);
-              loadResults();
+              if (statusFilterRef.current === "active") {
+                void loadResults("active");
+              }
             }}
           />
         )}
+
+        <div className="mb-3 flex gap-1 rounded-xl bg-[var(--surface-soft)] p-1">
+          {([
+            ["active", "Active"],
+            ["archived", "Archived"],
+          ] as const).map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => { statusFilterRef.current = value; setStatusFilter(value); setShowCreateForm(false); }}
+              className={`min-h-10 flex-1 rounded-lg px-3 py-2 text-xs font-medium transition-all ${
+                statusFilter === value ? "bg-[var(--surface)] text-[var(--text)] shadow-sm" : "text-[var(--text-muted)] hover:text-[var(--text)]"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
 
         <div className="mb-5 flex gap-1 overflow-x-auto rounded-xl bg-[var(--surface-soft)] p-1 [-webkit-overflow-scrolling:touch]">
           {DOMAIN_FILTERS.map((filter) => (
@@ -161,22 +198,22 @@ function ResultsContent() {
 
         {!loading && loadError && (
           <Card className="p-5 text-sm text-[var(--text-muted)]">
-            {loadError} <button type="button" onClick={loadResults} className="text-[var(--accent)] underline">Try again</button>
+            {loadError} <button type="button" onClick={() => void loadResults()} className="text-[var(--accent)] underline">Try again</button>
           </Card>
         )}
 
         {!loading && !loadError && metrics.length === 0 && (
           <Card className="p-6 text-center">
-            <h2 className="text-base font-semibold text-[var(--text)]">No results metrics yet</h2>
+            <h2 className="text-base font-semibold text-[var(--text)]">{statusFilter === "archived" ? "No archived metrics." : "No results metrics yet"}</h2>
             <p className="mt-2 text-sm text-[var(--text-muted)]">
-              Create a manual metric to start tracking outcomes over time.
+              {statusFilter === "archived" ? "Archived metrics will appear here when available." : "Create a manual metric to start tracking outcomes over time."}
             </p>
           </Card>
         )}
 
         {!loading && !loadError && metrics.length > 0 && visibleMetrics.length === 0 && (
           <Card className="p-5 text-sm text-[var(--text-muted)]">
-            No active metrics match this domain filter.
+            No {statusFilter === "archived" ? "archived" : "active"} metrics match this domain filter.
           </Card>
         )}
 
@@ -205,7 +242,7 @@ function MetricCard({ metric, entries }: { metric: MetricDefinitionRow; entries:
           </p>
         </div>
         <span className="shrink-0 rounded-full bg-[var(--surface-soft)] px-2 py-1 text-[10px] font-medium uppercase tracking-[0.12em] text-[var(--text-muted)]">
-          Manual
+          {metric.archived ? "Archived" : "Manual"}
         </span>
       </div>
 
