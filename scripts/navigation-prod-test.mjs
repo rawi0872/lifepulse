@@ -55,6 +55,7 @@ const requiredNavText = [
   "Passions",
   "Finance",
   "Journal",
+  "Results",
   "Insights",
   "Devices",
   "Settings",

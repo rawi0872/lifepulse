@@ -195,6 +195,8 @@ async function main() {
     "/projects",
     "/devices",
     "/coach",
+    "/results",
+    "/results/not-a-real-metric-id",
   ];
 
   for (const route of protectedRoutes) {
@@ -344,6 +346,7 @@ async function main() {
     ["/habits", "Habits page"],
     ["/tasks", "Tasks page"],
     ["/projects", "Projects page"],
+    ["/results", "Results page"],
     ["/finance", "Finance page"],
     ["/journal", "Journal page"],
     ["/insights", "Insights page"],
@@ -361,6 +364,14 @@ async function main() {
       if (bodyText.includes("Something went wrong") || bodyText.includes("Application error")) {
         fail(`${label} - page showed error state`);
         await page.screenshot({ path: `screenshot-${path.replace("/", "")}-error-state.png`, fullPage: true });
+      }
+      if (path === "/results") {
+        const resultsHeading = page.locator("h1", { hasText: "Results" });
+        if (await resultsHeading.isVisible({ timeout: 5000 })) {
+          pass("Results page - loaded with heading");
+        } else {
+          fail("Results page - heading not found");
+        }
       }
     }
   }
@@ -1246,7 +1257,7 @@ async function main() {
 
   // Verify protected routes redirect after logout
   console.log("   Verifying auth protection after logout...");
-  for (const route of ["/today", "/body", "/mind", "/weekly-review", "/knowledge", "/passions", "/coach"]) {
+  for (const route of ["/today", "/body", "/mind", "/weekly-review", "/knowledge", "/passions", "/coach", "/results"]) {
     await checkRedirect(page, `${BASE}${route}`, "/login", `post-logout ${route}`);
   }
 

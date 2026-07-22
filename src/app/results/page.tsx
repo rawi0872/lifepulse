@@ -237,7 +237,7 @@ function MetricCard({ metric, entries }: { metric: MetricDefinitionRow; entries:
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h2 className="break-words text-base font-semibold text-[var(--text)]">{metric.name}</h2>
-          <p className="mt-1 text-xs text-[var(--text-muted)]">
+          <p className="mt-1 break-words text-xs text-[var(--text-muted)]">
             {formatDomainLabel(metric.domain)} · {metric.unit} · {formatCadenceLabel(metric.cadence)}
           </p>
         </div>
@@ -252,7 +252,7 @@ function MetricCard({ metric, entries }: { metric: MetricDefinitionRow; entries:
         {latest ? (
           <>
             <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-[var(--text-muted)]">Latest recorded value</p>
-            <p className="mt-1 text-xl font-semibold text-[var(--text)]">
+            <p className="mt-1 break-words text-xl font-semibold text-[var(--text)]">
               {formatValue(latest.value, metric.unit, metric.value_kind)}
             </p>
             <p className="mt-1 text-xs text-[var(--text-muted)]">Recorded {formatDateShort(latest.recorded_at)}</p>

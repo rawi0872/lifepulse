@@ -195,7 +195,7 @@ function ResultsMetricDetailContent() {
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
                   <h1 className="break-words text-2xl font-bold text-[var(--text)]">{metric.name}</h1>
-                  <p className="mt-1 text-sm text-[var(--text-muted)]">
+                  <p className="mt-1 break-words text-sm text-[var(--text-muted)]">
                     {formatDomainLabel(metric.domain)} · {formatValueKindLabel(metric.value_kind)} · {metric.unit} · {formatCadenceLabel(metric.cadence)}
                   </p>
                 </div>
@@ -226,8 +226,8 @@ function ResultsMetricDetailContent() {
             <Card className="mb-6 p-4 sm:p-5">
               <h2 className="text-sm font-semibold text-[var(--text)]">Metric context</h2>
               <div className="mt-3 grid gap-2 text-sm text-[var(--text-muted)] sm:grid-cols-2">
-                <p>Baseline: {metric.baseline_value !== null ? formatValue(metric.baseline_value, metric.unit, metric.value_kind) : "Not set"}</p>
-                <p>Target: {metric.target_value !== null ? formatValue(metric.target_value, metric.unit, metric.value_kind) : "Not set"}</p>
+                <p className="break-words">Baseline: {metric.baseline_value !== null ? formatValue(metric.baseline_value, metric.unit, metric.value_kind) : "Not set"}</p>
+                <p className="break-words">Target: {metric.target_value !== null ? formatValue(metric.target_value, metric.unit, metric.value_kind) : "Not set"}</p>
                 <p>Target direction: {formatTargetDirectionLabel(metric.target_direction)}</p>
                 {metric.value_kind === "currency" && <p>No currency conversion is applied.</p>}
               </div>

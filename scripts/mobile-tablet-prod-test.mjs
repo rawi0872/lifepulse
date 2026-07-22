@@ -35,6 +35,7 @@ const OVERFLOW_TOLERANCE_PX = 2;
 
 const viewports = [
   { name: "phone", width: 390, height: 844, expectsMobileNav: true },
+  { name: "small-phone", width: 320, height: 740, expectsMobileNav: true },
   { name: "tablet", width: 768, height: 1024, expectsMobileNav: false },
   { name: "desktop", width: 1280, height: 900, expectsMobileNav: false },
 ];
@@ -45,6 +46,7 @@ const routes = [
   { path: "/habits", label: "Habits", text: ["Habits"] },
   { path: "/goals", label: "Goals", text: ["Goals"] },
   { path: "/projects", label: "Projects", text: ["Projects"] },
+  { path: "/results", label: "Results", text: ["Results", "Track measurable outcomes over time"] },
   { path: "/journal", label: "Journal", text: ["Journal"] },
   { path: "/knowledge", label: "Knowledge", text: ["Knowledge"] },
   { path: "/weekly-review", label: "Weekly Review", text: ["Weekly Review"] },
@@ -160,6 +162,7 @@ async function verifyMobileNavigation(page) {
     throw new Error("More menu did not show bigger-work route grouping copy.");
   }
   await expect(page.getByRole("link", { name: /^Goals$/ })).toBeVisible({ timeout: 15000 });
+  await expect(page.getByRole("link", { name: /^Results$/ })).toBeVisible({ timeout: 15000 });
   pass("Phone More menu opens and shows secondary routes");
 
   await page.getByRole("button", { name: "Close more menu" }).click();

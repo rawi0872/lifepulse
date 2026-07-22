@@ -11,6 +11,7 @@ export type ModuleKey =
   | "journal"
   | "goals"
   | "projects"
+  | "results"
   | "insights"
   | "settings"
   | "body"
@@ -92,6 +93,14 @@ export const MODULE_REGISTRY: readonly LifePulseModule[] = [
     status: "available",
     href: "/projects",
     description: "Organize multi-step work and project tasks.",
+  },
+  {
+    key: "results",
+    label: "Results",
+    category: "core",
+    status: "available",
+    href: "/results",
+    description: "Track measurable outcomes over time.",
   },
   {
     key: "insights",

@@ -34,14 +34,14 @@ export function MetricHistory({ entries, metric, limit }: MetricHistoryProps) {
           <div key={entry.id} className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div className="min-w-0">
-                <p className="font-medium text-[var(--text)]">{formatValue(entry.value, metric.unit, metric.value_kind)}</p>
+                <p className="break-words font-medium text-[var(--text)]">{formatValue(entry.value, metric.unit, metric.value_kind)}</p>
                 <p className="mt-1 text-xs text-[var(--text-muted)]">
                   {formatDate(entry.recorded_at)} ({formatRelativeTime(entry.recorded_at)})
                 </p>
               </div>
               <span className="shrink-0 text-[10px] uppercase tracking-[0.12em] text-[var(--text-muted)]">#{index + 1}</span>
             </div>
-            {entry.notes && <p className="mt-2 whitespace-pre-wrap text-xs text-[var(--text-secondary)]">{entry.notes}</p>}
+            {entry.notes && <p className="mt-2 whitespace-pre-wrap break-words text-xs text-[var(--text-secondary)]">{entry.notes}</p>}
           </div>
         ))}
       </div>

@@ -47,6 +47,7 @@ Life Pulse meets all private beta entry criteria. No P0/P1 blockers. Core daily 
 | Insights | `/insights` | Overview, activity trends, domain signals, quiet areas, manual review links, no NaN |
 | Goals | `/goals` | Next visible action, connected work, linked task/project/habit context, sparse guidance |
 | Projects | `/projects` | Next action, linked goal, open/completed task counts, sparse guidance |
+| Results | `/results` | Manual metric creation, result recording, newest-first history, metric editing, Active/Archived management, bounded queries |
 | Body | `/body` | Manual logging forms, safe disclaimers, no medical advice, exact balances intact |
 | Mind | `/mind` | Manual check-in, safe framing, no therapy/diagnosis |
 | Finance | `/finance` | Manual tracker, no bank connection, no financial advice, exact balances intact |
@@ -101,6 +102,8 @@ All routes load, show stable text, no blank/dead screens, no horizontal overflow
 - Habit history for exact streaks (all routes)
 - Realm XP mapping via `xp_events` in Insights
 - Lightweight all-history Finance transactions for exact balances
+
+**Results Status:** Results is available for manually recorded metrics and values. It supports manual metric creation, result recording, newest-first history, metric editing, and Active/Archived management. Queries are bounded, existing entries are preserved, no automatic conversion or interpretation is applied, and entry editing/deletion is not included in this release.
 
 ---
 
