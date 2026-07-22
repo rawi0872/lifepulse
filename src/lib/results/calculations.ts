@@ -4,6 +4,11 @@
 import type { MetricEntryRow, MetricDefinitionRow, ResultTargetDirection } from "@/lib/results/types";
 import { NUMERIC_ABS_MAX, NUMERIC_ABS_MIN, RATING_MIN, RATING_MAX, PERCENTAGE_MIN, PERCENTAGE_MAX, DURATION_MIN, DURATION_MAX, COUNT_MIN, COUNT_MAX } from "@/lib/results/contract";
 
+function getRecordedTime(entry: MetricEntryRow): number {
+  const time = new Date(entry.recorded_at).getTime();
+  return Number.isFinite(time) ? time : 0;
+}
+
 export function parseNumeric(value: string | number | null): number | null {
   if (value === null || value === undefined) return null;
   const str = String(value).trim();
@@ -48,7 +53,7 @@ export function validateValueForKind(
 }
 
 export function sortEntriesChronological(entries: MetricEntryRow[]): MetricEntryRow[] {
-  return [...entries].sort((a, b) => new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime());
+  return [...entries].sort((a, b) => getRecordedTime(a) - getRecordedTime(b));
 }
 
 export function getLatestEntry(entries: MetricEntryRow[]): MetricEntryRow | null {

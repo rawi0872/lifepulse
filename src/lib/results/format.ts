@@ -50,35 +50,40 @@ function formatCurrency(value: number, currency: string): string {
 
 export function formatDate(dateString: string): string {
   try {
+    const date = new Date(dateString);
+    if (!Number.isFinite(date.getTime())) return "Date unavailable";
     return new Intl.DateTimeFormat("en-US", {
       month: "short",
       day: "numeric",
       year: "numeric",
       hour: "2-digit",
       minute: "2-digit",
-    }).format(new Date(dateString));
+    }).format(date);
   } catch {
-    return dateString;
+    return "Date unavailable";
   }
 }
 
 export function formatDateShort(dateString: string): string {
   try {
+    const date = new Date(dateString);
+    if (!Number.isFinite(date.getTime())) return "Date unavailable";
     return new Intl.DateTimeFormat("en-US", {
       month: "short",
       day: "numeric",
       year: "numeric",
-    }).format(new Date(dateString));
+    }).format(date);
   } catch {
-    return dateString;
+    return "Date unavailable";
   }
 }
 
 export function formatRelativeTime(dateString: string): string {
   try {
     const timestamp = new Date(dateString).getTime();
-    if (!Number.isFinite(timestamp)) return dateString || "Date unavailable";
+    if (!Number.isFinite(timestamp)) return "Date unavailable";
     const diff = Date.now() - timestamp;
+    if (diff < 0) return "In the future";
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
     if (days === 0) return "Today";
     if (days === 1) return "Yesterday";
@@ -87,7 +92,7 @@ export function formatRelativeTime(dateString: string): string {
     if (days < 365) return `${Math.floor(days / 30)}mo ago`;
     return `${Math.floor(days / 365)}y ago`;
   } catch {
-    return dateString;
+    return "Date unavailable";
   }
 }
 

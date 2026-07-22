@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DashboardNav } from "@/components/DashboardNav";
 import { CreateMetricForm } from "@/components/results/CreateMetricForm";
@@ -234,6 +235,9 @@ function MetricCard({ metric, entries }: { metric: MetricDefinitionRow; entries:
         <p>{entries.length < 2 ? "More entries are needed for a trend." : "Based on manually recorded results."}</p>
         {metric.value_kind === "currency" && <p>No currency conversion is applied.</p>}
       </div>
+      <Link href={`/results/${metric.id}`} aria-label={`View details for ${metric.name}`} className="mt-4 inline-flex min-h-10 items-center rounded-lg text-sm font-medium text-[var(--accent)] hover:underline">
+        View details
+      </Link>
     </Card>
   );
 }
