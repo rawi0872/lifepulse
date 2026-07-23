@@ -7,12 +7,10 @@ import { createClient } from "@/lib/supabase/client";
 import {
   getTodayDateString,
   getWeekStartDate,
-  getTodayStartISO,
   getTodayDayOfWeek,
 } from "@/lib/utils";
-import { getCurrentStreak, getWeeklyProgress } from "@/lib/streaks";
+import { getCurrentStreak } from "@/lib/streaks";
 import { toggleTaskCompletion } from "@/lib/taskCompletion";
-import { loadExactXpTotals } from "@/lib/xpTotals";
 import { DashboardNav } from "@/components/DashboardNav";
 import { JournalSection } from "@/components/JournalSection";
 import { XpDisplay } from "@/components/XpDisplay";
@@ -26,70 +24,9 @@ import { MindPulseSection } from "@/components/today/MindPulseSection";
 import { FinanceOverview } from "@/components/today/FinanceOverview";
 import { NextBestAction } from "@/components/today/NextBestAction";
 import { TodayEcosystemStrip } from "@/components/today/TodayEcosystemStrip";
-import { resolveIntendedUse, TODAY_COPY, type IntendedUse } from "@/lib/intendedUse";
+import { TODAY_COPY } from "@/lib/intendedUse";
 import { getRecommendedModules } from "@/lib/modules";
-
-interface RealmInfo {
-  name: string;
-  color: string;
-  icon: string;
-}
-
-interface Habit {
-  id: string;
-  title: string;
-  description: string | null;
-  frequency: string;
-  days_of_week: number[] | null;
-  times_per_week: number | null;
-  realms: RealmInfo | null;
-}
-
-interface Task {
-  id: string;
-  title: string;
-  description: string | null;
-  priority: string;
-  due_date: string | null;
-  status: string;
-  completed_at: string | null;
-  project_id: string | null;
-  realms: RealmInfo | null;
-  projects?: { title: string } | null;
-}
-
-interface ProjectTask {
-  id: string;
-  title: string;
-  status: string;
-  due_date: string | null;
-  project_id: string;
-  projects: { title: string } | null;
-  realms: RealmInfo | null;
-}
-
-interface TaskProjectContext {
-  id: string;
-  title: string;
-  status: string | null;
-}
-
-interface GoalLink {
-  goal_id: string;
-  linked_type: string;
-  linked_id: string;
-}
-
-interface LinkedGoal {
-  id: string;
-  title: string;
-  status: string | null;
-}
-
-interface TodayTaskExecutionContext {
-  projectTitle?: string;
-  goalContext?: string;
-}
+import { useTodayData } from "@/hooks/use-today-data";
 
 interface FirstLoopGuideStep {
   label: string;
@@ -105,38 +42,11 @@ interface ReviewHandoffRow {
   active: boolean;
 }
 
-function formatGoalContext(goals: LinkedGoal[]): string | undefined {
-  if (goals.length === 0) return undefined;
-
-  const activeGoals = goals.filter((goal) => goal.status === "active");
-  const displayGoals = activeGoals.length > 0 ? activeGoals : goals;
-  const goalTitles = displayGoals.slice(0, 2).map((goal) => goal.title).join(" · ");
-  const remainingCount = displayGoals.length - 2;
-
-  if (displayGoals.length === 1) return `Goal: ${goalTitles}`;
-  if (goalTitles) return `Supports goals: ${goalTitles}${remainingCount > 0 ? ` +${remainingCount}` : ""}`;
-  return `Supports ${goals.length} goals`;
-}
-
 let priorityIdCounter = 0;
 
 function TodayContent() {
-  const [habits, setHabits] = useState<Habit[]>([]);
-  const [completedHabitIds, setCompletedHabitIds] = useState<Set<string>>(new Set());
-  const [tpwCounts, setTpwCounts] = useState<Record<string, number>>({});
   const [streakMap, setStreakMap] = useState<Record<string, number>>({});
-  const [weeklyProgressMap, setWeeklyProgressMap] = useState<Record<string, { completed: number; target: number } | null>>({});
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [taskProjects, setTaskProjects] = useState<TaskProjectContext[]>([]);
-  const [taskGoalLinks, setTaskGoalLinks] = useState<GoalLink[]>([]);
-  const [linkedGoals, setLinkedGoals] = useState<LinkedGoal[]>([]);
-  const [todayXp, setTodayXp] = useState(0);
-  const [totalXp, setTotalXp] = useState(0);
-  const [intendedUse, setIntendedUse] = useState<IntendedUse>("personal");
-  const [hasJournal, setHasJournal] = useState(false);
   const [weeklyKnowledgeItems, setWeeklyKnowledgeItems] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [firstLoopGuideDismissed, setFirstLoopGuideDismissed] = useState(() => {
     try {
       return localStorage.getItem("life-pulse:first-loop-guide-dismissed") === "true";
@@ -176,8 +86,6 @@ function TodayContent() {
   const [quickType, setQuickType] = useState<"task" | "habit" | "project">("task");
   const [quickSaving, setQuickSaving] = useState(false);
 
-
-  const [projectTasks, setProjectTasks] = useState<ProjectTask[]>([]);
   const [financeNet, setFinanceNet] = useState<number | null>(null);
   const [financeHasTx, setFinanceHasTx] = useState(false);
   const [bodyLoggedToday, setBodyLoggedToday] = useState(false);
@@ -188,32 +96,35 @@ function TodayContent() {
   const [hasNutritionToday, setHasNutritionToday] = useState(true);
   const [hasActivePassions, setHasActivePassions] = useState(true);
   const [hasPassionSessionThisWeek, setHasPassionSessionThisWeek] = useState(true);
-  const [goalPreviewGoals, setGoalPreviewGoals] = useState<{ id: string; status: string; target_date: string | null }[]>([]);
-  const [goalPreviewMilestones, setGoalPreviewMilestones] = useState<{ goal_id: string; completed_at: string | null }[]>([]);
-  const [goalPreviewLinks, setGoalPreviewLinks] = useState<{ goal_id: string | null; linked_type: string | null }[]>([]);
-
   const router = useRouter();
   const [supabase] = useState(() => createClient());
   const { toast } = useToast();
-  const today = getTodayDateString();
-  const weekStart = getWeekStartDate();
+  const todayData = useTodayData(supabase);
+  const todayModel = todayData.model;
+  const today = todayModel?.date.localDate ?? getTodayDateString();
+  const weekStart = todayModel?.date.weekStart ?? getWeekStartDate();
   const knowledgeWeekStart = toLocalDateBoundaryIso(weekStart, "start");
   const knowledgeWeekEnd = toLocalDateBoundaryIso(today, "end");
-  const todayDow = getTodayDayOfWeek();
-
-  const dueHabits = useMemo(() => habits.filter((h) => {
-    if (h.frequency === "daily") return true;
-    if (h.frequency === "weekdays") {
-      return h.days_of_week?.includes(todayDow) ?? false;
-    }
-    if (h.frequency === "times_per_week") {
-      return (tpwCounts[h.id] ?? 0) < (h.times_per_week ?? 1);
-    }
-    return false;
-  }), [habits, todayDow, tpwCounts]);
-
-  const completedHabitCount = useMemo(() => dueHabits.filter((h) => completedHabitIds.has(h.id)).length, [completedHabitIds, dueHabits]);
-  const doneTaskCount = useMemo(() => tasks.filter((t) => t.status === "done").length, [tasks]);
+  const todayDow = todayModel?.date.dayOfWeek ?? getTodayDayOfWeek();
+  const habits = useMemo(() => todayModel?.habits.all ?? [], [todayModel?.habits.all]);
+  const dueHabits = useMemo(() => todayModel?.habits.dueToday ?? [], [todayModel?.habits.dueToday]);
+  const completedHabitIds = todayModel?.habits.completedIds ?? new Set<string>();
+  const completedHabitCount = todayModel?.habits.completedCount ?? 0;
+  const weeklyProgressMap = todayModel?.habits.weeklyProgressById ?? {};
+  const tasks = useMemo(() => todayModel?.tasks.relevant ?? [], [todayModel?.tasks.relevant]);
+  const doneTaskCount = todayModel?.tasks.doneCount ?? 0;
+  const todayXp = todayModel?.xp.today ?? 0;
+  const totalXp = todayModel?.xp.total ?? 0;
+  const intendedUse = todayModel?.intendedUse ?? "personal";
+  const hasJournal = todayModel?.reflection.hasReflection ?? false;
+  const loading = todayData.loading;
+  const error = todayData.error;
+  const todayUserId = todayData.userId;
+  const projectTasks = useMemo(() => todayModel?.context.projectTasks ?? [], [todayModel?.context.projectTasks]);
+  const goalPreviewGoals = useMemo(() => todayModel?.context.goalPreviewGoals ?? [], [todayModel?.context.goalPreviewGoals]);
+  const goalPreviewMilestones = useMemo(() => todayModel?.context.goalPreviewMilestones ?? [], [todayModel?.context.goalPreviewMilestones]);
+  const goalPreviewLinks = useMemo(() => todayModel?.context.goalPreviewLinks ?? [], [todayModel?.context.goalPreviewLinks]);
+  const taskExecutionContextById = todayModel?.tasks.contextById ?? {};
   const [suggestedHidden, setSuggestedHidden] = useState(false);
   const todoProjectTasks = useMemo(() => projectTasks.filter((t) => t.status === "todo"), [projectTasks]);
   const suggestedTask = !suggestedHidden ? (todoProjectTasks[0] ?? null) : null;
@@ -235,44 +146,7 @@ function TodayContent() {
     ? `${activeGoalsCount} active${goalMilestoneCount > 0 ? ` · ${goalMilestoneDoneCount}/${goalMilestoneCount} milestones` : ""}`
     : "View";
 
-  const taskProjectsById = useMemo(() => {
-    return taskProjects.reduce<Record<string, TaskProjectContext>>((map, project) => {
-      map[project.id] = project;
-      return map;
-    }, {});
-  }, [taskProjects]);
-
-  const goalsById = useMemo(() => {
-    return linkedGoals.reduce<Record<string, LinkedGoal>>((map, goal) => {
-      map[goal.id] = goal;
-      return map;
-    }, {});
-  }, [linkedGoals]);
-
-  const goalsByTaskId = useMemo(() => {
-    return taskGoalLinks.reduce<Record<string, LinkedGoal[]>>((map, link) => {
-      if (link.linked_type !== "task") return map;
-      const goal = goalsById[link.goal_id];
-      if (!goal) return map;
-      if (!map[link.linked_id]) map[link.linked_id] = [];
-      map[link.linked_id].push(goal);
-      return map;
-    }, {});
-  }, [taskGoalLinks, goalsById]);
-
-  const taskExecutionContextById = useMemo(() => {
-    return tasks.reduce<Record<string, TodayTaskExecutionContext>>((map, task) => {
-      const projectTitle = task.project_id
-        ? taskProjectsById[task.project_id]?.title ?? task.projects?.title
-        : undefined;
-      const goalContext = formatGoalContext(goalsByTaskId[task.id] ?? []);
-      if (projectTitle || goalContext) {
-        map[task.id] = { projectTitle, goalContext };
-      }
-      return map;
-    }, {});
-  }, [tasks, taskProjectsById, goalsByTaskId]);
-  const suggestedTaskGoalContext = suggestedTask ? formatGoalContext(goalsByTaskId[suggestedTask.id] ?? []) : undefined;
+  const suggestedTaskGoalContext = suggestedTask ? taskExecutionContextById[suggestedTask.id]?.goalContext : undefined;
 
   function savePriorities(items: Priority[]) {
     localStorage.setItem("lifepulse_priorities", JSON.stringify({ date: today, items }));
@@ -386,307 +260,113 @@ function TodayContent() {
   }
 
   useEffect(() => {
+    if (!todayUserId) return;
+
     let cancelled = false;
 
-    async function load() {
+    async function loadSecondarySignals() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-          router.push("/login");
-          return;
-        }
+        if (!user || user.id !== todayUserId) return;
 
-        const [profileRes, habitsRes, tasksRes, journalRes, weekLogsRes, xpTotals] = await Promise.all([
+        const year = today.slice(0, 4);
+        const month = today.slice(5, 7);
+        const monthStart = `${year}-${month}-01`;
+        const lastDay = new Date(Number(year), Number(month), 0).getDate();
+        const monthEnd = `${year}-${month}-${String(lastDay).padStart(2, "0")}`;
+
+        const [financeRes, bodyRes, mindRes, workoutRes, nutritionRes, passionsRes, sessionsRes, knowledgeWeekRes, allHabitLogsRes] = await Promise.all([
           supabase
-            .from("profiles")
-            .select("intended_use")
+            .from("finance_transactions")
+            .select("amount, type")
             .eq("user_id", user.id)
-            .single(),
+            .gte("transaction_date", monthStart)
+            .lte("transaction_date", monthEnd),
           supabase
-            .from("habits")
-            .select("id, title, description, frequency, days_of_week, times_per_week, realms(name, color, icon)")
-            .eq("user_id", user.id),
-          supabase
-            .from("tasks")
-            .select("id, title, description, priority, due_date, status, completed_at, project_id, realms(name, color, icon), projects(title)")
-            .eq("user_id", user.id)
-            .or(`due_date.eq.${today},and(due_date.lt.${today},status.eq.todo),and(due_date.is.null,status.eq.todo)`)
-            .order("due_date", { ascending: true }),
-          supabase
-            .from("journal_entries")
-            .select("id")
+            .from("body_metrics")
+            .select("energy")
             .eq("user_id", user.id)
             .eq("entry_date", today)
             .maybeSingle(),
           supabase
+            .from("mind_metrics")
+            .select("mood")
+            .eq("user_id", user.id)
+            .eq("entry_date", today)
+            .maybeSingle(),
+          supabase
+            .from("workouts")
+            .select("id")
+            .eq("user_id", user.id)
+            .gte("workout_date", weekStart),
+          supabase
+            .from("nutrition_logs")
+            .select("id")
+            .eq("user_id", user.id)
+            .eq("log_date", today),
+          supabase
+            .from("passions")
+            .select("id")
+            .eq("user_id", user.id)
+            .eq("status", "active"),
+          supabase
+            .from("passion_sessions")
+            .select("id")
+            .eq("user_id", user.id)
+            .gte("session_date", weekStart),
+          supabase
+            .from("knowledge_items")
+            .select("id, created_at")
+            .eq("user_id", user.id)
+            .gte("created_at", knowledgeWeekStart)
+            .lte("created_at", knowledgeWeekEnd),
+          supabase
             .from("habit_logs")
             .select("habit_id, completed_date")
-            .eq("user_id", user.id)
-            .gte("completed_date", weekStart),
-          loadExactXpTotals(supabase, user.id, getTodayStartISO()),
+            .eq("user_id", user.id),
         ]);
 
         if (cancelled) return;
 
-        if (profileRes.data) {
-          setIntendedUse(resolveIntendedUse(profileRes.data.intended_use));
-        }
-        if (journalRes.data) setHasJournal(true);
+        const financeRows = (financeRes.data ?? []) as { amount?: number | string | null; type?: string | null }[];
+        const income = financeRows.reduce((sum, row) => row.type === "income" ? sum + Number(row.amount) : sum, 0);
+        const expense = financeRows.reduce((sum, row) => row.type === "expense" ? sum + Number(row.amount) : sum, 0);
+        setFinanceNet(income - expense);
+        setFinanceHasTx(financeRows.length > 0);
 
-        if (habitsRes.data) {
-          const habits = habitsRes.data as unknown as Habit[];
-          setHabits(habits);
+        setBodyLoggedToday(Boolean(bodyRes.data));
+        setBodyEnergyToday(bodyRes.data?.energy ?? null);
+        setMindLoggedToday(Boolean(mindRes.data));
+        setMindMoodToday(mindRes.data?.mood ?? null);
+        setHasWorkoutThisWeek((workoutRes.data ?? []).length > 0);
+        setHasNutritionToday((nutritionRes.data ?? []).length > 0);
+        setHasActivePassions((passionsRes.data ?? []).length > 0);
+        setHasPassionSessionThisWeek((sessionsRes.data ?? []).length > 0);
+        setWeeklyKnowledgeItems((knowledgeWeekRes.data ?? []).length);
 
-          const weekLogs = weekLogsRes.data ?? [];
-          const todayLogs = weekLogs.filter((l: { completed_date: string }) => l.completed_date === today);
+        const logsByHabit: Record<string, string[]> = {};
+        ((allHabitLogsRes.data ?? []) as { habit_id: string; completed_date: string }[]).forEach((log) => {
+          if (!logsByHabit[log.habit_id]) logsByHabit[log.habit_id] = [];
+          logsByHabit[log.habit_id].push(log.completed_date);
+        });
 
-          setCompletedHabitIds(new Set(todayLogs.map((l: { habit_id: string }) => l.habit_id)));
-
-          const counts: Record<string, number> = {};
-          weekLogs.forEach((l: { habit_id: string }) => { counts[l.habit_id] = (counts[l.habit_id] ?? 0) + 1; });
-          setTpwCounts(counts);
-
-          const wMap: Record<string, { completed: number; target: number } | null> = {};
-          habits.forEach((h) => {
-            const dates = weekLogs.filter((l: { habit_id: string }) => l.habit_id === h.id).map((l: { completed_date: string }) => l.completed_date);
-            wMap[h.id] = getWeeklyProgress(dates, h.frequency, h.times_per_week, weekStart);
-          });
-          setWeeklyProgressMap(wMap);
-        }
-        if (tasksRes.data) setTasks(tasksRes.data as unknown as Task[]);
-        setTodayXp(xpTotals.todayXp);
-        setTotalXp(xpTotals.totalXp);
-
-        setLoading(false);
-
-        try {
-          const year = today.slice(0, 4);
-          const month = today.slice(5, 7);
-          const monthStart = `${year}-${month}-01`;
-          const lastDay = new Date(Number(year), Number(month), 0).getDate();
-          const monthEnd = `${year}-${month}-${String(lastDay).padStart(2, "0")}`;
-
-          const [financeRes, bodyRes, mindRes, workoutRes, nutritionRes, passionsRes, sessionsRes, knowledgeWeekRes, goalMsRes, goalLinkRes, projectTasksRes, taskProjectsRes, taskGoalLinksRes, taskGoalsRes, allHabitLogsRes] = await Promise.all([
-            supabase
-              .from("finance_transactions")
-              .select("amount, type")
-              .eq("user_id", user.id)
-              .gte("transaction_date", monthStart)
-              .lte("transaction_date", monthEnd),
-            supabase
-              .from("body_metrics")
-              .select("energy")
-              .eq("user_id", user.id)
-              .eq("entry_date", today)
-              .maybeSingle(),
-            supabase
-              .from("mind_metrics")
-              .select("mood")
-              .eq("user_id", user.id)
-              .eq("entry_date", today)
-              .maybeSingle(),
-            supabase
-              .from("workouts")
-              .select("id")
-              .eq("user_id", user.id)
-              .gte("workout_date", weekStart),
-            supabase
-              .from("nutrition_logs")
-              .select("id")
-              .eq("user_id", user.id)
-              .eq("log_date", today),
-            supabase
-              .from("passions")
-              .select("id")
-              .eq("user_id", user.id)
-              .eq("status", "active"),
-            supabase
-              .from("passion_sessions")
-              .select("id")
-              .eq("user_id", user.id)
-              .gte("session_date", weekStart),
-            supabase
-              .from("knowledge_items")
-              .select("id, created_at")
-              .eq("user_id", user.id)
-              .gte("created_at", knowledgeWeekStart)
-              .lte("created_at", knowledgeWeekEnd),
-            supabase
-              .from("goal_milestones")
-              .select("goal_id, completed_at")
-              .eq("user_id", user.id),
-            supabase
-              .from("goal_links")
-              .select("goal_id, linked_type")
-              .eq("user_id", user.id),
-            supabase
-              .from("tasks")
-              .select("id, title, status, due_date, project_id, projects!inner(title), realms(name, color, icon)")
-              .eq("user_id", user.id)
-              .not("project_id", "is", null)
-              .eq("status", "todo")
-              .order("due_date", { ascending: true })
-              .limit(5),
-            supabase
-              .from("projects")
-              .select("id, title, status")
-              .eq("user_id", user.id),
-            supabase
-              .from("goal_links")
-              .select("goal_id, linked_type, linked_id")
-              .eq("user_id", user.id)
-              .eq("linked_type", "task"),
-            supabase
-              .from("goals")
-              .select("id, title, status, target_date")
-              .eq("user_id", user.id),
-            supabase
-              .from("habit_logs")
-              .select("habit_id, completed_date")
-              .eq("user_id", user.id),
-          ]);
-
-          if (!cancelled) {
-            const financeRows = (financeRes.data ?? []) as { amount?: number | string | null; type?: string | null }[];
-            const income = financeRows.reduce((s, r) => r.type === "income" ? s + Number(r.amount) : s, 0);
-            const expense = financeRows.reduce((s, r) => r.type === "expense" ? s + Number(r.amount) : s, 0);
-            setFinanceNet(income - expense);
-            setFinanceHasTx(financeRows.length > 0);
-
-            if (bodyRes.data) {
-              setBodyLoggedToday(true);
-              setBodyEnergyToday(bodyRes.data.energy);
-            }
-            if (mindRes.data) {
-              setMindLoggedToday(true);
-              setMindMoodToday(mindRes.data.mood);
-            }
-            setHasWorkoutThisWeek((workoutRes.data ?? []).length > 0);
-            setHasNutritionToday((nutritionRes.data ?? []).length > 0);
-            setHasActivePassions((passionsRes.data ?? []).length > 0);
-            setHasPassionSessionThisWeek((sessionsRes.data ?? []).length > 0);
-            setWeeklyKnowledgeItems((knowledgeWeekRes.data ?? []).length);
-            if (goalMsRes.data) setGoalPreviewMilestones(goalMsRes.data);
-            if (goalLinkRes.data) setGoalPreviewLinks(goalLinkRes.data);
-            if (projectTasksRes.data) setProjectTasks(projectTasksRes.data as unknown as ProjectTask[]);
-            if (taskProjectsRes.data) setTaskProjects(taskProjectsRes.data as TaskProjectContext[]);
-            if (taskGoalLinksRes.data) setTaskGoalLinks(taskGoalLinksRes.data as GoalLink[]);
-            if (taskGoalsRes.data) {
-              setLinkedGoals(taskGoalsRes.data as LinkedGoal[]);
-              setGoalPreviewGoals(taskGoalsRes.data as { id: string; status: string; target_date: string | null }[]);
-            }
-            if (habitsRes.data && allHabitLogsRes.data) {
-              const habits = habitsRes.data as unknown as Habit[];
-              const logsByHabit: Record<string, string[]> = {};
-              allHabitLogsRes.data.forEach((l: { habit_id: string; completed_date: string }) => {
-                if (!logsByHabit[l.habit_id]) logsByHabit[l.habit_id] = [];
-                logsByHabit[l.habit_id].push(l.completed_date);
-              });
-
-              const sMap: Record<string, number> = {};
-              habits.forEach((h) => {
-                const dates = logsByHabit[h.id] ?? [];
-                sMap[h.id] = getCurrentStreak(dates, h.frequency, h.days_of_week);
-              });
-              setStreakMap(sMap);
-            }
-          }
-        } catch (secondaryError) {
-          console.warn("Failed to load secondary Today signals", secondaryError);
-        }
-      } catch {
-        setError("Failed to load dashboard.");
+        const nextStreakMap: Record<string, number> = {};
+        habits.forEach((habit) => {
+          const dates = logsByHabit[habit.id] ?? [];
+          nextStreakMap[habit.id] = getCurrentStreak(dates, habit.frequency, habit.days_of_week);
+        });
+        setStreakMap(nextStreakMap);
+      } catch (secondaryError) {
+        console.warn("Failed to load secondary Today signals", secondaryError);
       }
-      setLoading(false);
     }
 
-    load();
+    loadSecondarySignals();
     return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [habits, knowledgeWeekEnd, knowledgeWeekStart, supabase, today, todayUserId, weekStart]);
 
   async function reloadAll() {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const [tasksRes, habitsRes, projectTasksRes, allLogsRes, xpTotals, taskProjectsRes, taskGoalLinksRes, taskGoalsRes] = await Promise.all([
-      supabase
-        .from("tasks")
-        .select("id, title, description, priority, due_date, status, completed_at, project_id, realms(name, color, icon), projects(title)")
-        .eq("user_id", user.id)
-        .or(`due_date.eq.${today},and(due_date.lt.${today},status.eq.todo),and(due_date.is.null,status.eq.todo)`)
-        .order("due_date", { ascending: true }),
-      supabase
-        .from("habits")
-        .select("id, title, description, frequency, days_of_week, times_per_week, realms(name, color, icon)")
-        .eq("user_id", user.id),
-      supabase
-        .from("tasks")
-        .select("id, title, status, due_date, project_id, projects!inner(title), realms(name, color, icon)")
-        .eq("user_id", user.id)
-        .not("project_id", "is", null)
-        .eq("status", "todo")
-        .order("due_date", { ascending: true })
-        .limit(5),
-      supabase
-        .from("habit_logs")
-        .select("habit_id, completed_date")
-        .eq("user_id", user.id),
-      loadExactXpTotals(supabase, user.id, getTodayStartISO()),
-      supabase
-        .from("projects")
-        .select("id, title, status")
-        .eq("user_id", user.id),
-      supabase
-        .from("goal_links")
-        .select("goal_id, linked_type, linked_id")
-        .eq("user_id", user.id)
-        .eq("linked_type", "task"),
-      supabase
-        .from("goals")
-        .select("id, title, status")
-        .eq("user_id", user.id),
-    ]);
-
-    if (tasksRes.data) setTasks(tasksRes.data as unknown as Task[]);
-    if (projectTasksRes.data) setProjectTasks(projectTasksRes.data as unknown as ProjectTask[]);
-    if (taskProjectsRes.data) setTaskProjects(taskProjectsRes.data as TaskProjectContext[]);
-    if (taskGoalLinksRes.data) setTaskGoalLinks(taskGoalLinksRes.data as GoalLink[]);
-    if (taskGoalsRes.data) setLinkedGoals(taskGoalsRes.data as LinkedGoal[]);
-
-    if (habitsRes.data) {
-      const habits = habitsRes.data as unknown as Habit[];
-      setHabits(habits);
-
-      const logsByHabit: Record<string, string[]> = {};
-      allLogsRes.data?.forEach((l: { habit_id: string; completed_date: string }) => {
-        if (!logsByHabit[l.habit_id]) logsByHabit[l.habit_id] = [];
-        logsByHabit[l.habit_id].push(l.completed_date);
-      });
-
-      const todayLogs = allLogsRes.data?.filter((l: { completed_date: string }) => l.completed_date === today) ?? [];
-      const weekLogs = allLogsRes.data?.filter((l: { completed_date: string }) => l.completed_date >= weekStart) ?? [];
-
-      setCompletedHabitIds(new Set(todayLogs.map((l: { habit_id: string }) => l.habit_id)));
-
-      const counts: Record<string, number> = {};
-      weekLogs.forEach((l: { habit_id: string }) => { counts[l.habit_id] = (counts[l.habit_id] ?? 0) + 1; });
-      setTpwCounts(counts);
-
-      const sMap: Record<string, number> = {};
-      const wMap: Record<string, { completed: number; target: number } | null> = {};
-      habits.forEach((h) => {
-        const dates = logsByHabit[h.id] ?? [];
-        sMap[h.id] = getCurrentStreak(dates, h.frequency, h.days_of_week);
-        wMap[h.id] = getWeeklyProgress(dates, h.frequency, h.times_per_week, weekStart);
-      });
-      setStreakMap(sMap);
-      setWeeklyProgressMap(wMap);
-    }
-
-    setTodayXp(xpTotals.todayXp);
-    setTotalXp(xpTotals.totalXp);
-
+    await todayData.refresh();
     setSuggestedHidden(false);
   }
 
@@ -699,6 +379,7 @@ function TodayContent() {
         const { data: existing } = await supabase
           .from("habit_logs")
           .select("id")
+          .eq("user_id", user.id)
           .eq("habit_id", habitId)
           .eq("completed_date", today)
           .maybeSingle();
@@ -716,45 +397,53 @@ function TodayContent() {
 
         if (logErr || !log) return;
 
-        await supabase.from("xp_events").insert({
+        const { error: xpErr } = await supabase.from("xp_events").insert({
           user_id: user.id,
           source_type: "habit",
           source_id: log.id,
           amount: 10,
         });
 
+        if (xpErr) {
+          await supabase.from("habit_logs").delete().eq("id", log.id).eq("user_id", user.id);
+          toast({ type: "error", title: "Failed to update habit." });
+          return;
+        }
+
         toast({
           type: "success",
           title: "Visible action logged",
           description: "+10 XP added. This habit will appear in your weekly rhythm. Reflect tonight to add context.",
         });
-        setCompletedHabitIds(new Set([...completedHabitIds, habitId]));
-        setTpwCounts((prev) => ({ ...prev, [habitId]: (prev[habitId] ?? 0) + 1 }));
-        setTodayXp((prev) => prev + 10);
-        setTotalXp((prev) => prev + 10);
+        todayData.setHabitCompleted(habitId, true);
+        todayData.adjustXp(10, 10);
       } else {
         const { data: logs } = await supabase
           .from("habit_logs")
           .select("id")
+          .eq("user_id", user.id)
           .eq("habit_id", habitId)
           .eq("completed_date", today);
 
         if (logs && logs.length > 0) {
           const logId = logs[0].id;
-          await supabase.from("xp_events").delete().match({
+          const { error: xpDeleteErr } = await supabase.from("xp_events").delete().match({
             source_type: "habit",
             source_id: logId,
             user_id: user.id,
           });
-          await supabase.from("habit_logs").delete().eq("id", logId);
+          if (xpDeleteErr) { toast({ type: "error", title: "Failed to update habit." }); return; }
+
+          const { error: logDeleteErr } = await supabase
+            .from("habit_logs")
+            .delete()
+            .eq("id", logId)
+            .eq("user_id", user.id);
+          if (logDeleteErr) { toast({ type: "error", title: "Failed to update habit." }); return; }
         }
 
-        const newSet = new Set(completedHabitIds);
-        newSet.delete(habitId);
-        setCompletedHabitIds(newSet);
-        setTpwCounts((prev) => ({ ...prev, [habitId]: Math.max(0, (prev[habitId] ?? 1) - 1) }));
-        setTodayXp((prev) => Math.max(0, prev - 10));
-        setTotalXp((prev) => Math.max(0, prev - 10));
+        todayData.setHabitCompleted(habitId, false);
+        todayData.adjustXp(-10, -10);
       }
     } catch {
       toast({ type: "error", title: "Failed to update habit." });
@@ -774,23 +463,21 @@ function TodayContent() {
         title: "Visible action logged",
         description: "+25 XP added. This task will appear in your weekly rhythm. Reflect tonight to add context.",
       });
-      setTasks((prev) =>
+      todayData.setTasks((prev) =>
         prev.map((t) =>
           t.id === taskId
             ? { ...t, status: "done", completed_at: new Date().toISOString() }
             : t,
         ),
       );
-      setTodayXp((prev) => prev + 25);
-      setTotalXp((prev) => prev + 25);
+      todayData.adjustXp(25, 25);
     } else {
-      setTasks((prev) =>
+      todayData.setTasks((prev) =>
         prev.map((t) =>
           t.id === taskId ? { ...t, status: "todo", completed_at: null } : t,
         ),
       );
-      setTodayXp((prev) => Math.max(0, prev - 25));
-      setTotalXp((prev) => Math.max(0, prev - 25));
+      todayData.adjustXp(-25, -25);
     }
   }
 
@@ -801,7 +488,7 @@ function TodayContent() {
     const result = await toggleTaskCompletion(supabase, user.id, taskId, isDone);
     if (!result.success) return;
 
-    setProjectTasks((prev) =>
+    todayData.setProjectTasks((prev) =>
       prev.map((t) =>
         t.id === taskId ? { ...t, status: isDone ? "done" : "todo" } : t,
       ),
@@ -812,11 +499,9 @@ function TodayContent() {
         title: "Project action completed",
         description: "This action will appear in your weekly rhythm. Reflect tonight to add context.",
       });
-      setTodayXp((prev) => prev + 25);
-      setTotalXp((prev) => prev + 25);
+      todayData.adjustXp(25, 25);
     } else {
-      setTodayXp((prev) => Math.max(0, prev - 25));
-      setTotalXp((prev) => Math.max(0, prev - 25));
+      todayData.adjustXp(-25, -25);
     }
   }
 
