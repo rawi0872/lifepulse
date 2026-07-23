@@ -23,6 +23,7 @@ import { BodyPulseSection } from "@/components/today/BodyPulseSection";
 import { MindPulseSection } from "@/components/today/MindPulseSection";
 import { FinanceOverview } from "@/components/today/FinanceOverview";
 import { NextBestAction } from "@/components/today/NextBestAction";
+import { MorningPlan } from "@/components/today/MorningPlan";
 import { TodayEcosystemStrip } from "@/components/today/TodayEcosystemStrip";
 import { TODAY_COPY } from "@/lib/intendedUse";
 import { getRecommendedModules } from "@/lib/modules";
@@ -42,7 +43,72 @@ interface ReviewHandoffRow {
   active: boolean;
 }
 
+interface Priority {
+  id: string;
+  text: string;
+  done: boolean;
+  taskId?: string;
+}
+
+type TodayTimePeriod = "morning" | "day" | "evening";
+
 let priorityIdCounter = 0;
+
+function getTodayTimePeriod(): TodayTimePeriod {
+  const hour = new Date().getHours();
+  if (hour < 12) return "morning";
+  if (hour < 18) return "day";
+  return "evening";
+}
+
+function msUntilNextTimePeriodBoundary(): number {
+  const now = new Date();
+  const nextBoundary = new Date(now);
+  const hour = now.getHours();
+
+  if (hour < 12) {
+    nextBoundary.setHours(12, 0, 1, 0);
+  } else if (hour < 18) {
+    nextBoundary.setHours(18, 0, 1, 0);
+  } else {
+    nextBoundary.setDate(nextBoundary.getDate() + 1);
+    nextBoundary.setHours(0, 0, 1, 0);
+  }
+
+  return Math.max(1_000, nextBoundary.getTime() - now.getTime());
+}
+
+function loadPrioritiesForDate(localDate: string): Priority[] {
+  try {
+    const saved = localStorage.getItem("lifepulse_priorities");
+    if (saved) {
+      const data = JSON.parse(saved) as { date?: string; items?: Priority[] };
+      if (data.date === localDate && Array.isArray(data.items)) return data.items.slice(0, 3);
+    }
+
+    const oldFocus = localStorage.getItem("lifepulse_focus");
+    if (oldFocus) {
+      const { text, date } = JSON.parse(oldFocus) as { text?: string; date?: string };
+      if (date === localDate && text) {
+        localStorage.removeItem("lifepulse_focus");
+        return [{ id: `p${++priorityIdCounter}`, text, done: false }];
+      }
+    }
+  } catch {}
+
+  return [];
+}
+
+function loadMorningIntentForDate(localDate: string): string {
+  try {
+    const saved = localStorage.getItem("lifepulse_morning_intent");
+    if (!saved) return "";
+    const data = JSON.parse(saved) as { date?: string; text?: string };
+    if (data.date === localDate && typeof data.text === "string") return data.text.slice(0, 160);
+  } catch {}
+
+  return "";
+}
 
 function TodayContent() {
   const [streakMap, setStreakMap] = useState<Record<string, number>>({});
@@ -55,32 +121,17 @@ function TodayContent() {
     }
   });
 
-  interface Priority {
-    id: string;
-    text: string;
-    done: boolean;
-  }
-
-  const [priorities, setPriorities] = useState<Priority[]>(() => {
-    try {
-      const saved = localStorage.getItem("lifepulse_priorities");
-      if (saved) {
-        const data = JSON.parse(saved);
-        if (data.date === getTodayDateString()) return data.items;
-      }
-      const oldFocus = localStorage.getItem("lifepulse_focus");
-      if (oldFocus) {
-        const { text, date } = JSON.parse(oldFocus);
-        if (date === getTodayDateString() && text) {
-          localStorage.removeItem("lifepulse_focus");
-          return [{ id: `p${++priorityIdCounter}`, text, done: false }];
-        }
-      }
-    } catch {}
-    return [];
+  const [priorityState, setPriorityState] = useState(() => {
+    const initialDate = getTodayDateString();
+    return { date: initialDate, items: loadPrioritiesForDate(initialDate) };
   });
   const [priorityInput, setPriorityInput] = useState("");
   const [addingPriority, setAddingPriority] = useState(false);
+  const [morningIntentState, setMorningIntentState] = useState(() => {
+    const initialDate = getTodayDateString();
+    return { date: initialDate, text: loadMorningIntentForDate(initialDate) };
+  });
+  const [timePeriod, setTimePeriod] = useState<TodayTimePeriod>(() => getTodayTimePeriod());
 
   const [quickCapture, setQuickCapture] = useState("");
   const [quickType, setQuickType] = useState<"task" | "habit" | "project">("task");
@@ -115,6 +166,8 @@ function TodayContent() {
   const doneTaskCount = todayModel?.tasks.doneCount ?? 0;
   const todayXp = todayModel?.xp.today ?? 0;
   const totalXp = todayModel?.xp.total ?? 0;
+  const priorities = priorityState.date === today ? priorityState.items : [];
+  const morningIntent = morningIntentState.date === today ? morningIntentState.text : "";
   const intendedUse = todayModel?.intendedUse ?? "personal";
   const hasJournal = todayModel?.reflection.hasReflection ?? false;
   const loading = todayData.loading;
@@ -149,8 +202,19 @@ function TodayContent() {
   const suggestedTaskGoalContext = suggestedTask ? taskExecutionContextById[suggestedTask.id]?.goalContext : undefined;
 
   function savePriorities(items: Priority[]) {
-    localStorage.setItem("lifepulse_priorities", JSON.stringify({ date: today, items }));
-    setPriorities(items);
+    const nextItems = items.slice(0, 3);
+    try {
+      localStorage.setItem("lifepulse_priorities", JSON.stringify({ date: today, items: nextItems }));
+    } catch {}
+    setPriorityState({ date: today, items: nextItems });
+  }
+
+  function saveMorningIntent(value: string) {
+    const nextValue = value.slice(0, 160);
+    setMorningIntentState({ date: today, text: nextValue });
+    try {
+      localStorage.setItem("lifepulse_morning_intent", JSON.stringify({ date: today, text: nextValue.trim() }));
+    } catch {}
   }
 
   function addPriorityItem() {
@@ -258,6 +322,19 @@ function TodayContent() {
     setQuickCapture(text);
     setQuickType(type);
   }
+
+  useEffect(() => {
+    let timeoutId: number;
+    const scheduleBoundaryRefresh = () => {
+      timeoutId = window.setTimeout(() => {
+        setTimePeriod(getTodayTimePeriod());
+        scheduleBoundaryRefresh();
+      }, msUntilNextTimePeriodBoundary());
+    };
+
+    scheduleBoundaryRefresh();
+    return () => window.clearTimeout(timeoutId);
+  }, []);
 
   useEffect(() => {
     if (!todayUserId) return;
@@ -624,26 +701,40 @@ function TodayContent() {
         </div>
       )}
 
-      <MissionControl
-        priorities={priorities}
-        priorityInput={priorityInput}
-        addingPriority={addingPriority}
-        quickCapture={quickCapture}
-        quickType={quickType}
-        quickSaving={quickSaving}
-        focusPrompt={copy.focusPrompt}
-        visibleActionDone={visibleActionDone}
-        hasJournal={hasJournal}
-        onPriorityInputChange={setPriorityInput}
-        onAddPriority={addPriorityItem}
-        onTogglePriority={togglePriorityItem}
-        onRemovePriority={removePriorityItem}
-        onAddingPriorityChange={setAddingPriority}
-        onQuickCaptureChange={handleQuickChange}
-        onQuickTypeChange={setQuickType}
-        onStarterActionSelect={selectStarterAction}
-        onQuickCapture={handleQuickCapture}
-      />
+      {todayModel && (
+        <MorningPlan
+          model={todayModel}
+          priorities={priorities}
+          intent={morningIntent}
+          timePeriod={timePeriod}
+          onIntentChange={saveMorningIntent}
+          onToggleTask={toggleTask}
+          onToggleHabit={toggleHabit}
+        />
+      )}
+
+      <div id="daily-focus" className="scroll-mt-24">
+        <MissionControl
+          priorities={priorities}
+          priorityInput={priorityInput}
+          addingPriority={addingPriority}
+          quickCapture={quickCapture}
+          quickType={quickType}
+          quickSaving={quickSaving}
+          focusPrompt={copy.focusPrompt}
+          visibleActionDone={visibleActionDone}
+          hasJournal={hasJournal}
+          onPriorityInputChange={setPriorityInput}
+          onAddPriority={addPriorityItem}
+          onTogglePriority={togglePriorityItem}
+          onRemovePriority={removePriorityItem}
+          onAddingPriorityChange={setAddingPriority}
+          onQuickCaptureChange={handleQuickChange}
+          onQuickTypeChange={setQuickType}
+          onStarterActionSelect={selectStarterAction}
+          onQuickCapture={handleQuickCapture}
+        />
+      </div>
 
       {showFirstLoopGuide && (
         <FirstLoopGuide
