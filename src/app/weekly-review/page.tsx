@@ -165,6 +165,7 @@ function WeeklyReviewContent() {
   });
   const [planFocus, setPlanFocus] = useState("");
   const [reviewSaved, setReviewSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [savingReflection, setSavingReflection] = useState(false);
   const [loading, setLoading] = useState(true);
   const planFocusId = useId();
@@ -452,7 +453,10 @@ function WeeklyReviewContent() {
   }, [loadData]);
 
   const handleSaveReflection = async () => {
+    if (savingReflection) return;
+
     setReviewSaved(false);
+    setSaveError(null);
     setSavingReflection(true);
     const text = [
       reflection.wentWell && `## What went well\n${reflection.wentWell}`,
@@ -464,13 +468,44 @@ function WeeklyReviewContent() {
 
     if (!text) { setSavingReflection(false); return; }
 
-    const { error } = await supabase.from("journal_entries").upsert({
-      entry_date: today,
-      content: `**Weekly Reflection (${weekStart}**\n\n${text}`,
-    }, { onConflict: "user_id,entry_date" });
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      setSaveError("Please sign in again before saving your weekly review.");
+      setSavingReflection(false);
+      return;
+    }
+
+    const weeklyReviewMarker = `**Weekly Reflection (${weekStart}**`;
+    const weeklyReviewContent = `${weeklyReviewMarker}\n\n${text}`;
+    const { data: existingEntry, error: lookupError } = await supabase
+      .from("journal_entries")
+      .select("id, content")
+      .eq("user_id", user.id)
+      .eq("entry_date", today)
+      .maybeSingle();
+
+    if (lookupError) {
+      console.error("Failed to load journal entry before weekly review save:", lookupError);
+      setSaveError("We could not save your weekly review. Please try again.");
+      setSavingReflection(false);
+      return;
+    }
+
+    const { data: savedEntry, error } = await supabase
+      .from("journal_entries")
+      .upsert({
+        user_id: user.id,
+        entry_date: today,
+        content: mergeWeeklyReviewContent(existingEntry?.content ?? "", weeklyReviewMarker, weeklyReviewContent),
+      }, { onConflict: "user_id,entry_date" })
+      .select("id")
+      .maybeSingle();
 
     if (error) {
       console.error("Failed to save reflection to journal:", error);
+      setSaveError("We could not save your weekly review. Please try again.");
+    } else if (!savedEntry) {
+      setSaveError("We could not save your weekly review. Please try again.");
     } else {
       setReviewSaved(true);
     }
@@ -479,6 +514,7 @@ function WeeklyReviewContent() {
 
   const updateReflectionField = (field: keyof typeof reflection, value: string) => {
     setReviewSaved(false);
+    setSaveError(null);
     setReflection((current) => ({ ...current, [field]: value }));
   };
 
@@ -875,6 +911,13 @@ function WeeklyReviewContent() {
                   </div>
                 </div>
               )}
+
+              {saveError && (
+                <div className="mt-3 rounded-xl border border-[var(--danger)]/20 bg-[var(--danger-soft)]/10 px-3 py-3 text-xs text-[var(--text-muted)]">
+                  <p className="font-semibold text-[var(--danger)]">Review not saved.</p>
+                  <p className="mt-1 leading-relaxed">{saveError}</p>
+                </div>
+              )}
             </div>
 
             <div className="min-w-0 rounded-2xl border border-dashed border-[var(--border)] bg-black/[0.08] p-3.5 sm:p-4">
@@ -943,6 +986,19 @@ function makeMemorySnippet(content: string | null): string | null {
   const text = content?.replace(/\s+/g, " ").trim();
   if (!text) return null;
   return text.length > 72 ? `${text.slice(0, 69)}...` : text;
+}
+
+function mergeWeeklyReviewContent(existingContent: string, marker: string, weeklyReviewContent: string): string {
+  const existing = existingContent.trimEnd();
+  if (!existing) return weeklyReviewContent;
+
+  const markerIndex = existing.indexOf(marker);
+  if (markerIndex >= 0) {
+    const preservedContent = existing.slice(0, markerIndex).trimEnd();
+    return preservedContent ? `${preservedContent}\n\n${weeklyReviewContent}` : weeklyReviewContent;
+  }
+
+  return `${existing}\n\n${weeklyReviewContent}`;
 }
 
 function MetricCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {

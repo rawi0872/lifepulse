@@ -18,12 +18,17 @@ export async function toggleTaskCompletion(
 ): Promise<ToggleTaskResult> {
   try {
     if (makeDone) {
-      const { error: tErr } = await supabase
+      const { data: updatedTask, error: tErr } = await supabase
         .from("tasks")
         .update({ status: "done", completed_at: new Date().toISOString() })
-        .eq("id", taskId);
+        .eq("id", taskId)
+        .eq("user_id", userId)
+        .eq("status", "todo")
+        .select("id")
+        .maybeSingle();
 
-      if (tErr) return { success: false, error: tErr.message };
+      if (tErr) return { success: false, error: "Could not update task." };
+      if (!updatedTask) return { success: false, error: "Task unavailable." };
 
       const { data: existing } = await supabase
         .from("xp_events")
@@ -39,26 +44,30 @@ export async function toggleTaskCompletion(
           amount: 25,
         });
 
-        if (xpErr) return { success: false, error: xpErr.message };
+        if (xpErr) return { success: false, error: "Could not update task." };
       }
     } else {
-      const { error: tErr } = await supabase
+      const { data: updatedTask, error: tErr } = await supabase
         .from("tasks")
         .update({ status: "todo", completed_at: null })
-        .eq("id", taskId);
+        .eq("id", taskId)
+        .eq("user_id", userId)
+        .eq("status", "done")
+        .select("id")
+        .maybeSingle();
 
-      if (tErr) return { success: false, error: tErr.message };
+      if (tErr) return { success: false, error: "Could not update task." };
+      if (!updatedTask) return { success: false, error: "Task unavailable." };
 
       const { error: xpDelErr } = await supabase
         .from("xp_events")
         .delete()
         .match({ user_id: userId, source_type: "task", source_id: taskId });
-      if (xpDelErr) return { success: false, error: xpDelErr.message };
+      if (xpDelErr) return { success: false, error: "Could not update task." };
     }
 
     return { success: true };
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Failed to update task";
-    return { success: false, error: message };
+  } catch {
+    return { success: false, error: "Could not update task." };
   }
 }
