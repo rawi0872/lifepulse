@@ -12,7 +12,6 @@ import {
 import { getCurrentStreak } from "@/lib/streaks";
 import { toggleTaskCompletion } from "@/lib/taskCompletion";
 import { DashboardNav } from "@/components/DashboardNav";
-import { JournalSection } from "@/components/JournalSection";
 import { XpDisplay } from "@/components/XpDisplay";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -24,6 +23,7 @@ import { MindPulseSection } from "@/components/today/MindPulseSection";
 import { FinanceOverview } from "@/components/today/FinanceOverview";
 import { NextBestAction } from "@/components/today/NextBestAction";
 import { MorningPlan } from "@/components/today/MorningPlan";
+import { EveningShutdown } from "@/components/today/EveningShutdown";
 import { TodayEcosystemStrip } from "@/components/today/TodayEcosystemStrip";
 import { TODAY_COPY } from "@/lib/intendedUse";
 import { getRecommendedModules } from "@/lib/modules";
@@ -112,7 +112,6 @@ function loadMorningIntentForDate(localDate: string): string {
 
 function TodayContent() {
   const [streakMap, setStreakMap] = useState<Record<string, number>>({});
-  const [weeklyKnowledgeItems, setWeeklyKnowledgeItems] = useState(0);
   const [firstLoopGuideDismissed, setFirstLoopGuideDismissed] = useState(() => {
     try {
       return localStorage.getItem("life-pulse:first-loop-guide-dismissed") === "true";
@@ -154,8 +153,6 @@ function TodayContent() {
   const todayModel = todayData.model;
   const today = todayModel?.date.localDate ?? getTodayDateString();
   const weekStart = todayModel?.date.weekStart ?? getWeekStartDate();
-  const knowledgeWeekStart = toLocalDateBoundaryIso(weekStart, "start");
-  const knowledgeWeekEnd = toLocalDateBoundaryIso(today, "end");
   const todayDow = todayModel?.date.dayOfWeek ?? getTodayDayOfWeek();
   const habits = useMemo(() => todayModel?.habits.all ?? [], [todayModel?.habits.all]);
   const dueHabits = useMemo(() => todayModel?.habits.dueToday ?? [], [todayModel?.habits.dueToday]);
@@ -352,7 +349,7 @@ function TodayContent() {
         const lastDay = new Date(Number(year), Number(month), 0).getDate();
         const monthEnd = `${year}-${month}-${String(lastDay).padStart(2, "0")}`;
 
-        const [financeRes, bodyRes, mindRes, workoutRes, nutritionRes, passionsRes, sessionsRes, knowledgeWeekRes, allHabitLogsRes] = await Promise.all([
+        const [financeRes, bodyRes, mindRes, workoutRes, nutritionRes, passionsRes, sessionsRes, allHabitLogsRes] = await Promise.all([
           supabase
             .from("finance_transactions")
             .select("amount, type")
@@ -392,12 +389,6 @@ function TodayContent() {
             .eq("user_id", user.id)
             .gte("session_date", weekStart),
           supabase
-            .from("knowledge_items")
-            .select("id, created_at")
-            .eq("user_id", user.id)
-            .gte("created_at", knowledgeWeekStart)
-            .lte("created_at", knowledgeWeekEnd),
-          supabase
             .from("habit_logs")
             .select("habit_id, completed_date")
             .eq("user_id", user.id),
@@ -419,7 +410,6 @@ function TodayContent() {
         setHasNutritionToday((nutritionRes.data ?? []).length > 0);
         setHasActivePassions((passionsRes.data ?? []).length > 0);
         setHasPassionSessionThisWeek((sessionsRes.data ?? []).length > 0);
-        setWeeklyKnowledgeItems((knowledgeWeekRes.data ?? []).length);
 
         const logsByHabit: Record<string, string[]> = {};
         ((allHabitLogsRes.data ?? []) as { habit_id: string; completed_date: string }[]).forEach((log) => {
@@ -440,7 +430,7 @@ function TodayContent() {
 
     loadSecondarySignals();
     return () => { cancelled = true; };
-  }, [habits, knowledgeWeekEnd, knowledgeWeekStart, supabase, today, todayUserId, weekStart]);
+  }, [habits, supabase, today, todayUserId, weekStart]);
 
   async function reloadAll() {
     await todayData.refresh();
@@ -929,81 +919,19 @@ function TodayContent() {
         </Card>
       </section>
 
+      {todayModel && (
+        <EveningShutdown
+          model={todayModel}
+          supabase={supabase}
+          timePeriod={timePeriod}
+          onSaved={todayData.refresh}
+          onAuthRequired={() => router.push("/login")}
+          onSuccess={() => toast({ type: "success", title: "Evening Shutdown saved." })}
+          onError={() => toast({ type: "error", title: "Failed to save Evening Shutdown." })}
+        />
+      )}
+
       <TodayReviewHandoff rows={reviewHandoffRows} />
-
-      <section id="evening-reflection" className="scroll-mt-24">
-        <Card className="mb-6 overflow-hidden border-white/[0.09] bg-[linear-gradient(180deg,rgba(244,247,251,0.026),rgba(244,247,251,0.006)),var(--surface)]">
-          <div className="border-b border-[var(--border)] px-4 py-4 sm:px-5">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--accent)]">Close the day</p>
-            <h2 className="mt-1 text-xl font-semibold tracking-[-0.03em] text-[var(--text)]">What changed today?</h2>
-            <p className="mt-1 max-w-2xl text-sm leading-relaxed text-[var(--text-secondary)]">
-              Reflection turns completed actions into memory. Today becomes context for your week.
-            </p>
-          </div>
-
-          <div className="grid gap-5 p-4 sm:p-5 lg:grid-cols-[1.2fr_0.8fr]">
-            <JournalSection
-              stats={{
-                habitsDone: completedHabitCount,
-                habitsTotal: dueHabits.length,
-                tasksDone: doneTaskCount,
-                tasksTotal: tasks.length,
-                xpToday: todayXp,
-              }}
-            />
-
-            <Card variant="subtle" className="border-[var(--border)] bg-[var(--surface-soft)]/75">
-              <div className="p-4">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Memory loop</p>
-                <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
-                  Today feeds your weekly review. Capture one reflection so patterns have context later.
-                </p>
-                <div className="mt-3 space-y-2.5">
-                  <div className="flex flex-col items-start justify-between gap-2 rounded-lg bg-[var(--surface)] px-3 py-3 sm:flex-row sm:items-center sm:gap-3 sm:py-2">
-                    <div className="min-w-0">
-                      <p className="text-xs font-medium text-[var(--text)]">Today reflection</p>
-                      <p className="text-[10px] text-[var(--text-muted)]">{hasJournal ? "Captured today" : "Not captured yet"}</p>
-                    </div>
-                    <a href="#evening-reflection" className="shrink-0 rounded-md py-1 text-[10px] font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] sm:py-0">
-                      Evening Reflection
-                    </a>
-                  </div>
-                  <div className="flex flex-col items-start justify-between gap-2 rounded-lg bg-[var(--surface)] px-3 py-3 sm:flex-row sm:items-center sm:gap-3 sm:py-2">
-                    <div className="min-w-0">
-                      <p className="text-xs font-medium text-[var(--text)]">Knowledge this week</p>
-                      <p className="text-[10px] text-[var(--text-muted)]">{weeklyKnowledgeItems} items captured this week</p>
-                    </div>
-                    <Link href="/knowledge" className="shrink-0 rounded-md py-1 text-[10px] font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] sm:py-0">
-                      Open Knowledge
-                    </Link>
-                  </div>
-                  <div className="flex flex-col items-start justify-between gap-2 rounded-lg bg-[var(--surface)] px-3 py-3 sm:flex-row sm:items-center sm:gap-3 sm:py-2">
-                    <div className="min-w-0">
-                      <p className="text-xs font-medium text-[var(--text)]">Weekly memory review</p>
-                      <p className="text-[10px] text-[var(--text-muted)]">Close the week with tasks, habits, reflections, and manual signals from what you logged.</p>
-                    </div>
-                    <Link href="/weekly-review" className="shrink-0 rounded-md py-1 text-[10px] font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] sm:py-0">
-                      Open Weekly Review
-                    </Link>
-                  </div>
-                  <div className="flex flex-col items-start justify-between gap-2 rounded-lg bg-[var(--surface)] px-3 py-3 sm:flex-row sm:items-center sm:gap-3 sm:py-2">
-                    <div className="min-w-0">
-                      <p className="text-xs font-medium text-[var(--text)]">Broader patterns</p>
-                      <p className="text-[10px] text-[var(--text-muted)]">Insights shows action trends from logged activity across recent days.</p>
-                    </div>
-                    <Link href="/insights" className="shrink-0 rounded-md py-1 text-[10px] font-medium text-[var(--accent)] hover:text-[var(--accent-strong)] sm:py-0">
-                      View Insights
-                    </Link>
-                  </div>
-                </div>
-                <p className="mt-3 text-[10px] text-[var(--text-muted)]">
-                  Private manual memory. No AI summaries or external processing. Based only on what you log.
-                </p>
-              </div>
-            </Card>
-          </div>
-        </Card>
-      </section>
 
       <section className="space-y-4">
         <div className="flex min-w-0 flex-col gap-1 border-t border-white/[0.06] pt-5">
@@ -1323,12 +1251,4 @@ export default function TodayPage() {
       <TodayContent />
     </DashboardNav>
   );
-}
-
-function toLocalDateBoundaryIso(dateString: string, boundary: "start" | "end"): string {
-  const [year, month, day] = dateString.split("-").map(Number);
-  const date = boundary === "start"
-    ? new Date(year, month - 1, day, 0, 0, 0, 0)
-    : new Date(year, month - 1, day, 23, 59, 59, 999);
-  return date.toISOString();
 }

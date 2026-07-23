@@ -9,6 +9,7 @@ import { DailyLoopConnector } from "@/components/DailyLoopConnector";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { removeEveningShutdownBlock } from "@/lib/today/evening-shutdown";
 
 interface JournalEntry {
   id: string;
@@ -26,6 +27,7 @@ interface ClassifiedJournalEntry extends JournalEntry {
   kind: EntryKind;
   weeklyReviewWeek: string | null;
   nextWeekFocus: string | null;
+  displayContent: string;
 }
 
 const MOOD_LABELS = ["Awful", "Bad", "Okay", "Good", "Great"];
@@ -103,7 +105,7 @@ export default function JournalPage() {
       const matchesMood = !selectedMood || String(entry.mood ?? "") === selectedMood;
       const matchesEnergy = !selectedEnergy || String(entry.energy ?? "") === selectedEnergy;
       const matchesEntryType = entryFilter === "all" || entry.kind === entryFilter;
-      const searchableText = [entry.content, moodLabel, typeLabel, entry.weeklyReviewWeek, entry.nextWeekFocus, entry.entry_date, formatEntryDate(entry.entry_date)]
+      const searchableText = [entry.displayContent, moodLabel, typeLabel, entry.weeklyReviewWeek, entry.nextWeekFocus, entry.entry_date, formatEntryDate(entry.entry_date)]
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
@@ -289,6 +291,7 @@ export default function JournalPage() {
 
 function classifyJournalEntry(entry: JournalEntry): ClassifiedJournalEntry {
   const content = entry.content ?? "";
+  const displayContent = removeEveningShutdownBlock(content);
   const weeklyMatch = content.match(/\*\*Weekly Reflection \(([^)]+)\)\*\*/i);
   const hasWeeklyPrefix = Boolean(weeklyMatch) || content.toLowerCase().includes("weekly reflection (");
 
@@ -297,6 +300,7 @@ function classifyJournalEntry(entry: JournalEntry): ClassifiedJournalEntry {
     kind: hasWeeklyPrefix ? "weekly" : "daily",
     weeklyReviewWeek: weeklyMatch?.[1] ?? null,
     nextWeekFocus: hasWeeklyPrefix ? extractWeeklyReviewSection(content, "Next week focus") : null,
+    displayContent,
   };
 }
 
@@ -387,7 +391,7 @@ function JournalEntryCard({ entry, formattedDate }: { entry: ClassifiedJournalEn
 
         <div className="pl-3">
           <p className="break-words whitespace-pre-wrap text-sm leading-relaxed text-[var(--text-secondary)]">
-            {entry.content || <span className="text-[var(--text-muted)]">No content recorded.</span>}
+            {entry.displayContent || <span className="text-[var(--text-muted)]">No visible journal text recorded.</span>}
           </p>
         </div>
       </div>

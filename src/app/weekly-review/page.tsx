@@ -10,6 +10,7 @@ import { PulseCard } from "@/components/ui/pulse-card";
 import { Card } from "@/components/ui/card";
 import { getTodayDateString, getWeekStartDate } from "@/lib/utils";
 import { formatCurrency } from "@/components/finance/financeUtils";
+import { removeEveningShutdownBlock } from "@/lib/today/evening-shutdown";
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -983,7 +984,7 @@ function toLocalDateBoundaryIso(dateString: string, boundary: "start" | "end"): 
 }
 
 function makeMemorySnippet(content: string | null): string | null {
-  const text = content?.replace(/\s+/g, " ").trim();
+  const text = removeEveningShutdownBlock(content ?? "").replace(/\s+/g, " ").trim();
   if (!text) return null;
   return text.length > 72 ? `${text.slice(0, 69)}...` : text;
 }
