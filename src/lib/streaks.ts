@@ -69,10 +69,19 @@ function normalizeDaysOfWeek(daysOfWeek: number[] | null | undefined): Set<numbe
   return new Set((daysOfWeek ?? []).filter((day) => Number.isInteger(day) && day >= 0 && day <= 6));
 }
 
-function targetForFlexibleWeek(schedule: HabitSchedule): number {
-  if (schedule.frequency === "times_per_week") return Math.max(1, Math.min(7, Math.floor(schedule.times_per_week ?? 1)));
+export function getTimesPerWeekTarget(timesPerWeek: number | string | null | undefined): number | null {
+  if (timesPerWeek === null || timesPerWeek === undefined || timesPerWeek === "") return null;
+  const target = Number(timesPerWeek);
+  if (!Number.isFinite(target)) return null;
+  const normalizedTarget = Math.floor(target);
+  if (normalizedTarget < 1) return null;
+  return Math.min(7, normalizedTarget);
+}
+
+function targetForFlexibleWeek(schedule: HabitSchedule): number | null {
+  if (schedule.frequency === "times_per_week") return getTimesPerWeekTarget(schedule.times_per_week);
   if (schedule.frequency === "weekly") return 1;
-  return 0;
+  return null;
 }
 
 function isFixedScheduledDate(dateString: string, schedule: HabitSchedule): boolean {
@@ -95,7 +104,7 @@ export function normalizeCompletedDates(completedDates: (string | null | undefin
 
 function countCompletionsInWeek(completed: Set<string>, weekStart: string, asOfDate: string, schedule: HabitSchedule): number {
   const weekDates = getWeekDatesForDate(weekStart);
-  if (targetForFlexibleWeek(schedule) > 0) {
+  if (targetForFlexibleWeek(schedule)) {
     return weekDates.filter((date) => date <= asOfDate && completed.has(date)).length;
   }
 
@@ -110,7 +119,7 @@ export function isHabitDueOnDate(
   if (!isValidLocalDateString(dateString)) return false;
 
   const flexibleTarget = targetForFlexibleWeek(schedule);
-  if (flexibleTarget > 0) {
+  if (flexibleTarget) {
     const completed = new Set(normalizeCompletedDates(completedDates, dateString));
     const completedThisWeek = countCompletionsInWeek(completed, getWeekStartForDate(dateString), dateString, schedule);
     return completedThisWeek < flexibleTarget;
@@ -121,7 +130,7 @@ export function isHabitDueOnDate(
 
 function isWeekCompleted(completed: Set<string>, weekStart: string, asOfDate: string, schedule: HabitSchedule): boolean {
   const target = targetForFlexibleWeek(schedule);
-  if (target <= 0) return false;
+  if (!target) return false;
   return countCompletionsInWeek(completed, weekStart, asOfDate, schedule) >= target;
 }
 
@@ -233,7 +242,7 @@ export function getWeeklyProgress(
   const flexibleTarget = targetForFlexibleWeek(schedule);
   const completed = new Set(normalizeCompletedDates(completedDates, asOfDate));
 
-  if (flexibleTarget > 0) {
+  if (flexibleTarget) {
     return {
       completed: Math.min(countCompletionsInWeek(completed, weekStart, asOfDate, schedule), flexibleTarget),
       target: flexibleTarget,

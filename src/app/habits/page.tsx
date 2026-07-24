@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useToast } from "@/hooks/use-toast";
 import { getTodayDateString, getWeekStartDate } from "@/lib/utils";
-import { getCurrentStreak, getBestStreak, getWeeklyProgress, isHabitDueOnDate, normalizeCompletedDates } from "@/lib/streaks";
+import { getCurrentStreak, getBestStreak, getTimesPerWeekTarget, getWeeklyProgress, isHabitDueOnDate, normalizeCompletedDates } from "@/lib/streaks";
 
 interface Realm {
   id: string;
@@ -415,7 +415,8 @@ export default function HabitsPage() {
     if (h.frequency === "weekends") return "Weekends";
     if (h.frequency === "weekly") return "Once per week";
     if (h.frequency === "times_per_week") {
-      const target = Number.isFinite(h.times_per_week) ? Math.max(1, Math.min(7, Math.floor(h.times_per_week ?? 1))) : 1;
+      const target = getTimesPerWeekTarget(h.times_per_week);
+      if (!target) return "Schedule needs review";
       return `${target} times per week`;
     }
     return "Schedule needs review";
