@@ -1,140 +1,244 @@
 // ---------------------------------------------------------------------------
-// Life Pulse Habit Streaks
+// Life Pulse Habit Calendar Logic
 // ---------------------------------------------------------------------------
-// All functions are pure and work on arrays of date strings ("YYYY-MM-DD").
-// No database queries, no side effects.
+// Pure helpers for local-calendar habit scheduling, completion, streaks, and
+// weekly progress. All date strings are expected to be "YYYY-MM-DD".
 // ---------------------------------------------------------------------------
 
-function dateToStr(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+export interface HabitSchedule {
+  frequency: string;
+  days_of_week?: number[] | null;
+  times_per_week?: number | null;
 }
 
-function isExpectedDay(date: Date, frequency: string, daysOfWeek: number[] | null): boolean {
-  if (frequency === "daily") return true;
-  if (frequency === "weekdays" && daysOfWeek && daysOfWeek.length > 0) {
-    return daysOfWeek.includes(date.getDay());
+export interface HabitWeeklyProgress {
+  completed: number;
+  target: number;
+}
+
+interface StreakOptions {
+  asOfDate?: string;
+}
+
+const MAX_SCAN_DAYS = 4000;
+
+export function isValidLocalDateString(value: string | null | undefined): value is string {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(year, month - 1, day);
+  return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day;
+}
+
+export function dateToLocalDateString(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+export function getLocalTodayDateString(): string {
+  return dateToLocalDateString(new Date());
+}
+
+function parseLocalDate(value: string): Date {
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(year, month - 1, day, 12, 0, 0, 0);
+}
+
+function addDays(dateString: string, days: number): string {
+  const date = parseLocalDate(dateString);
+  date.setDate(date.getDate() + days);
+  return dateToLocalDateString(date);
+}
+
+function addWeeks(dateString: string, weeks: number): string {
+  return addDays(dateString, weeks * 7);
+}
+
+export function getWeekStartForDate(dateString: string): string {
+  const date = parseLocalDate(dateString);
+  const day = date.getDay();
+  const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+  const monday = new Date(date.getFullYear(), date.getMonth(), diff, 12, 0, 0, 0);
+  return dateToLocalDateString(monday);
+}
+
+export function getWeekDatesForDate(dateString: string): string[] {
+  const weekStart = getWeekStartForDate(dateString);
+  return Array.from({ length: 7 }, (_, index) => addDays(weekStart, index));
+}
+
+function normalizeDaysOfWeek(daysOfWeek: number[] | null | undefined): Set<number> {
+  return new Set((daysOfWeek ?? []).filter((day) => Number.isInteger(day) && day >= 0 && day <= 6));
+}
+
+function targetForFlexibleWeek(schedule: HabitSchedule): number {
+  if (schedule.frequency === "times_per_week") return Math.max(1, Math.min(7, Math.floor(schedule.times_per_week ?? 1)));
+  if (schedule.frequency === "weekly") return 1;
+  return 0;
+}
+
+function isFixedScheduledDate(dateString: string, schedule: HabitSchedule): boolean {
+  if (!isValidLocalDateString(dateString)) return false;
+  const day = parseLocalDate(dateString).getDay();
+
+  if (schedule.frequency === "daily") return true;
+  if (schedule.frequency === "weekdays") return normalizeDaysOfWeek(schedule.days_of_week).has(day);
+  if (schedule.frequency === "weekends") return day === 0 || day === 6;
+  return false;
+}
+
+export function normalizeCompletedDates(completedDates: (string | null | undefined)[], asOfDate = getLocalTodayDateString()): string[] {
+  const completed = new Set<string>();
+  completedDates.forEach((date) => {
+    if (isValidLocalDateString(date) && date <= asOfDate) completed.add(date);
+  });
+  return [...completed].sort();
+}
+
+function countCompletionsInWeek(completed: Set<string>, weekStart: string, asOfDate: string, schedule: HabitSchedule): number {
+  const weekDates = getWeekDatesForDate(weekStart);
+  if (targetForFlexibleWeek(schedule) > 0) {
+    return weekDates.filter((date) => date <= asOfDate && completed.has(date)).length;
   }
-  return true;
+
+  return weekDates.filter((date) => date <= asOfDate && isFixedScheduledDate(date, schedule) && completed.has(date)).length;
 }
 
-/**
- * Calculate the current streak for a habit.
- *
- * - daily: consecutive calendar days
- * - weekdays (specific days): consecutive expected days (skips unselected days)
- * - times_per_week: returns 0 (no streak concept)
- *
- * If today is an expected day and completed, streak includes today.
- * If today is expected but not yet completed, counting starts from yesterday
- * (grace period — no penalty for not having done it yet today).
- * Non-expected days never break a streak.
- */
+export function isHabitDueOnDate(
+  schedule: HabitSchedule,
+  dateString: string,
+  completedDates: (string | null | undefined)[] = [],
+): boolean {
+  if (!isValidLocalDateString(dateString)) return false;
+
+  const flexibleTarget = targetForFlexibleWeek(schedule);
+  if (flexibleTarget > 0) {
+    const completed = new Set(normalizeCompletedDates(completedDates, dateString));
+    const completedThisWeek = countCompletionsInWeek(completed, getWeekStartForDate(dateString), dateString, schedule);
+    return completedThisWeek < flexibleTarget;
+  }
+
+  return isFixedScheduledDate(dateString, schedule);
+}
+
+function isWeekCompleted(completed: Set<string>, weekStart: string, asOfDate: string, schedule: HabitSchedule): boolean {
+  const target = targetForFlexibleWeek(schedule);
+  if (target <= 0) return false;
+  return countCompletionsInWeek(completed, weekStart, asOfDate, schedule) >= target;
+}
+
 export function getCurrentStreak(
   completedDates: string[],
   frequency: string,
   daysOfWeek: number[] | null,
+  options: StreakOptions = {},
 ): number {
-  if (frequency === "times_per_week" || completedDates.length === 0) return 0;
+  const asOfDate = isValidLocalDateString(options.asOfDate) ? options.asOfDate : getLocalTodayDateString();
+  const schedule: HabitSchedule = { frequency, days_of_week: daysOfWeek };
+  const completed = new Set(normalizeCompletedDates(completedDates, asOfDate));
+  if (completed.size === 0 || frequency === "times_per_week") return 0;
 
-  const completed = new Set(completedDates);
-  const today = new Date();
-  const todayStr = dateToStr(today);
-  const todayExpected = isExpectedDay(today, frequency, daysOfWeek);
-  const todayDone = completed.has(todayStr);
+  if (frequency === "weekly") {
+    let cursorWeek = getWeekStartForDate(asOfDate);
+    if (!isWeekCompleted(completed, cursorWeek, asOfDate, schedule)) cursorWeek = addWeeks(cursorWeek, -1);
 
-  // Determine starting point
-  const startDate = new Date(today);
-  if (todayExpected && todayDone) {
-    // Count from today
-  } else {
-    // Count from yesterday (grace for not-yet-done today)
-    startDate.setDate(startDate.getDate() - 1);
+    let streak = 0;
+    for (let scanned = 0; scanned < Math.floor(MAX_SCAN_DAYS / 7); scanned++) {
+      if (!isWeekCompleted(completed, cursorWeek, asOfDate, schedule)) break;
+      streak++;
+      cursorWeek = addWeeks(cursorWeek, -1);
+    }
+    return streak;
   }
 
+  let cursor = asOfDate;
+  if (isFixedScheduledDate(cursor, schedule) && !completed.has(cursor)) cursor = addDays(cursor, -1);
+
   let streak = 0;
-  const cursor = new Date(startDate);
-
-  // Safety: don't scan more than 4000 days (~11 years)
-  let safety = 0;
-  while (safety < 4000) {
-    safety++;
-    const cursorStr = dateToStr(cursor);
-
-    if (!isExpectedDay(cursor, frequency, daysOfWeek)) {
-      cursor.setDate(cursor.getDate() - 1);
+  for (let scanned = 0; scanned < MAX_SCAN_DAYS; scanned++) {
+    if (!isFixedScheduledDate(cursor, schedule)) {
+      cursor = addDays(cursor, -1);
       continue;
     }
 
-    if (completed.has(cursorStr)) {
-      streak++;
-      cursor.setDate(cursor.getDate() - 1);
-    } else {
-      break;
-    }
+    if (!completed.has(cursor)) break;
+    streak++;
+    cursor = addDays(cursor, -1);
   }
 
   return streak;
 }
 
-/**
- * Find the longest streak ever for a habit.
- * Scans from earliest completion to most recent.
- */
 export function getBestStreak(
   completedDates: string[],
   frequency: string,
   daysOfWeek: number[] | null,
+  options: StreakOptions = {},
 ): number {
-  if (frequency === "times_per_week" || completedDates.length === 0) return 0;
+  const asOfDate = isValidLocalDateString(options.asOfDate) ? options.asOfDate : getLocalTodayDateString();
+  const normalizedDates = normalizeCompletedDates(completedDates, asOfDate);
+  if (normalizedDates.length === 0 || frequency === "times_per_week") return 0;
 
-  const completed = new Set(completedDates);
-  const sorted = [...completedDates].sort();
-  const startDate = new Date(sorted[0]);
-  const endDate = new Date(sorted[sorted.length - 1]);
+  const schedule: HabitSchedule = { frequency, days_of_week: daysOfWeek };
+  const completed = new Set(normalizedDates);
 
-  let best = 0;
+  if (frequency === "weekly") {
+    let cursorWeek = getWeekStartForDate(normalizedDates[0]);
+    const endWeek = getWeekStartForDate(normalizedDates[normalizedDates.length - 1]);
+    let current = 0;
+    let best = 0;
+
+    for (let scanned = 0; cursorWeek <= endWeek && scanned < Math.floor(MAX_SCAN_DAYS / 7); scanned++) {
+      if (isWeekCompleted(completed, cursorWeek, asOfDate, schedule)) {
+        current++;
+        best = Math.max(best, current);
+      } else {
+        current = 0;
+      }
+      cursorWeek = addWeeks(cursorWeek, 1);
+    }
+
+    return best;
+  }
+
+  let cursor = normalizedDates[0];
+  const endDate = normalizedDates[normalizedDates.length - 1];
   let current = 0;
-  const cursor = new Date(startDate);
+  let best = 0;
 
-  // Safety: don't scan more than 4000 days
-  let safety = 0;
-  while (cursor <= endDate && safety < 4000) {
-    safety++;
-    const cursorStr = dateToStr(cursor);
-
-    if (!isExpectedDay(cursor, frequency, daysOfWeek)) {
-      cursor.setDate(cursor.getDate() + 1);
-      continue;
+  for (let scanned = 0; cursor <= endDate && scanned < MAX_SCAN_DAYS; scanned++) {
+    if (isFixedScheduledDate(cursor, schedule)) {
+      if (completed.has(cursor)) {
+        current++;
+        best = Math.max(best, current);
+      } else {
+        current = 0;
+      }
     }
-
-    if (completed.has(cursorStr)) {
-      current++;
-      if (current > best) best = current;
-    } else {
-      current = 0;
-    }
-
-    cursor.setDate(cursor.getDate() + 1);
+    cursor = addDays(cursor, 1);
   }
 
   return best;
 }
 
-/**
- * Weekly progress for times_per_week habits.
- * Returns null for non-times_per_week habits.
- */
 export function getWeeklyProgress(
   completedDates: string[],
   frequency: string,
   timesPerWeek: number | null,
   weekStart: string,
-): { completed: number; target: number } | null {
-  if (frequency !== "times_per_week" || !timesPerWeek) return null;
+  daysOfWeek: number[] | null = null,
+  options: StreakOptions = {},
+): HabitWeeklyProgress | null {
+  if (!isValidLocalDateString(weekStart)) return null;
+  const asOfDate = isValidLocalDateString(options.asOfDate) ? options.asOfDate : getLocalTodayDateString();
+  const schedule: HabitSchedule = { frequency, days_of_week: daysOfWeek, times_per_week: timesPerWeek };
+  const flexibleTarget = targetForFlexibleWeek(schedule);
+  const completed = new Set(normalizeCompletedDates(completedDates, asOfDate));
 
-  const thisWeek = completedDates.filter((d) => d >= weekStart);
-  return {
-    completed: thisWeek.length,
-    target: timesPerWeek,
-  };
+  if (flexibleTarget > 0) {
+    return {
+      completed: Math.min(countCompletionsInWeek(completed, weekStart, asOfDate, schedule), flexibleTarget),
+      target: flexibleTarget,
+    };
+  }
+
+  return null;
 }

@@ -1,9 +1,8 @@
-import { getWeeklyProgress } from "@/lib/streaks";
+import { getWeeklyProgress, isHabitDueOnDate, normalizeCompletedDates } from "@/lib/streaks";
 import type {
   TodayDataSnapshot,
   TodayDateContext,
   TodayGoalLink,
-  TodayHabit,
   TodayLinkedGoal,
   TodayModel,
   TodayTask,
@@ -23,13 +22,6 @@ function isCompletedToday(completedAt: string | null, localDate: string): boolea
   if (Number.isNaN(date.getTime())) return false;
   const completedLocalDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
   return completedLocalDate === localDate;
-}
-
-function isHabitDueToday(habit: TodayHabit, dayOfWeek: number, timesPerWeekCounts: Record<string, number>): boolean {
-  if (habit.frequency === "daily") return true;
-  if (habit.frequency === "weekdays") return habit.days_of_week?.includes(dayOfWeek) ?? false;
-  if (habit.frequency === "times_per_week") return (timesPerWeekCounts[habit.id] ?? 0) < (habit.times_per_week ?? 1);
-  return false;
 }
 
 function priorityRank(priority: string): number {
@@ -97,24 +89,29 @@ function buildTaskExecutionContext(
 }
 
 export function normalizeTodayData(snapshot: TodayDataSnapshot, date: TodayDateContext): TodayModel {
-  const weekLogs = snapshot.weekLogs.filter((log) => log.completed_date >= date.weekStart);
+  const weekLogs = snapshot.weekLogs.filter((log) => log.completed_date >= date.weekStart && log.completed_date <= date.localDate);
   const todayLogs = weekLogs.filter((log) => log.completed_date === date.localDate);
   const completedIds = new Set(todayLogs.map((log) => log.habit_id));
 
   const timesPerWeekCounts: Record<string, number> = {};
+  const weekDatesByHabit: Record<string, string[]> = {};
   weekLogs.forEach((log) => {
-    timesPerWeekCounts[log.habit_id] = (timesPerWeekCounts[log.habit_id] ?? 0) + 1;
+    if (!weekDatesByHabit[log.habit_id]) weekDatesByHabit[log.habit_id] = [];
+    weekDatesByHabit[log.habit_id].push(log.completed_date);
+  });
+  Object.entries(weekDatesByHabit).forEach(([habitId, dates]) => {
+    timesPerWeekCounts[habitId] = normalizeCompletedDates(dates, date.localDate).length;
   });
 
-  const dueToday = snapshot.habits.filter((habit) => isHabitDueToday(habit, date.dayOfWeek, timesPerWeekCounts));
+  const dueToday = snapshot.habits.filter((habit) => completedIds.has(habit.id) || isHabitDueOnDate(habit, date.localDate, weekDatesByHabit[habit.id] ?? []));
   const completedToday = dueToday.filter((habit) => completedIds.has(habit.id));
   const incompleteToday = dueToday.filter((habit) => !completedIds.has(habit.id));
   const notDueToday = snapshot.habits.filter((habit) => !dueToday.some((dueHabit) => dueHabit.id === habit.id));
 
   const weeklyProgressById: Record<string, { completed: number; target: number } | null> = {};
   snapshot.habits.forEach((habit) => {
-    const dates = weekLogs.filter((log) => log.habit_id === habit.id).map((log) => log.completed_date);
-    weeklyProgressById[habit.id] = getWeeklyProgress(dates, habit.frequency, habit.times_per_week, date.weekStart);
+    const dates = weekDatesByHabit[habit.id] ?? [];
+    weeklyProgressById[habit.id] = getWeeklyProgress(dates, habit.frequency, habit.times_per_week, date.weekStart, habit.days_of_week, { asOfDate: date.localDate });
   });
 
   const relevantTasks = sortTasksForToday(snapshot.tasks);

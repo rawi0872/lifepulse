@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useToast } from "@/hooks/use-toast";
 import { getTodayDateString, getWeekStartDate } from "@/lib/utils";
-import { getCurrentStreak, getBestStreak, getWeeklyProgress } from "@/lib/streaks";
+import { getCurrentStreak, getBestStreak, getWeeklyProgress, normalizeCompletedDates } from "@/lib/streaks";
 
 interface Realm {
   id: string;
@@ -150,10 +150,10 @@ export default function HabitsPage() {
       const bMap: Record<string, number> = {};
       const wMap: Record<string, { completed: number; target: number } | null> = {};
       habits.forEach((h) => {
-        const dates = logsByHabit[h.id] ?? [];
-        sMap[h.id] = getCurrentStreak(dates, h.frequency, h.days_of_week);
-        bMap[h.id] = getBestStreak(dates, h.frequency, h.days_of_week);
-        wMap[h.id] = getWeeklyProgress(dates, h.frequency, h.times_per_week, weekStart);
+        const dates = normalizeCompletedDates(logsByHabit[h.id] ?? [], today);
+        sMap[h.id] = getCurrentStreak(dates, h.frequency, h.days_of_week, { asOfDate: today });
+        bMap[h.id] = getBestStreak(dates, h.frequency, h.days_of_week, { asOfDate: today });
+        wMap[h.id] = getWeeklyProgress(dates, h.frequency, h.times_per_week, weekStart, h.days_of_week, { asOfDate: today });
       });
       setStreaks(sMap);
       setBestStreaks(bMap);
@@ -220,9 +220,15 @@ export default function HabitsPage() {
     };
 
     if (editingId) {
-      const { error: err } = await supabase.from("habits").update(payload).eq("id", editingId);
+      const { data: updatedHabit, error: err } = await supabase
+        .from("habits")
+        .update(payload)
+        .eq("id", editingId)
+        .eq("user_id", user.id)
+        .select("id")
+        .maybeSingle();
 
-      if (err) {
+      if (err || !updatedHabit) {
         toast({ type: "error", title: "Failed to update habit." });
         setSaving(false);
         return;
@@ -245,13 +251,50 @@ export default function HabitsPage() {
   }
 
   async function remove(id: string) {
-    const { error: logErr } = await supabase.from("habit_logs").delete().eq("habit_id", id);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data: logs, error: loadLogErr } = await supabase
+      .from("habit_logs")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("habit_id", id);
+    if (loadLogErr) {
+      toast({ type: "error", title: "Failed to remove habit data." });
+      return;
+    }
+
+    const logIds = (logs ?? []).map((log) => log.id).filter(Boolean);
+    if (logIds.length > 0) {
+      const { error: xpErr } = await supabase
+        .from("xp_events")
+        .delete()
+        .eq("user_id", user.id)
+        .eq("source_type", "habit")
+        .in("source_id", logIds);
+      if (xpErr) {
+        toast({ type: "error", title: "Failed to remove habit data." });
+        return;
+      }
+    }
+
+    const { error: logErr } = await supabase
+      .from("habit_logs")
+      .delete()
+      .eq("user_id", user.id)
+      .eq("habit_id", id);
     if (logErr) {
       toast({ type: "error", title: "Failed to remove habit data." });
       return;
     }
-    const { error } = await supabase.from("habits").delete().eq("id", id);
-    if (error) {
+    const { data: deletedHabit, error } = await supabase
+      .from("habits")
+      .delete()
+      .eq("id", id)
+      .eq("user_id", user.id)
+      .select("id")
+      .maybeSingle();
+    if (error || !deletedHabit) {
       toast({ type: "error", title: "Failed to delete habit." });
       return;
     }
@@ -272,6 +315,7 @@ export default function HabitsPage() {
         const { data: existing } = await supabase
           .from("habit_logs")
           .select("id")
+          .eq("user_id", user.id)
           .eq("habit_id", habitId)
           .eq("completed_date", today)
           .maybeSingle();
@@ -286,12 +330,26 @@ export default function HabitsPage() {
 
         if (logErr || !log) throw logErr;
 
-        await supabase.from("xp_events").insert({
+        const { error: xpErr } = await supabase.from("xp_events").insert({
           user_id: user.id,
           source_type: "habit",
           source_id: log.id,
           amount: 10,
         });
+
+        if (xpErr) {
+          const { error: rollbackErr } = await supabase
+            .from("habit_logs")
+            .delete()
+            .eq("id", log.id)
+            .eq("user_id", user.id);
+          if (rollbackErr) {
+            toast({ type: "error", title: "Habit saved without XP.", description: "Try undoing and checking it again." });
+            await load();
+            return;
+          }
+          throw xpErr;
+        }
 
         setTodayCompleted((prev) => new Set([...prev, habitId]));
         toast({ type: "success", title: "Visible action logged", description: "+10 XP added. This habit will appear in your weekly rhythm. Return to Today to reflect." });
@@ -299,18 +357,28 @@ export default function HabitsPage() {
         const { data: logs } = await supabase
           .from("habit_logs")
           .select("id")
+          .eq("user_id", user.id)
           .eq("habit_id", habitId)
           .eq("completed_date", today);
 
-        if (logs && logs.length > 0) {
-          const logId = logs[0].id;
-          await supabase.from("xp_events").delete().match({
+        if (!logs || logs.length === 0) return;
+
+        const logId = logs[0].id;
+        const { error: xpDeleteErr } = await supabase.from("xp_events").delete().match({
             source_type: "habit",
             source_id: logId,
             user_id: user.id,
           });
-          await supabase.from("habit_logs").delete().eq("id", logId);
-        }
+        if (xpDeleteErr) throw xpDeleteErr;
+
+        const { data: deletedLog, error: logDeleteErr } = await supabase
+          .from("habit_logs")
+          .delete()
+          .eq("id", logId)
+          .eq("user_id", user.id)
+          .select("id")
+          .maybeSingle();
+        if (logDeleteErr || !deletedLog) throw logDeleteErr;
 
         setTodayCompleted((prev) => {
           const next = new Set(prev);

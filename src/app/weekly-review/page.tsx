@@ -55,6 +55,11 @@ interface PreviousWeekData {
   financeEntries: number;
 }
 
+interface WeeklyHabitLog {
+  habit_id?: string | null;
+  completed_date?: string | null;
+}
+
 interface WeeklyComparisonRow {
   label: string;
   current: number;
@@ -68,7 +73,7 @@ interface WeeklyComparisonData {
 }
 
 function getWeekDates(): string[] {
-  const start = new Date(getWeekStartDate());
+  const start = new Date(`${getWeekStartDate()}T12:00:00`);
   const dates: string[] = [];
   for (let i = 0; i < 7; i++) {
     const d = new Date(start);
@@ -82,6 +87,31 @@ function addDays(dateString: string, days: number): string {
   const date = new Date(`${dateString}T12:00:00`);
   date.setDate(date.getDate() + days);
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function isValidLocalDateString(value: string | null | undefined): value is string {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(year, month - 1, day);
+  return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day;
+}
+
+function countHabitLogsForDate(logs: WeeklyHabitLog[], date: string): number {
+  const uniqueLogs = new Set<string>();
+  logs.forEach((log) => {
+    if (!log.habit_id || !isValidLocalDateString(log.completed_date) || log.completed_date !== date) return;
+    uniqueLogs.add(`${log.habit_id}:${date}`);
+  });
+  return uniqueLogs.size;
+}
+
+function countUniqueHabitLogs(logs: WeeklyHabitLog[]): number {
+  const uniqueLogs = new Set<string>();
+  logs.forEach((log) => {
+    if (!log.habit_id || !isValidLocalDateString(log.completed_date)) return;
+    uniqueLogs.add(`${log.habit_id}:${log.completed_date}`);
+  });
+  return uniqueLogs.size;
 }
 
 interface WeekData {
@@ -190,7 +220,7 @@ function WeeklyReviewContent() {
       passionsRes, sessionsRes, goalsRes, milestonesRes, projectsRes, financeRes,
       journalMemoryRes, knowledgeMemoryRes, goalLinksRes,
     ] = await Promise.all([
-      supabase.from("habit_logs").select("id, completed_date").eq("user_id", user.id).gte("completed_date", weekStart).lte("completed_date", weekEnd),
+      supabase.from("habit_logs").select("habit_id, completed_date").eq("user_id", user.id).gte("completed_date", weekStart).lte("completed_date", weekEnd),
       supabase.from("tasks").select("id, completed_at").eq("user_id", user.id).eq("status", "done").gte("completed_at", `${weekStart}T00:00:00`).lte("completed_at", `${weekEnd}T23:59:59`),
       supabase.from("workouts").select("duration_minutes").eq("user_id", user.id).gte("workout_date", weekStart).lte("workout_date", weekEnd),
       supabase.from("journal_entries").select("id").eq("user_id", user.id).gte("entry_date", weekStart).lte("entry_date", weekEnd),
@@ -228,7 +258,7 @@ function WeeklyReviewContent() {
     const bodyMetrics = (bodyRes.data ?? []) as { entry_date?: string | null; energy?: number | null; sleep_hours?: number | null }[];
     const mindMetrics = (mindRes.data ?? []) as { entry_date?: string | null; mood?: number | null; focus?: number | null; stress?: number | null }[];
     const nutritionLogs = (nutritionRes.data ?? []) as { log_date?: string | null; protein_g?: number | null; water_ml?: number | null }[];
-    const habitLogs = (habitsRes.data ?? []) as { completed_date?: string | null }[];
+    const habitLogs = (habitsRes.data ?? []) as WeeklyHabitLog[];
     const completedTasks = (tasksRes.data ?? []) as { completed_at?: string | null }[];
     const sessions = (sessionsRes.data ?? []) as { duration_minutes?: number | null; passion_id?: string }[];
     const passions = (passionsRes.data ?? []) as { id: string; name: string }[];
@@ -296,7 +326,7 @@ function WeeklyReviewContent() {
 
     const rhythmByDay = weekDates.map((date, index) => ({
       label: WEEKDAYS[index],
-      habits: habitLogs.filter((log) => log.completed_date === date).length,
+      habits: countHabitLogsForDate(habitLogs, date),
       tasks: completedTasks.filter((task) => task.completed_at?.slice(0, 10) === date).length,
       reflections: journalMemoryEntries.filter((entry) => entry.entry_date === date).length,
     }));
@@ -313,7 +343,7 @@ function WeeklyReviewContent() {
     });
 
     const activityByDay = weekDates.map((date, index) => {
-      const habits = habitLogs.filter((log) => log.completed_date === date).length;
+      const habits = countHabitLogsForDate(habitLogs, date);
       const tasks = completedTasks.filter((task) => task.completed_at?.slice(0, 10) === date).length;
       const reflections = journalMemoryEntries.filter((entry) => entry.entry_date === date).length;
       const mind = mindMetrics.filter((entry) => entry.entry_date === date).length;
@@ -336,7 +366,7 @@ function WeeklyReviewContent() {
 
     setData({
       weekDates,
-      habitCount: (habitsRes.data ?? []).length,
+      habitCount: countUniqueHabitLogs(habitLogs),
       taskCount: (tasksRes.data ?? []).length,
       workoutCount: (workoutsRes.data ?? []).length,
       workoutMinutes: ((workoutsRes.data ?? []) as { duration_minutes?: number | null }[]).reduce((s, w) => s + (w.duration_minutes ?? 0), 0),
@@ -390,7 +420,7 @@ function WeeklyReviewContent() {
 
     try {
       const [prevHabitsRes, prevTasksRes, prevJournalRes, prevMindRes, prevBodyRes, prevNutritionRes, prevFinanceRes] = await Promise.all([
-        supabase.from("habit_logs").select("completed_date").eq("user_id", user.id).gte("completed_date", previousWeekStart).lte("completed_date", previousWeekEnd),
+        supabase.from("habit_logs").select("habit_id, completed_date").eq("user_id", user.id).gte("completed_date", previousWeekStart).lte("completed_date", previousWeekEnd),
         supabase.from("tasks").select("completed_at").eq("user_id", user.id).eq("status", "done").gte("completed_at", `${previousWeekStart}T00:00:00`).lte("completed_at", `${previousWeekEnd}T23:59:59`),
         supabase.from("journal_entries").select("entry_date").eq("user_id", user.id).gte("entry_date", previousWeekStart).lte("entry_date", previousWeekEnd),
         supabase.from("mind_metrics").select("entry_date").eq("user_id", user.id).gte("entry_date", previousWeekStart).lte("entry_date", previousWeekEnd),
@@ -399,7 +429,7 @@ function WeeklyReviewContent() {
         supabase.from("finance_transactions").select("transaction_date").eq("user_id", user.id).gte("transaction_date", previousWeekStart).lte("transaction_date", previousWeekEnd),
       ]);
 
-      const prevHabitLogs = (prevHabitsRes.data ?? []) as { completed_date?: string | null }[];
+      const prevHabitLogs = (prevHabitsRes.data ?? []) as WeeklyHabitLog[];
       const prevCompletedTasks = (prevTasksRes.data ?? []) as { completed_at?: string | null }[];
       const prevJournalEntries = (prevJournalRes.data ?? []) as { entry_date?: string | null }[];
       const prevMindEntries = (prevMindRes.data ?? []) as { entry_date?: string | null }[];
@@ -409,7 +439,7 @@ function WeeklyReviewContent() {
 
       setPreviousWeekData({
         activityByDay: previousWeekDates.map((date, index) => {
-          const habits = prevHabitLogs.filter((log) => log.completed_date === date).length;
+          const habits = countHabitLogsForDate(prevHabitLogs, date);
           const tasks = prevCompletedTasks.filter((task) => task.completed_at?.slice(0, 10) === date).length;
           const reflections = prevJournalEntries.filter((entry) => entry.entry_date === date).length;
           const mind = prevMindEntries.filter((entry) => entry.entry_date === date).length;
@@ -429,7 +459,7 @@ function WeeklyReviewContent() {
             total: habits + tasks + reflections + mind + body + nutrition + finance,
           };
         }),
-        habitLogs: prevHabitLogs.length,
+        habitLogs: countUniqueHabitLogs(prevHabitLogs),
         completedTasks: prevCompletedTasks.length,
         reflections: prevJournalEntries.length,
         mindCheckins: prevMindEntries.length,

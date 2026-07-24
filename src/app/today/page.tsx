@@ -9,7 +9,7 @@ import {
   getWeekStartDate,
   getTodayDayOfWeek,
 } from "@/lib/utils";
-import { getCurrentStreak } from "@/lib/streaks";
+import { getCurrentStreak, normalizeCompletedDates } from "@/lib/streaks";
 import { toggleTaskCompletion } from "@/lib/taskCompletion";
 import { DashboardNav } from "@/components/DashboardNav";
 import { XpDisplay } from "@/components/XpDisplay";
@@ -419,8 +419,8 @@ function TodayContent() {
 
         const nextStreakMap: Record<string, number> = {};
         habits.forEach((habit) => {
-          const dates = logsByHabit[habit.id] ?? [];
-          nextStreakMap[habit.id] = getCurrentStreak(dates, habit.frequency, habit.days_of_week);
+          const dates = normalizeCompletedDates(logsByHabit[habit.id] ?? [], today);
+          nextStreakMap[habit.id] = getCurrentStreak(dates, habit.frequency, habit.days_of_week, { asOfDate: today });
         });
         setStreakMap(nextStreakMap);
       } catch (secondaryError) {
@@ -472,7 +472,16 @@ function TodayContent() {
         });
 
         if (xpErr) {
-          await supabase.from("habit_logs").delete().eq("id", log.id).eq("user_id", user.id);
+          const { error: rollbackErr } = await supabase
+            .from("habit_logs")
+            .delete()
+            .eq("id", log.id)
+            .eq("user_id", user.id);
+          if (rollbackErr) {
+            toast({ type: "error", title: "Habit saved without XP.", description: "Try undoing and checking it again." });
+            await reloadAll();
+            return;
+          }
           toast({ type: "error", title: "Failed to update habit." });
           return;
         }
