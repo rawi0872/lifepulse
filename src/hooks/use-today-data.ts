@@ -154,7 +154,7 @@ export function useTodayData(supabase: SupabaseClient) {
           .from("tasks")
           .select("id, title, description, priority, due_date, status, completed_at, project_id, realms(name, color, icon), projects(title)")
           .eq("user_id", user.id)
-          .or(`due_date.eq.${date.localDate},and(due_date.lt.${date.localDate},status.eq.todo),and(due_date.is.null,status.eq.todo)`)
+          .or(`and(due_date.eq.${date.localDate},status.eq.todo),and(due_date.lt.${date.localDate},status.eq.todo),and(due_date.is.null,status.eq.todo),and(status.eq.done,completed_at.gte.${date.dayStart},completed_at.lte.${date.dayEnd})`)
           .order("due_date", { ascending: true }),
         supabase
           .from("journal_entries")
