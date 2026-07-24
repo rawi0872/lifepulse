@@ -74,7 +74,7 @@ export function NextBestAction(props: NextBestActionProps) {
       <Card variant="subtle" className="mb-4 overflow-hidden border-[var(--success)]/20 bg-[var(--success-soft)]/10">
         <div className="border-b border-[var(--success)]/10 px-4 py-2.5">
           <p className="text-[10px] font-semibold tracking-[0.14em] text-[var(--success)]">
-            Next action
+            After Start Here
           </p>
         </div>
         <div className="p-4">
@@ -100,7 +100,7 @@ export function NextBestAction(props: NextBestActionProps) {
       <Card variant="subtle" className="mb-4 overflow-hidden border-white/[0.08] bg-[var(--surface-soft)]/75">
         <div className="border-b border-white/[0.06] px-4 py-2.5">
           <p className="text-[10px] font-semibold tracking-[0.14em] text-[var(--text-muted)]">
-            Next action
+            After Start Here
           </p>
         </div>
         <div className="p-4">
@@ -145,13 +145,13 @@ export function NextBestAction(props: NextBestActionProps) {
       <Card variant="subtle" className="mb-4 overflow-hidden border-white/[0.08] bg-[var(--surface-soft)]/75">
         <div className="border-b border-white/[0.06] px-4 py-2.5">
           <p className="text-[10px] font-semibold tracking-[0.14em] text-[var(--text-muted)]">
-            Next action
+            After Start Here
           </p>
         </div>
         <div className="p-4">
           <p className="text-sm font-medium text-[var(--text)]">Create or finish one visible action</p>
           <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
-            If the day feels quiet, make one action concrete enough to finish today. Add a small task, complete a habit, or reflect if the action is already done.
+            Use this after the Morning Plan action. Add a small task, complete a habit, or reflect if the action is already done.
           </p>
           <div className="mt-3 flex flex-wrap gap-2 text-xs">
             <Link href="/today#quick-capture" className="rounded-md border border-[var(--border)] px-3 py-2 text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/25 hover:text-[var(--accent)] sm:py-1.5">
@@ -179,7 +179,7 @@ export function NextBestAction(props: NextBestActionProps) {
           <svg className="mr-1.5 inline-block h-3 w-3 -mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />
           </svg>
-          Next action
+          After Start Here
         </p>
       </div>
       <div className="divide-y divide-white/[0.06]">

@@ -703,105 +703,112 @@ function TodayContent() {
         />
       )}
 
-      <div id="daily-focus" className="scroll-mt-24">
-        <MissionControl
-          priorities={priorities}
-          priorityInput={priorityInput}
-          addingPriority={addingPriority}
-          quickCapture={quickCapture}
-          quickType={quickType}
-          quickSaving={quickSaving}
-          focusPrompt={copy.focusPrompt}
-          visibleActionDone={visibleActionDone}
+      <section id="daily-execution" className="mb-6 scroll-mt-24" aria-labelledby="active-day-heading">
+        <div className="mb-3 flex min-w-0 flex-col gap-1 border-t border-white/[0.06] pt-5 sm:mb-4">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--accent)]">Active day</p>
+          <h2 id="active-day-heading" className="text-xl font-semibold tracking-[-0.03em] text-[var(--text)]">Capture, choose, complete.</h2>
+          <p className="max-w-2xl text-sm leading-relaxed text-[var(--text-secondary)]">
+            Keep the day concrete: set local priorities, add loose work, then finish one task or habit that is visible today.
+          </p>
+        </div>
+
+        <div id="daily-focus" className="scroll-mt-24">
+          <MissionControl
+            priorities={priorities}
+            priorityInput={priorityInput}
+            addingPriority={addingPriority}
+            quickCapture={quickCapture}
+            quickType={quickType}
+            quickSaving={quickSaving}
+            focusPrompt={copy.focusPrompt}
+            visibleActionDone={visibleActionDone}
+            hasJournal={hasJournal}
+            onPriorityInputChange={setPriorityInput}
+            onAddPriority={addPriorityItem}
+            onTogglePriority={togglePriorityItem}
+            onRemovePriority={removePriorityItem}
+            onAddingPriorityChange={setAddingPriority}
+            onQuickCaptureChange={handleQuickChange}
+            onQuickTypeChange={setQuickType}
+            onStarterActionSelect={selectStarterAction}
+            onQuickCapture={handleQuickCapture}
+          />
+        </div>
+
+        {showFirstLoopGuide && (
+          <FirstLoopGuide
+            steps={firstLoopSteps}
+            hasPriority={hasPriority}
+            hasCompletedPriority={hasCompletedPriority}
+            visibleActionDone={visibleActionDone}
+            hasJournal={hasJournal}
+            onDismiss={dismissFirstLoopGuide}
+          />
+        )}
+
+        {!visibleActionDone && (
+          <FirstVisibleActionGuide
+            hasTasks={tasks.length > 0}
+            hasDueHabits={dueHabits.length > 0}
+            hasJournal={hasJournal}
+          />
+        )}
+
+        <CommandStrip
+          completedHabitCount={completedHabitCount}
+          dueHabitsLength={dueHabits.length}
+          doneTaskCount={doneTaskCount}
+          tasksLength={tasks.length}
           hasJournal={hasJournal}
-          onPriorityInputChange={setPriorityInput}
-          onAddPriority={addPriorityItem}
-          onTogglePriority={togglePriorityItem}
-          onRemovePriority={removePriorityItem}
-          onAddingPriorityChange={setAddingPriority}
-          onQuickCaptureChange={handleQuickChange}
-          onQuickTypeChange={setQuickType}
-          onStarterActionSelect={selectStarterAction}
-          onQuickCapture={handleQuickCapture}
+          todayXp={todayXp}
+          financeNet={financeNet}
+          financeHasTx={financeHasTx}
         />
-      </div>
 
-      {showFirstLoopGuide && (
-        <FirstLoopGuide
-          steps={firstLoopSteps}
-          hasPriority={hasPriority}
-          hasCompletedPriority={hasCompletedPriority}
-          visibleActionDone={visibleActionDone}
-          hasJournal={hasJournal}
-          onDismiss={dismissFirstLoopGuide}
-        />
-      )}
+        {!hasContent && (
+          <Card variant="elevated" className="mb-5 overflow-hidden border-[var(--accent)]/20 bg-[linear-gradient(135deg,rgba(244,247,251,0.055),rgba(122,162,199,0.045)),var(--surface)]">
+            <div className="border-b border-[var(--border)] px-5 py-4">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">First setup</p>
+              <h3 className="mt-1 text-base font-semibold text-[var(--text)]">Start with one daily action.</h3>
+              <p className="mt-1 text-sm leading-relaxed text-[var(--text-secondary)]">
+                {copy.emptyTitle}. Add one task or one habit, then come back tonight to reflect.
+              </p>
+            </div>
+            <div className="flex flex-col gap-2 px-5 py-3 sm:flex-row sm:items-center sm:gap-4">
+              <Link
+                href="/tasks"
+                className="inline-flex min-h-10 items-center justify-center rounded-lg bg-[var(--accent)] px-3 text-sm font-medium text-white transition-colors hover:bg-[var(--accent-strong)] sm:min-h-0 sm:bg-transparent sm:px-0 sm:text-[var(--accent)] sm:hover:bg-transparent sm:hover:text-[var(--accent-strong)]"
+              >
+                Create one task &rarr;
+              </Link>
+              <Link
+                href="/habits"
+                className="inline-flex min-h-10 items-center justify-center rounded-lg border border-[var(--border)] px-3 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/30 hover:text-[var(--accent)] sm:min-h-0 sm:border-0 sm:px-0"
+              >
+                Add one habit &rarr;
+              </Link>
+            </div>
+            <div className="border-t border-[var(--border)] px-5 py-4">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">
+                Simple path
+              </p>
+              <ol className="mt-2 grid gap-2 text-xs leading-relaxed text-[var(--text-muted)] sm:grid-cols-3">
+                <li>1. Set one priority.</li>
+                <li>2. Complete one visible action.</li>
+                <li>3. Reflect so the week has context.</li>
+              </ol>
+            </div>
+          </Card>
+        )}
 
-      {!visibleActionDone && (
-        <FirstVisibleActionGuide
-          hasTasks={tasks.length > 0}
-          hasDueHabits={dueHabits.length > 0}
-          hasJournal={hasJournal}
-        />
-      )}
-
-      <CommandStrip
-        completedHabitCount={completedHabitCount}
-        dueHabitsLength={dueHabits.length}
-        doneTaskCount={doneTaskCount}
-        tasksLength={tasks.length}
-        hasJournal={hasJournal}
-        todayXp={todayXp}
-        financeNet={financeNet}
-        financeHasTx={financeHasTx}
-      />
-
-      {/* Empty state welcome */}
-      {!hasContent && (
-        <Card variant="elevated" className="mb-6 overflow-hidden border-[var(--accent)]/20 bg-[linear-gradient(135deg,rgba(244,247,251,0.055),rgba(122,162,199,0.045)),var(--surface)]">
-          <div className="border-b border-[var(--border)] px-5 py-4">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">First setup</p>
-            <h2 className="mt-1 text-base font-semibold text-[var(--text)]">Start with one daily action.</h2>
-            <p className="mt-1 text-sm leading-relaxed text-[var(--text-secondary)]">
-              {copy.emptyTitle}. Add one task or one habit, then come back tonight to reflect.
-            </p>
-          </div>
-          <div className="flex flex-col gap-2 px-5 py-3 sm:flex-row sm:items-center sm:gap-4">
-            <Link
-              href="/tasks"
-              className="inline-flex min-h-10 items-center justify-center rounded-lg bg-[var(--accent)] px-3 text-sm font-medium text-white transition-colors hover:bg-[var(--accent-strong)] sm:min-h-0 sm:bg-transparent sm:px-0 sm:text-[var(--accent)] sm:hover:bg-transparent sm:hover:text-[var(--accent-strong)]"
-            >
-              Create one task &rarr;
-            </Link>
-            <Link
-              href="/habits"
-              className="inline-flex min-h-10 items-center justify-center rounded-lg border border-[var(--border)] px-3 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/30 hover:text-[var(--accent)] sm:min-h-0 sm:border-0 sm:px-0"
-            >
-              Add one habit &rarr;
-            </Link>
-          </div>
-          <div className="border-t border-[var(--border)] px-5 py-4">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">
-              Simple path
-            </p>
-            <ol className="mt-2 grid gap-2 text-xs leading-relaxed text-[var(--text-muted)] sm:grid-cols-3">
-              <li>1. Set one priority.</li>
-              <li>2. Complete one visible action.</li>
-              <li>3. Reflect so the week has context.</li>
-            </ol>
-          </div>
-        </Card>
-      )}
-
-      <section id="daily-execution" className="scroll-mt-24">
-        <Card className="mb-6 overflow-hidden border-white/[0.09] bg-[linear-gradient(180deg,rgba(244,247,251,0.028),rgba(244,247,251,0.006)),var(--surface)]">
+        <Card className="overflow-hidden border-white/[0.09] bg-[linear-gradient(180deg,rgba(244,247,251,0.028),rgba(244,247,251,0.006)),var(--surface)]">
           <div className="border-b border-[var(--border)] px-4 py-4 sm:px-5">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--accent)]">Daily execution</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--accent)]">Tasks and habits</p>
             <div className="mt-1 flex min-w-0 flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
               <div className="min-w-0">
-                <h2 className="text-xl font-semibold tracking-[-0.03em] text-[var(--text)]">Complete one visible action.</h2>
+                <h3 className="text-xl font-semibold tracking-[-0.03em] text-[var(--text)]">Complete what is actually available now.</h3>
                 <p className="mt-1 max-w-2xl text-sm leading-relaxed text-[var(--text-secondary)]">
-                  Start with a task or habit you can actually finish today. Then close the day with a short reflection so it becomes context for your week.
+                  Check off due habits and relevant tasks here. Morning Plan stays the primary starting point; this area is the working list.
                 </p>
               </div>
               <a href="#evening-reflection" className="inline-flex min-h-10 shrink-0 items-center rounded-md text-xs font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0">
@@ -811,21 +818,6 @@ function TodayContent() {
           </div>
 
           <div className="space-y-5 p-4 sm:p-5">
-            <NextBestAction
-              hasBodyLogged={bodyLoggedToday}
-              hasMindLogged={mindLoggedToday}
-              hasHighPriorityTasks={tasks.some((t) => t.priority === "high" && t.status === "todo")}
-              hasGoalWithoutLinks={hasGoalWithoutLinks}
-              hasJournalToday={hasJournal}
-              visibleActionDone={visibleActionDone}
-              hasContent={hasContent}
-              hasWorkoutThisWeek={hasWorkoutThisWeek}
-              hasNutritionToday={hasNutritionToday}
-              hasActivePassions={hasActivePassions}
-              hasPassionSessionThisWeek={hasPassionSessionThisWeek}
-              dayOfWeek={todayDow}
-            />
-
             {suggestedTask && suggestedTask.projects ? (
               <Card className="border-[var(--accent)]/20 bg-[var(--surface-raised)]/80">
                 <div className="flex flex-col gap-3 px-4 py-3.5 hover:bg-[var(--surface-active)] sm:flex-row sm:items-center sm:py-3">
@@ -915,6 +907,21 @@ function TodayContent() {
                 onToggleTask={toggleTask}
               />
             </div>
+
+            <NextBestAction
+              hasBodyLogged={bodyLoggedToday}
+              hasMindLogged={mindLoggedToday}
+              hasHighPriorityTasks={tasks.some((t) => t.priority === "high" && t.status === "todo")}
+              hasGoalWithoutLinks={hasGoalWithoutLinks}
+              hasJournalToday={hasJournal}
+              visibleActionDone={visibleActionDone}
+              hasContent={hasContent}
+              hasWorkoutThisWeek={hasWorkoutThisWeek}
+              hasNutritionToday={hasNutritionToday}
+              hasActivePassions={hasActivePassions}
+              hasPassionSessionThisWeek={hasPassionSessionThisWeek}
+              dayOfWeek={todayDow}
+            />
           </div>
         </Card>
       </section>
@@ -931,63 +938,69 @@ function TodayContent() {
         />
       )}
 
-      <TodayReviewHandoff rows={reviewHandoffRows} />
-
-      <section className="space-y-4">
+      <section id="today-context" className="space-y-4 scroll-mt-24">
         <div className="flex min-w-0 flex-col gap-1 border-t border-white/[0.06] pt-5">
-          <h2 className="text-sm font-semibold tracking-[-0.01em] text-[var(--text)]">Life Pulse context</h2>
-          <p className="text-xs text-[var(--text-muted)]">Supporting areas are here when they help today&apos;s work. They are not the main loop.</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Secondary context</p>
+          <h2 className="text-sm font-semibold tracking-[-0.01em] text-[var(--text)]">Context for later</h2>
+          <p className="text-xs text-[var(--text-muted)]">Supporting areas are available after the core loop. They are not required to complete Today.</p>
         </div>
 
-        <div className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-3">
-          <XpDisplay
-            totalXp={totalXp}
-            todayXp={todayXp}
-            dueHabitCount={dueHabits.length}
-            completedHabitCount={completedHabitCount}
-          />
+        <div className="grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(17rem,0.65fr)]">
+          <div className="min-w-0 space-y-4">
+            <TodayReviewHandoff rows={reviewHandoffRows} />
 
-          <div className="min-w-0 space-y-3 lg:col-span-2">
-            <FinanceOverview financeNet={financeNet} financeHasTx={financeHasTx} />
-            <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2">
-              <TodayContextLink href="/body" label="Body Pulse" status={bodyLoggedToday ? `Logged${bodyEnergyToday !== null ? ` · Energy ${bodyEnergyToday}/5` : ""}` : "Log"} accent="success" />
-              <TodayContextLink href="/mind" label="Mind Pulse" status={mindLoggedToday ? `Logged${mindMoodToday !== null ? ` · Mood ${mindMoodToday}/5` : ""}` : "Log"} accent="accent" />
-              <TodayContextLink href="/goals" label="Goal Pulse" status={goalPulseStatus} accent="accent" />
-              <TodayContextLink href="/passions" label="Passions" status="View" accent="accent" />
+            {activeGoalsCount > 0 && (
+              <Card variant="subtle" className="overflow-hidden border-dashed border-[var(--border)] bg-[var(--surface-soft)]/55">
+                <div className="border-b border-[var(--border)] px-4 py-3 sm:py-2.5">
+                  <p className="text-[10px] font-medium tracking-wider text-[var(--text-muted)]">Execution bridge</p>
+                  <p className="mt-1 text-xs text-[var(--text-muted)]">Today is where goal and project work becomes visible action. One visible step is enough.</p>
+                </div>
+                <div className="grid min-w-0 grid-cols-2 gap-0 divide-x divide-y divide-[var(--border)] sm:grid-cols-4 sm:divide-y-0">
+                  <ExecutionBridgeMetric label="Active goals" value={activeGoalsCount} />
+                  <ExecutionBridgeMetric label="Goals with action links" value={linkedGoalsCount} />
+                  <ExecutionBridgeMetric label="Goals without action links" value={unlinkedGoalsCount} />
+                  <ExecutionBridgeMetric label="Action links" value={actionLinksCount} sub={`${projectLinksCount} projects / ${taskLinksCount} tasks / ${habitLinksCount} habits`} />
+                </div>
+                <div className="border-t border-[var(--border)] px-4 py-3.5 sm:py-3">
+                  <p className="text-xs text-[var(--text-muted)]">
+                    {unlinkedGoalsCount > 0
+                      ? "Some active goals are not connected to projects, tasks, or habits yet. Add one task or link one project to make a goal actionable."
+                      : "Active goals are connected to action. Completed tasks will appear in your weekly rhythm."}
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2 text-xs sm:mt-2">
+                    <Link href="/goals" className="rounded-md py-1 text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:py-0">Open Goals</Link>
+                    <span className="hidden text-[var(--text-muted)] sm:inline">/</span>
+                    <Link href="/projects" className="rounded-md py-1 text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:py-0">Open Projects</Link>
+                    <span className="hidden text-[var(--text-muted)] sm:inline">/</span>
+                    <Link href="/tasks" className="rounded-md py-1 text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:py-0">Open Tasks</Link>
+                    <span className="hidden text-[var(--text-muted)] sm:inline">/</span>
+                    <Link href="/habits" className="rounded-md py-1 text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:py-0">Open Habits</Link>
+                  </div>
+                </div>
+              </Card>
+            )}
+
+          </div>
+
+          <div className="min-w-0 space-y-3 xl:sticky xl:top-6 xl:self-start">
+            <XpDisplay
+              totalXp={totalXp}
+              todayXp={todayXp}
+              dueHabitCount={dueHabits.length}
+              completedHabitCount={completedHabitCount}
+            />
+
+            <div className="min-w-0 space-y-2">
+              <FinanceOverview financeNet={financeNet} financeHasTx={financeHasTx} />
+              <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-1">
+                <TodayContextLink href="/body" label="Body Pulse" status={bodyLoggedToday ? `Logged${bodyEnergyToday !== null ? ` · Energy ${bodyEnergyToday}/5` : ""}` : "Log"} accent="success" />
+                <TodayContextLink href="/mind" label="Mind Pulse" status={mindLoggedToday ? `Logged${mindMoodToday !== null ? ` · Mood ${mindMoodToday}/5` : ""}` : "Log"} accent="accent" />
+                <TodayContextLink href="/goals" label="Goal Pulse" status={goalPulseStatus} accent="accent" />
+                <TodayContextLink href="/passions" label="Passions" status="View" accent="accent" />
+              </div>
             </div>
           </div>
         </div>
-
-        {activeGoalsCount > 0 && (
-          <Card variant="subtle" className="overflow-hidden border-dashed border-[var(--border)] bg-[var(--surface-soft)]/55">
-            <div className="border-b border-[var(--border)] px-4 py-3 sm:py-2.5">
-              <p className="text-[10px] font-medium tracking-wider text-[var(--text-muted)]">Execution bridge</p>
-              <p className="mt-1 text-xs text-[var(--text-muted)]">Today is where goal and project work becomes visible action. One visible step is enough.</p>
-            </div>
-            <div className="grid min-w-0 grid-cols-2 gap-0 divide-x divide-y divide-[var(--border)] sm:grid-cols-4 sm:divide-y-0">
-              <ExecutionBridgeMetric label="Active goals" value={activeGoalsCount} />
-              <ExecutionBridgeMetric label="Goals with action links" value={linkedGoalsCount} />
-              <ExecutionBridgeMetric label="Goals without action links" value={unlinkedGoalsCount} />
-              <ExecutionBridgeMetric label="Action links" value={actionLinksCount} sub={`${projectLinksCount} projects / ${taskLinksCount} tasks / ${habitLinksCount} habits`} />
-            </div>
-            <div className="border-t border-[var(--border)] px-4 py-3.5 sm:py-3">
-              <p className="text-xs text-[var(--text-muted)]">
-                {unlinkedGoalsCount > 0
-                  ? "Some active goals are not connected to projects, tasks, or habits yet. Add one task or link one project to make a goal actionable."
-                  : "Active goals are connected to action. Completed tasks will appear in your weekly rhythm."}
-              </p>
-              <div className="mt-3 flex flex-wrap gap-2 text-xs sm:mt-2">
-                <Link href="/goals" className="rounded-md py-1 text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:py-0">Open Goals</Link>
-                <span className="hidden text-[var(--text-muted)] sm:inline">/</span>
-                <Link href="/projects" className="rounded-md py-1 text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:py-0">Open Projects</Link>
-                <span className="hidden text-[var(--text-muted)] sm:inline">/</span>
-                <Link href="/tasks" className="rounded-md py-1 text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:py-0">Open Tasks</Link>
-                <span className="hidden text-[var(--text-muted)] sm:inline">/</span>
-                <Link href="/habits" className="rounded-md py-1 text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:py-0">Open Habits</Link>
-              </div>
-            </div>
-          </Card>
-        )}
 
         <TodayEcosystemStrip modules={ecosystemModules} />
       </section>
@@ -1024,19 +1037,19 @@ function TodayContextLink({
       className="flex min-w-0 items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-3 text-xs font-medium text-[var(--text)] transition-colors hover:bg-[var(--surface)] sm:py-2.5"
     >
       <span className="min-w-0 flex-1 truncate">{label}</span>
-      <span className={`shrink-0 text-[10px] ${statusClassName}`}>{status} &rarr;</span>
+      <span className={`min-w-0 shrink text-right text-[10px] leading-snug ${statusClassName}`}>{status} &rarr;</span>
     </Link>
   );
 }
 
 function TodayReviewHandoff({ rows }: { rows: ReviewHandoffRow[] }) {
   return (
-    <Card variant="subtle" className="mb-6 overflow-hidden border-[var(--border)] bg-[linear-gradient(180deg,rgba(122,162,199,0.055),rgba(244,247,251,0.012)),var(--surface-soft)]">
+    <Card variant="subtle" className="overflow-hidden border-[var(--border)] bg-[linear-gradient(180deg,rgba(122,162,199,0.04),rgba(244,247,251,0.01)),var(--surface-soft)]">
       <div className="border-b border-[var(--border)] px-4 py-3.5 sm:px-5 sm:py-4">
         <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--accent)]">Private review payoff</p>
-            <h2 className="mt-1 text-base font-semibold tracking-[-0.02em] text-[var(--text)]">Today builds your review</h2>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Private review payoff</p>
+            <h3 className="mt-1 text-base font-semibold tracking-[-0.02em] text-[var(--text)]">Today builds your review</h3>
             <p className="mt-1 max-w-2xl text-xs leading-relaxed text-[var(--text-muted)]">
               Each manual log adds private context for Weekly Review and broader patterns in Insights. No AI summaries or external processing.
             </p>
