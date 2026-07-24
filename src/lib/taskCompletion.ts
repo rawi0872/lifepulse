@@ -30,11 +30,21 @@ export async function toggleTaskCompletion(
       if (tErr) return { success: false, error: "Could not update task." };
       if (!updatedTask) return { success: false, error: "Task unavailable." };
 
-      const { data: existing } = await supabase
+      const { data: existing, error: existingErr } = await supabase
         .from("xp_events")
         .select("id")
         .match({ user_id: userId, source_type: "task", source_id: taskId })
         .maybeSingle();
+
+      if (existingErr) {
+        await supabase
+          .from("tasks")
+          .update({ status: "todo", completed_at: null })
+          .eq("id", taskId)
+          .eq("user_id", userId)
+          .eq("status", "done");
+        return { success: false, error: "Could not update task." };
+      }
 
       if (!existing) {
         const { error: xpErr } = await supabase.from("xp_events").insert({
@@ -44,9 +54,28 @@ export async function toggleTaskCompletion(
           amount: 25,
         });
 
-        if (xpErr) return { success: false, error: "Could not update task." };
+        if (xpErr) {
+          const { error: rollbackErr } = await supabase
+            .from("tasks")
+            .update({ status: "todo", completed_at: null })
+            .eq("id", taskId)
+            .eq("user_id", userId)
+            .eq("status", "done");
+          return { success: false, error: rollbackErr ? "Task saved without XP." : "Could not update task." };
+        }
       }
     } else {
+      const { data: currentTask, error: currentErr } = await supabase
+        .from("tasks")
+        .select("id, completed_at")
+        .eq("id", taskId)
+        .eq("user_id", userId)
+        .eq("status", "done")
+        .maybeSingle();
+
+      if (currentErr) return { success: false, error: "Could not update task." };
+      if (!currentTask) return { success: false, error: "Task unavailable." };
+
       const { data: updatedTask, error: tErr } = await supabase
         .from("tasks")
         .update({ status: "todo", completed_at: null })
@@ -63,7 +92,15 @@ export async function toggleTaskCompletion(
         .from("xp_events")
         .delete()
         .match({ user_id: userId, source_type: "task", source_id: taskId });
-      if (xpDelErr) return { success: false, error: "Could not update task." };
+      if (xpDelErr) {
+        const { error: rollbackErr } = await supabase
+          .from("tasks")
+          .update({ status: "done", completed_at: currentTask.completed_at })
+          .eq("id", taskId)
+          .eq("user_id", userId)
+          .eq("status", "todo");
+        return { success: false, error: rollbackErr ? "Task reopened without updating XP." : "Could not update task." };
+      }
     }
 
     return { success: true };

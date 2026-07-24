@@ -1,4 +1,5 @@
 import { getWeeklyProgress, isHabitDueOnDate, normalizeCompletedDates } from "@/lib/streaks";
+import { groupTasksByDate, isValidLocalDateString, priorityRank, timestampToLocalDateString } from "@/lib/tasks";
 import type {
   TodayDataSnapshot,
   TodayDateContext,
@@ -9,25 +10,8 @@ import type {
   TodayTaskExecutionContext,
 } from "@/lib/today/types";
 
-function isValidDateString(value: string | null | undefined): value is string {
-  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-  const [year, month, day] = value.split("-").map(Number);
-  const date = new Date(year, month - 1, day);
-  return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day;
-}
-
 function isCompletedToday(completedAt: string | null, localDate: string): boolean {
-  if (!completedAt) return false;
-  const date = new Date(completedAt);
-  if (Number.isNaN(date.getTime())) return false;
-  const completedLocalDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-  return completedLocalDate === localDate;
-}
-
-function priorityRank(priority: string): number {
-  if (priority === "high") return 0;
-  if (priority === "medium") return 1;
-  return 2;
+  return timestampToLocalDateString(completedAt) === localDate;
 }
 
 function sortTasksForToday(tasks: TodayTask[]): TodayTask[] {
@@ -36,8 +20,8 @@ function sortTasksForToday(tasks: TodayTask[]): TodayTask[] {
     const bStatus = b.status === "todo" ? 0 : 1;
     if (aStatus !== bStatus) return aStatus - bStatus;
 
-    const aDue = isValidDateString(a.due_date) ? a.due_date : "9999-12-31";
-    const bDue = isValidDateString(b.due_date) ? b.due_date : "9999-12-31";
+    const aDue = isValidLocalDateString(a.due_date) ? a.due_date : "9999-12-31";
+    const bDue = isValidLocalDateString(b.due_date) ? b.due_date : "9999-12-31";
     if (aDue !== bDue) return aDue.localeCompare(bDue);
 
     return priorityRank(a.priority) - priorityRank(b.priority);
@@ -115,11 +99,12 @@ export function normalizeTodayData(snapshot: TodayDataSnapshot, date: TodayDateC
   });
 
   const relevantTasks = sortTasksForToday(snapshot.tasks);
-  const activeTasks = relevantTasks.filter((task) => task.status === "todo");
-  const dueTodayTasks = activeTasks.filter((task) => task.due_date === date.localDate);
-  const overdueTasks = activeTasks.filter((task) => isValidDateString(task.due_date) && task.due_date < date.localDate);
-  const upcomingTasks = activeTasks.filter((task) => isValidDateString(task.due_date) && task.due_date > date.localDate);
-  const unscheduledTasks = activeTasks.filter((task) => !task.due_date);
+  const taskGroups = groupTasksByDate(relevantTasks, date.localDate);
+  const activeTasks = [...taskGroups.overdue, ...taskGroups.dueToday, ...taskGroups.upcoming, ...taskGroups.unscheduled];
+  const dueTodayTasks = taskGroups.dueToday;
+  const overdueTasks = taskGroups.overdue;
+  const upcomingTasks = taskGroups.upcoming;
+  const unscheduledTasks = taskGroups.unscheduled;
   const completedTodayTasks = relevantTasks.filter((task) => task.status === "done" && isCompletedToday(task.completed_at, date.localDate));
   const taskContextById = buildTaskExecutionContext(relevantTasks, snapshot.taskProjects, snapshot.taskGoalLinks, snapshot.linkedGoals);
 

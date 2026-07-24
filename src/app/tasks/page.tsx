@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { getTodayDateString } from "@/lib/utils";
+import { groupTasksByDate, hasInvalidTaskDueDate, isValidLocalDateString, timestampToLocalDateString } from "@/lib/tasks";
 import { DashboardNav } from "@/components/DashboardNav";
 import { DailyLoopConnector } from "@/components/DailyLoopConnector";
 import { RealmPicker } from "@/components/RealmPicker";
@@ -64,8 +65,6 @@ interface Task {
   projects: Project | null;
 }
 
-const PRIORITY_ORDER = { high: 0, medium: 1, low: 2 };
-
 const TASK_STARTERS = [
   "Study 25 minutes",
   "Send one message",
@@ -74,17 +73,13 @@ const TASK_STARTERS = [
   "Prepare gym clothes",
 ] as const;
 
-function getDueDateLabel(due_date: string | null): { label: string; className: string } | null {
-  if (!due_date) return null;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const due = new Date(due_date + "T00:00:00");
-  const diff = Math.ceil((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-
-  if (diff < 0) return { label: `${Math.abs(diff)} day${Math.abs(diff) > 1 ? "s" : ""} overdue`, className: "text-[var(--danger)]" };
-  if (diff === 0) return { label: "Due today", className: "text-[var(--warning)]" };
-  if (diff === 1) return { label: "Due tomorrow", className: "text-[var(--text-muted)]" };
-  return { label: due_date, className: "text-[var(--text-muted)]" };
+function getDueDateLabel(dueDate: string | null, today: string, isDone: boolean): { label: string; className: string } {
+  if (isDone) return { label: "Completed", className: "text-[var(--success)]" };
+  if (hasInvalidTaskDueDate(dueDate)) return { label: "Date needs review", className: "text-[var(--warning)]" };
+  if (!dueDate) return { label: "Unscheduled", className: "text-[var(--text-muted)]" };
+  if (dueDate < today) return { label: "Overdue", className: "text-[var(--danger)]" };
+  if (dueDate === today) return { label: "Due today", className: "text-[var(--warning)]" };
+  return { label: dueDate, className: "text-[var(--text-muted)]" };
 }
 
 export default function TasksPage() {
@@ -94,10 +89,10 @@ export default function TasksPage() {
   const [taskProjects, setTaskProjects] = useState<TaskProjectContext[]>([]);
   const [goalLinks, setGoalLinks] = useState<GoalLink[]>([]);
   const [linkedGoals, setLinkedGoals] = useState<LinkedGoal[]>([]);
-  const [filter, setFilter] = useState<"today" | "upcoming" | "all" | "done">("all");
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
+  const [quickTitle, setQuickTitle] = useState("");
   const [title, setTitle] = useState("");
   const [realmId, setRealmId] = useState("");
   const [projectId, setProjectId] = useState("");
@@ -105,6 +100,8 @@ export default function TasksPage() {
   const [dueDate, setDueDate] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [quickSaving, setQuickSaving] = useState(false);
+  const [togglingTaskId, setTogglingTaskId] = useState<string | null>(null);
   const { toast } = useToast();
   const router = useRouter();
   const [supabase] = useState(() => createClient());
@@ -187,13 +184,6 @@ export default function TasksPage() {
     setConfirmingDeleteId(null);
   }
 
-  function applyStarterTask(starter: string) {
-    resetForm();
-    setTitle(starter);
-    setDueDate(getTodayDateString());
-    setShowForm(true);
-  }
-
   function openEdit(t: Task) {
     setEditingId(t.id);
     setConfirmingDeleteId(null);
@@ -227,19 +217,24 @@ export default function TasksPage() {
       title: title.trim(),
       priority,
       due_date: dueDate || null,
-      status: "todo" as const,
     };
 
     if (editingId) {
-      const { error: err } = await supabase.from("tasks").update(payload).eq("id", editingId);
+      const { data: updatedTask, error: err } = await supabase
+        .from("tasks")
+        .update(payload)
+        .eq("id", editingId)
+        .eq("user_id", user.id)
+        .select("id")
+        .maybeSingle();
 
-      if (err) {
+      if (err || !updatedTask) {
         toast({ type: "error", title: "Failed to update task." });
         setSaving(false);
         return;
       }
     } else {
-      const { error: err } = await supabase.from("tasks").insert(payload);
+      const { error: err } = await supabase.from("tasks").insert({ ...payload, status: "todo" });
 
       if (err) {
         toast({ type: "error", title: "Failed to create task." });
@@ -252,6 +247,35 @@ export default function TasksPage() {
     setShowForm(false);
     setSaving(false);
     toast({ type: "success", title: editingId ? "Task updated." : "Task created." });
+    reloadTasks();
+  }
+
+  async function quickCreate() {
+    const nextTitle = quickTitle.trim();
+    if (!nextTitle || quickSaving) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    setQuickSaving(true);
+    const { error } = await supabase.from("tasks").insert({
+      user_id: user.id,
+      realm_id: null,
+      project_id: null,
+      title: nextTitle,
+      priority: "medium",
+      due_date: getTodayDateString(),
+      status: "todo",
+    });
+
+    if (error) {
+      toast({ type: "error", title: "Failed to create task." });
+      setQuickSaving(false);
+      return;
+    }
+
+    setQuickTitle("");
+    setQuickSaving(false);
+    toast({ type: "success", title: "Task captured." });
     reloadTasks();
   }
 
@@ -282,8 +306,17 @@ export default function TasksPage() {
   }
 
   async function remove(id: string) {
-    const { error } = await supabase.from("tasks").delete().eq("id", id);
-    if (error) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data: deletedTask, error } = await supabase
+      .from("tasks")
+      .delete()
+      .eq("id", id)
+      .eq("user_id", user.id)
+      .select("id")
+      .maybeSingle();
+    if (error || !deletedTask) {
       toast({ type: "error", title: "Failed to delete task." });
       return;
     }
@@ -294,49 +327,36 @@ export default function TasksPage() {
   }
 
   async function toggleDone(task: Task) {
+    if (togglingTaskId) return;
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const result = await toggleTaskCompletion(supabase, user.id, task.id, task.status !== "done");
-    if (!result.success) {
-      toast({ type: "error", title: result.error ?? "Failed to update task" });
-      return;
-    }
+    setTogglingTaskId(task.id);
+    try {
+      const result = await toggleTaskCompletion(supabase, user.id, task.id, task.status !== "done");
+      if (!result.success) {
+        toast({ type: "error", title: result.error ?? "Failed to update task" });
+        await reloadTasks();
+        return;
+      }
 
-    toast({
-      type: "success",
-      title: task.status !== "done" ? "Visible action logged" : "Task reopened",
-      description: task.status !== "done" ? "+25 XP added. This task will appear in your weekly rhythm. Return to Today to reflect." : undefined,
-    });
-    reloadTasks();
+      toast({
+        type: "success",
+        title: task.status !== "done" ? "Visible action logged" : "Task reopened",
+        description: task.status !== "done" ? "+25 XP added. This task will appear in your weekly rhythm. Return to Today to reflect." : undefined,
+      });
+      await reloadTasks();
+    } finally {
+      setTogglingTaskId(null);
+    }
   }
 
   const todayStr = getTodayDateString();
 
-  const filterCounts = useMemo(() => {
-    const td = todayStr;
-    return {
-      today: tasks.filter((t) => t.due_date === td || (t.due_date === null && t.status === "todo")).length,
-      upcoming: tasks.filter((t) => t.due_date !== null && t.due_date > td).length,
-      all: tasks.length,
-      done: tasks.filter((t) => t.status === "done").length,
-    };
-  }, [tasks, todayStr]);
-
-  const sortedTasks = useMemo(() => {
-    return [...tasks].sort((a, b) => {
-      const aOrder = a.status === "todo" ? 0 : 1;
-      const bOrder = b.status === "todo" ? 0 : 1;
-      if (aOrder !== bOrder) return aOrder - bOrder;
-      const ap = PRIORITY_ORDER[a.priority as keyof typeof PRIORITY_ORDER] ?? 1;
-      const bp = PRIORITY_ORDER[b.priority as keyof typeof PRIORITY_ORDER] ?? 1;
-      if (ap !== bp) return ap - bp;
-      if (a.due_date && b.due_date) return a.due_date.localeCompare(b.due_date);
-      if (a.due_date) return -1;
-      if (b.due_date) return 1;
-      return 0;
-    });
-  }, [tasks]);
+  const taskGroups = useMemo(() => groupTasksByDate(tasks, todayStr), [tasks, todayStr]);
+  const activeTaskCount = taskGroups.overdue.length + taskGroups.dueToday.length + taskGroups.upcoming.length + taskGroups.unscheduled.length;
+  const completedTaskCount = taskGroups.completedToday.length + taskGroups.olderCompleted.length;
+  const dateNeedsReviewCount = taskGroups.unscheduled.filter((task) => hasInvalidTaskDueDate(task.due_date)).length;
 
   const taskProjectsById = useMemo(() => {
     return taskProjects.reduce<Record<string, TaskProjectContext>>((map, project) => {
@@ -376,14 +396,6 @@ export default function TasksPage() {
     if (goalTitles) return `Supports goals: ${goalTitles}${remainingCount > 0 ? ` +${remainingCount}` : ""}`;
     return `Supports ${goals.length} goals`;
   };
-
-  const filteredTasks = sortedTasks.filter((t) => {
-    const td = todayStr;
-    if (filter === "today") return t.due_date === td || (t.due_date === null && t.status === "todo");
-    if (filter === "upcoming") return t.due_date !== null && t.due_date > td;
-    if (filter === "done") return t.status === "done";
-    return true;
-  });
 
   const taskFormFields = (
     <>
@@ -441,6 +453,142 @@ export default function TasksPage() {
     </>
   );
 
+  const renderTaskCard = (task: Task) => {
+    const isDone = task.status === "done";
+    const isEditing = editingId === task.id;
+    const isConfirmingDelete = confirmingDeleteId === task.id;
+    const dueLabel = getDueDateLabel(task.due_date, todayStr, isDone);
+    const linkedProjectTitle = task.project_id
+      ? taskProjectsById[task.project_id]?.title ?? task.projects?.title
+      : null;
+    const linkedGoalContext = getTaskGoalContext(task.id);
+    const pending = togglingTaskId === task.id;
+    const completedLocalDate = timestampToLocalDateString(task.completed_at);
+
+    return (
+      <Card
+        key={task.id}
+        variant={isDone ? "subtle" : "default"}
+        className={`overflow-hidden transition-all duration-150 ${isDone ? "border-[var(--success)]/20 bg-[var(--success-soft)]/15" : "hover:border-[var(--border-strong)] hover:bg-[var(--surface-active)]"}`}
+      >
+        <div className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0 flex-1">
+            <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+              <span className={`rounded-full bg-[var(--surface)] px-2 py-0.5 text-[10px] font-medium ${dueLabel.className}`}>
+                {dueLabel.label}
+              </span>
+              <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium capitalize ${
+                task.priority === "high"
+                  ? "bg-[var(--danger-soft)] text-[var(--danger)]"
+                  : task.priority === "medium"
+                    ? "bg-[var(--warning-soft)] text-[var(--warning)]"
+                    : "bg-[var(--surface)] text-[var(--text-muted)]"
+              }`}>
+                {task.priority} priority
+              </span>
+              {task.realms && (
+                <span className="rounded-full px-2 py-0.5 text-[10px] font-medium" style={{ backgroundColor: task.realms.color + "20", color: task.realms.color }}>
+                  {task.realms.icon} {task.realms.name}
+                </span>
+              )}
+            </div>
+            <h3 className={`mt-2 text-pretty text-base font-semibold leading-snug sm:text-sm ${isDone ? "text-[var(--text-muted)]" : "text-[var(--text)]"}`}>
+              {task.title}
+            </h3>
+            <div className="mt-2 flex min-w-0 flex-wrap gap-1.5">
+              {linkedProjectTitle && (
+                <span className="rounded-full bg-[var(--surface)] px-2 py-0.5 text-[10px] text-[var(--text-muted)]">
+                  Project: {linkedProjectTitle}
+                </span>
+              )}
+              {linkedGoalContext && (
+                <span className="rounded-full bg-[var(--accent-soft)] px-2 py-0.5 text-[10px] text-[var(--accent)]">
+                  {linkedGoalContext}
+                </span>
+              )}
+              {isValidLocalDateString(task.due_date) && !isDone && dueLabel.label !== task.due_date && (
+                <span className="rounded-full bg-[var(--surface)] px-2 py-0.5 text-[10px] text-[var(--text-muted)]">
+                  Date: {task.due_date}
+                </span>
+              )}
+              {isDone && completedLocalDate && (
+                <span className="rounded-full bg-[var(--success-soft)] px-2 py-0.5 text-[10px] text-[var(--success)]">
+                  Completed {completedLocalDate === todayStr ? "today" : completedLocalDate}
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="flex min-w-0 flex-col gap-2 border-t border-[var(--border)] pt-3 sm:w-36 sm:border-t-0 sm:pt-0">
+            <button
+              type="button"
+              onClick={() => toggleDone(task)}
+              disabled={pending}
+              aria-label={`${isDone ? "Reopen" : "Complete"} task ${task.title}`}
+              className={`inline-flex min-h-11 items-center justify-center rounded-lg px-3 py-2 text-sm font-medium transition-colors disabled:opacity-60 ${isDone ? "border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:bg-[var(--surface-raised)]" : "bg-[var(--accent)] text-white hover:bg-[var(--accent-strong)]"}`}
+            >
+              {pending ? "Saving..." : isDone ? "Reopen" : "Complete"}
+            </button>
+            <div className="flex min-w-0 gap-1">
+              <button type="button" onClick={() => openEdit(task)} className="min-h-10 flex-1 rounded-lg px-3 py-2 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-active)] hover:text-[var(--text-secondary)] sm:min-h-0 sm:py-1.5" aria-expanded={isEditing} aria-controls={`task-edit-panel-${task.id}`}>
+                {isEditing ? "Editing" : "Edit"}
+              </button>
+              <button type="button" onClick={() => { if (isEditing) cancelEdit(); setConfirmingDeleteId(task.id); }} className="min-h-10 flex-1 rounded-lg px-3 py-2 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-active)] hover:text-[var(--text-secondary)] sm:min-h-0 sm:py-1.5" aria-expanded={isConfirmingDelete} aria-controls={`task-delete-panel-${task.id}`}>
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {isEditing && (
+          <div id={`task-edit-panel-${task.id}`} className="border-t border-[var(--border)] bg-[var(--surface-soft)]/60 px-4 py-4">
+            <div className="mb-3">
+              <p className="text-sm font-semibold text-[var(--text)]">Edit this task</p>
+              <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">Changes apply to this task only. Save or cancel right here.</p>
+            </div>
+            <div className="flex flex-col gap-4">
+              {taskFormFields}
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                <Button variant="secondary" onClick={cancelEdit}>Cancel</Button>
+                <Button onClick={save} disabled={saving}>{saving ? "Saving..." : "Save changes"}</Button>
+              </div>
+            </div>
+          </div>
+        )}
+        {isConfirmingDelete && (
+          <div id={`task-delete-panel-${task.id}`} className="border-t border-[var(--border)] bg-[var(--surface-soft)]/70 px-4 py-4">
+            <p className="text-sm font-semibold text-[var(--text)]">Delete this task?</p>
+            <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">This removes the task from your list.</p>
+            <div className="mt-3 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <Button variant="secondary" onClick={() => setConfirmingDeleteId(null)}>Cancel</Button>
+              <button type="button" onClick={() => remove(task.id)} className="inline-flex min-h-10 items-center justify-center rounded-lg border border-[var(--danger)]/30 bg-[var(--danger-soft)] px-3 py-2 text-sm font-medium text-[var(--danger)] transition-colors hover:border-[var(--danger)]/50 sm:min-h-0 sm:py-1.5">
+                Delete
+              </button>
+            </div>
+          </div>
+        )}
+      </Card>
+    );
+  };
+
+  const renderTaskSection = (id: string, titleText: string, description: string, items: Task[], emptyText?: string) => (
+    <section aria-labelledby={id}>
+      <div className="mb-3">
+        <h2 id={id} className="text-sm font-semibold text-[var(--text)]">{titleText}</h2>
+        <p className="mt-0.5 text-xs text-[var(--text-muted)]">{description}</p>
+      </div>
+      {items.length > 0 ? (
+        <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
+          {items.map(renderTaskCard)}
+        </div>
+      ) : emptyText ? (
+        <Card variant="subtle" className="border-[var(--border)] px-4 py-3">
+          <p className="text-sm text-[var(--text-muted)]">{emptyText}</p>
+        </Card>
+      ) : null}
+    </section>
+  );
+
   if (loading) {
     return (
       <DashboardNav>
@@ -482,33 +630,32 @@ export default function TasksPage() {
           </Button>
         </div>
 
-        <DailyLoopConnector
-          activeStep="action"
-          note="Tasks are where today&apos;s visible action becomes progress. Add one task you can finish today, check it off, then return to Today."
-        />
-
-        {tasks.length > 0 && tasks.length <= 2 && (
-          <div className="mb-4 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2 hover:border-[var(--accent)]/20 transition-all duration-150">
-            <p className="text-xs text-[var(--text-muted)]">
-              One visible action is enough. Keep the next task concrete, finish it today, then close the loop from Today.
-            </p>
-            <div className="mt-2 flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <span className="text-[9px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Useful starters</span>
-              <div className="mt-1 flex flex-wrap gap-1.5">
-                  {TASK_STARTERS.slice(0, 3).map((starter) => (
-                    <button key={starter} type="button" onClick={() => applyStarterTask(starter)} className="min-h-10 cursor-pointer rounded-md border border-dashed border-[var(--border-strong)] bg-transparent px-2.5 py-1.5 text-[10px] text-[var(--text-muted)] transition-colors hover:border-[var(--text-muted)]/40 hover:text-[var(--text-secondary)] sm:min-h-0 sm:py-0.5">
-                      {starter}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <Link href="/today#daily-execution" className="inline-flex min-h-10 shrink-0 items-center rounded-md py-1 text-[10px] font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0 sm:py-0">
-                Return to today&apos;s loop
-              </Link>
+        <Card className="mb-4 border-[var(--border-strong)]">
+          <div className="flex flex-col gap-3 p-4">
+            <label htmlFor="quick-task-title" className="text-xs font-medium text-[var(--text-muted)]">Quick capture</label>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <input
+                id="quick-task-title"
+                value={quickTitle}
+                onChange={(e) => setQuickTitle(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") void quickCreate(); }}
+                placeholder="Task to finish today"
+                maxLength={200}
+                className="min-h-11 flex-1 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)] outline-none transition-colors placeholder:text-[var(--text-muted)] focus:border-[var(--accent)]/50"
+              />
+              <Button onClick={quickCreate} disabled={quickSaving || !quickTitle.trim()} className="w-full sm:w-auto">
+                {quickSaving ? "Saving..." : "Capture"}
+              </Button>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {TASK_STARTERS.slice(0, 3).map((starter) => (
+                <button key={starter} type="button" onClick={() => { setQuickTitle(starter); }} className="min-h-10 rounded-full bg-[var(--surface-soft)] px-2.5 py-1.5 text-[10px] text-[var(--text-muted)] transition-all duration-150 hover:bg-[var(--surface-active)] hover:text-[var(--text)] sm:min-h-0 sm:py-1">
+                  {starter}
+                </button>
+              ))}
             </div>
           </div>
-        )}
+        </Card>
 
         {showForm && !editingId && (
           <Card className="mb-6">
@@ -527,204 +674,58 @@ export default function TasksPage() {
           </Card>
         )}
 
-        <div className="mb-4 flex flex-wrap gap-2">
-          {(["today", "upcoming", "all", "done"] as const).map((f) => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`flex min-h-10 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all duration-150 sm:min-h-0 ${
-                filter === f
-                  ? "bg-[var(--accent-soft)] text-[var(--accent)] ring-1 ring-[var(--accent)]/30"
-                  : "bg-[var(--surface)] text-[var(--text-muted)] hover:bg-[var(--surface-raised)]"
-              }`}
-            >
-              {f === "today" ? "Today" : f === "upcoming" ? "Upcoming" : f === "all" ? "All" : "Done"}
-              {filterCounts[f] > 0 && (
-                <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-medium ${
-                  filter === f
-                    ? "bg-[var(--accent-soft)] text-[var(--accent)]"
-                    : "bg-[var(--surface-raised)] text-[var(--text-muted)]"
-                }`}>
-                  {filterCounts[f]}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
-
         {tasks.length > 0 && (
-          <p className="mb-4 text-xs text-[var(--text-muted)]">
-            {tasks.filter((t) => t.status === "todo").length} remaining &middot; {tasks.filter((t) => t.status === "done").length} completed
-          </p>
+          <div className="mb-4 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2.5">
+            <p className="text-xs text-[var(--text-muted)]">
+              {activeTaskCount} active &middot; {taskGroups.overdue.length} overdue &middot; {taskGroups.dueToday.length} due today &middot; {completedTaskCount} completed
+            </p>
+          </div>
         )}
 
-        {filteredTasks.length === 0 ? (
+        {tasks.length === 0 ? (
           <EmptyState
-            eyebrow={filter === "all" ? "First task" : undefined}
-            title={filter === "all" ? "Start with one visible action." : "No tasks match this filter."}
-            message={filter === "all" ? "Add one task you can finish today. Keep it concrete enough that done is obvious. One visible action keeps the loop moving." : "Try another view or clear the filter to see the rest of your task list."}
-            description={filter === "all" ? "Starter chips only fill the form. You still choose what to save." : undefined}
-            action={filter === "all" ? (
+            eyebrow="First task"
+            title="Start with one visible action."
+            message="Add one task you can finish today. Keep it concrete enough that done is obvious."
+            description="Starter chips fill Quick Capture. You still choose what to save."
+            action={(
               <div className="flex flex-col items-center gap-2 sm:flex-row sm:justify-center">
-                <Button size="sm" onClick={() => { resetForm(); setDueDate(getTodayDateString()); setShowForm(true); }}>
+                <Button size="sm" onClick={() => document.getElementById("quick-task-title")?.focus()}>
                   <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                   </svg>
-                  Add first task
+                  Capture first task
                 </Button>
                 <Link href="/today#daily-execution" className="rounded-lg px-3 py-2 text-xs font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)]">
                   Back to Today
                 </Link>
               </div>
-            ) : undefined}
-            examples={filter === "all" ? (
+            )}
+            examples={(
               <div>
                 <p className="mb-2 text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Useful visible actions</p>
                 <div className="flex flex-wrap justify-center gap-2">
                   {TASK_STARTERS.map((starter) => (
-                    <button key={starter} type="button" onClick={() => applyStarterTask(starter)} className="cursor-pointer rounded-full border border-[var(--border)] bg-[var(--surface)]/70 px-3 py-2 text-xs text-[var(--text-muted)] transition-all duration-150 hover:border-[var(--accent)]/30 hover:text-[var(--text-secondary)] sm:py-1.5">
+                    <button key={starter} type="button" onClick={() => setQuickTitle(starter)} className="cursor-pointer rounded-full border border-[var(--border)] bg-[var(--surface)]/70 px-3 py-2 text-xs text-[var(--text-muted)] transition-all duration-150 hover:border-[var(--accent)]/30 hover:text-[var(--text-secondary)] sm:py-1.5">
                       {starter}
                     </button>
                   ))}
                 </div>
               </div>
-            ) : undefined}
+            )}
           />
         ) : (
-          <div className="flex flex-col gap-2.5 sm:gap-2">
-            {filteredTasks.map((task) => {
-              const isDone = task.status === "done";
-              const isEditing = editingId === task.id;
-              const isConfirmingDelete = confirmingDeleteId === task.id;
-              const dueLabel = getDueDateLabel(task.due_date);
-              const linkedProjectTitle = task.project_id
-                ? taskProjectsById[task.project_id]?.title ?? task.projects?.title
-                : null;
-              const linkedGoalContext = getTaskGoalContext(task.id);
-              return (
-                <Card
-                  key={task.id}
-                  variant={isDone ? "subtle" : "default"}
-                  className={`overflow-hidden transition-all duration-150 ${isDone ? "border-[var(--success)]/20 bg-[var(--success-soft)]/15" : "hover:border-[var(--border-strong)] hover:bg-[var(--surface-active)] hover:shadow-md hover:shadow-black/10"}`}
-                >
-                  <div className="flex flex-col gap-3 px-4 py-3.5 sm:flex-row sm:items-center sm:py-3">
-                    <div className="flex min-w-0 items-start gap-3 sm:flex-1">
-                      <button
-                        onClick={() => toggleDone(task)}
-                        role="checkbox"
-                        aria-checked={isDone}
-                        aria-label={`Mark "${task.title}" as ${isDone ? "incomplete" : "complete"}`}
-                        className={`mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 transition-all duration-150 sm:h-7 sm:w-7 ${
-                          isDone
-                            ? "border-[var(--success)] bg-[var(--success)] shadow-sm shadow-[var(--success)]/15"
-                            : "border-[var(--text-muted)]/40 hover:border-[var(--accent)]/50 hover:bg-[var(--accent-ghost)]"
-                        }`}
-                      >
-                        {isDone && (
-                          <svg className="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                          </svg>
-                        )}
-                      </button>
-
-                      <div className="min-w-0 flex-1">
-                        <div className="flex min-w-0 flex-wrap items-start gap-x-2 gap-y-1">
-                          <p className={`min-w-0 flex-1 text-pretty text-sm font-semibold leading-snug ${isDone ? "line-through text-[var(--text-muted)]" : "text-[var(--text)]"}`}>
-                            {task.title}
-                          </p>
-                          {isDone && (
-                            <span className="rounded-full bg-[var(--success-soft)] px-2 py-0.5 text-[10px] font-medium text-[var(--success)]">
-                              Done
-                            </span>
-                          )}
-                        </div>
-                        <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-1.5">
-                      {task.realms && (
-                        <span className="inline-block rounded-full px-2 py-1 text-[10px] font-medium sm:py-0.5" style={{ backgroundColor: task.realms.color + "20", color: task.realms.color }}>
-                          {task.realms.icon} {task.realms.name}
-                        </span>
-                      )}
-                      {linkedProjectTitle && (
-                        <span className="inline-block rounded-full bg-[var(--surface)] px-2 py-1 text-[10px] text-[var(--text-muted)] sm:py-0.5">
-                          Project: {linkedProjectTitle}
-                        </span>
-                      )}
-                      {linkedGoalContext && (
-                        <span className="inline-block rounded-full bg-[var(--accent-soft)] px-2 py-1 text-[10px] text-[var(--accent)] sm:py-0.5">
-                          {linkedGoalContext}
-                        </span>
-                      )}
-                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium capitalize ${
-                        task.priority === "high"
-                          ? "bg-[var(--danger-soft)] text-[var(--danger)]"
-                          : task.priority === "medium"
-                            ? "bg-[var(--warning-soft)] text-[var(--warning)]"
-                            : "bg-[var(--surface)] text-[var(--text-muted)]"
-                      }`}>
-                        {task.priority}
-                      </span>
-                      {dueLabel && (
-                        <span className={`text-[10px] ${dueLabel.className}`}>
-                          {dueLabel.label}
-                        </span>
-                      )}
-                        </div>
-                        {isDone && (
-                          <div className="mt-2 flex min-w-0 flex-col gap-1 text-[10px] leading-relaxed text-[var(--text-muted)] sm:flex-row sm:items-center sm:gap-2">
-                            <span>This task will appear in your weekly rhythm.</span>
-                            <Link href="/today#evening-reflection" className="font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)]">
-                              Reflect from Today &rarr;
-                            </Link>
-                          </div>
-                        )}
-                    </div>
-                  </div>
-
-                    <div className="flex shrink-0 justify-end gap-1 border-t border-[var(--border)] pt-2 sm:border-t-0 sm:pt-0">
-                    <button onClick={() => openEdit(task)} className="min-h-10 rounded-lg px-3 py-2 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-active)] hover:text-[var(--text-secondary)] sm:min-h-0 sm:px-2 sm:py-1" aria-expanded={isEditing}>
-                      {isEditing ? "Editing" : "Edit"}
-                    </button>
-                    <button onClick={() => { if (isEditing) cancelEdit(); setConfirmingDeleteId(task.id); }} className="min-h-10 rounded-lg px-3 py-2 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-active)] hover:text-[var(--text-secondary)] sm:min-h-0 sm:px-2 sm:py-1" aria-expanded={isConfirmingDelete}>
-                      Delete
-                    </button>
-                    </div>
-                  </div>
-                  {isEditing && (
-                    <div id={`task-edit-panel-${task.id}`} className="border-t border-[var(--border)] bg-[var(--surface-soft)]/60 px-4 py-4">
-                      <div className="mb-3">
-                        <p className="text-sm font-semibold text-[var(--text)]">Edit this task</p>
-                        <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">Changes apply to this task only. Save or cancel right here.</p>
-                      </div>
-                      <div className="flex flex-col gap-4">
-                        {taskFormFields}
-                        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-                          <Button variant="secondary" onClick={cancelEdit}>
-                            Cancel
-                          </Button>
-                          <Button onClick={save} disabled={saving}>
-                            {saving ? "Saving..." : "Save changes"}
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  {isConfirmingDelete && (
-                    <div id={`task-delete-panel-${task.id}`} className="border-t border-[var(--border)] bg-[var(--surface-soft)]/70 px-4 py-4">
-                      <p className="text-sm font-semibold text-[var(--text)]">Delete this task?</p>
-                      <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">This removes the task from your list.</p>
-                      <div className="mt-3 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-                        <Button variant="secondary" onClick={() => setConfirmingDeleteId(null)}>
-                          Cancel
-                        </Button>
-                        <button onClick={() => remove(task.id)} className="inline-flex min-h-10 items-center justify-center rounded-lg border border-[var(--danger)]/30 bg-[var(--danger-soft)] px-3 py-2 text-sm font-medium text-[var(--danger)] transition-colors hover:border-[var(--danger)]/50 sm:min-h-0 sm:py-1.5">
-                          Delete
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </Card>
-              );
-            })}
+          <div className="flex flex-col gap-6">
+            {renderTaskSection("overdue-tasks-heading", "Overdue", `${taskGroups.overdue.length} active`, taskGroups.overdue, "No overdue tasks.")}
+            {renderTaskSection("due-today-tasks-heading", "Due today", `${taskGroups.dueToday.length} waiting today`, taskGroups.dueToday, "Nothing else is due today.")}
+            {taskGroups.upcoming.length > 0 && renderTaskSection("upcoming-tasks-heading", "Upcoming", "Scheduled after today", taskGroups.upcoming)}
+            {taskGroups.unscheduled.length > 0 && renderTaskSection("unscheduled-tasks-heading", "Unscheduled", dateNeedsReviewCount > 0 ? `${dateNeedsReviewCount} date${dateNeedsReviewCount === 1 ? "" : "s"} need review` : "No due date yet", taskGroups.unscheduled)}
+            {taskGroups.completedToday.length > 0 && renderTaskSection("completed-today-tasks-heading", "Completed today", "Finished on today&apos;s local date", taskGroups.completedToday)}
+            {taskGroups.olderCompleted.length > 0 && renderTaskSection("older-completed-tasks-heading", "Older completed", "Previously finished tasks", taskGroups.olderCompleted)}
+            <DailyLoopConnector
+              activeStep="action"
+              note="Tasks are where today&apos;s visible action becomes progress. Add one task you can finish today, check it off, then return to Today."
+            />
           </div>
         )}
       </div>
