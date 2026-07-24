@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useToast } from "@/hooks/use-toast";
 import { getTodayDateString, getWeekStartDate } from "@/lib/utils";
-import { getCurrentStreak, getBestStreak, getWeeklyProgress, normalizeCompletedDates } from "@/lib/streaks";
+import { getCurrentStreak, getBestStreak, getWeeklyProgress, isHabitDueOnDate, normalizeCompletedDates } from "@/lib/streaks";
 
 interface Realm {
   id: string;
@@ -75,6 +75,7 @@ export default function HabitsPage() {
   const [streaks, setStreaks] = useState<Record<string, number>>({});
   const [bestStreaks, setBestStreaks] = useState<Record<string, number>>({});
   const [weeklyProgress, setWeeklyProgress] = useState<Record<string, { completed: number; target: number } | null>>({});
+  const [completedDatesByHabit, setCompletedDatesByHabit] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [togglingHabitId, setTogglingHabitId] = useState<string | null>(null);
@@ -151,6 +152,7 @@ export default function HabitsPage() {
       const wMap: Record<string, { completed: number; target: number } | null> = {};
       habits.forEach((h) => {
         const dates = normalizeCompletedDates(logsByHabit[h.id] ?? [], today);
+        logsByHabit[h.id] = dates;
         sMap[h.id] = getCurrentStreak(dates, h.frequency, h.days_of_week, { asOfDate: today });
         bMap[h.id] = getBestStreak(dates, h.frequency, h.days_of_week, { asOfDate: today });
         wMap[h.id] = getWeeklyProgress(dates, h.frequency, h.times_per_week, weekStart, h.days_of_week, { asOfDate: today });
@@ -158,6 +160,7 @@ export default function HabitsPage() {
       setStreaks(sMap);
       setBestStreaks(bMap);
       setWeeklyProgress(wMap);
+      setCompletedDatesByHabit(logsByHabit);
     }
     if (realmsRes.data) setRealms(realmsRes.data as Realm[]);
     if (goalLinksRes.data) setGoalLinks(goalLinksRes.data as GoalLink[]);
@@ -402,25 +405,58 @@ export default function HabitsPage() {
     );
   }
 
-  const grouped = realms
-    .map((r) => ({
-      realm: r,
-      habits: habits.filter((h) => h.realm_id === r.id),
-    }))
-    .filter((g) => g.habits.length > 0);
+  const frequencyLabel = (h: Habit) => {
+    if (h.frequency === "daily") return "Every day";
+    if (h.frequency === "weekdays") {
+      const days = (h.days_of_week ?? []).filter((d) => Number.isInteger(d) && d >= 0 && d <= 6).sort((a, b) => a - b);
+      if (days.length === 0) return "No scheduled days";
+      return `Selected days: ${days.map((d) => DAY_LABELS[d]).join(", ")}`;
+    }
+    if (h.frequency === "weekends") return "Weekends";
+    if (h.frequency === "weekly") return "Once per week";
+    if (h.frequency === "times_per_week") {
+      const target = Number.isFinite(h.times_per_week) ? Math.max(1, Math.min(7, Math.floor(h.times_per_week ?? 1))) : 1;
+      return `${target} times per week`;
+    }
+    return "Schedule needs review";
+  };
 
-  const ungrouped = habits.filter(
-    (h) => !realms.some((r) => r.id === h.realm_id),
+  const isCompletedToday = (habit: Habit) => todayCompleted.has(habit.id);
+
+  const isDueToday = (habit: Habit) => isHabitDueOnDate(habit, today, completedDatesByHabit[habit.id] ?? []);
+
+  const habitStatusLabel = (habit: Habit) => {
+    if (isCompletedToday(habit)) return "Completed today";
+    if (isDueToday(habit)) return "Due today";
+
+    const wp = weeklyProgress[habit.id];
+    if ((habit.frequency === "times_per_week" || habit.frequency === "weekly") && wp && wp.completed >= wp.target) {
+      return "Weekly target met";
+    }
+
+    if (habit.frequency === "weekdays" && (habit.days_of_week ?? []).filter((d) => Number.isInteger(d) && d >= 0 && d <= 6).length === 0) {
+      return "Schedule needs review";
+    }
+
+    if (habit.frequency === "daily") return "Available tomorrow";
+    if (habit.frequency === "weekdays" || habit.frequency === "weekends") return "Not scheduled today";
+    return "Schedule needs review";
+  };
+
+  const dueTodayHabits = useMemo(
+    () => habits.filter((habit) => !todayCompleted.has(habit.id) && isHabitDueOnDate(habit, today, completedDatesByHabit[habit.id] ?? [])),
+    [completedDatesByHabit, habits, today, todayCompleted],
   );
 
-  const frequencyLabel = (h: Habit) => {
-    if (h.frequency === "daily") return "Daily";
-    if (h.frequency === "weekdays" && h.days_of_week)
-      return h.days_of_week.map((d) => DAY_LABELS[d]).join(", ");
-    if (h.frequency === "times_per_week")
-      return `${h.times_per_week ?? "?"}×/week`;
-    return h.frequency;
-  };
+  const completedTodayHabits = useMemo(
+    () => habits.filter((habit) => todayCompleted.has(habit.id)),
+    [habits, todayCompleted],
+  );
+
+  const otherActiveHabits = useMemo(
+    () => habits.filter((habit) => !dueTodayHabits.some((due) => due.id === habit.id) && !todayCompleted.has(habit.id)),
+    [dueTodayHabits, habits, todayCompleted],
+  );
 
   const goalsById = useMemo(() => {
     return linkedGoals.reduce<Record<string, LinkedGoal>>((map, goal) => {
@@ -525,6 +561,147 @@ export default function HabitsPage() {
     </>
   );
 
+  const renderHabitCard = (habit: Habit, section: "due" | "completed" | "other") => {
+    const doneToday = isCompletedToday(habit);
+    const isEditing = editingId === habit.id;
+    const isConfirmingDelete = confirmingDeleteId === habit.id;
+    const streak = streaks[habit.id] ?? 0;
+    const best = bestStreaks[habit.id] ?? 0;
+    const wp = weeklyProgress[habit.id];
+    const realm = realms.find((r) => r.id === habit.realm_id);
+    const pending = togglingHabitId === habit.id;
+    const canShowStreak = habit.frequency === "daily" || habit.frequency === "weekdays" || habit.frequency === "weekends" || habit.frequency === "weekly";
+    const progressPercent = wp && wp.target > 0 ? Math.min(100, Math.round((wp.completed / wp.target) * 100)) : null;
+
+    return (
+      <Card
+        key={habit.id}
+        variant={section === "due" ? "default" : "subtle"}
+        className={`overflow-hidden transition-all duration-150 ${section === "due" ? "border-[var(--accent)]/30 bg-[var(--surface-raised)]" : "border-[var(--border)]"}`}
+      >
+        <div className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0 flex-1">
+            <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+              <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${doneToday ? "bg-[var(--success-soft)] text-[var(--success)]" : section === "due" ? "bg-[var(--accent-soft)] text-[var(--accent)]" : "bg-[var(--surface)] text-[var(--text-muted)]"}`}>
+                {habitStatusLabel(habit)}
+              </span>
+              {realm && (
+                <span className="rounded-full bg-[var(--surface)] px-2 py-0.5 text-[10px] text-[var(--text-muted)]">
+                  {realm.icon} {realm.name}
+                </span>
+              )}
+            </div>
+            <h3 className="mt-2 text-pretty text-base font-semibold leading-snug text-[var(--text)] sm:text-sm">
+              {habit.title}
+            </h3>
+            <div className="mt-2 flex min-w-0 flex-wrap gap-1.5">
+              <span className="rounded-full bg-[var(--surface)] px-2 py-0.5 text-[10px] text-[var(--text-muted)]">
+                {frequencyLabel(habit)}
+              </span>
+              {canShowStreak && (
+                <span className="rounded-full bg-[var(--surface)] px-2 py-0.5 text-[10px] text-[var(--text-muted)]">
+                  Current streak: {streak}
+                </span>
+              )}
+              {canShowStreak && best > 0 && (
+                <span className="rounded-full bg-[var(--surface)] px-2 py-0.5 text-[10px] text-[var(--text-muted)]">
+                  Best streak: {best}
+                </span>
+              )}
+              {wp && (
+                <span className="rounded-full bg-[var(--warning-soft)] px-2 py-0.5 text-[10px] font-medium text-[var(--warning)]">
+                  This week: {wp.completed}/{wp.target}
+                </span>
+              )}
+            </div>
+            {wp && progressPercent !== null && (
+              <div className="mt-2 max-w-48">
+                <div className="h-1.5 overflow-hidden rounded-full bg-[var(--surface)]" aria-hidden="true">
+                  <div className="h-full rounded-full bg-[var(--warning)]/70 transition-all" style={{ width: `${progressPercent}%` }} />
+                </div>
+              </div>
+            )}
+            <p className="mt-2 text-pretty text-[10px] leading-relaxed text-[var(--text-muted)]">{getHabitGoalContext(habit.id)}</p>
+            {doneToday && (
+              <div className="mt-2 flex min-w-0 flex-col gap-1 text-[10px] leading-relaxed text-[var(--text-muted)] sm:flex-row sm:items-center sm:gap-2">
+                <span>Completed on today&apos;s local date.</span>
+                <Link href="/today#evening-reflection" className="font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)]">
+                  Reflect from Today &rarr;
+                </Link>
+              </div>
+            )}
+          </div>
+
+          <div className="flex min-w-0 flex-col gap-2 border-t border-[var(--border)] pt-3 sm:w-36 sm:border-t-0 sm:pt-0">
+            <button
+              type="button"
+              onClick={() => toggleHabit(habit.id, !doneToday)}
+              disabled={pending}
+              aria-label={`${doneToday ? "Undo check-in for" : "Check in"} ${habit.title}`}
+              className={`inline-flex min-h-11 items-center justify-center rounded-lg px-3 py-2 text-sm font-medium transition-colors disabled:opacity-60 ${doneToday ? "border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:bg-[var(--surface-raised)]" : "bg-[var(--accent)] text-white hover:bg-[var(--accent-strong)]"}`}
+            >
+              {pending ? "Saving..." : doneToday ? "Undo" : "Check in"}
+            </button>
+            <div className="flex min-w-0 gap-1">
+              <button
+                type="button"
+                onClick={() => openEdit(habit)}
+                className="min-h-10 flex-1 rounded-lg px-3 py-2 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-raised)] hover:text-[var(--text)] sm:min-h-0 sm:py-1.5"
+                aria-expanded={isEditing}
+                aria-controls={`habit-edit-panel-${habit.id}`}
+              >
+                {isEditing ? "Editing" : "Edit"}
+              </button>
+              <button
+                type="button"
+                onClick={() => { if (isEditing) cancelEdit(); setConfirmingDeleteId(habit.id); }}
+                className="min-h-10 flex-1 rounded-lg px-3 py-2 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-raised)] hover:text-[var(--text)] sm:min-h-0 sm:py-1.5"
+                aria-expanded={isConfirmingDelete}
+                aria-controls={`habit-delete-panel-${habit.id}`}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {isEditing && (
+          <div id={`habit-edit-panel-${habit.id}`} className="border-t border-[var(--border)] bg-[var(--surface-soft)]/60 px-4 py-4">
+            <div className="mb-3">
+              <p className="text-sm font-semibold text-[var(--text)]">Edit this habit</p>
+              <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">Changes apply to this habit only. Save or cancel right here.</p>
+            </div>
+            <div className="flex flex-col gap-4">
+              {habitFormFields}
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                <Button variant="secondary" onClick={cancelEdit}>
+                  Cancel
+                </Button>
+                <Button onClick={save} disabled={saving}>
+                  {saving ? "Saving..." : "Save changes"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+        {isConfirmingDelete && (
+          <div id={`habit-delete-panel-${habit.id}`} className="border-t border-[var(--border)] bg-[var(--surface-soft)]/70 px-4 py-4">
+            <p className="text-sm font-semibold text-[var(--text)]">Delete this habit?</p>
+            <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">This removes the habit and its habit log data from your list.</p>
+            <div className="mt-3 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <Button variant="secondary" onClick={() => setConfirmingDeleteId(null)}>
+                Cancel
+              </Button>
+              <button type="button" onClick={() => remove(habit.id)} className="inline-flex min-h-10 items-center justify-center rounded-lg border border-[var(--danger)]/30 bg-[var(--danger-soft)] px-3 py-2 text-sm font-medium text-[var(--danger)] transition-colors hover:border-[var(--danger)]/50 sm:min-h-0 sm:py-1.5">
+                Delete
+              </button>
+            </div>
+          </div>
+        )}
+      </Card>
+    );
+  };
+
   if (loading) {
     return (
       <DashboardNav>
@@ -568,34 +745,6 @@ export default function HabitsPage() {
           </Button>
         </div>
 
-        <DailyLoopConnector
-          activeStep="action"
-          note="Habits are repeatable visible actions. Start tiny, check off one today, then close the loop from Today&apos;s reflection."
-        />
-
-        {habits.length > 0 && habits.length <= 2 && (
-          <div className="mb-4 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2">
-            <p className="text-xs text-[var(--text-muted)]">
-              One small repeatable action is enough. Keep it easy to do today, then use it as your visible action.
-            </p>
-            <div className="mt-2 flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <span className="text-[9px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Tiny starters</span>
-                <div className="mt-1 flex flex-wrap gap-1.5">
-                  {HABIT_TEMPLATES.slice(0, 3).map((tpl) => (
-                  <button key={tpl} type="button" onClick={() => applyTemplate(tpl)} className="min-h-10 rounded-md border border-dashed border-[var(--border-strong)] bg-transparent px-2.5 py-1.5 text-[10px] text-[var(--text-muted)] transition-colors hover:border-[var(--text-muted)]/40 hover:text-[var(--text-secondary)] sm:min-h-0 sm:py-0.5">
-                      {tpl}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <Link href="/today#daily-execution" className="inline-flex min-h-10 shrink-0 items-center rounded-md py-1 text-[10px] font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0 sm:py-0">
-                Return to today&apos;s loop
-              </Link>
-            </div>
-          </div>
-        )}
-
         {showForm && !editingId && (
           <Card className="mb-6 border-[var(--border-strong)]">
             <div className="flex flex-col gap-4 p-4">
@@ -614,12 +763,14 @@ export default function HabitsPage() {
         )}
 
         {habits.length > 0 && (
-          <p className="mb-4 text-xs text-[var(--text-muted)]">
-            {`${habits.length} ${habits.length === 1 ? "habit" : "habits"} tracked`} &middot; {todayCompleted.size} completed today
-          </p>
+          <div className="mb-4 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2.5">
+            <p className="text-xs text-[var(--text-muted)]">
+              {dueTodayHabits.length} due today &middot; {completedTodayHabits.length} completed today &middot; {habits.length} active total
+            </p>
+          </div>
         )}
 
-        {grouped.length === 0 && ungrouped.length === 0 ? (
+        {habits.length === 0 ? (
           <EmptyState
             eyebrow="First habit"
             title="Start with one small repeatable action."
@@ -656,221 +807,55 @@ export default function HabitsPage() {
             )}
           />
         ) : (
-          <>
-            {grouped.map((g) => (
-              <section key={g.realm.id} className="mb-6">
-                <div className="mb-3 flex min-w-0 items-center justify-between gap-3">
-                  <h3 className="min-w-0 text-sm font-semibold" style={{ color: g.realm.color }}>
-                    {g.realm.icon} {g.realm.name}
-                  </h3>
-                  <span className="text-xs text-[var(--text-muted)]">{g.habits.length}</span>
+          <div className="flex flex-col gap-6">
+            <section aria-labelledby="due-today-heading">
+              <div className="mb-3 flex min-w-0 items-end justify-between gap-3">
+                <div>
+                  <h2 id="due-today-heading" className="text-base font-semibold text-[var(--text)]">Due today</h2>
+                  <p className="mt-0.5 text-xs text-[var(--text-muted)]">{dueTodayHabits.length} waiting right now</p>
                 </div>
-                <Card variant="subtle" className="border-[var(--border)]">
-                  <div className="p-1 flex flex-col gap-1">
-                    {g.habits.map((habit) => {
-                      const doneToday = todayCompleted.has(habit.id);
-                      const isEditing = editingId === habit.id;
-                      const isConfirmingDelete = confirmingDeleteId === habit.id;
-                      const s = streaks[habit.id] ?? 0;
-                      const b = bestStreaks[habit.id] ?? 0;
-                      const wp = weeklyProgress[habit.id];
-                      return (
-                        <Card
-                          key={habit.id}
-                          variant={doneToday ? "subtle" : "default"}
-                          className={`overflow-hidden transition-all duration-150 ${doneToday ? "border-[var(--success)]/20 bg-[var(--success-soft)]/15" : "hover:border-[var(--border-strong)] hover:bg-[var(--surface-active)] hover:shadow-md hover:shadow-black/10"}`}
-                        >
-                          <div className="flex flex-col gap-3 px-4 py-3.5 sm:flex-row sm:items-center sm:py-3">
-                            <div className="flex min-w-0 items-start gap-3 sm:flex-1">
-                              <button
-                                type="button"
-                                onClick={() => toggleHabit(habit.id, !doneToday)}
-                                disabled={togglingHabitId === habit.id}
-                                role="checkbox"
-                                aria-checked={doneToday}
-                                aria-label={`${doneToday ? "Uncheck" : "Check"} habit ${habit.title}`}
-                                className={`mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 text-[10px] transition-all duration-150 disabled:opacity-60 sm:h-7 sm:w-7 ${doneToday ? "border-[var(--success)] bg-[var(--success)] text-white shadow-sm shadow-[var(--success)]/15" : "border-[var(--text-muted)]/40 text-transparent hover:border-[var(--success)] hover:bg-[var(--success-soft)]"}`}
-                              >
-                                ✓
-                              </button>
-                              <div className="min-w-0 flex-1">
-                                <div className="flex min-w-0 flex-wrap items-start gap-x-2 gap-y-1">
-                                  <p className={`min-w-0 flex-1 text-pretty text-sm font-semibold leading-snug ${doneToday ? "text-[var(--text-muted)]" : "text-[var(--text)]"}`}>
-                                    {habit.title}
-                                  </p>
-                                  {doneToday && (
-                                    <span className="rounded-full bg-[var(--success-soft)] px-2 py-0.5 text-[10px] font-medium text-[var(--success)]">
-                                      Done today
-                                    </span>
-                                  )}
-                                </div>
-                                <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-1.5">
-                                <p className="rounded-full bg-[var(--surface)] px-2 py-0.5 text-[10px] text-[var(--text-muted)]">{frequencyLabel(habit)}</p>
-                              {habit.frequency !== "times_per_week" ? (
-                                s > 0 ? (
-                                  <span className="rounded-full bg-[var(--accent-soft)] px-2 py-0.5 text-[10px] font-medium text-[var(--accent)]">{s}-day streak</span>
-                                ) : (
-                                  <span className="rounded-full bg-[var(--surface)] px-2 py-0.5 text-[10px] text-[var(--text-muted)]">No streak yet</span>
-                                )
-                              ) : wp ? (
-                                <span className="rounded-full bg-[var(--warning-soft)] px-2 py-0.5 text-[10px] font-medium text-[var(--warning)]">{wp.completed}/{wp.target} this week</span>
-                              ) : null}
-                              {b > 1 && b > s && (
-                                <span className="rounded-full bg-[var(--surface)] px-2 py-0.5 text-[10px] text-[var(--text-muted)]">Best: {b}</span>
-                              )}
-                              </div>
-                              <p className="mt-1 text-pretty text-[10px] text-[var(--text-muted)]">{getHabitGoalContext(habit.id)}</p>
-                              {doneToday && (
-                                <div className="mt-2 flex min-w-0 flex-col gap-1 text-[10px] leading-relaxed text-[var(--text-muted)] sm:flex-row sm:items-center sm:gap-2">
-                                  <span>This habit will appear in your weekly rhythm.</span>
-                                  <Link href="/today#evening-reflection" className="font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)]">
-                                    Reflect from Today &rarr;
-                                  </Link>
-                                </div>
-                              )}
-                              {habit.frequency === "times_per_week" && wp && (
-                                <div className="mt-1.5 h-1 w-full max-w-32 overflow-hidden rounded-full bg-[var(--surface)] sm:max-w-24">
-                                  <div
-                                    className="h-full rounded-full bg-[var(--warning)]/60 transition-all"
-                                    style={{ width: `${Math.round((wp.completed / wp.target) * 100)}%` }}
-                                  />
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                            </div>
-                          <div className="flex shrink-0 justify-end gap-1 border-t border-[var(--border)] pt-2 sm:border-t-0 sm:pt-0">
-                            <button
-                              onClick={() => openEdit(habit)}
-                              className="min-h-10 rounded-lg px-3 py-2 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-raised)] hover:text-[var(--text)] sm:min-h-0 sm:px-2 sm:py-1"
-                              aria-expanded={isEditing}
-                            >
-                              {isEditing ? "Editing" : "Edit"}
-                            </button>
-                            <button
-                              onClick={() => { if (isEditing) cancelEdit(); setConfirmingDeleteId(habit.id); }}
-                              className="min-h-10 rounded-lg px-3 py-2 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-raised)] hover:text-[var(--text)] sm:min-h-0 sm:px-2 sm:py-1"
-                              aria-expanded={isConfirmingDelete}
-                            >
-                              Delete
-                            </button>
-                          </div>
-                          {isEditing && (
-                            <div id={`habit-edit-panel-${habit.id}`} className="border-t border-[var(--border)] bg-[var(--surface-soft)]/60 px-4 py-4">
-                              <div className="mb-3">
-                                <p className="text-sm font-semibold text-[var(--text)]">Edit this habit</p>
-                                <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">Changes apply to this habit only. Save or cancel right here.</p>
-                              </div>
-                              <div className="flex flex-col gap-4">
-                                {habitFormFields}
-                                <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-                                  <Button variant="secondary" onClick={cancelEdit}>
-                                    Cancel
-                                  </Button>
-                                  <Button onClick={save} disabled={saving}>
-                                    {saving ? "Saving..." : "Save changes"}
-                                  </Button>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                          {isConfirmingDelete && (
-                            <div id={`habit-delete-panel-${habit.id}`} className="border-t border-[var(--border)] bg-[var(--surface-soft)]/70 px-4 py-4">
-                              <p className="text-sm font-semibold text-[var(--text)]">Delete this habit?</p>
-                              <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">This removes the habit from your list.</p>
-                              <div className="mt-3 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-                                <Button variant="secondary" onClick={() => setConfirmingDeleteId(null)}>
-                                  Cancel
-                                </Button>
-                                <button onClick={() => remove(habit.id)} className="inline-flex min-h-10 items-center justify-center rounded-lg border border-[var(--danger)]/30 bg-[var(--danger-soft)] px-3 py-2 text-sm font-medium text-[var(--danger)] transition-colors hover:border-[var(--danger)]/50 sm:min-h-0 sm:py-1.5">
-                                  Delete
-                                </button>
-                              </div>
-                            </div>
-                          )}
-                        </Card>
-                      );
-                    })}
-                  </div>
+              </div>
+              {dueTodayHabits.length > 0 ? (
+                <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
+                  {dueTodayHabits.map((habit) => renderHabitCard(habit, "due"))}
+                </div>
+              ) : (
+                <Card variant="subtle" className="border-[var(--border)] px-4 py-4">
+                  <p className="text-sm font-medium text-[var(--text)]">No habits are waiting right now.</p>
+                  <p className="mt-1 text-xs text-[var(--text-muted)]">You can add a small repeatable action or check in a not-due habit if you still did it today.</p>
                 </Card>
-              </section>
-            ))}
+              )}
+            </section>
 
-            {ungrouped.length > 0 && (
-              <section className="mb-6">
-                <h3 className="mb-3 text-sm font-semibold text-[var(--text-muted)]">Other</h3>
-                <Card variant="subtle" className="border-[var(--border)]">
-                  <div className="p-1 flex flex-col gap-1">
-                    {ungrouped.map((habit) => {
-                      const isEditing = editingId === habit.id;
-                      const isConfirmingDelete = confirmingDeleteId === habit.id;
-                      return (
-                        <Card key={habit.id} variant="default" className="overflow-hidden transition-all duration-150 hover:border-[var(--border-strong)] hover:bg-[var(--surface-active)]">
-                          <div className="flex flex-col gap-3 px-4 py-3.5 sm:flex-row sm:items-center sm:py-3">
-                            <div className="min-w-0 flex-1">
-                              <p className="text-pretty text-sm font-semibold text-[var(--text)]">{habit.title}</p>
-                              <p className="mt-1.5 w-fit rounded-full bg-[var(--surface)] px-2 py-0.5 text-[10px] text-[var(--text-muted)]">{frequencyLabel(habit)}</p>
-                              <p className="mt-1 text-pretty text-[10px] text-[var(--text-muted)]">{getHabitGoalContext(habit.id)}</p>
-                            </div>
-                            <div className="flex shrink-0 justify-end gap-1 border-t border-[var(--border)] pt-2 sm:border-t-0 sm:pt-0 sm:justify-start">
-                              <button
-                                onClick={() => openEdit(habit)}
-                                className="min-h-10 rounded-lg px-3 py-2 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-raised)] hover:text-[var(--text)] sm:min-h-0 sm:px-2 sm:py-1"
-                                aria-expanded={isEditing}
-                              >
-                                {isEditing ? "Editing" : "Edit"}
-                              </button>
-                              <button
-                                onClick={() => { if (isEditing) cancelEdit(); setConfirmingDeleteId(habit.id); }}
-                                className="min-h-10 rounded-lg px-3 py-2 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-raised)] hover:text-[var(--text)] sm:min-h-0 sm:px-2 sm:py-1"
-                                aria-expanded={isConfirmingDelete}
-                              >
-                                Delete
-                              </button>
-                            </div>
-                          </div>
-                          {isEditing && (
-                            <div id={`habit-edit-panel-${habit.id}`} className="border-t border-[var(--border)] bg-[var(--surface-soft)]/60 px-4 py-4">
-                              <div className="mb-3">
-                                <p className="text-sm font-semibold text-[var(--text)]">Edit this habit</p>
-                                <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">Changes apply to this habit only. Save or cancel right here.</p>
-                              </div>
-                              <div className="flex flex-col gap-4">
-                                {habitFormFields}
-                                <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-                                  <Button variant="secondary" onClick={cancelEdit}>
-                                    Cancel
-                                  </Button>
-                                  <Button onClick={save} disabled={saving}>
-                                    {saving ? "Saving..." : "Save changes"}
-                                  </Button>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                          {isConfirmingDelete && (
-                            <div id={`habit-delete-panel-${habit.id}`} className="border-t border-[var(--border)] bg-[var(--surface-soft)]/70 px-4 py-4">
-                              <p className="text-sm font-semibold text-[var(--text)]">Delete this habit?</p>
-                              <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">This removes the habit from your list.</p>
-                              <div className="mt-3 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-                                <Button variant="secondary" onClick={() => setConfirmingDeleteId(null)}>
-                                  Cancel
-                                </Button>
-                                <button onClick={() => remove(habit.id)} className="inline-flex min-h-10 items-center justify-center rounded-lg border border-[var(--danger)]/30 bg-[var(--danger-soft)] px-3 py-2 text-sm font-medium text-[var(--danger)] transition-colors hover:border-[var(--danger)]/50 sm:min-h-0 sm:py-1.5">
-                                  Delete
-                                </button>
-                              </div>
-                            </div>
-                          )}
-                        </Card>
-                      );
-                    })}
-                  </div>
-                </Card>
+            {completedTodayHabits.length > 0 && (
+              <section aria-labelledby="completed-today-heading">
+                <div className="mb-3">
+                  <h2 id="completed-today-heading" className="text-sm font-semibold text-[var(--text)]">Completed today</h2>
+                  <p className="mt-0.5 text-xs text-[var(--text-muted)]">{completedTodayHabits.length} checked in on today&apos;s local date</p>
+                </div>
+                <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
+                  {completedTodayHabits.map((habit) => renderHabitCard(habit, "completed"))}
+                </div>
               </section>
             )}
 
-            {/* Starter routines */}
+            {otherActiveHabits.length > 0 && (
+              <section aria-labelledby="other-active-heading">
+                <div className="mb-3">
+                  <h2 id="other-active-heading" className="text-sm font-semibold text-[var(--text-muted)]">Other active habits</h2>
+                  <p className="mt-0.5 text-xs text-[var(--text-muted)]">Not currently waiting, but still manageable here.</p>
+                </div>
+                <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
+                  {otherActiveHabits.map((habit) => renderHabitCard(habit, "other"))}
+                </div>
+              </section>
+            )}
+
+            <DailyLoopConnector
+              activeStep="action"
+              note="Habits are repeatable visible actions. Start tiny, check off one today, then close the loop from Today&apos;s reflection."
+            />
+
             <Card variant="subtle" className="border-[var(--border)]">
               <div className="px-4 py-3.5 sm:py-3">
                 <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Starter routines</p>
@@ -888,7 +873,7 @@ export default function HabitsPage() {
                 </div>
               </div>
             </Card>
-          </>
+          </div>
         )}
       </div>
     </DashboardNav>
