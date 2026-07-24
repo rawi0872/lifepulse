@@ -10,6 +10,13 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { removeEveningShutdownBlock } from "@/lib/today/evening-shutdown";
+import {
+  getWeeklyReviewWeekStart,
+  hasCurrentWeeklyReviewBlock,
+  hasWeeklyReviewContent,
+  parseWeeklyReviewReflection,
+  removeCurrentWeeklyReviewBlock,
+} from "@/lib/weekly-review";
 
 interface JournalEntry {
   id: string;
@@ -291,15 +298,21 @@ export default function JournalPage() {
 
 function classifyJournalEntry(entry: JournalEntry): ClassifiedJournalEntry {
   const content = entry.content ?? "";
-  const displayContent = removeEveningShutdownBlock(content);
+  const visibleJournalText = removeEveningShutdownBlock(removeCurrentWeeklyReviewBlock(content));
   const weeklyMatch = content.match(/\*\*Weekly Reflection \(([^)]+)\)\*\*/i);
-  const hasWeeklyPrefix = Boolean(weeklyMatch) || content.toLowerCase().includes("weekly reflection (");
+  const weeklyReflection = parseWeeklyReviewReflection(content);
+  const hasCurrentWeeklyReview = hasCurrentWeeklyReviewBlock(content) && hasWeeklyReviewContent(weeklyReflection);
+  const hasWeeklyPrefix = hasCurrentWeeklyReview || Boolean(weeklyMatch) || content.toLowerCase().includes("weekly reflection (");
+  const nextWeekFocus = hasCurrentWeeklyReview
+    ? weeklyReflection.focusNextWeek || null
+    : extractWeeklyReviewSection(content, "Next week focus");
+  const displayContent = visibleJournalText || (hasWeeklyPrefix ? "Weekly Review saved. Open Weekly Review to continue editing this reflection." : "");
 
   return {
     ...entry,
     kind: hasWeeklyPrefix ? "weekly" : "daily",
-    weeklyReviewWeek: weeklyMatch?.[1] ?? null,
-    nextWeekFocus: hasWeeklyPrefix ? extractWeeklyReviewSection(content, "Next week focus") : null,
+    weeklyReviewWeek: getWeeklyReviewWeekStart(content) ?? weeklyMatch?.[1] ?? null,
+    nextWeekFocus: hasWeeklyPrefix ? nextWeekFocus : null,
     displayContent,
   };
 }

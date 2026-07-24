@@ -11,6 +11,17 @@ import { Card } from "@/components/ui/card";
 import { getTodayDateString, getWeekStartDate } from "@/lib/utils";
 import { formatCurrency } from "@/components/finance/financeUtils";
 import { removeEveningShutdownBlock } from "@/lib/today/evening-shutdown";
+import { groupTasksByDate, hasInvalidTaskDueDate, timestampToLocalDateString } from "@/lib/tasks";
+import { getWeeklyProgress, isHabitDueOnDate, normalizeCompletedDates } from "@/lib/streaks";
+import {
+  buildWeeklyReviewBlock,
+  emptyWeeklyReviewReflection,
+  hasWeeklyReviewContent,
+  mergeWeeklyReviewBlock,
+  parseWeeklyReviewReflection,
+  removeWeeklyReviewBlock,
+  type WeeklyReviewReflection,
+} from "@/lib/weekly-review";
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -58,6 +69,41 @@ interface PreviousWeekData {
 interface WeeklyHabitLog {
   habit_id?: string | null;
   completed_date?: string | null;
+}
+
+interface WeeklyHabit {
+  id: string;
+  title: string;
+  frequency: string;
+  days_of_week: number[] | null;
+  times_per_week: number | null;
+}
+
+interface WeeklyTask {
+  id: string;
+  title: string;
+  priority: string;
+  due_date: string | null;
+  status: string;
+  completed_at: string | null;
+  created_at: string;
+  project_id: string | null;
+  projects: { title: string } | null;
+}
+
+interface HabitReviewItem {
+  id: string;
+  title: string;
+  completed: number;
+  expected: number | null;
+  label: string;
+}
+
+interface ResultsReviewItem {
+  id: string;
+  name: string;
+  count: number;
+  latestValue: string;
 }
 
 interface WeeklyComparisonRow {
@@ -117,7 +163,12 @@ function countUniqueHabitLogs(logs: WeeklyHabitLog[]): number {
 interface WeekData {
   weekDates: string[];
   habitCount: number;
+  habitExpectedCount: number | null;
+  habitReview: HabitReviewItem[];
   taskCount: number;
+  openTaskCount: number;
+  overdueTaskCount: number;
+  openTasks: WeeklyTask[];
   workoutCount: number;
   workoutMinutes: number;
   journalCount: number;
@@ -155,6 +206,10 @@ interface WeekData {
   financeNet: number;
   financeCurrency: string | null;
   financeHasMixedCurrencies: boolean;
+  resultsEntryCount: number;
+  resultsMetricsRecorded: number;
+  resultsReview: ResultsReviewItem[];
+  savedWeeklyReview: WeeklyReviewReflection | null;
   rhythmByDay: { label: string; habits: number; tasks: number; reflections: number }[];
   mindByDay: MindTrendDay[];
   activityByDay: ActivityDay[];
@@ -187,49 +242,51 @@ function WeeklyReviewContent() {
   const [data, setData] = useState<WeekData | null>(null);
   const [previousWeekData, setPreviousWeekData] = useState<PreviousWeekData | null>(null);
   const [comparisonLoading, setComparisonLoading] = useState(true);
-  const [reflection, setReflection] = useState({
-    wentWell: "",
-    feltDifficult: "",
-    focusNextWeek: "",
-    reduceOrAvoid: "",
-    oneWin: "",
-  });
-  const [planFocus, setPlanFocus] = useState("");
+  const [reflection, setReflection] = useState<WeeklyReviewReflection>(() => emptyWeeklyReviewReflection());
   const [reviewSaved, setReviewSaved] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [savingReflection, setSavingReflection] = useState(false);
   const [loading, setLoading] = useState(true);
-  const planFocusId = useId();
 
   const loadData = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { router.push("/login"); return; }
 
     const weekEnd = weekDates[6];
+    const reviewEnd = today < weekEnd ? today : weekEnd;
     const previousWeekDates = weekDates.map((date) => addDays(date, -7));
     const previousWeekStart = previousWeekDates[0];
     const previousWeekEnd = previousWeekDates[6];
     const knowledgeWeekStart = toLocalDateBoundaryIso(weekStart, "start");
-    const knowledgeWeekEnd = toLocalDateBoundaryIso(weekEnd, "end");
+    const taskWeekStart = toLocalDateBoundaryIso(weekStart, "start");
+    const taskReviewEnd = toLocalDateBoundaryIso(reviewEnd, "end");
+    const previousTaskWeekStart = toLocalDateBoundaryIso(previousWeekStart, "start");
+    const previousTaskWeekEnd = toLocalDateBoundaryIso(previousWeekEnd, "end");
     setComparisonLoading(true);
     setPreviousWeekData(null);
 
     const [
-      habitsRes, tasksRes, workoutsRes, journalRes,
+      habitsRes, habitDefsRes, tasksRes, allTasksRes, workoutsRes, journalMemoryRes,
       bodyRes, mindRes, nutritionRes, measurementRes,
       passionsRes, sessionsRes, goalsRes, milestonesRes, projectsRes, financeRes,
-      journalMemoryRes, knowledgeMemoryRes, goalLinksRes,
+      knowledgeMemoryRes, goalLinksRes, resultsRes,
     ] = await Promise.all([
-      supabase.from("habit_logs").select("habit_id, completed_date").eq("user_id", user.id).gte("completed_date", weekStart).lte("completed_date", weekEnd),
-      supabase.from("tasks").select("id, completed_at").eq("user_id", user.id).eq("status", "done").gte("completed_at", `${weekStart}T00:00:00`).lte("completed_at", `${weekEnd}T23:59:59`),
-      supabase.from("workouts").select("duration_minutes").eq("user_id", user.id).gte("workout_date", weekStart).lte("workout_date", weekEnd),
-      supabase.from("journal_entries").select("id").eq("user_id", user.id).gte("entry_date", weekStart).lte("entry_date", weekEnd),
-      supabase.from("body_metrics").select("entry_date, energy, sleep_hours").eq("user_id", user.id).gte("entry_date", weekStart).lte("entry_date", weekEnd),
-      supabase.from("mind_metrics").select("entry_date, mood, focus, stress").eq("user_id", user.id).gte("entry_date", weekStart).lte("entry_date", weekEnd),
-      supabase.from("nutrition_logs").select("id, log_date, protein_g, water_ml").eq("user_id", user.id).gte("log_date", weekStart).lte("log_date", weekEnd),
+      supabase.from("habit_logs").select("habit_id, completed_date").eq("user_id", user.id).gte("completed_date", weekStart).lte("completed_date", reviewEnd),
+      supabase.from("habits").select("id, title, frequency, days_of_week, times_per_week").eq("user_id", user.id),
+      supabase.from("tasks").select("id, completed_at").eq("user_id", user.id).eq("status", "done").gte("completed_at", taskWeekStart).lte("completed_at", taskReviewEnd),
+      supabase.from("tasks")
+        .select("id, title, priority, due_date, status, completed_at, created_at, project_id, projects(title)")
+        .eq("user_id", user.id)
+        .or(`and(status.eq.todo,due_date.lte.${weekEnd}),and(status.eq.todo,due_date.is.null),and(status.eq.done,completed_at.gte.${taskWeekStart},completed_at.lte.${taskReviewEnd})`)
+        .order("created_at", { ascending: false }),
+      supabase.from("workouts").select("duration_minutes").eq("user_id", user.id).gte("workout_date", weekStart).lte("workout_date", reviewEnd),
+      supabase.from("journal_entries").select("id, entry_date, content").eq("user_id", user.id).gte("entry_date", weekStart).lte("entry_date", reviewEnd).order("entry_date", { ascending: false }),
+      supabase.from("body_metrics").select("entry_date, energy, sleep_hours").eq("user_id", user.id).gte("entry_date", weekStart).lte("entry_date", reviewEnd),
+      supabase.from("mind_metrics").select("entry_date, mood, focus, stress").eq("user_id", user.id).gte("entry_date", weekStart).lte("entry_date", reviewEnd),
+      supabase.from("nutrition_logs").select("id, log_date, protein_g, water_ml").eq("user_id", user.id).gte("log_date", weekStart).lte("log_date", reviewEnd),
       supabase.from("body_measurements").select("weight_kg").eq("user_id", user.id).order("measurement_date", { ascending: false }).limit(1),
       supabase.from("passions").select("id, name").eq("user_id", user.id).eq("status", "active"),
-      supabase.from("passion_sessions").select("duration_minutes, passion_id").eq("user_id", user.id).gte("session_date", weekStart).lte("session_date", weekEnd),
+      supabase.from("passion_sessions").select("duration_minutes, passion_id").eq("user_id", user.id).gte("session_date", weekStart).lte("session_date", reviewEnd),
       supabase.from("goals").select("id").eq("user_id", user.id).eq("status", "active"),
       supabase.from("goal_milestones").select("id").eq("user_id", user.id).not("completed_at", "is", null),
       supabase.from("projects").select("id").eq("user_id", user.id).eq("status", "active"),
@@ -237,29 +294,31 @@ function WeeklyReviewContent() {
         .select("amount, type, transaction_date, account_id, finance_accounts(currency)")
         .eq("user_id", user.id)
         .gte("transaction_date", weekStart)
-        .lte("transaction_date", weekEnd),
-      supabase.from("journal_entries")
-        .select("id, entry_date, content")
-        .eq("user_id", user.id)
-        .gte("entry_date", weekStart)
-        .lte("entry_date", weekEnd)
-        .order("entry_date", { ascending: false }),
+        .lte("transaction_date", reviewEnd),
       supabase.from("knowledge_items")
         .select("id, title, type, created_at")
         .eq("user_id", user.id)
         .gte("created_at", knowledgeWeekStart)
-        .lte("created_at", knowledgeWeekEnd)
+        .lte("created_at", toLocalDateBoundaryIso(reviewEnd, "end"))
         .order("created_at", { ascending: false }),
       supabase.from("goal_links")
         .select("goal_id, linked_type")
         .eq("user_id", user.id),
+      supabase.from("metric_entries")
+        .select("id, value, recorded_at, metric_definition_id, metric_definitions(name, unit)")
+        .eq("user_id", user.id)
+        .gte("recorded_at", knowledgeWeekStart)
+        .lte("recorded_at", toLocalDateBoundaryIso(reviewEnd, "end"))
+        .order("recorded_at", { ascending: false }),
     ]);
 
     const bodyMetrics = (bodyRes.data ?? []) as { entry_date?: string | null; energy?: number | null; sleep_hours?: number | null }[];
     const mindMetrics = (mindRes.data ?? []) as { entry_date?: string | null; mood?: number | null; focus?: number | null; stress?: number | null }[];
     const nutritionLogs = (nutritionRes.data ?? []) as { log_date?: string | null; protein_g?: number | null; water_ml?: number | null }[];
     const habitLogs = (habitsRes.data ?? []) as WeeklyHabitLog[];
+    const habitDefs = (habitDefsRes.data ?? []) as WeeklyHabit[];
     const completedTasks = (tasksRes.data ?? []) as { completed_at?: string | null }[];
+    const allTasks = (allTasksRes.data ?? []) as unknown as WeeklyTask[];
     const sessions = (sessionsRes.data ?? []) as { duration_minutes?: number | null; passion_id?: string }[];
     const passions = (passionsRes.data ?? []) as { id: string; name: string }[];
     const passionMap = new Map(passions.map((p) => [p.id, p.name]));
@@ -288,6 +347,7 @@ function WeeklyReviewContent() {
     const totalProtein = nutritionLogs.reduce((sum, n) => sum + (n.protein_g ?? 0), 0);
     const waterMl = nutritionLogs.reduce((sum, n) => sum + (n.water_ml ?? 0), 0);
     const journalMemoryEntries = (journalMemoryRes.data ?? []) as { entry_date?: string | null; content?: string | null }[];
+    const todayJournalContent = journalMemoryEntries.find((entry) => entry.entry_date === today)?.content;
     const knowledgeMemoryItems = (knowledgeMemoryRes.data ?? []) as { title?: string | null; type?: string | null }[];
     const latestJournalReflection = makeMemorySnippet(journalMemoryEntries[0]?.content ?? null);
     const latestKnowledge = knowledgeMemoryItems[0];
@@ -296,6 +356,12 @@ function WeeklyReviewContent() {
       type?: string | null;
       transaction_date?: string | null;
       finance_accounts?: { currency?: string | null } | { currency?: string | null }[] | null;
+    }[];
+    const metricEntries = (resultsRes.data ?? []) as {
+      id: string;
+      value?: number | string | null;
+      metric_definition_id?: string | null;
+      metric_definitions?: { name?: string | null; unit?: string | null } | { name?: string | null; unit?: string | null }[] | null;
     }[];
 
     let financeIncome = 0;
@@ -324,10 +390,54 @@ function WeeklyReviewContent() {
     const linkedGoals = linkedGoalIds.size;
     const unlinkedGoals = activeGoals.length - linkedGoals;
 
+    const completedTaskDates = completedTasks
+      .map((task) => timestampToLocalDateString(task.completed_at))
+      .filter((date): date is string => date !== null && date >= weekStart && date <= reviewEnd);
+    const taskGroups = groupTasksByDate(allTasks, today);
+    const allOpenTasks = [...taskGroups.overdue, ...taskGroups.dueToday, ...taskGroups.upcoming.filter((task) => isValidLocalDateString(task.due_date) && task.due_date <= weekEnd), ...taskGroups.unscheduled]
+      .filter((task, index, arr) => arr.findIndex((candidate) => candidate.id === task.id) === index);
+    const openTasks = allOpenTasks.slice(0, 8);
+
+    const habitLogsByHabit = habitLogs.reduce<Record<string, string[]>>((map, log) => {
+      if (!log.habit_id || !isValidLocalDateString(log.completed_date)) return map;
+      if (!map[log.habit_id]) map[log.habit_id] = [];
+      map[log.habit_id].push(log.completed_date);
+      return map;
+    }, {});
+    let knownHabitExpected = 0;
+    let hasUnknownHabitExpected = false;
+    const habitReview = habitDefs.map((habit) => {
+      const completedDates = normalizeCompletedDates(habitLogsByHabit[habit.id] ?? [], today).filter((date) => date >= weekStart && date <= reviewEnd);
+      const weeklyProgress = getWeeklyProgress(completedDates, habit.frequency, habit.times_per_week, weekStart, habit.days_of_week, { asOfDate: today });
+      const expected = weeklyProgress?.target ?? (habit.frequency === "daily" || habit.frequency === "weekdays" || habit.frequency === "weekends"
+        ? weekDates.filter((date) => date <= today && isHabitDueOnDate(habit, date, completedDates)).length
+        : null);
+      if (expected === null) hasUnknownHabitExpected = true;
+      else knownHabitExpected += expected;
+      return {
+        id: habit.id,
+        title: habit.title,
+        completed: completedDates.length,
+        expected,
+        label: expected === null ? `${completedDates.length} completed` : `${completedDates.length} / ${expected}`,
+      };
+    }).sort((a, b) => (b.expected ?? 0) - (a.expected ?? 0) || a.title.localeCompare(b.title)).slice(0, 6);
+
+    const resultsByMetric = new Map<string, ResultsReviewItem>();
+    metricEntries.forEach((entry) => {
+      const definition = Array.isArray(entry.metric_definitions) ? entry.metric_definitions[0] : entry.metric_definitions;
+      const metricId = entry.metric_definition_id ?? entry.id;
+      const existing = resultsByMetric.get(metricId);
+      const value = Number(entry.value);
+      const latestValue = Number.isFinite(value) ? `${value}${definition?.unit ? ` ${definition.unit}` : ""}` : "Recorded";
+      if (existing) existing.count += 1;
+      else resultsByMetric.set(metricId, { id: metricId, name: definition?.name ?? "Metric", count: 1, latestValue });
+    });
+
     const rhythmByDay = weekDates.map((date, index) => ({
       label: WEEKDAYS[index],
       habits: countHabitLogsForDate(habitLogs, date),
-      tasks: completedTasks.filter((task) => task.completed_at?.slice(0, 10) === date).length,
+      tasks: completedTaskDates.filter((completedDate) => completedDate === date).length,
       reflections: journalMemoryEntries.filter((entry) => entry.entry_date === date).length,
     }));
 
@@ -344,7 +454,7 @@ function WeeklyReviewContent() {
 
     const activityByDay = weekDates.map((date, index) => {
       const habits = countHabitLogsForDate(habitLogs, date);
-      const tasks = completedTasks.filter((task) => task.completed_at?.slice(0, 10) === date).length;
+      const tasks = completedTaskDates.filter((completedDate) => completedDate === date).length;
       const reflections = journalMemoryEntries.filter((entry) => entry.entry_date === date).length;
       const mind = mindMetrics.filter((entry) => entry.entry_date === date).length;
       const body = bodyMetrics.filter((entry) => entry.entry_date === date).length;
@@ -367,10 +477,15 @@ function WeeklyReviewContent() {
     setData({
       weekDates,
       habitCount: countUniqueHabitLogs(habitLogs),
-      taskCount: (tasksRes.data ?? []).length,
+      habitExpectedCount: hasUnknownHabitExpected ? null : knownHabitExpected,
+      habitReview,
+      taskCount: completedTaskDates.length,
+      openTaskCount: allOpenTasks.length,
+      overdueTaskCount: taskGroups.overdue.length,
+      openTasks,
       workoutCount: (workoutsRes.data ?? []).length,
       workoutMinutes: ((workoutsRes.data ?? []) as { duration_minutes?: number | null }[]).reduce((s, w) => s + (w.duration_minutes ?? 0), 0),
-      journalCount: (journalRes.data ?? []).length,
+      journalCount: journalMemoryEntries.length,
       passionMinutes: sessions.reduce((s, se) => s + (se.duration_minutes ?? 0), 0),
       passionSessions: sessions.length,
       bodyCheckins: bodyMetrics.length,
@@ -405,23 +520,31 @@ function WeeklyReviewContent() {
       financeNet: financeIncome - financeExpenses,
       financeCurrency,
       financeHasMixedCurrencies,
+      resultsEntryCount: metricEntries.length,
+      resultsMetricsRecorded: resultsByMetric.size,
+      resultsReview: Array.from(resultsByMetric.values()).slice(0, 4),
+      savedWeeklyReview: todayJournalContent ? parseWeeklyReviewReflection(todayJournalContent) : null,
       rhythmByDay,
       mindByDay,
       activityByDay,
       bodyLoggedToday: bodyMetrics.length > 0,
       mindLoggedToday: mindMetrics.length > 0,
       hasWorkoutThisWeek: (workoutsRes.data ?? []).length > 0,
-      hasJournalToday: (journalRes.data ?? []).length > 0,
+      hasJournalToday: journalMemoryEntries.some((entry) => entry.entry_date === today),
       hasPassionSessionThisWeek: sessions.length > 0,
       hasHighPriorityTasks: false,
       topPassion,
     });
+    if (todayJournalContent) {
+      const saved = parseWeeklyReviewReflection(todayJournalContent);
+      if (hasWeeklyReviewContent(saved)) setReflection(saved);
+    }
     setLoading(false);
 
     try {
       const [prevHabitsRes, prevTasksRes, prevJournalRes, prevMindRes, prevBodyRes, prevNutritionRes, prevFinanceRes] = await Promise.all([
         supabase.from("habit_logs").select("habit_id, completed_date").eq("user_id", user.id).gte("completed_date", previousWeekStart).lte("completed_date", previousWeekEnd),
-        supabase.from("tasks").select("completed_at").eq("user_id", user.id).eq("status", "done").gte("completed_at", `${previousWeekStart}T00:00:00`).lte("completed_at", `${previousWeekEnd}T23:59:59`),
+        supabase.from("tasks").select("completed_at").eq("user_id", user.id).eq("status", "done").gte("completed_at", previousTaskWeekStart).lte("completed_at", previousTaskWeekEnd),
         supabase.from("journal_entries").select("entry_date").eq("user_id", user.id).gte("entry_date", previousWeekStart).lte("entry_date", previousWeekEnd),
         supabase.from("mind_metrics").select("entry_date").eq("user_id", user.id).gte("entry_date", previousWeekStart).lte("entry_date", previousWeekEnd),
         supabase.from("body_metrics").select("entry_date").eq("user_id", user.id).gte("entry_date", previousWeekStart).lte("entry_date", previousWeekEnd),
@@ -437,10 +560,14 @@ function WeeklyReviewContent() {
       const prevNutritionEntries = (prevNutritionRes.data ?? []) as { log_date?: string | null }[];
       const prevFinanceEntries = (prevFinanceRes.data ?? []) as { transaction_date?: string | null }[];
 
+      const prevCompletedTaskDates = prevCompletedTasks
+        .map((task) => timestampToLocalDateString(task.completed_at))
+        .filter((date): date is string => date !== null && date >= previousWeekStart && date <= previousWeekEnd);
+
       setPreviousWeekData({
         activityByDay: previousWeekDates.map((date, index) => {
           const habits = countHabitLogsForDate(prevHabitLogs, date);
-          const tasks = prevCompletedTasks.filter((task) => task.completed_at?.slice(0, 10) === date).length;
+          const tasks = prevCompletedTaskDates.filter((completedDate) => completedDate === date).length;
           const reflections = prevJournalEntries.filter((entry) => entry.entry_date === date).length;
           const mind = prevMindEntries.filter((entry) => entry.entry_date === date).length;
           const body = prevBodyEntries.filter((entry) => entry.entry_date === date).length;
@@ -460,7 +587,7 @@ function WeeklyReviewContent() {
           };
         }),
         habitLogs: countUniqueHabitLogs(prevHabitLogs),
-        completedTasks: prevCompletedTasks.length,
+        completedTasks: prevCompletedTaskDates.length,
         reflections: prevJournalEntries.length,
         mindCheckins: prevMindEntries.length,
         bodyNutritionCheckins: prevBodyEntries.length + prevNutritionEntries.length,
@@ -471,7 +598,7 @@ function WeeklyReviewContent() {
     } finally {
       setComparisonLoading(false);
     }
-  }, [supabase, router, weekDates, weekStart]);
+  }, [supabase, router, weekDates, weekStart, today]);
 
   useEffect(() => {
     let cancelled = false;
@@ -489,15 +616,7 @@ function WeeklyReviewContent() {
     setReviewSaved(false);
     setSaveError(null);
     setSavingReflection(true);
-    const text = [
-      reflection.wentWell && `## What went well\n${reflection.wentWell}`,
-      reflection.feltDifficult && `## What felt difficult\n${reflection.feltDifficult}`,
-      reflection.focusNextWeek && `## Next week focus\n${reflection.focusNextWeek}`,
-      reflection.reduceOrAvoid && `## Reduce or avoid\n${reflection.reduceOrAvoid}`,
-      reflection.oneWin && `## One win\n${reflection.oneWin}`,
-    ].filter(Boolean).join("\n\n");
-
-    if (!text) { setSavingReflection(false); return; }
+    if (!hasWeeklyReviewContent(reflection)) { setSavingReflection(false); return; }
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
@@ -506,8 +625,7 @@ function WeeklyReviewContent() {
       return;
     }
 
-    const weeklyReviewMarker = `**Weekly Reflection (${weekStart}**`;
-    const weeklyReviewContent = `${weeklyReviewMarker}\n\n${text}`;
+    const weeklyReviewContent = buildWeeklyReviewBlock(weekStart, reflection);
     const { data: existingEntry, error: lookupError } = await supabase
       .from("journal_entries")
       .select("id, content")
@@ -527,7 +645,7 @@ function WeeklyReviewContent() {
       .upsert({
         user_id: user.id,
         entry_date: today,
-        content: mergeWeeklyReviewContent(existingEntry?.content ?? "", weeklyReviewMarker, weeklyReviewContent),
+        content: mergeWeeklyReviewBlock(existingEntry?.content ?? "", weeklyReviewContent),
       }, { onConflict: "user_id,entry_date" })
       .select("id")
       .maybeSingle();
@@ -554,6 +672,9 @@ function WeeklyReviewContent() {
     () => data && previousWeekData ? buildWeeklyComparison(data, previousWeekData) : null,
     [data, previousWeekData]
   );
+  void comparisonLoading;
+  void weeklyChangeSummary;
+  void weeklyComparison;
 
   if (loading || !data) {
     return (
@@ -611,6 +732,84 @@ function WeeklyReviewContent() {
         note="Weekly Review is the payoff from what you logged: priorities, visible actions, and private reflections across the week."
       />
 
+      {isSparseWeek && (
+        <Card variant="subtle" className="mb-6 border-dashed border-[var(--border)] bg-black/10">
+          <div className="p-4 sm:p-5">
+            <p className="text-sm font-semibold text-[var(--text)]">There is not much recorded for this week yet.</p>
+            <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">You can still review what mattered. Zeroes below are factual, not a score.</p>
+          </div>
+        </Card>
+      )}
+
+      <section className="mb-8" aria-labelledby="week-facts-heading">
+        <SectionIntro id="week-facts-heading" title="Your week in facts" description="Evidence from this week only. No AI summary, score, or judgment." />
+        <div className="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-4">
+          <MetricCard label="Tasks completed" value={data.taskCount} />
+          <MetricCard label="Tasks still open" value={data.openTaskCount} sub={`${data.overdueTaskCount} overdue`} />
+          <MetricCard label="Habit completions" value={data.habitCount} sub={data.habitExpectedCount === null ? "Schedule varies" : `${data.habitExpectedCount} expected`} />
+          <MetricCard label="Journal entries" value={data.journalCount} />
+          <MetricCard label="Results entries" value={data.resultsEntryCount} sub={`${data.resultsMetricsRecorded} metric${data.resultsMetricsRecorded === 1 ? "" : "s"}`} />
+          <MetricCard label="Mind check-ins" value={data.mindCheckins} />
+          <MetricCard label="Body/nutrition" value={data.bodyCheckins + data.nutritionCount} />
+          <MetricCard label="Finance entries" value={data.financeTransactionCount} />
+        </div>
+      </section>
+
+      <section className="mb-8" aria-labelledby="open-work-heading">
+        <SectionIntro id="open-work-heading" title="What is still open" description="Read-only context for unfinished work. Nothing is carried forward automatically." />
+        {data.openTasks.length > 0 ? (
+          <div className="space-y-2">
+            {data.openTasks.map((task) => (
+              <Card key={task.id} className="min-w-0 px-4 py-3">
+                <div className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="break-words text-sm font-semibold text-[var(--text)]">{task.title}</p>
+                    <p className="mt-1 break-words text-xs text-[var(--text-muted)]">{formatOpenTaskStatus(task, today)}{task.projects?.title ? ` · Project: ${task.projects.title}` : ""}</p>
+                  </div>
+                  <span className="w-fit rounded-full bg-[var(--surface-soft)] px-2 py-1 text-[10px] font-medium capitalize text-[var(--text-muted)]">{task.priority}</span>
+                </div>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <CalmEmptyState text="No open tasks are visible in this week window." />
+        )}
+      </section>
+
+      <section className="mb-8" aria-labelledby="habit-review-heading">
+        <SectionIntro id="habit-review-heading" title="Habit review" description="Deduped completions and schedule-aware weekly progress where the schedule is defined." />
+        {data.habitReview.length > 0 ? (
+          <div className="grid min-w-0 gap-2 sm:grid-cols-2">
+            {data.habitReview.map((habit) => (
+              <Card key={habit.id} className="min-w-0 px-4 py-3">
+                <p className="break-words text-sm font-semibold text-[var(--text)]">{habit.title}</p>
+                <p className="mt-1 text-xs text-[var(--text-muted)]">{habit.label}{habit.expected === null ? " this week" : " completed / expected"}</p>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <CalmEmptyState text="No habits are available for this week yet." />
+        )}
+      </section>
+
+      <section className="mb-8" aria-labelledby="results-review-heading">
+        <SectionIntro id="results-review-heading" title="Results recorded" description="Compact factual measurement context. No interpretation or prediction." />
+        {data.resultsReview.length > 0 ? (
+          <div className="grid min-w-0 gap-2 sm:grid-cols-2">
+            {data.resultsReview.map((metric) => (
+              <Card key={metric.id} className="min-w-0 px-4 py-3">
+                <p className="break-words text-sm font-semibold text-[var(--text)]">{metric.name}</p>
+                <p className="mt-1 text-xs text-[var(--text-muted)]">{metric.count} entr{metric.count === 1 ? "y" : "ies"}; latest {metric.latestValue}</p>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <CalmEmptyState text="No Results entries were recorded this week." />
+        )}
+      </section>
+
+      {/* Legacy dashboard removed from render after Weekly Review v2.
+
       <Card variant="subtle" className="mb-8 border-[var(--border)] bg-[var(--surface-soft)]/70">
         <div className="p-4 sm:p-5">
           <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">
@@ -643,7 +842,6 @@ function WeeklyReviewContent() {
         </Card>
       )}
 
-      {/* ── 1. Week Summary ────────────────────────────────────────── */}
       <section className="mb-8">
         <div className="mb-3 flex min-w-0 items-center gap-2">
           <span className="h-4 w-1 rounded-full bg-gradient-to-b from-[var(--accent)] to-[var(--accent-strong)]" />
@@ -729,7 +927,7 @@ function WeeklyReviewContent() {
         </section>
       )}
 
-      {/* ── 2. Body & Mind Review ──────────────────────────────────── */}
+
       <section className="mb-8">
         <div className="mb-3 flex min-w-0 items-center gap-2">
           <span className="h-4 w-1 rounded-full bg-gradient-to-b from-[var(--accent)] to-[var(--accent-strong)]" />
@@ -753,7 +951,7 @@ function WeeklyReviewContent() {
         </div>
       </section>
 
-      {/* ── 3. Goals & Growth Review ───────────────────────────────── */}
+
       <section className="mb-8">
         <div className="mb-3 flex min-w-0 items-center gap-2">
           <span className="h-4 w-1 rounded-full bg-gradient-to-b from-[var(--accent)] to-[var(--accent-strong)]" />
@@ -797,7 +995,7 @@ function WeeklyReviewContent() {
         </section>
       )}
 
-      {/* ── 4. Passions Review ─────────────────────────────────────── */}
+
       <section className="mb-8">
         <div className="mb-3 flex min-w-0 items-center gap-2">
           <span className="h-4 w-1 rounded-full bg-gradient-to-b from-[var(--accent)] to-[var(--accent-strong)]" />
@@ -846,8 +1044,9 @@ function WeeklyReviewContent() {
           </p>
         </section>
       )}
+      */}
 
-      {/* ── Close The Week ─────────────────────────────────────────── */}
+      {/* Close The Week */}
       <section className="mb-8">
         <div className="mb-3 flex min-w-0 items-center gap-2">
           <span className="h-4 w-1 rounded-full bg-gradient-to-b from-[var(--accent)] to-[var(--accent-strong)]" />
@@ -870,44 +1069,41 @@ function WeeklyReviewContent() {
                 placeholder="Keep it small enough to remember."
               />
               <p className="mt-2 text-[10px] leading-relaxed text-[var(--text-muted)]">
-                This saves with the weekly review note. It is a note for you, not an automatic task.
+                  This saves with the weekly review note. It is a note for you, not an automatic task.
               </p>
             </div>
 
             <div className="grid gap-4 lg:grid-cols-2">
               <ReflectionField
-                label="What changed this week?"
+                label="What went well?"
                 value={reflection.wentWell}
                 onChange={(v) => updateReflectionField("wentWell", v)}
                 placeholder="Name what stood out from the week."
               />
               <ReflectionField
-                label="What felt difficult?"
-                value={reflection.feltDifficult}
-                onChange={(v) => updateReflectionField("feltDifficult", v)}
+                label="What moved forward?"
+                value={reflection.movedForward}
+                onChange={(v) => updateReflectionField("movedForward", v)}
               />
               <ReflectionField
-                label="What can I reduce or avoid?"
-                value={reflection.reduceOrAvoid}
-                onChange={(v) => updateReflectionField("reduceOrAvoid", v)}
+                label="What got in the way?"
+                value={reflection.gotInTheWay}
+                onChange={(v) => updateReflectionField("gotInTheWay", v)}
               />
               <ReflectionField
-                label="What is one win I want to remember?"
-                value={reflection.oneWin}
-                onChange={(v) => updateReflectionField("oneWin", v)}
+                label="What did I learn?"
+                value={reflection.learned}
+                onChange={(v) => updateReflectionField("learned", v)}
               />
-            </div>
-
-            <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)]/70 p-3.5 sm:p-4">
-              <label htmlFor={planFocusId} className="mb-1.5 block break-words text-xs font-medium text-[var(--text)]">Small focus note for this screen</label>
-              <p className="mb-2 text-[10px] leading-relaxed text-[var(--text-muted)]">A private planning note while this page is open. It does not create a task, habit, goal, or new saved field.</p>
-              <input
-                id={planFocusId}
-                type="text"
-                value={planFocus}
-                onChange={(e) => setPlanFocus(e.target.value)}
-                placeholder="One thing to remember next week"
-                className="min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text)] placeholder-[var(--text-muted)] outline-none transition-colors focus:border-[var(--accent)]"
+              <ReflectionField
+                label="What should I continue?"
+                value={reflection.continueDoing}
+                onChange={(v) => updateReflectionField("continueDoing", v)}
+              />
+              <ReflectionField
+                label="What should I change?"
+                value={reflection.changeNextWeek}
+                onChange={(v) => updateReflectionField("changeNextWeek", v)}
               />
             </div>
 
@@ -921,7 +1117,7 @@ function WeeklyReviewContent() {
                 </div>
                 <button
                   onClick={handleSaveReflection}
-                  disabled={savingReflection || Object.values(reflection).every((v) => !v)}
+                  disabled={savingReflection || !hasWeeklyReviewContent(reflection)}
                   className="min-h-11 w-full shrink-0 rounded-lg bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-40 sm:w-auto"
                 >
                   {savingReflection ? "Saving..." : "Save to Journal"}
@@ -1014,22 +1210,9 @@ function toLocalDateBoundaryIso(dateString: string, boundary: "start" | "end"): 
 }
 
 function makeMemorySnippet(content: string | null): string | null {
-  const text = removeEveningShutdownBlock(content ?? "").replace(/\s+/g, " ").trim();
+  const text = removeWeeklyReviewBlock(removeEveningShutdownBlock(content ?? "")).replace(/\s+/g, " ").trim();
   if (!text) return null;
   return text.length > 72 ? `${text.slice(0, 69)}...` : text;
-}
-
-function mergeWeeklyReviewContent(existingContent: string, marker: string, weeklyReviewContent: string): string {
-  const existing = existingContent.trimEnd();
-  if (!existing) return weeklyReviewContent;
-
-  const markerIndex = existing.indexOf(marker);
-  if (markerIndex >= 0) {
-    const preservedContent = existing.slice(0, markerIndex).trimEnd();
-    return preservedContent ? `${preservedContent}\n\n${weeklyReviewContent}` : weeklyReviewContent;
-  }
-
-  return `${existing}\n\n${weeklyReviewContent}`;
 }
 
 function MetricCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
@@ -1041,6 +1224,34 @@ function MetricCard({ label, value, sub }: { label: string; value: string | numb
       {sub !== undefined && <p className="mt-0.5 break-words text-[9px] leading-snug text-[var(--text-muted)] [overflow-wrap:anywhere]">{sub}</p>}
     </Card>
   );
+}
+
+function SectionIntro({ id, title, description }: { id: string; title: string; description: string }) {
+  return (
+    <div className="mb-3 flex min-w-0 items-start gap-2">
+      <span className="mt-0.5 h-4 w-1 rounded-full bg-gradient-to-b from-[var(--accent)] to-[var(--accent-strong)]" />
+      <div className="min-w-0">
+        <h2 id={id} className="break-words text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">{title}</h2>
+        <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">{description}</p>
+      </div>
+    </div>
+  );
+}
+
+function CalmEmptyState({ text }: { text: string }) {
+  return (
+    <Card variant="subtle" className="border-dashed border-[var(--border)] px-4 py-3">
+      <p className="text-sm text-[var(--text-muted)]">{text}</p>
+    </Card>
+  );
+}
+
+function formatOpenTaskStatus(task: WeeklyTask, today: string): string {
+  if (hasInvalidTaskDueDate(task.due_date)) return "Date needs review";
+  if (!task.due_date) return "Unscheduled";
+  if (task.due_date < today) return "Overdue";
+  if (task.due_date === today) return "Due today";
+  return `Due ${task.due_date}`;
 }
 
 function WeeklyChangeSummary({ summary }: { summary: WeeklyChangeSummaryData | null }) {
@@ -1448,6 +1659,14 @@ function TrendEmptyState() {
     </div>
   );
 }
+
+void formatFinanceReviewAmount;
+void WeeklyChangeSummary;
+void WeeklyComparison;
+void WeeklyRhythmChart;
+void DailyActionBars;
+void ReflectionRhythm;
+void MindTrendStrip;
 
 function suggestedActions(data: WeekData) {
   const actions: { text: string; href: string }[] = [];
