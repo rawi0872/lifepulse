@@ -44,7 +44,7 @@ const requiredGroupText = [
 
 const requiredNavText = [
   "Today",
-  "Coach",
+  "NEXTRON",
   "Weekly Review",
   "Goals",
   "Projects",
@@ -168,6 +168,12 @@ async function main() {
     for (const text of requiredNavText) {
       await expectNavText(sidebar, text);
     }
+
+    const nextronLink = sidebar.getByRole("link", { name: /NEXTRON/i });
+    await expect(nextronLink).toBeVisible({ timeout: 15000 });
+    await expect(nextronLink).toContainText("Beta", { timeout: 15000 });
+    await expect(nextronLink).toHaveAttribute("href", /\/coach$/);
+    pass("NEXTRON nav route points to /coach");
 
     for (const text of removedNavText) {
       await expectNavTextAbsent(sidebar, text);
