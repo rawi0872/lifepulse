@@ -1,453 +1,204 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
 import { DashboardNav } from "@/components/DashboardNav";
-import { DailyLoopConnector } from "@/components/DailyLoopConnector";
-import { PulseCard } from "@/components/ui/pulse-card";
 import { Card } from "@/components/ui/card";
-import { getTodayDateString, getWeekStartDate } from "@/lib/utils";
-import type { CoachInsight, CoachData } from "@/lib/coach";
-import {
-  getCoachInsights,
-  sortByPriority,
-  getCategoryLabel,
-  getHighestPriority,
-} from "@/lib/coach";
+import { createClient } from "@/lib/supabase/client";
+import { buildDeterministicNextronResponse, type NextronCoachResponse } from "@/lib/nextron/coach";
+import { getDefaultNextronPermissions, NEXTRON_CONTEXT_PERMISSIONS, NEXTRON_UNAVAILABLE_CONTEXT, type NextronContextDomain, type NextronPermissionState } from "@/lib/nextron/context";
+import { buildNextronEvidencePacket, type NextronEvidencePacket } from "@/lib/nextron/evidence";
+import { runNextronProviderOrFallback } from "@/lib/nextron/provider";
 
 export default function CoachPage() {
   return (
     <DashboardNav>
-      <CoachContent />
+      <NextronContent />
     </DashboardNav>
   );
 }
 
-function toLocalDateBoundaryIso(dateString: string, boundary: "start" | "end"): string {
-  const [year, month, day] = dateString.split("-").map(Number);
-  const date = boundary === "start"
-    ? new Date(year, month - 1, day, 0, 0, 0, 0)
-    : new Date(year, month - 1, day, 23, 59, 59, 999);
-  return date.toISOString();
-}
-
-function CoachContent() {
+function NextronContent() {
   const router = useRouter();
-  const supabase = createClient();
+  const [supabase] = useState(() => createClient());
+  const [permissions, setPermissions] = useState<NextronPermissionState>(() => getDefaultNextronPermissions());
+  const [packet, setPacket] = useState<NextronEvidencePacket | null>(null);
+  const [response, setResponse] = useState<NextronCoachResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [insights, setInsights] = useState<CoachInsight[]>([]);
-  const [hasContent, setHasContent] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
 
     async function load() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { router.push("/login"); return; }
+      setLoading(true);
+      setError(null);
+      setPacket(null);
+      setResponse(null);
 
-      const today = getTodayDateString();
-      const weekStart = getWeekStartDate();
-      const knowledgeWeekStart = toLocalDateBoundaryIso(weekStart, "start");
-      const knowledgeWeekEnd = toLocalDateBoundaryIso(today, "end");
-      const dayOfWeek = new Date().getDay();
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (cancelled) return;
+        if (!user) {
+          router.replace("/login");
+          return;
+        }
 
-      const [
-        bodyRes, mindRes, tasksRes, goalsRes, goalLinksRes,
-        journalRes, habitsRes, workoutRes,
-        nutritionRes, passionsRes, sessionsRes, financeRes, financeWeekRes,
-        knowledgeRes, collectionsRes, journalWeekRes, knowledgeWeekRes,
-      ] = await Promise.all([
-        supabase.from("body_metrics").select("id, entry_date").eq("user_id", user.id).gte("entry_date", weekStart).lte("entry_date", today),
-        supabase.from("mind_metrics").select("id").eq("user_id", user.id).eq("entry_date", today).maybeSingle(),
-        supabase.from("tasks").select("id,priority,status,realm_id").eq("user_id", user.id),
-        supabase.from("goals").select("id,status").eq("user_id", user.id),
-        supabase.from("goal_links").select("goal_id").eq("user_id", user.id),
-        supabase.from("journal_entries").select("id").eq("user_id", user.id).eq("entry_date", today).maybeSingle(),
-        supabase.from("habits").select("id").eq("user_id", user.id),
-        supabase.from("workouts").select("id, duration_minutes").eq("user_id", user.id).gte("workout_date", weekStart).lte("workout_date", today),
-        supabase.from("nutrition_logs").select("id, log_date").eq("user_id", user.id).gte("log_date", weekStart).lte("log_date", today),
-        supabase.from("passions").select("id").eq("user_id", user.id),
-        supabase.from("passion_sessions").select("id").eq("user_id", user.id).gte("session_date", weekStart),
-        supabase.from("finance_transactions").select("id").eq("user_id", user.id).limit(1),
-        supabase.from("finance_transactions").select("id").eq("user_id", user.id).gte("transaction_date", weekStart).lte("transaction_date", today),
-        supabase.from("knowledge_items").select("id").eq("user_id", user.id).limit(1),
-        supabase.from("knowledge_collections").select("id").eq("user_id", user.id).limit(1),
-        supabase.from("journal_entries").select("id, entry_date").eq("user_id", user.id).gte("entry_date", weekStart).lte("entry_date", today),
-        supabase.from("knowledge_items").select("id, created_at").eq("user_id", user.id).gte("created_at", knowledgeWeekStart).lte("created_at", knowledgeWeekEnd),
-      ]);
-
-      if (cancelled) return;
-
-      const activeGoals = (goalsRes.data ?? []).filter((g: { status?: string }) => g.status === "active");
-      const linkedGoalIds = new Set((goalLinksRes.data ?? []).map((link: { goal_id?: string | null }) => link.goal_id).filter(Boolean));
-      const hasGoalWithoutLinks = activeGoals.length > 0 && activeGoals.some((goal: { id?: string }) => !linkedGoalIds.has(goal.id));
-      const hasContent = (habitsRes.data ?? []).length > 0 || (tasksRes.data ?? []).length > 0;
-      const hasHighPriorityTasks = (tasksRes.data ?? []).some(
-        (t: { priority?: string; status?: string }) => t.priority === "high" && t.status === "todo"
-      );
-      const hasActivePassions = (passionsRes.data ?? []).length > 0;
-      const bodyMetrics = (bodyRes.data ?? []) as { entry_date?: string | null }[];
-      const workouts = (workoutRes.data ?? []) as { duration_minutes?: number | null }[];
-      const nutritionLogs = (nutritionRes.data ?? []) as { log_date?: string | null }[];
-      const nutritionDaysThisWeek = new Set(nutritionLogs.map((n) => n.log_date).filter(Boolean)).size;
-
-      const coachData: CoachData = {
-        bodyLoggedToday: bodyMetrics.some((b) => b.entry_date === today),
-        mindLoggedToday: mindRes.data !== null,
-        hasWorkoutThisWeek: workouts.length > 0,
-        hasNutritionToday: nutritionLogs.some((n) => n.log_date === today),
-        hasHighPriorityTasks,
-        hasGoalWithoutLinks,
-        hasJournalToday: journalRes.data !== null,
-        hasContent,
-        hasActivePassions,
-        hasPassionSessionThisWeek: (sessionsRes.data ?? []).length > 0,
-        dayOfWeek,
-        hasFinanceData: (financeRes.data ?? []).length > 0,
-        hasKnowledgeItems: (knowledgeRes.data ?? []).length > 0,
-        hasKnowledgeCollections: (collectionsRes.data ?? []).length > 0,
-        bodyCheckInsThisWeek: bodyMetrics.length,
-        nutritionDaysThisWeek,
-        workoutCountThisWeek: workouts.length,
-        workoutMinutesThisWeek: workouts.reduce((sum, workout) => sum + (workout.duration_minutes ?? 0), 0),
-        financeTransactionsThisWeek: (financeWeekRes.data ?? []).length,
-        weeklyJournalEntries: (journalWeekRes.data ?? []).length,
-        weeklyKnowledgeItems: (knowledgeWeekRes.data ?? []).length,
-      };
-
-      if (!cancelled) {
-        setHasContent(hasContent);
-        setInsights(sortByPriority(getCoachInsights(coachData)));
-        setLoading(false);
+        const nextPacket = await buildNextronEvidencePacket(supabase, user.id, permissions);
+        if (cancelled) return;
+        const nextResponse = await runNextronProviderOrFallback(
+          { evidence: nextPacket },
+          () => buildDeterministicNextronResponse(nextPacket),
+        );
+        if (cancelled) return;
+        setPacket(nextPacket);
+        setResponse(nextResponse);
+      } catch {
+        if (!cancelled) setError("NEXTRON could not load the permitted context right now.");
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     }
 
-    load();
+    void load();
     return () => { cancelled = true; };
-  }, [supabase, router]);
+  }, [permissions, router, supabase]);
 
-  if (loading) {
-    return (
-      <div className="mx-auto max-w-4xl px-4 py-6 sm:px-5 sm:py-8">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 w-48 rounded bg-[var(--surface)]" />
-          <div className="h-4 w-56 rounded bg-[var(--surface)] sm:w-72" />
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="h-24 rounded-lg bg-[var(--surface)]" />
-            ))}
-          </div>
-          <div className="h-40 rounded-lg bg-[var(--surface)]" />
-          <div className="h-40 rounded-lg bg-[var(--surface)]" />
-        </div>
-      </div>
-    );
+  function setPermission(domain: NextronContextDomain, allowed: boolean) {
+    setPermissions((current) => ({ ...current, [domain]: allowed ? "allowed" : "denied" }));
   }
 
-  const topPriority = getHighestPriority(insights);
-
-  const areaBreakdowns: { label: string; icon: string; category: string }[] = [
-    { label: "Body", icon: "\u{1F3CB}", category: "body" },
-    { label: "Mind", icon: "\u{1F9E0}", category: "mind" },
-    { label: "Tasks", icon: "\u2713", category: "tasks" },
-    { label: "Goals", icon: "\u{1F3AF}", category: "goals" },
-    { label: "Reflection", icon: "\u270E", category: "general" },
-    { label: "Passions", icon: "\u{2B50}", category: "passions" },
-    { label: "Knowledge", icon: "\u{1F4DA}", category: "knowledge" },
-    { label: "Finance", icon: "\u{1F4B0}", category: "finance" },
-    { label: "Weekly Review", icon: "\u21BB", category: "weekly_review" },
-  ];
-
-  const categoryHasIssues = (cat: string) => insights.some((i) => i.category === cat);
-
   return (
-    <div className="mx-auto max-w-4xl overflow-x-hidden px-4 py-6 animate-fade-in sm:px-5 sm:py-8">
-      {/* Header */}
-      <div className="mb-6 min-w-0">
-        <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--accent)]">Rule-based loop guidance</p>
-        <h1 className="break-words text-2xl font-bold text-[var(--text)]">Life Pulse Coach</h1>
-        <p className="mt-1 break-words text-sm leading-relaxed text-[var(--text-muted)]">
-          Deterministic prompts based on what you log. Coach guides you through the Life Pulse loop —
-          Today, reflection, Weekly Review, Insights — and points to the next manual step.
-          {topPriority && (
-            <span className="text-[var(--accent)]">
-              Current prompt level: {topPriority}
-            </span>
+    <div className="mx-auto max-w-3xl overflow-x-hidden px-4 py-6 animate-fade-in sm:px-5 sm:py-8">
+      <header className="mb-6 min-w-0">
+        <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--accent)]">Life Pulse AI Coach</p>
+        <h1 className="break-words text-3xl font-bold tracking-tight text-[var(--text)]">NEXTRON</h1>
+        <p className="mt-2 text-sm leading-relaxed text-[var(--text-muted)]">
+          NEXTRON uses permitted Life Pulse evidence, separates facts from interpretation, and recommends one practical next action. This is an early private-beta foundation: no external AI, no autonomous actions, and no medical, mental-health, legal, or financial professional replacement.
+        </p>
+      </header>
+
+      <section aria-labelledby="nextron-response" className="mb-6">
+        <Card className="border-[var(--accent)]/25 bg-[var(--surface-soft)]/80 p-4 sm:p-5">
+          <div className="mb-3 flex min-w-0 flex-wrap items-center justify-between gap-2">
+            <div>
+              <h2 id="nextron-response" className="text-base font-semibold text-[var(--text)]">Current coaching response</h2>
+              <p className="mt-1 text-xs text-[var(--text-muted)]">One deterministic response from permitted evidence.</p>
+            </div>
+            {response && (
+              <span className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">
+                {response.priority}
+              </span>
+            )}
+          </div>
+
+          {loading && <p className="text-sm text-[var(--text-muted)]">Loading permitted context...</p>}
+          {!loading && error && <p className="text-sm text-[var(--warning)]">{error}</p>}
+          {!loading && !error && response && <ResponseView response={response} />}
+        </Card>
+      </section>
+
+      <section aria-labelledby="nextron-facts" className="mb-6">
+        <h2 id="nextron-facts" className="mb-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Facts used</h2>
+        <Card variant="subtle" className="p-4">
+          {response ? (
+            <ul className="space-y-2">
+              {response.facts.map((item, index) => (
+                <li key={`${item.category}-${index}`} className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">{item.category}</p>
+                  <p className="mt-1 break-words text-sm text-[var(--text-secondary)]">{item.text}</p>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-[var(--text-muted)]">Facts will appear after permitted context loads.</p>
           )}
-        </p>
-      </div>
-
-      <DailyLoopConnector
-        activeStep="today"
-        note="Coach is deterministic rule-based guidance through the Life Pulse loop. It does not create anything for you — it points to your next manual step."
-      />
-
-      <Card variant="subtle" className="mb-6 border-[var(--border)] bg-[var(--surface-soft)]/75">
-        <div className="p-4 sm:p-5">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Safety framing</p>
-          <p className="mt-2 text-sm leading-relaxed text-[var(--text-secondary)]">
-            Coach is deterministic rule-based guidance from what you log. Suggestions are optional prompts, not instructions,
-            diagnosis, therapy, medical advice, or financial advice.
-          </p>
-          <p className="mt-2 text-xs leading-relaxed text-[var(--text-muted)]">
-            No external AI processing, AI memory, embeddings, or automatic summaries are enabled. You stay in control.
-          </p>
-        </div>
-      </Card>
-
-      {/* 1. Overview */}
-      <div className="mb-6 grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-4">
-        <Card className="flex min-h-[92px] min-w-0 flex-col justify-center p-3.5">
-          <p className="break-words text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">
-            Optional prompts
-          </p>
-          <p className="mt-1.5 break-words text-2xl font-bold text-[var(--text)]">
-            {insights.length}
-          </p>
         </Card>
-        <Card className="flex min-h-[92px] min-w-0 flex-col justify-center p-3.5">
-          <p className="break-words text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">
-            Prompt level
-          </p>
-          <p className="mt-1.5 break-words text-xl font-bold leading-tight text-[var(--text)] [overflow-wrap:anywhere] sm:text-2xl">
-            {topPriority ?? "\u2014"}
-          </p>
-        </Card>
-        <Card className="flex min-h-[92px] min-w-0 flex-col justify-center p-3.5">
-          <p className="break-words text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">
-            Areas covered
-          </p>
-          <p className="mt-1.5 break-words text-2xl font-bold text-[var(--text)]">
-            {new Set(insights.map((i) => i.category)).size}
-          </p>
-        </Card>
-        <Card className="flex min-h-[92px] min-w-0 flex-col justify-center p-3.5">
-          <p className="break-words text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">
-            Engine
-          </p>
-          <p className="mt-1.5 break-words text-lg font-bold text-[var(--accent)]">
-            Rules
-          </p>
-        </Card>
-      </div>
-
-      <p className="mb-6 text-xs leading-relaxed text-[var(--text-muted)]">
-        Coach checks logged activity, missing check-ins, weekly rhythm, and time-sensitive patterns.
-        It points you back to existing Life Pulse pages — your next manual step is one of: Today, reflection, Weekly Review, or Insights.
-      </p>
-
-      <section className="mb-8">
-        <div className="mb-3 flex min-w-0 items-center gap-2">
-          <span className="h-4 w-1 rounded-full bg-gradient-to-b from-[var(--accent)] to-[var(--accent-strong)]" />
-          <h2 className="min-w-0 break-words text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">
-            Connected workflow — your loop
-          </h2>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-3">
-          <Link
-            href="/today"
-            className="min-h-24 min-w-0 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-4 transition-colors hover:bg-[var(--surface)]"
-          >
-            <p className="break-words text-sm font-semibold text-[var(--text)]">Open Today</p>
-            <p className="mt-1 break-words text-xs text-[var(--text-muted)]">Set one priority, complete one visible action, reflect.</p>
-          </Link>
-          <Link
-            href="/weekly-review"
-            className="min-h-24 min-w-0 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-4 transition-colors hover:bg-[var(--surface)]"
-          >
-            <p className="break-words text-sm font-semibold text-[var(--text)]">Run Weekly Review</p>
-            <p className="mt-1 break-words text-xs text-[var(--text-muted)]">Reflect on the week, choose one focus for next week.</p>
-          </Link>
-          <Link
-            href="/insights"
-            className="min-h-24 min-w-0 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-4 transition-colors hover:bg-[var(--surface)]"
-          >
-            <p className="break-words text-sm font-semibold text-[var(--text)]">Open Insights</p>
-            <p className="mt-1 break-words text-xs text-[var(--text-muted)]">See deterministic trends from your logged activity.</p>
-          </Link>
-        </div>
       </section>
 
-      {/* 2. Recommended Next Actions */}
-      <section className="mb-8">
-        <div className="mb-3 flex min-w-0 items-center gap-2">
-          <span className="h-4 w-1 rounded-full bg-gradient-to-b from-[var(--accent)] to-[var(--accent-strong)]" />
-          <h2 className="min-w-0 break-words text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">
-            Optional next prompts
-          </h2>
-        </div>
-        <p className="mb-3 text-xs text-[var(--text-muted)]">
-          Pick one prompt only if it fits your day. Coach links to existing pages and does not auto-create tasks, habits, reflections, or plans.
-        </p>
-
-        {insights.length === 0 ? (
-          <Card variant="subtle" className="border-dashed border-[var(--border)]">
-            <div className="flex flex-col items-center justify-center p-10 text-center">
-              <svg className="mb-3 h-10 w-10 text-[var(--success)] opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <p className="text-sm text-[var(--text-muted)]">All areas look good.</p>
-              <p className="mt-1 text-xs text-[var(--text-muted)]">
-                No prompts right now. Open Today to set a priority, run a Weekly Review, or keep logging habits, tasks, and check-ins.
-              </p>
-            </div>
-          </Card>
-        ) : (
+      <section aria-labelledby="nextron-context" className="mb-6">
+        <h2 id="nextron-context" className="mb-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Context permissions</h2>
+        <Card className="p-4 sm:p-5">
+          <p className="mb-3 text-xs leading-relaxed text-[var(--text-muted)]">
+            These permissions are local UI state for this private-beta phase and are not persisted. Text-heavy reflection areas are off by default.
+          </p>
           <div className="space-y-3">
-            {insights.map((insight) => (
-              <PulseCard
-                key={insight.id}
-                title={insight.title}
-                description={getCategoryLabel(insight.category)}
-                accent={
-                  insight.priority === "high"
-                    ? "accent"
-                    : insight.priority === "medium"
-                    ? "warning"
-                    : "none"
-                }
-                action={
-                  <Link
-                    href={insight.actionHref}
-                    className="inline-flex min-h-11 max-w-40 items-center justify-center rounded-lg bg-[var(--accent)] px-3 py-2 text-center text-xs font-semibold leading-snug text-white transition-opacity hover:opacity-90 [overflow-wrap:anywhere] sm:min-h-0 sm:max-w-none sm:py-1.5"
-                  >
-                    {insight.actionLabel}
-                  </Link>
-                }
-                variant="elevated"
-              >
-                <div className="min-w-0 px-3.5 py-3 sm:px-4">
-                  <p className="break-words text-sm leading-relaxed text-[var(--text-secondary)]">
-                    {insight.message}
-                  </p>
-                  <p className="mt-2 break-words text-[10px] leading-relaxed text-[var(--text-muted)]">
-                    Based on: {insight.reason}
-                  </p>
-                </div>
-              </PulseCard>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* 3. Signal Breakdown */}
-      <section className="mb-8">
-        <div className="mb-3 flex min-w-0 items-center gap-2">
-          <span className="h-4 w-1 rounded-full bg-gradient-to-b from-[var(--accent)] to-[var(--accent-strong)]" />
-          <h2 className="min-w-0 break-words text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">
-            Signal breakdown
-          </h2>
-        </div>
-        <p className="mb-3 text-xs text-[var(--text-muted)]">
-          See which logged areas are currently creating optional prompts.
-        </p>
-
-        {!hasContent && (
-          <Card variant="subtle" className="mb-4 border-dashed border-[var(--border)]">
-            <div className="p-4 text-center">
-              <p className="text-xs text-[var(--text-muted)]">
-                Start by adding habits, tasks, check-ins, or a weekly review. Coach will show rule-based prompts once there is logged activity to reference.
-              </p>
-            </div>
-          </Card>
-        )}
-
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {areaBreakdowns.map((area) => {
-            const hasIssue = categoryHasIssues(area.category);
-            const areaInsights = insights.filter((i) => i.category === area.category);
-            return (
-              <Card
-                key={area.category}
-                variant={hasIssue ? "default" : "subtle"}
-                className={`min-w-0 p-4 ${!hasIssue ? "border-dashed border-[var(--border)]" : ""}`}
-              >
-                <div className="mb-2 flex min-w-0 flex-wrap items-center justify-between gap-2">
-                  <div className="flex min-w-0 items-center gap-2">
-                    <span className="text-sm">{area.icon}</span>
-                    <span className="min-w-0 break-words text-xs font-semibold text-[var(--text)]">
-                      {area.label}
+            {NEXTRON_CONTEXT_PERMISSIONS.map((permission) => {
+              const checked = permissions[permission.domain] === "allowed";
+              return (
+                <label key={permission.domain} className="flex min-w-0 items-start gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-3">
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={(event) => setPermission(permission.domain, event.target.checked)}
+                    className="mt-1 h-4 w-4 shrink-0"
+                  />
+                  <span className="min-w-0">
+                    <span className="flex flex-wrap items-center gap-2 text-sm font-semibold text-[var(--text)]">
+                      {permission.label}
+                      {permission.textHeavy && <span className="rounded-full bg-[var(--warning-soft)] px-2 py-0.5 text-[9px] uppercase tracking-[0.1em] text-[var(--warning)]">text</span>}
                     </span>
-                  </div>
-                  {hasIssue ? (
-                    <span className="shrink-0 rounded-full bg-[var(--warning-soft)] px-2 py-1 text-[9px] font-medium uppercase tracking-wider text-[var(--warning)]">
-                      {areaInsights.length} prompt{areaInsights.length !== 1 ? "s" : ""}
-                    </span>
-                  ) : (
-                    <span className="shrink-0 rounded-full bg-[var(--success-soft)] px-2 py-1 text-[9px] font-medium uppercase tracking-wider text-[var(--success)]">
-                      Quiet
-                    </span>
-                  )}
-                </div>
-                {hasIssue ? (
-                  <ul className="space-y-1">
-                    {areaInsights.map((insight) => (
-                      <li key={insight.id}>
-                        <Link
-                          href={insight.actionHref}
-                          className="inline-flex min-h-10 items-center break-words text-xs leading-relaxed text-[var(--text-secondary)] transition-colors hover:text-[var(--accent)] sm:min-h-0"
-                        >
-                          {insight.title}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-[10px] text-[var(--text-muted)]">No prompt right now.</p>
-                )}
-              </Card>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* 4. Coach Rules Transparency */}
-      <section className="mb-8">
-        <div className="mb-3 flex min-w-0 items-center gap-2">
-          <span className="h-4 w-1 rounded-full bg-gradient-to-b from-[var(--accent)] to-[var(--accent-strong)]" />
-          <h2 className="min-w-0 break-words text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">
-            Transparent rule engine
-          </h2>
-        </div>
-        <PulseCard title="Rule-based guidance through the Life Pulse loop" accent="none" variant="subtle">
-          <div className="space-y-2 px-3.5 py-3 sm:px-4">
-            <p className="break-words text-xs leading-relaxed text-[var(--text-secondary)]">
-              Life Pulse Coach uses deterministic rules based on your logged data. It checks logged activity, missing check-ins,
-              weekly rhythm, and time-sensitive patterns to surface optional next prompts that point you back to existing Life Pulse pages.
-            </p>
-            <p className="break-words text-xs leading-relaxed text-[var(--text-muted)]">
-              No AI summaries, AI memory, embeddings, or external APIs are enabled. Coach is deterministic, private, and manual — you stay in control.
-            </p>
-            <p className="break-words text-xs leading-relaxed text-[var(--text-muted)]">
-              Coach guides the manual loop: Today → one visible action → reflection → Weekly Review → Insights.
-            </p>
-            <div className="pt-1">
-              <p className="text-[10px] font-medium text-[var(--text-muted)]">
-                Coach checks the following areas:
-              </p>
-              <div className="mt-1 flex flex-wrap gap-1.5">
-                {["Body check-in", "Mind check-in", "Workouts", "Nutrition", "Tasks",
-                  "Goals", "Journal", "Passions", "Knowledge", "Finance", "Weekly rhythm"
-                ].map((area) => (
-                  <span
-                    key={area}
-                    className="inline-block min-h-7 rounded-full bg-[var(--surface)] px-2.5 py-1.5 text-[9px] leading-tight text-[var(--text-muted)]"
-                  >
-                    {area}
+                    <span className="mt-1 block break-words text-xs leading-relaxed text-[var(--text-muted)]">{permission.description}</span>
+                    <span className="mt-1 block text-[10px] text-[var(--text-muted)]">Current status: {checked ? "allowed" : "not loaded"}</span>
                   </span>
-                ))}
-              </div>
-            </div>
+                </label>
+              );
+            })}
           </div>
-        </PulseCard>
+        </Card>
       </section>
 
-      <p className="text-[10px] text-[var(--text-muted)] text-center">
-        Coach does not provide medical, therapeutic, or financial advice. No AI summaries, AI memory, embeddings, or external AI processing.
-        Prompts are optional and user-controlled.
+      <section aria-labelledby="nextron-access" className="mb-6 grid gap-3 sm:grid-cols-2">
+        <Card variant="subtle" className="p-4">
+          <h2 id="nextron-access" className="text-sm font-semibold text-[var(--text)]">What NEXTRON can currently access</h2>
+          <ul className="mt-3 space-y-2 text-xs text-[var(--text-secondary)]">
+            {packet ? Object.entries(packet.permissionSummary).filter(([, status]) => status === "available").map(([domain]) => (
+              <li key={domain} className="break-words">{domain}</li>
+            )) : <li>Permitted context is loading.</li>}
+          </ul>
+        </Card>
+        <Card variant="subtle" className="p-4">
+          <h2 className="text-sm font-semibold text-[var(--text)]">What NEXTRON cannot currently access</h2>
+          <ul className="mt-3 space-y-2 text-xs text-[var(--text-secondary)]">
+            {NEXTRON_UNAVAILABLE_CONTEXT.map((item) => <li key={item} className="break-words">{item}</li>)}
+            {packet && Object.entries(packet.permissionSummary).filter(([, status]) => status === "permission_denied").map(([domain]) => (
+              <li key={domain} className="break-words">{domain} is not loaded by current permission.</li>
+            ))}
+          </ul>
+        </Card>
+      </section>
+
+      <section aria-labelledby="nextron-boundary" className="mb-6">
+        <Card variant="subtle" className="p-4">
+          <h2 id="nextron-boundary" className="text-sm font-semibold text-[var(--text)]">Future AI boundary</h2>
+          <p className="mt-2 text-xs leading-relaxed text-[var(--text-muted)]">
+            A provider interface now exists for a future structured AI response, but this phase makes no API request, requires no key, sends no data externally, and falls back to deterministic coaching if a provider is not configured.
+          </p>
+        </Card>
+      </section>
+
+      <p className="text-center text-[10px] leading-relaxed text-[var(--text-muted)]">
+        NEXTRON does not diagnose, provide therapy, give legal or financial advice, infer hidden traits, claim certainty, or mutate Life Pulse data. Suggested actions are optional and user-controlled.
       </p>
+    </div>
+  );
+}
+
+function ResponseView({ response }: { response: NextronCoachResponse }) {
+  return (
+    <div className="space-y-4">
+      <div>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">Interpretation</p>
+        <p className="mt-1 break-words text-sm leading-relaxed text-[var(--text-secondary)]">{response.interpretation}</p>
+      </div>
+      <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-3">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">Suggested next action</p>
+        <p className="mt-1 break-words text-sm text-[var(--text-secondary)]">{response.nextAction.rationale}</p>
+        <Link href={response.nextAction.href} className="mt-3 inline-flex min-h-11 items-center rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90">
+          {response.nextAction.label}
+        </Link>
+      </div>
     </div>
   );
 }

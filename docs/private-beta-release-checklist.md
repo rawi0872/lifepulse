@@ -5,7 +5,7 @@ Use this before inviting each small trusted tester wave.
 ## Release Target
 
 - Production URL: https://lifepulse-sand.vercel.app
-- Current expected deployed commit: `41a8cbe Keep completed tasks in Today summaries`
+- Current expected deployed commit: `c61ccc9 Prepare Life Pulse for trusted private beta`
 - Audience: 2-5 trusted private-beta testers
 - Scope: browser/PWA private beta, not public launch
 

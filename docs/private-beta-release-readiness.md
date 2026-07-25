@@ -1,7 +1,7 @@
 # Life Pulse Private Beta Release Readiness
 
 **Production URL:** https://lifepulse-sand.vercel.app
-**Latest Verified Commit:** 41a8cbe (Keep completed tasks in Today summaries) — pushed 2026-07-24
+**Latest Verified Commit:** c61ccc9 (Prepare Life Pulse for trusted private beta) — pushed 2026-07-24
 **Deadline:** 2026-08-18
 
 ---
