@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { cn, getTodayDateString } from "@/lib/utils";
 import { LifePulseLogo } from "@/components/LifePulseLogo";
 import { StepIndicator } from "@/components/onboarding/StepIndicator";
 import { FeatureTour } from "@/components/onboarding/FeatureTour";
@@ -434,7 +434,12 @@ export default function OnboardingPage() {
         }
 
         if (starterHabits.length > 0) {
-          await supabase.from("habits").insert(starterHabits).select();
+          const { error: starterHabitError } = await supabase.from("habits").insert(starterHabits).select();
+          if (starterHabitError) {
+            setError("Failed to create starter habits. Please try again.");
+            setSaving(false);
+            return;
+          }
         }
 
         const { data: existingTasks } = await supabase
@@ -444,12 +449,17 @@ export default function OnboardingPage() {
           .limit(1);
 
         if (!existingTasks || existingTasks.length === 0) {
-          const today = new Date().toISOString().slice(0, 10);
-          await supabase.from("tasks").insert([
+          const today = getTodayDateString();
+          const { error: starterTaskError } = await supabase.from("tasks").insert([
             { user_id: user.id, title: "Explore the Today dashboard", status: "todo", priority: "high", due_date: today },
             { user_id: user.id, title: "Set up a habit on the Habits page", status: "todo", priority: "medium", due_date: today },
             { user_id: user.id, title: "Log your first Body Pulse check-in", status: "todo", priority: "medium", due_date: today },
           ]);
+          if (starterTaskError) {
+            setError("Failed to create starter tasks. Please try again.");
+            setSaving(false);
+            return;
+          }
         }
       }
 

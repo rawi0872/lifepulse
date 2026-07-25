@@ -92,7 +92,6 @@ export default function SignupPage() {
       });
 
       if (signUpError) {
-        console.error("Signup error:", signUpError.message);
         setError(friendlyAuthError(signUpError));
         setLoading(false);
         return;
@@ -105,8 +104,7 @@ export default function SignupPage() {
         setSuccess(true);
         setLoading(false);
       }
-    } catch (err) {
-      console.error("Signup exception:", err);
+    } catch {
       setError("Unable to connect. Check your internet connection and try again.");
       setLoading(false);
     }

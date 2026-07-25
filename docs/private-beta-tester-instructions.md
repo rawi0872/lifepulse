@@ -29,11 +29,11 @@ Trusted testers who:
 
 1. **Today** — add one priority ("What will make today count?")
 2. **Today** — add one task or habit (Quick Capture or Habits page)
-3. **Today** — write one short reflection (evening)
-4. **Goals / Projects** — add one if you want to test planning
-5. **Weekly Review** — open and read the sections
-6. **Insights** — open and note what shows when data is sparse
-7. **Settings** — check available modules and starting mode
+3. **Results** — create or inspect one manual metric if you want to test factual measurements
+4. **Today** — inspect Evening Shutdown without saving until you are ready to write a real reflection
+5. **Weekly Review** — open and read the factual summary before reflection
+6. **Journal** — confirm your saved reflection history is readable
+7. **Settings** — check available modules, feedback, and sign out
 8. **Devices** — note it is preview only
 
 ## What To Test Over 3–7 Days
@@ -53,7 +53,7 @@ Trusted testers who:
 - No wearable/device sync
 - No push notifications
 - No offline sync
-- No AI automation or external processing
+- No NEXTRON AI Coach, AI automation, or external AI processing
 - No bank connections
 - No medical/mental health/financial/legal advice
 - Some modules are early and may change
@@ -68,6 +68,8 @@ Tell us:
 - What did you expect to happen?
 - What device/browser/screen size?
 - Screenshots or short recordings are very helpful
+- Severity: blocker, major, minor, or suggestion
+- Whether you would use the daily loop again tomorrow
 
 Email or message the founder directly.
 
@@ -80,3 +82,4 @@ Email or message the founder directly.
 - **Coach** = rule-based transparency; not an AI therapist, doctor, or advisor
 - **Devices** = preview only; no automatic imports
 - Life Pulse is private/manual — no AI summaries or external processing for review features
+- NEXTRON AI Coach is not available in this beta

@@ -1,7 +1,7 @@
 # Life Pulse Private Beta Release Readiness
 
 **Production URL:** https://lifepulse-sand.vercel.app
-**Latest Verified Commit:** 17ee79a (Integrate Results navigation and release checks) — pushed 2026-07-22
+**Latest Verified Commit:** 41a8cbe (Keep completed tasks in Today summaries) — pushed 2026-07-24
 **Deadline:** 2026-08-18
 
 ---
@@ -9,7 +9,7 @@
 ## 1. Release Status
 **VERDICT: READY**
 
-Life Pulse meets all private beta entry criteria. No P0/P1 blockers. Core daily loop functional, all protected routes verified, mobile/tablet/desktop pass, security/safety boundaries enforced, performance within guardrails.
+Life Pulse meets trusted private beta entry criteria for 2–5 testers. No P0/P1 blockers are known after the connected core-loop verification. Core daily loop is functional, protected routes are verified, mobile/tablet/desktop checks pass, safety boundaries are enforced, and no production data mutation is required for read-only verification.
 
 ---
 
@@ -81,7 +81,7 @@ All routes load, show stable text, no blank/dead screens, no horizontal overflow
 | Password reset no account enumeration | CONFIRMED (generic responses, recovery-session required) |
 | Reset form requires valid recovery context | CONFIRMED (prior audit) |
 | `get_xp_totals` RPC owner-scoped | CONFIRMED (no user_id param accepted) |
-| No AI/external processing exists | CONFIRMED (all pages declare "No AI summaries or external processing") |
+| No NEXTRON AI/external processing exists | CONFIRMED (Coach is deterministic and review surfaces do not use AI summaries or external processing) |
 | No medical/therapy/financial advice | CONFIRMED (disclaimers on Body, Mind, Finance, Coach, Journal, Insights, Weekly Review) |
 | No fake guarantees/scoring language | CONFIRMED (risky phrase checks in all QA scripts pass) |
 
@@ -120,6 +120,10 @@ All routes load, show stable text, no blank/dead screens, no horizontal overflow
 | Multi-week trend comparisons | Single prev-week only | 4-week comparisons deferred to post-beta |
 | Goal/Project progress history | Current link state only | Historical timeline deferred |
 | Onboarding QA account | Requires manual SQL reset for full first-run | Documented in `test:prod:onboarding` SKIP behavior |
+| NEXTRON AI Coach | Not available yet | Targeted for later work, not this private beta |
+| Native mobile app | Not available yet | Browser/PWA use only |
+| Notifications | Not available yet | Manual daily use only |
+| Bank connections | Not available | Manual finance tracking only |
 
 ---
 
@@ -131,6 +135,8 @@ All routes load, show stable text, no blank/dead screens, no horizontal overflow
 - Goal/Project progress history & movement timelines
 - Social / Duolingo-style leagues (explicitly rejected for Round 1)
 - 2FA / MFA (planned after password reset verified stable)
+- NEXTRON AI Coach and any external AI processing
+- Native mobile app, wearable/device sync, and notifications
 
 ---
 
@@ -163,4 +169,4 @@ All routes load, show stable text, no blank/dead screens, no horizontal overflow
 1. Send invites using `docs/private-beta-tester-instructions.md` and `docs/private-beta-founder-runbook.md`
 2. Track feedback in `docs/private-beta-feedback-template.md`
 3. Triage using `docs/private-beta-feedback-triage.md`
-4. First feedback wave target: 5–10 testers, 3–7 day testing window
+4. First feedback wave target: 2–5 trusted testers, 3–7 day testing window

@@ -43,6 +43,21 @@ What did you test?
 - PWA install or home-screen behavior
 - Other:
 
+Route/page where the issue or feedback happened:
+
+What were you trying to do?
+
+What did you expect to happen?
+
+What actually happened?
+
+Severity:
+
+- Blocker — stopped signup, login, onboarding, core use, or risked data loss
+- Major — serious confusion or broken daily-use path
+- Minor — noticeable friction, workaround exists
+- Suggestion — improvement idea or preference
+
 ## Top 3 Confusing Moments
 
 1.
@@ -78,6 +93,8 @@ Did any area feel like it was promising advice or automation that was not actual
 Would you use it again tomorrow?
 
 Score 1-10:
+
+Overall daily-use feedback:
 
 Most important improvement before the next beta round:
 

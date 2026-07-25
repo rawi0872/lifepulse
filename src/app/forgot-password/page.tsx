@@ -30,7 +30,6 @@ export default function ForgotPasswordPage() {
       );
 
       if (resetError) {
-        console.error("Forgot password error:", resetError.message);
         // Don't reveal whether the email exists; show a generic message
         setSent(true);
         setLoading(false);
@@ -39,8 +38,7 @@ export default function ForgotPasswordPage() {
 
       setSent(true);
       setLoading(false);
-    } catch (err) {
-      console.error("Forgot password exception:", err);
+    } catch {
       setError("Unable to connect. Check your internet connection and try again.");
       setLoading(false);
     }

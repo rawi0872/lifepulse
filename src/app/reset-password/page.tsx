@@ -32,9 +32,7 @@ export default function ResetPasswordPage() {
 
       if (code) {
         const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-        if (exchangeError) {
-          console.error("Password reset session exchange error:", exchangeError.message);
-        } else {
+        if (!exchangeError) {
           recoverySessionEstablished = true;
         }
       } else if (tokenHash && type === "recovery") {
@@ -42,9 +40,7 @@ export default function ResetPasswordPage() {
           token_hash: tokenHash,
           type: "recovery",
         });
-        if (verifyError) {
-          console.error("Password reset token verification error:", verifyError.message);
-        } else {
+        if (!verifyError) {
           recoverySessionEstablished = true;
         }
       } else if (accessToken && refreshToken && type === "recovery") {
@@ -52,9 +48,7 @@ export default function ResetPasswordPage() {
           access_token: accessToken,
           refresh_token: refreshToken,
         });
-        if (setSessionError) {
-          console.error("Password reset session setup error:", setSessionError.message);
-        } else {
+        if (!setSessionError) {
           recoverySessionEstablished = true;
         }
       } else if (searchParams.get("recovery") === "1") {
@@ -74,8 +68,7 @@ export default function ResetPasswordPage() {
       }
     }
 
-    prepareRecoverySession().catch((err) => {
-      console.error("Password reset session check failed:", err);
+    prepareRecoverySession().catch(() => {
       if (!isMounted) return;
       setHasRecoverySession(false);
       setCheckingSession(false);
@@ -113,7 +106,6 @@ export default function ResetPasswordPage() {
       });
 
       if (updateError) {
-        console.error("Password update error:", updateError.message);
         setError("This reset link may have expired. Please request a new password reset link.");
         setLoading(false);
         return;
@@ -125,7 +117,6 @@ export default function ResetPasswordPage() {
       } = await supabase.auth.getSession();
 
       if (signOutError && remainingSession) {
-        console.error("Password reset sign-out error:", signOutError.message);
         setPassword("");
         setConfirm("");
         setError("Your password was updated, but we could not finish signing you out. Close this tab, then sign in again with your new password.");

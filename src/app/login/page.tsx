@@ -60,7 +60,6 @@ export default function LoginPage() {
       });
 
       if (signInError) {
-        console.error("Login error:", signInError.message);
         setError(friendlyAuthError(signInError));
         setLoading(false);
         return;
@@ -68,8 +67,7 @@ export default function LoginPage() {
 
       router.push("/today");
       router.refresh();
-    } catch (err) {
-      console.error("Login exception:", err);
+    } catch {
       setError("Unable to connect. Check your internet connection and try again.");
       setLoading(false);
     }
