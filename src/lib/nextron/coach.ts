@@ -20,6 +20,7 @@ export interface NextronCoachResponse {
   priority: "high" | "medium" | "low" | "calm";
   ruleId: string;
   supportingEvidence: string[];
+  source?: "ai" | "deterministic";
 }
 
 export const NEXTRON_REQUEST_MAX_LENGTH = 500;
@@ -115,6 +116,10 @@ function classifyPrompt(normalizedPrompt: string): Pick<NextronUserRequest, "int
   if (includesAny(normalizedPrompt, ["coach", "help", "what should", "how am i", "what needs", "what can i"])) return { intent: "GENERAL_SUPPORTED", handlingStatus: "handled", confidence: "low" };
 
   return { intent: "UNSUPPORTED", handlingStatus: "unsupported", confidence: "high" };
+}
+
+export function isNextronProviderEligibleRequest(request: NextronUserRequest): boolean {
+  return request.handlingStatus === "handled";
 }
 
 export function parseNextronUserRequest(prompt: unknown): NextronPromptValidation {

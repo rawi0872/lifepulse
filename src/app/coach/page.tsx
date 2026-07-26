@@ -8,7 +8,6 @@ import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
 import {
   buildDeterministicNextronResponse,
-  buildInteractiveNextronResponse,
   NEXTRON_REQUEST_MAX_LENGTH,
   parseNextronUserRequest,
   type NextronCoachResponse,
@@ -25,7 +24,6 @@ import {
   type NextronPermissionState,
 } from "@/lib/nextron/context";
 import { buildNextronEvidencePacket, type NextronEvidencePacket } from "@/lib/nextron/evidence";
-import { runNextronProviderOrFallback } from "@/lib/nextron/provider";
 
 export default function CoachPage() {
   return (
@@ -39,6 +37,7 @@ function NextronContent() {
   const router = useRouter();
   const [supabase] = useState(() => createClient());
   const requestSeq = useRef(0);
+  const askAbortController = useRef<AbortController | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [savedPermissions, setSavedPermissions] = useState<NextronPermissionState>(() => getDefaultNextronPermissions());
   const [draftPermissions, setDraftPermissions] = useState<NextronPermissionState>(() => getDefaultNextronPermissions());
@@ -53,6 +52,7 @@ function NextronContent() {
   const [askPrompt, setAskPrompt] = useState("");
   const [askResponse, setAskResponse] = useState<NextronCoachResponse | null>(null);
   const [askQuestion, setAskQuestion] = useState<string | null>(null);
+  const [askSource, setAskSource] = useState<"ai" | "deterministic" | null>(null);
   const [askStatus, setAskStatus] = useState<"idle" | "asking" | "answered" | "unsupported" | "error">("idle");
   const [askError, setAskError] = useState<string | null>(null);
 
@@ -71,6 +71,7 @@ function NextronContent() {
       setResponse(null);
       setAskResponse(null);
       setAskQuestion(null);
+      setAskSource(null);
       setAskStatus("idle");
       setAskError(null);
 
@@ -86,6 +87,7 @@ function NextronContent() {
           setResponse(null);
           setAskResponse(null);
           setAskQuestion(null);
+          setAskSource(null);
           setAskStatus("idle");
           setAskError(null);
           router.replace("/login");
@@ -113,10 +115,7 @@ function NextronContent() {
 
         const nextPacket = await buildNextronEvidencePacket(supabase, user.id, normalized.permissions);
         if (cancelled || seq !== requestSeq.current) return;
-        const nextResponse = await runNextronProviderOrFallback(
-          { evidence: nextPacket },
-          () => buildDeterministicNextronResponse(nextPacket),
-        );
+        const nextResponse = buildDeterministicNextronResponse(nextPacket);
         if (cancelled || seq !== requestSeq.current) return;
         setPacket(nextPacket);
         setResponse(nextResponse);
@@ -131,7 +130,11 @@ function NextronContent() {
     }
 
     void load();
-    return () => { cancelled = true; requestSeq.current += 1; };
+    return () => {
+      cancelled = true;
+      requestSeq.current += 1;
+      askAbortController.current?.abort();
+    };
   }, [router, supabase]);
 
   function setPermission(domain: NextronContextDomain, allowed: boolean) {
@@ -158,6 +161,7 @@ function NextronContent() {
       setResponse(null);
       setAskResponse(null);
       setAskQuestion(null);
+      setAskSource(null);
       setAskStatus("idle");
       setAskError(null);
       setSaveStatus("error");
@@ -188,10 +192,7 @@ function NextronContent() {
     try {
       const nextPacket = await buildNextronEvidencePacket(supabase, user.id, normalized.permissions);
       if (seq !== requestSeq.current) return;
-      const nextResponse = await runNextronProviderOrFallback(
-        { evidence: nextPacket },
-        () => buildDeterministicNextronResponse(nextPacket),
-      );
+      const nextResponse = buildDeterministicNextronResponse(nextPacket);
       if (seq !== requestSeq.current) return;
       setPacket(nextPacket);
       setResponse(nextResponse);
@@ -230,26 +231,54 @@ function NextronContent() {
       setResponse(null);
       setAskResponse(null);
       setAskQuestion(null);
+      setAskSource(null);
       setAskStatus("error");
       router.replace("/login");
       return;
     }
 
+    const controller = new AbortController();
+    askAbortController.current?.abort();
+    askAbortController.current = controller;
+
     try {
-      const nextResponse = await runNextronProviderOrFallback(
-        { evidence: packet, userPrompt: parsed.request.rawPrompt },
-        () => buildInteractiveNextronResponse(packet, parsed.request),
-      );
+      const response = await fetch("/api/nextron/ask", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: parsed.request.rawPrompt }),
+        signal: controller.signal,
+      });
       if (seq !== requestSeq.current) return;
+
+      if (response.status === 401) {
+        setAskStatus("error");
+        setAskError("Sign in again to ask NEXTRON.");
+        router.replace("/login");
+        return;
+      }
+
+      const body: unknown = await response.json().catch(() => null);
+      const parsedBody = parseAskResponseBody(body);
+      if (!response.ok || !parsedBody) {
+        setAskStatus("error");
+        setAskError("NEXTRON could not answer that request right now. Try again in a moment.");
+        return;
+      }
+
+      const nextResponse = parsedBody.response;
       setAskResponse(nextResponse);
       setAskQuestion(parsed.request.rawPrompt);
+      setAskSource(parsedBody.source ?? nextResponse.source ?? "deterministic");
       setAskStatus(parsed.request.handlingStatus === "handled" ? "answered" : "unsupported");
       setAskPrompt("");
-    } catch {
+    } catch (askErrorValue) {
+      if (askErrorValue instanceof DOMException && askErrorValue.name === "AbortError") return;
       if (seq === requestSeq.current) {
         setAskStatus("error");
-        setAskError("NEXTRON could not answer that request right now. Try again after permitted context reloads.");
+        setAskError("NEXTRON could not answer that request right now. Try again in a moment.");
       }
+    } finally {
+      if (askAbortController.current === controller) askAbortController.current = null;
     }
   }
 
@@ -265,7 +294,7 @@ function NextronContent() {
         <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--accent)]">Life Pulse AI Coach</p>
         <h1 className="break-words text-3xl font-bold tracking-tight text-[var(--text)]">NEXTRON</h1>
         <p className="mt-2 text-sm leading-relaxed text-[var(--text-muted)]">
-          NEXTRON uses permitted Life Pulse evidence, separates facts from interpretation, and recommends one practical next action. This is an early private-beta foundation: no external AI, no autonomous actions, and no medical, mental-health, legal, or financial professional replacement.
+          NEXTRON uses permitted Life Pulse evidence, separates facts from interpretation, and recommends one practical next action. This is an early private-beta foundation: AI coaching is server-side and opt-in, with no autonomous actions and no medical, mental-health, legal, or financial professional replacement.
         </p>
       </header>
 
@@ -384,6 +413,9 @@ function NextronContent() {
             <div className="mt-5 rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
               <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">Question</p>
               <p className="mt-1 break-words text-sm text-[var(--text-secondary)]">{askQuestion}</p>
+              <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">
+                {askSource === "ai" ? "AI coaching" : "NEXTRON coaching"}
+              </p>
               <div className="mt-4">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">Facts</p>
                 <FactList facts={askResponse.facts} />
@@ -459,7 +491,7 @@ function NextronContent() {
         <Card variant="subtle" className="p-4">
           <h2 id="nextron-boundary" className="text-sm font-semibold text-[var(--text)]">Future AI boundary</h2>
           <p className="mt-2 text-xs leading-relaxed text-[var(--text-muted)]">
-            A provider interface now exists for a future structured AI response, but this phase makes no API request, requires no key, sends no data externally, and falls back to deterministic coaching if a provider is not configured.
+            Server-side AI coaching is available only when explicitly configured. NEXTRON sends bounded permitted evidence, never client-supplied evidence, and falls back to deterministic coaching when AI is unavailable.
           </p>
         </Card>
       </section>
@@ -469,6 +501,30 @@ function NextronContent() {
       </p>
     </div>
   );
+}
+
+function parseAskResponseBody(value: unknown): { response: NextronCoachResponse; source?: "ai" | "deterministic" } | null {
+  if (typeof value !== "object" || value === null) return null;
+  const candidate = value as { response?: unknown; source?: unknown };
+  if (!isNextronCoachResponse(candidate.response)) return null;
+  if (candidate.source !== undefined && candidate.source !== "ai" && candidate.source !== "deterministic") return null;
+  return { response: candidate.response, source: candidate.source };
+}
+
+function isNextronCoachResponse(value: unknown): value is NextronCoachResponse {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Partial<NextronCoachResponse>;
+  return Array.isArray(candidate.facts)
+    && candidate.facts.length > 0
+    && candidate.facts.every((fact) => typeof fact.category === "string" && typeof fact.text === "string" && fact.text.trim().length > 0)
+    && typeof candidate.interpretation === "string"
+    && candidate.interpretation.trim().length > 0
+    && typeof candidate.nextAction?.label === "string"
+    && typeof candidate.nextAction.href === "string"
+    && typeof candidate.nextAction.rationale === "string"
+    && typeof candidate.priority === "string"
+    && typeof candidate.ruleId === "string"
+    && Array.isArray(candidate.supportingEvidence);
 }
 
 function PermissionGroup({
