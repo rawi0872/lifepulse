@@ -6,7 +6,13 @@ import { useRouter } from "next/navigation";
 import { DashboardNav } from "@/components/DashboardNav";
 import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
-import { buildDeterministicNextronResponse, type NextronCoachResponse } from "@/lib/nextron/coach";
+import {
+  buildDeterministicNextronResponse,
+  buildInteractiveNextronResponse,
+  NEXTRON_REQUEST_MAX_LENGTH,
+  parseNextronUserRequest,
+  type NextronCoachResponse,
+} from "@/lib/nextron/coach";
 import {
   areNextronPermissionsEqual,
   buildNextronPreferenceUpsert,
@@ -44,6 +50,11 @@ function NextronContent() {
   const [permissionWarning, setPermissionWarning] = useState<string | null>(null);
   const [permissionsAvailable, setPermissionsAvailable] = useState(true);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [askPrompt, setAskPrompt] = useState("");
+  const [askResponse, setAskResponse] = useState<NextronCoachResponse | null>(null);
+  const [askQuestion, setAskQuestion] = useState<string | null>(null);
+  const [askStatus, setAskStatus] = useState<"idle" | "asking" | "answered" | "unsupported" | "error">("idle");
+  const [askError, setAskError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -58,6 +69,10 @@ function NextronContent() {
       setSaveStatus("idle");
       setPacket(null);
       setResponse(null);
+      setAskResponse(null);
+      setAskQuestion(null);
+      setAskStatus("idle");
+      setAskError(null);
 
       try {
         const { data: { user } } = await supabase.auth.getUser();
@@ -69,6 +84,10 @@ function NextronContent() {
           setDraftPermissions(defaults);
           setPacket(null);
           setResponse(null);
+          setAskResponse(null);
+          setAskQuestion(null);
+          setAskStatus("idle");
+          setAskError(null);
           router.replace("/login");
           return;
         }
@@ -137,6 +156,10 @@ function NextronContent() {
       setDraftPermissions(defaults);
       setPacket(null);
       setResponse(null);
+      setAskResponse(null);
+      setAskQuestion(null);
+      setAskStatus("idle");
+      setAskError(null);
       setSaveStatus("error");
       router.replace("/login");
       return;
@@ -177,9 +200,64 @@ function NextronContent() {
     }
   }
 
+  async function askNextron(promptOverride?: string) {
+    if (askStatus === "asking") return;
+    const prompt = promptOverride ?? askPrompt;
+    const parsed = parseNextronUserRequest(prompt);
+    if (!parsed.ok) {
+      setAskError(parsed.message);
+      setAskStatus("error");
+      return;
+    }
+    if (!packet || !userId) {
+      setAskError("NEXTRON needs permitted context before answering. Try again after the current context loads.");
+      setAskStatus("error");
+      return;
+    }
+
+    const seq = ++requestSeq.current;
+    setAskStatus("asking");
+    setAskError(null);
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (seq !== requestSeq.current) return;
+    if (!user || user.id !== userId) {
+      const defaults = getDefaultNextronPermissions();
+      setUserId(null);
+      setSavedPermissions(defaults);
+      setDraftPermissions(defaults);
+      setPacket(null);
+      setResponse(null);
+      setAskResponse(null);
+      setAskQuestion(null);
+      setAskStatus("error");
+      router.replace("/login");
+      return;
+    }
+
+    try {
+      const nextResponse = await runNextronProviderOrFallback(
+        { evidence: packet, userPrompt: parsed.request.rawPrompt },
+        () => buildInteractiveNextronResponse(packet, parsed.request),
+      );
+      if (seq !== requestSeq.current) return;
+      setAskResponse(nextResponse);
+      setAskQuestion(parsed.request.rawPrompt);
+      setAskStatus(parsed.request.handlingStatus === "handled" ? "answered" : "unsupported");
+      setAskPrompt("");
+    } catch {
+      if (seq === requestSeq.current) {
+        setAskStatus("error");
+        setAskError("NEXTRON could not answer that request right now. Try again after permitted context reloads.");
+      }
+    }
+  }
+
   const hasUnsavedChanges = !areNextronPermissionsEqual(savedPermissions, draftPermissions);
   const operationalPermissions = NEXTRON_CONTEXT_PERMISSIONS.filter((permission) => !permission.textHeavy);
   const privateTextPermissions = NEXTRON_CONTEXT_PERMISSIONS.filter((permission) => permission.textHeavy);
+  const trimmedAskPrompt = askPrompt.trim();
+  const askDisabled = loading || !packet || askStatus === "asking" || trimmedAskPrompt.length === 0 || trimmedAskPrompt.length > NEXTRON_REQUEST_MAX_LENGTH;
 
   return (
     <div className="mx-auto max-w-3xl overflow-x-hidden px-4 py-6 animate-fade-in sm:px-5 sm:py-8">
@@ -225,6 +303,95 @@ function NextronContent() {
             </ul>
           ) : (
             <p className="text-sm text-[var(--text-muted)]">Facts will appear after permitted context loads.</p>
+          )}
+        </Card>
+      </section>
+
+      <section aria-labelledby="ask-nextron" className="mb-6">
+        <Card className="p-4 sm:p-5">
+          <div className="mb-3">
+            <h2 id="ask-nextron" className="text-base font-semibold text-[var(--text)]">Ask NEXTRON</h2>
+            <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
+              Ask one practical coaching question. NEXTRON answers from saved permitted evidence only; prompts are not saved.
+            </p>
+          </div>
+          <form
+            className="space-y-3"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void askNextron();
+            }}
+          >
+            <label htmlFor="nextron-question" className="block text-sm font-semibold text-[var(--text)]">Coaching question</label>
+            <textarea
+              id="nextron-question"
+              value={askPrompt}
+              onChange={(event) => {
+                setAskPrompt(event.target.value.slice(0, NEXTRON_REQUEST_MAX_LENGTH));
+                setAskError(null);
+                if (askStatus === "error") setAskStatus("idle");
+              }}
+              onKeyDown={(event) => {
+                if (event.nativeEvent.isComposing) return;
+                if (event.key === "Enter" && !event.shiftKey) {
+                  event.preventDefault();
+                  if (!askDisabled) void askNextron();
+                }
+              }}
+              maxLength={NEXTRON_REQUEST_MAX_LENGTH}
+              rows={3}
+              aria-describedby="nextron-question-help nextron-question-status"
+              placeholder="What should I focus on today?"
+              className="min-h-24 w-full resize-y rounded-xl border border-[var(--border-strong)] bg-[var(--surface-soft)] px-3 py-2 text-sm text-[var(--text)] outline-none transition-colors focus:border-[var(--accent)]/70 focus:ring-2 focus:ring-[var(--accent-soft)]"
+            />
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p id="nextron-question-help" className="text-xs text-[var(--text-muted)]">
+                {trimmedAskPrompt.length}/{NEXTRON_REQUEST_MAX_LENGTH} characters. Enter asks; Shift+Enter adds a line.
+              </p>
+              <button
+                type="submit"
+                disabled={askDisabled}
+                className="inline-flex min-h-11 items-center rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-45"
+              >
+                {askStatus === "asking" ? "Asking NEXTRON..." : "Ask NEXTRON"}
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {["What should I focus on today?", "What needs my attention?", "What should I do next?", "What patterns can you see?"].map((prompt) => (
+                <button
+                  key={prompt}
+                  type="button"
+                  disabled={askStatus === "asking" || !packet}
+                  onClick={() => {
+                    setAskPrompt(prompt);
+                    void askNextron(prompt);
+                  }}
+                  className="rounded-full border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-1.5 text-xs text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/50 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {prompt}
+                </button>
+              ))}
+            </div>
+            <p id="nextron-question-status" className="text-xs leading-relaxed text-[var(--text-muted)]" aria-live="polite">
+              {askStatus === "asking"
+                ? "NEXTRON is checking the current permitted evidence."
+                : askStatus === "unsupported"
+                  ? "NEXTRON answered with a private-beta boundary."
+                  : askError ?? "No prompt or answer is saved."}
+            </p>
+          </form>
+          {askQuestion && askResponse && (
+            <div className="mt-5 rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">Question</p>
+              <p className="mt-1 break-words text-sm text-[var(--text-secondary)]">{askQuestion}</p>
+              <div className="mt-4">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">Facts</p>
+                <FactList facts={askResponse.facts} />
+              </div>
+              <div className="mt-4">
+                <ResponseView response={askResponse} />
+              </div>
+            </div>
           )}
         </Card>
       </section>
@@ -345,6 +512,19 @@ function PermissionGroup({
         );
       })}
     </div>
+  );
+}
+
+function FactList({ facts }: { facts: NextronCoachResponse["facts"] }) {
+  return (
+    <ul className="mt-2 space-y-2">
+      {facts.map((item, index) => (
+        <li key={`${item.category}-${index}`} className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">{item.category}</p>
+          <p className="mt-1 break-words text-sm text-[var(--text-secondary)]">{item.text}</p>
+        </li>
+      ))}
+    </ul>
   );
 }
 

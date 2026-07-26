@@ -11,6 +11,8 @@ const ALLOWED_NEXTRON_ACTION_ROUTES = new Set([
   "/weekly-review",
   "/goals",
   "/projects",
+  "/insights",
+  "/coach",
 ]);
 
 export interface NextronProviderRequest {
