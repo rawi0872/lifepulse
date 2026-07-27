@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { buildInteractiveNextronResponse, isNextronProviderEligibleRequest, parseNextronUserRequest } from "@/lib/nextron/coach";
 import { normalizeNextronPreferences, type NextronPreferenceRow } from "@/lib/nextron/context";
 import { buildNextronEvidencePacket } from "@/lib/nextron/evidence";
-import { createOpenAINextronProvider, runNextronProviderOrFallback } from "@/lib/nextron/provider";
+import { createConfiguredNextronProvider, runNextronProviderOrFallback } from "@/lib/nextron/provider";
 import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
     const response = await runNextronProviderOrFallback(
       { evidence, userPrompt: parsed.request.rawPrompt },
       fallback,
-      createOpenAINextronProvider() ?? undefined,
+      createConfiguredNextronProvider() ?? undefined,
     );
 
     return NextResponse.json({ response, source: response.source ?? "deterministic" });
