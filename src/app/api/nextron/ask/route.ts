@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { buildInteractiveNextronResponse, isNextronProviderEligibleRequest, parseNextronUserRequest } from "@/lib/nextron/coach";
 import { normalizeNextronPreferences, type NextronPreferenceRow } from "@/lib/nextron/context";
 import { buildNextronEvidencePacket } from "@/lib/nextron/evidence";
-import { createConfiguredNextronProvider, runNextronProviderOrFallback } from "@/lib/nextron/provider";
+import { createConfiguredNextronProvider, getNextronProviderUnavailableReason, runNextronProviderOrFallbackDetailed } from "@/lib/nextron/provider";
 import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -47,13 +47,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ response: fallback(), source: "deterministic" });
     }
 
-    const response = await runNextronProviderOrFallback(
+    const provider = createConfiguredNextronProvider();
+    const result = await runNextronProviderOrFallbackDetailed(
       { evidence, userPrompt: parsed.request.rawPrompt },
       fallback,
-      createConfiguredNextronProvider() ?? undefined,
+      provider ?? undefined,
+      provider ? null : getNextronProviderUnavailableReason(),
     );
 
-    return NextResponse.json({ response, source: response.source ?? "deterministic" });
+    return NextResponse.json(
+      { response: result.response, source: result.response.source ?? "deterministic" },
+      result.fallbackReason ? { headers: { "X-Nextron-Fallback-Reason": result.fallbackReason } } : undefined,
+    );
   } catch {
     return NextResponse.json({ error: "NEXTRON could not load permitted context right now." }, { status: 503 });
   }

@@ -24,6 +24,20 @@ const DEFAULT_GROQ_MODEL = "openai/gpt-oss-120b";
 const DEFAULT_OPENAI_MODEL = "gpt-5.4-mini";
 const MAX_FACTS = 4;
 type NextronAiProviderId = "groq" | "openai";
+export type NextronProviderFallbackReason =
+  | "PROVIDER_DISABLED"
+  | "MISSING_KEY"
+  | "HTTP_ERROR"
+  | "TIMEOUT"
+  | "RESPONSE_BODY_INVALID"
+  | "OUTPUT_TEXT_MISSING"
+  | "OUTPUT_JSON_INVALID"
+  | "STRUCTURE_INVALID"
+  | "EVIDENCE_CATEGORY_INVALID"
+  | "NUMERIC_FACT_INVALID"
+  | "ROUTE_INVALID"
+  | "FORBIDDEN_CONTENT"
+  | "UNEXPECTED_ERROR";
 
 export interface NextronProviderRequest {
   evidence: NextronEvidencePacket;
@@ -35,12 +49,27 @@ export interface NextronProvider {
   generateResponse(request: NextronProviderRequest): Promise<NextronCoachResponse>;
 }
 
+export interface NextronProviderRunResult {
+  response: NextronCoachResponse;
+  fallbackReason: NextronProviderFallbackReason | null;
+}
+
+class NextronProviderError extends Error {
+  constructor(readonly reason: NextronProviderFallbackReason) {
+    super(reason);
+  }
+}
+
 type ProviderContextValue = string | number | boolean | null | string[];
 
 export interface NextronProviderInput {
   request: string;
   context: Partial<Record<NextronEvidenceCategory, Record<string, ProviderContextValue>>>;
 }
+
+type ProviderValidationResult =
+  | { ok: true; response: NextronCoachResponse }
+  | { ok: false; reason: NextronProviderFallbackReason };
 
 interface StructuredProviderResponse {
   facts: Array<{ category: NextronEvidenceCategory; statement: string }>;
@@ -146,31 +175,40 @@ function hasOnlyKeys(value: object, allowedKeys: readonly string[]): boolean {
   return Object.keys(value).every((key) => allowed.has(key));
 }
 
-export function validateNextronProviderOutput(value: unknown, input: NextronProviderInput): NextronCoachResponse | null {
+function validateNextronProviderOutputDetailed(value: unknown, input: NextronProviderInput): ProviderValidationResult {
   const parsed = normalizeProviderOutput(value);
-  if (!parsed) return null;
+  if (!parsed) return { ok: false, reason: "STRUCTURE_INVALID" };
   const availableCategories = new Set(Object.keys(input.context));
   const allowedNumbers = collectNumericEvidence(input);
   const facts = parsed.facts.map((item) => ({ category: item.category, text: boundedString(item.statement, 220) })).filter((item): item is { category: NextronEvidenceCategory; text: string } => Boolean(item.text));
   const interpretation = boundedString(parsed.interpretation, 420);
   const label = boundedString(parsed.nextAction.label, 80);
   const rationale = boundedString(parsed.nextAction.rationale, 260);
-  if (facts.length !== parsed.facts.length || !interpretation || !label || !rationale) return null;
-  if (!ALLOWED_ROUTE_SET.has(parsed.nextAction.route)) return null;
+  if (facts.length !== parsed.facts.length || !interpretation || !label || !rationale) return { ok: false, reason: "STRUCTURE_INVALID" };
+  if (!ALLOWED_ROUTE_SET.has(parsed.nextAction.route)) return { ok: false, reason: "ROUTE_INVALID" };
   for (const fact of facts) {
-    if (!EVIDENCE_CATEGORIES.includes(fact.category) || !availableCategories.has(fact.category)) return null;
-    if (isForbiddenText(fact.text) || hasUnsupportedNumber(fact.text, allowedNumbers)) return null;
+    if (!EVIDENCE_CATEGORIES.includes(fact.category) || !availableCategories.has(fact.category)) return { ok: false, reason: "EVIDENCE_CATEGORY_INVALID" };
+    if (isForbiddenText(fact.text)) return { ok: false, reason: "FORBIDDEN_CONTENT" };
+    if (hasUnsupportedNumber(fact.text, allowedNumbers)) return { ok: false, reason: "NUMERIC_FACT_INVALID" };
   }
-  if ([interpretation, label, rationale].some((text) => isForbiddenText(text))) return null;
+  if ([interpretation, label, rationale].some((text) => isForbiddenText(text))) return { ok: false, reason: "FORBIDDEN_CONTENT" };
   return {
-    facts,
-    interpretation,
-    nextAction: { label, href: parsed.nextAction.route, rationale },
-    priority: "medium",
-    ruleId: "provider_structured_coaching",
-    supportingEvidence: facts.map((item) => item.text),
-    source: "ai",
+    ok: true,
+    response: {
+      facts,
+      interpretation,
+      nextAction: { label, href: parsed.nextAction.route, rationale },
+      priority: "medium",
+      ruleId: "provider_structured_coaching",
+      supportingEvidence: facts.map((item) => item.text),
+      source: "ai",
+    },
   };
+}
+
+export function validateNextronProviderOutput(value: unknown, input: NextronProviderInput): NextronCoachResponse | null {
+  const result = validateNextronProviderOutputDetailed(value, input);
+  return result.ok ? result.response : null;
 }
 
 export function isValidNextronProviderResponse(value: unknown): value is NextronCoachResponse {
@@ -337,13 +375,20 @@ function createResponsesApiProvider({
           },
           body: JSON.stringify(requestBody),
         });
-        if (!response.ok) throw new Error("NEXTRON provider request failed");
-        const responseBody: unknown = await response.json();
+        if (!response.ok) throw new NextronProviderError("HTTP_ERROR");
+        let responseBody: unknown;
+        try {
+          responseBody = await response.json();
+        } catch {
+          throw new NextronProviderError("RESPONSE_BODY_INVALID");
+        }
         const extracted = extractResponsesApiOutput(responseBody);
+        if (extracted === null) throw new NextronProviderError("OUTPUT_TEXT_MISSING");
         const output = typeof extracted === "string" ? parseJsonObject(extracted) : extracted;
-        const validated = validateNextronProviderOutput(output, input);
-        if (!validated) throw new Error("NEXTRON provider output failed validation");
-        return validated;
+        if (!output) throw new NextronProviderError("OUTPUT_JSON_INVALID");
+        const validated = validateNextronProviderOutputDetailed(output, input);
+        if (!validated.ok) throw new NextronProviderError(validated.reason);
+        return validated.response;
       } finally {
         clearTimeout(timeout);
       }
@@ -384,17 +429,41 @@ export function createConfiguredNextronProvider(): NextronProvider | null {
   return null;
 }
 
+export function getNextronProviderUnavailableReason(): NextronProviderFallbackReason | null {
+  if (!isAiEnabled()) return "PROVIDER_DISABLED";
+  const providerId = getConfiguredProviderId();
+  if (providerId === "groq") return process.env.GROQ_API_KEY?.trim() ? null : "MISSING_KEY";
+  if (providerId === "openai") return process.env.OPENAI_API_KEY?.trim() ? null : "MISSING_KEY";
+  return "PROVIDER_DISABLED";
+}
+
 export async function runNextronProviderOrFallback(
   request: NextronProviderRequest,
   fallback: () => NextronCoachResponse,
   provider?: NextronProvider,
 ): Promise<NextronCoachResponse> {
-  if (!provider) return fallback();
+  return (await runNextronProviderOrFallbackDetailed(request, fallback, provider)).response;
+}
+
+export async function runNextronProviderOrFallbackDetailed(
+  request: NextronProviderRequest,
+  fallback: () => NextronCoachResponse,
+  provider?: NextronProvider,
+  unavailableReason: NextronProviderFallbackReason | null = null,
+): Promise<NextronProviderRunResult> {
+  if (!provider) return { response: { ...fallback(), source: "deterministic" }, fallbackReason: unavailableReason ?? "PROVIDER_DISABLED" };
 
   try {
     const response = await provider.generateResponse(request);
-    return isValidNextronProviderResponse(response) ? response : { ...fallback(), source: "deterministic" };
-  } catch {
-    return { ...fallback(), source: "deterministic" };
+    return isValidNextronProviderResponse(response)
+      ? { response, fallbackReason: null }
+      : { response: { ...fallback(), source: "deterministic" }, fallbackReason: "STRUCTURE_INVALID" };
+  } catch (error) {
+    const reason = error instanceof NextronProviderError
+      ? error.reason
+      : error instanceof DOMException && error.name === "AbortError"
+        ? "TIMEOUT"
+        : "UNEXPECTED_ERROR";
+    return { response: { ...fallback(), source: "deterministic" }, fallbackReason: reason };
   }
 }
