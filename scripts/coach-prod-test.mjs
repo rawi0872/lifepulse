@@ -34,25 +34,25 @@ const PASSWORD = env.LIFE_PULSE_TEST_PASSWORD;
 const ERROR_SCREENSHOT_PATH = "screenshot-coach-prod-error.png";
 
 const requiredCoachText = [
-  "Life Pulse Coach",
-  "Rule-based loop guidance",
-  "Deterministic prompts based on what you log",
-  "Safety framing",
-  "Suggestions are optional prompts, not instructions",
-  "Open Today",
-  "Run Weekly Review",
-  "Open Insights",
-  "Optional next prompts",
-  "Signal breakdown",
-  "Transparent rule engine",
+  "Life Pulse AI Coach",
+  "NEXTRON",
+  "Current coaching response",
+  "Facts used",
+  "Ask NEXTRON",
+  "Context permissions",
+  "Operational context",
+  "Private text context",
+  "What NEXTRON can currently access",
+  "What NEXTRON cannot currently access",
+  "Future AI boundary",
 ];
 
 const requiredTransparencyText = [
-  "No AI summaries",
-  "AI memory",
-  "No external AI processing",
-  "embeddings",
-  "external APIs are enabled",
+  "External AI memory",
+  "Calendar, reminders, email, and messages",
+  "Server-side AI coaching is available only when explicitly configured",
+  "falls back to deterministic coaching",
+  "NEXTRON does not diagnose",
 ];
 
 const forbiddenFinancePhrases = [
@@ -74,7 +74,6 @@ const forbiddenCoachMemoryPhrases = [
   "public sharing",
   "emotional analysis",
   "mental health analysis",
-  "diagnose",
   "prediction",
   "forecast",
   "getting better",
@@ -182,7 +181,7 @@ async function main() {
     await page.goto(`${BASE}/coach`, { waitUntil: "domcontentloaded", timeout: 30000 });
     await page.waitForURL(/\/coach/, { timeout: 30000 });
     await assertAuthenticatedRoute(page, "Coach");
-    await expect(page.getByRole("heading", { name: "Life Pulse Coach" })).toBeVisible({ timeout: 20000 });
+    await expect(page.getByRole("heading", { name: "NEXTRON", exact: true })).toBeVisible({ timeout: 20000 });
     pass("Coach page loaded");
 
     for (const text of requiredCoachText) {
