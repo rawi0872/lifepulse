@@ -247,17 +247,22 @@ function responseSchema() {
   };
 }
 
-function extractResponsesApiText(value: unknown): string | null {
+function extractResponsesApiOutput(value: unknown): unknown {
   if (typeof value !== "object" || value === null) return null;
-  const candidate = value as { output_text?: unknown; output?: unknown };
+  const candidate = value as { output_text?: unknown; output?: unknown; output_parsed?: unknown };
   if (typeof candidate.output_text === "string") return candidate.output_text;
+  if (typeof candidate.output_parsed === "object" && candidate.output_parsed !== null) return candidate.output_parsed;
   if (!Array.isArray(candidate.output)) return null;
   for (const output of candidate.output) {
     if (typeof output !== "object" || output === null) continue;
     const content = (output as { content?: unknown }).content;
     if (!Array.isArray(content)) continue;
     for (const item of content) {
-      if (typeof item === "object" && item !== null && typeof (item as { text?: unknown }).text === "string") return (item as { text: string }).text;
+      if (typeof item !== "object" || item === null) continue;
+      const contentItem = item as { text?: unknown; json?: unknown; parsed?: unknown };
+      if (typeof contentItem.text === "string") return contentItem.text;
+      if (typeof contentItem.json === "object" && contentItem.json !== null) return contentItem.json;
+      if (typeof contentItem.parsed === "object" && contentItem.parsed !== null) return contentItem.parsed;
     }
   }
   return null;
@@ -334,8 +339,8 @@ function createResponsesApiProvider({
         });
         if (!response.ok) throw new Error("NEXTRON provider request failed");
         const responseBody: unknown = await response.json();
-        const text = extractResponsesApiText(responseBody);
-        const output = text ? parseJsonObject(text) : null;
+        const extracted = extractResponsesApiOutput(responseBody);
+        const output = typeof extracted === "string" ? parseJsonObject(extracted) : extracted;
         const validated = validateNextronProviderOutput(output, input);
         if (!validated) throw new Error("NEXTRON provider output failed validation");
         return validated;
