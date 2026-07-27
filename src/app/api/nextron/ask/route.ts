@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { buildInteractiveNextronResponse, isNextronProviderEligibleRequest, parseNextronUserRequest } from "@/lib/nextron/coach";
 import { normalizeNextronPreferences, type NextronPreferenceRow } from "@/lib/nextron/context";
 import { buildNextronEvidencePacket } from "@/lib/nextron/evidence";
+import { runNextronProjectAgentOrFallback } from "@/lib/nextron/project-agent/runtime";
 import { createConfiguredNextronProvider, getNextronProviderUnavailableReason, runNextronProviderOrFallbackDetailed } from "@/lib/nextron/provider";
 import { createClient } from "@/lib/supabase/server";
 
@@ -42,6 +43,14 @@ export async function POST(request: Request) {
     const { permissions } = normalizeNextronPreferences(data as NextronPreferenceRow | null);
     const evidence = await buildNextronEvidencePacket(supabase, user.id, permissions);
     const fallback = () => ({ ...buildInteractiveNextronResponse(evidence, parsed.request), source: "deterministic" as const });
+
+    if (parsed.request.intent === "PROJECT_AGENT") {
+      const result = await runNextronProjectAgentOrFallback({ supabase, userId: user.id, permissions, evidence, userRequest: parsed.request, fallback });
+      return NextResponse.json(
+        { response: result.response, source: result.response.source ?? "deterministic" },
+        result.fallbackReason ? { headers: { "X-Nextron-Fallback-Reason": result.fallbackReason } } : undefined,
+      );
+    }
 
     if (!isNextronProviderEligibleRequest(parsed.request)) {
       return NextResponse.json({ response: fallback(), source: "deterministic" });

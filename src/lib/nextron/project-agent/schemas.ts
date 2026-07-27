@@ -1,0 +1,41 @@
+import type { NextronCoachResponse, NextronEvidenceCategory } from "@/lib/nextron/coach";
+
+export const NEXTRON_PROJECT_AGENT_MODEL = "groq/openai/gpt-oss-120b";
+export const PROJECT_AGENT_MAX_TOOL_CALLS = 3;
+export const PROJECT_AGENT_MAX_STEPS = 4;
+export const PROJECT_AGENT_TIMEOUT_MS = 8_000;
+export const PROJECT_AGENT_MAX_OUTPUT_CHARS = 2_048;
+
+export type ProjectAgentToolName = "getProjects" | "getProject" | "getProjectTasks" | "getGoals";
+export type ProjectAgentFallbackReason =
+  | "PROVIDER_DISABLED"
+  | "MISSING_KEY"
+  | "PERMISSION_DENIED"
+  | "PROJECT_NOT_FOUND"
+  | "TOOL_LIMIT_EXCEEDED"
+  | "TIMEOUT"
+  | "MODEL_OUTPUT_TOO_LARGE"
+  | "PARSER_FAILED"
+  | "STRUCTURE_INVALID"
+  | "EVIDENCE_CATEGORY_INVALID"
+  | "NUMERIC_FACT_INVALID"
+  | "ROUTE_INVALID"
+  | "FORBIDDEN_CONTENT"
+  | "MASTRA_ERROR";
+
+export interface ProjectAgentFact {
+  category: Extract<NextronEvidenceCategory, "projects" | "tasks" | "goals">;
+  text: string;
+}
+
+export interface ProjectAgentParsedOutput {
+  facts: ProjectAgentFact[];
+  interpretation: string;
+  nextAction: { label: string; href: "/projects" | "/tasks" | "/goals" | "/coach"; rationale: string };
+}
+
+export interface ProjectAgentRunResult {
+  response: NextronCoachResponse;
+  fallbackReason: ProjectAgentFallbackReason | null;
+  toolsUsed: ProjectAgentToolName[];
+}

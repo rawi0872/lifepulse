@@ -25,9 +25,11 @@
     "test:prod:body-profile": "node scripts/body-profile-prod-test.mjs",
     "test:prod:finance": "node scripts/finance-prod-test.mjs",
     "test:prod:mobile-tablet": "node scripts/mobile-tablet-prod-test.mjs",
-    "test:prod:network-audit": "node scripts/prod-route-network-audit.mjs"
+    "test:prod:network-audit": "node scripts/prod-route-network-audit.mjs",
+    "test:nextron-project-agent": "node scripts/nextron-project-agent-test.mjs"
   },
   "dependencies": {
+    "@mastra/core": "^1.53.0",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.105.4",
     "next": "16.2.4",

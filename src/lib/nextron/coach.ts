@@ -27,6 +27,7 @@ export const NEXTRON_REQUEST_MAX_LENGTH = 500;
 
 export type NextronCoachingIntent =
   | "TODAY_FOCUS"
+  | "PROJECT_AGENT"
   | "NEXT_ACTION"
   | "ATTENTION"
   | "WEEK_PROGRESS"
@@ -102,6 +103,10 @@ function classifyPrompt(normalizedPrompt: string): Pick<NextronUserRequest, "int
   if (includesAny(normalizedPrompt, ["legal advice", "lawsuit", "contract", "sue", "attorney", "lawyer"])) return { intent: "LEGAL_ADVICE", handlingStatus: "boundary", confidence: "high" };
   if (includesAny(normalizedPrompt, ["create a task", "delete", "complete this", "send", "schedule", "do this for me", "make a reminder", "email"])) return { intent: "AUTONOMOUS_ACTION", handlingStatus: "boundary", confidence: "high" };
   if (includesAny(normalizedPrompt, ["weather", "news", "who is", "what is the capital", "search the web", "latest", "recipe"])) return { intent: "OUT_OF_SCOPE_GENERAL_KNOWLEDGE", handlingStatus: "unsupported", confidence: "high" };
+
+  const projectTerms = ["project", "projects"];
+  const projectFocusTerms = ["blocking", "blocked", "stuck", "next step", "do next", "should i do next", "next action", "why is"];
+  if (includesAny(normalizedPrompt, projectTerms) && includesAny(normalizedPrompt, projectFocusTerms)) return { intent: "PROJECT_AGENT", handlingStatus: "handled", confidence: "high" };
 
   if (includesAny(normalizedPrompt, ["focus", "do today", "matters most", "right now", "priority"])) return { intent: "TODAY_FOCUS", handlingStatus: "handled", confidence: "high" };
   if (includesAny(normalizedPrompt, ["next step", "do next", "should i do next", "next action"])) return { intent: "NEXT_ACTION", handlingStatus: "handled", confidence: "high" };
@@ -230,6 +235,17 @@ export function buildInteractiveNextronResponse(packet: NextronEvidencePacket, r
   switch (request.intent) {
     case "TODAY_FOCUS":
       return facts.length > 0 ? response("interactive_today_focus", "medium", facts.slice(0, 3), "The clearest focus is the visible item with the most immediate date or loop impact.", fallback.nextAction.label, fallback.nextAction.href, fallback.nextAction.rationale) : noEvidenceResponse(request.intent);
+    case "PROJECT_AGENT": {
+      if (packet.projects.status === "permission_denied") {
+        return response("interactive_project_agent_projects_denied", "calm", [fact("projects", "Project context is not loaded by the current saved permissions.")], "NEXTRON cannot inspect project blockers unless Projects context is allowed.", "Review context permissions", "/coach", "Enable Projects context if you want project-specific coaching.");
+      }
+      if (packet.tasks.status === "permission_denied") {
+        return response("interactive_project_agent_tasks_denied", "calm", [fact("tasks", "Task context is not loaded by the current saved permissions.")], "NEXTRON cannot inspect project blockers unless Tasks context is allowed.", "Review context permissions", "/coach", "Enable Tasks context if you want blocker analysis.");
+      }
+      return packet.projects.data
+        ? response("interactive_project_agent_fallback", "medium", [fact("projects", `${plural(packet.projects.data.activeCount, "active project")} visible.`)], "Use the Projects surface to inspect linked open tasks and choose the next manual step.", "Open Projects", "/projects", "Review the project and its tasks directly; NEXTRON will not create or edit anything.")
+        : noEvidenceResponse(request.intent);
+    }
     case "NEXT_ACTION":
     case "GENERAL_SUPPORTED":
       return { ...fallback, ruleId: `interactive_${fallback.ruleId}` };
