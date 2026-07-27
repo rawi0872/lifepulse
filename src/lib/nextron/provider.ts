@@ -298,12 +298,14 @@ function createResponsesApiProvider({
   apiKey,
   model,
   includeOpenAIRetentionFields,
+  includeToolsField,
 }: {
   name: string;
   endpoint: string;
   apiKey: string;
   model: string;
   includeOpenAIRetentionFields: boolean;
+  includeToolsField: boolean;
 }): NextronProvider {
   return {
     name,
@@ -317,7 +319,7 @@ function createResponsesApiProvider({
         const requestBody = {
           model,
           ...(includeOpenAIRetentionFields ? { store: false } : {}),
-          tools: [],
+          ...(includeToolsField ? { tools: [] } : {}),
           input: buildResponsesInput(input),
           text: buildStructuredTextFormat(),
         };
@@ -357,6 +359,7 @@ export function createConfiguredNextronProvider(): NextronProvider | null {
       apiKey,
       model: getGroqModel(),
       includeOpenAIRetentionFields: false,
+      includeToolsField: false,
     });
   }
 
@@ -369,6 +372,7 @@ export function createConfiguredNextronProvider(): NextronProvider | null {
       apiKey,
       model: getOpenAIModel(),
       includeOpenAIRetentionFields: true,
+      includeToolsField: true,
     });
   }
 
