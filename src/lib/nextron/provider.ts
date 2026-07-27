@@ -332,12 +332,12 @@ function buildResponsesInput(input: NextronProviderInput): string {
   return JSON.stringify(input);
 }
 
-function buildStructuredTextFormat() {
+function buildStructuredTextFormat(includeStrictSchemaField: boolean) {
   return {
     format: {
       type: "json_schema",
       name: "nextron_coaching_response",
-      strict: true,
+      ...(includeStrictSchemaField ? { strict: true } : {}),
       schema: responseSchema(),
     },
   };
@@ -350,6 +350,7 @@ function createResponsesApiProvider({
   model,
   includeOpenAIRetentionFields,
   includeToolsField,
+  includeStrictSchemaField,
 }: {
   name: string;
   endpoint: string;
@@ -357,6 +358,7 @@ function createResponsesApiProvider({
   model: string;
   includeOpenAIRetentionFields: boolean;
   includeToolsField: boolean;
+  includeStrictSchemaField: boolean;
 }): NextronProvider {
   return {
     name,
@@ -373,7 +375,7 @@ function createResponsesApiProvider({
           ...(includeToolsField ? { tools: [] } : {}),
           instructions: buildResponsesInstructions(),
           input: buildResponsesInput(input),
-          text: buildStructuredTextFormat(),
+          text: buildStructuredTextFormat(includeStrictSchemaField),
         };
         const response = await fetch(endpoint, {
           method: "POST",
@@ -419,6 +421,7 @@ export function createConfiguredNextronProvider(): NextronProvider | null {
       model: getGroqModel(),
       includeOpenAIRetentionFields: false,
       includeToolsField: false,
+      includeStrictSchemaField: false,
     });
   }
 
@@ -432,6 +435,7 @@ export function createConfiguredNextronProvider(): NextronProvider | null {
       model: getOpenAIModel(),
       includeOpenAIRetentionFields: true,
       includeToolsField: true,
+      includeStrictSchemaField: true,
     });
   }
 
