@@ -307,10 +307,20 @@ function extractResponsesApiOutput(value: unknown): unknown {
 }
 
 function parseJsonObject(text: string): unknown {
+  const trimmed = text.trim();
+  const fenced = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+  const candidate = fenced?.[1]?.trim() ?? trimmed;
   try {
-    return JSON.parse(text);
+    return JSON.parse(candidate);
   } catch {
-    return null;
+    const start = candidate.indexOf("{");
+    const end = candidate.lastIndexOf("}");
+    if (start === -1 || end <= start) return null;
+    try {
+      return JSON.parse(candidate.slice(start, end + 1));
+    } catch {
+      return null;
+    }
   }
 }
 
