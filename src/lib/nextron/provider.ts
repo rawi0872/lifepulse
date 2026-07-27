@@ -293,11 +293,14 @@ function extractResponsesApiOutput(value: unknown): unknown {
   if (!Array.isArray(candidate.output)) return null;
   for (const output of candidate.output) {
     if (typeof output !== "object" || output === null) continue;
-    const content = (output as { content?: unknown }).content;
+    const outputItem = output as { type?: unknown; content?: unknown };
+    if (outputItem.type !== undefined && outputItem.type !== "message") continue;
+    const content = outputItem.content;
     if (!Array.isArray(content)) continue;
     for (const item of content) {
       if (typeof item !== "object" || item === null) continue;
-      const contentItem = item as { text?: unknown; json?: unknown; parsed?: unknown };
+      const contentItem = item as { type?: unknown; text?: unknown; json?: unknown; parsed?: unknown };
+      if (contentItem.type !== undefined && contentItem.type !== "output_text") continue;
       if (typeof contentItem.text === "string") return contentItem.text;
       if (typeof contentItem.json === "object" && contentItem.json !== null) return contentItem.json;
       if (typeof contentItem.parsed === "object" && contentItem.parsed !== null) return contentItem.parsed;
