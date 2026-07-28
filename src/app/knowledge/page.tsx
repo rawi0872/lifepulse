@@ -128,6 +128,12 @@ function KnowledgeContent() {
     }
 
     if (!assignmentFailed) toast({ type: "success", title: "Knowledge saved!" });
+    if (savedItem?.id) {
+      void supabase.functions.invoke("knowledge-embed", { body: { action: "index-item", itemId: savedItem.id } })
+        .then(({ error: indexError }) => {
+          if (indexError) console.warn("Knowledge semantic indexing deferred", indexError.message);
+        });
+    }
     setItemForm({ title: "", type: "note", category: "", source_url: "", summary: "", content: "" });
     setSelectedCollectionId("");
     loadAll();
