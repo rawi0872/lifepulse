@@ -223,6 +223,8 @@ export class NextronAgentRuntime {
         : error instanceof Error && error.message === "TOOL_LIMIT_EXCEEDED"
           ? "TOOL_LIMIT_EXCEEDED"
           : "MASTRA_ERROR";
+      const synthesized = (reason === "PARSER_FAILED" || reason === "TIMEOUT") && toolsUsed.length > 0 ? synthesizeCrossDomainFromTools(toolEvidence) : null;
+      if (synthesized) return { response: synthesized, fallbackReason: null, toolsUsed };
       return fallbackResult(request.fallback, reason, toolsUsed);
     }
   }
