@@ -10,6 +10,9 @@ const tools = read("src/lib/nextron/project-agent/tools.ts");
 const validation = read("src/lib/nextron/project-agent/validation.ts");
 const context = read("src/lib/nextron/context.ts");
 const migration24 = read("supabase/migrations/00024_nextron_knowledge_permission.sql");
+const migration25 = read("supabase/migrations/00025_knowledge_hybrid_retrieval.sql");
+const edgeKnowledge = read("supabase/functions/knowledge-embed/index.ts");
+const hybridKnowledge = read("src/lib/nextron/knowledge-hybrid.ts");
 
 function assert(condition, label) {
   if (!condition) throw new Error(label);
@@ -42,6 +45,10 @@ assert(coach.includes('includesAny(normalizedPrompt, projectTerms)'), "I malform
 assert(tools.includes('PROJECT_NOT_FOUND'), "J project not found falls back");
 assert(tools.includes('KNOWLEDGE_AGENT_TOP_K') && tools.includes('KNOWLEDGE_AGENT_MAX_SNIPPET_CHARS') && tools.includes('KNOWLEDGE_AGENT_MAX_TOTAL_CONTEXT_CHARS'), "J2 Knowledge retrieval enforces top-k and text caps");
 assert(tools.includes('.eq("status", "active")') && tools.includes('.order("updated_at"'), "J3 Knowledge retrieval ignores inactive/deleted notes and uses latest content ordering");
+assert(migration25.includes('extensions.vector(384)') && migration25.includes('search_knowledge_chunks_hybrid') && migration25.includes('websearch_to_tsquery'), "J4 Knowledge v2 storage supports 384-d semantic plus FTS hybrid search");
+assert(migration25.includes('chunk.user_id = auth.uid()') && migration25.includes('item.user_id = auth.uid()') && migration25.indexOf('chunk.user_id = auth.uid()') < migration25.indexOf('order by chunk.embedding'), "J5 Knowledge v2 RPC filters owner before vector ranking");
+assert(edgeKnowledge.includes('Supabase.ai.Session') && edgeKnowledge.includes('gte-small') && !/service_role|SERVICE_ROLE|serviceRole/.test(edgeKnowledge), "J6 Knowledge embeddings use built-in Supabase gte-small without service role or paid provider");
+assert(hybridKnowledge.includes('search_knowledge_chunks_hybrid') && hybridKnowledge.includes('search_knowledge_chunks_fts') && tools.indexOf('hybridSearchKnowledge') < tools.indexOf('const tokens = searchTokens'), "J7 Knowledge search falls back from hybrid to FTS to v1 keyword retrieval");
 assert(tools.includes('PROJECT_AGENT_MAX_TOOL_CALLS') && runtime.includes('TOOL_LIMIT_EXCEEDED'), "K tool-call limit exceeded falls back");
 assert(tools.includes('CROSS_DOMAIN_AGENT_MAX_TOOL_CALLS') && runtime.includes('CROSS_DOMAIN_AGENT_MAX_STEPS') && runtime.includes('CROSS_DOMAIN_AGENT_TIMEOUT_MS'), "K2 cross-domain execution is bounded");
 assert(runtime.includes('PROJECT_AGENT_TIMEOUT_MS') && runtime.includes('TIMEOUT'), "L timeout falls back");

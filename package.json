@@ -30,7 +30,8 @@
     "test:nextron-evals": "node scripts/nextron-evals.mjs",
     "test:nextron-evals:live": "node scripts/nextron-evals.mjs --live",
     "test:nextron-memory": "node scripts/nextron-memory-v1-test.mjs",
-    "test:nextron-memory-evals": "node scripts/nextron-memory-evals.mjs"
+    "test:nextron-memory-evals": "node scripts/nextron-memory-evals.mjs",
+    "test:knowledge-hybrid": "node scripts/knowledge-hybrid-test.mjs"
   },
   "dependencies": {
     "@mastra/core": "^1.53.0",

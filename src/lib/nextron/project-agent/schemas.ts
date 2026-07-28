@@ -12,8 +12,11 @@ export const KNOWLEDGE_AGENT_MAX_TOOL_CALLS = 1;
 export const KNOWLEDGE_AGENT_MAX_STEPS = 3;
 export const KNOWLEDGE_AGENT_TIMEOUT_MS = 8_000;
 export const KNOWLEDGE_AGENT_TOP_K = 3;
+export const KNOWLEDGE_AGENT_FTS_CANDIDATES = 20;
+export const KNOWLEDGE_AGENT_SEMANTIC_CANDIDATES = 20;
 export const KNOWLEDGE_AGENT_MAX_SNIPPET_CHARS = 420;
 export const KNOWLEDGE_AGENT_MAX_TOTAL_CONTEXT_CHARS = 1_200;
+export const KNOWLEDGE_AGENT_QUERY_MAX_CHARS = 180;
 
 export type ProjectAgentToolName = "getProjects" | "getProject" | "getProjectTasks" | "getGoals";
 export type CrossDomainAgentToolName = "getTodayContext" | "getTasksSummary" | "getGoalsSummary" | "getProjectsSummary" | "getHabitsSummary" | "getResultsSummary" | "getMemoryPreferences";

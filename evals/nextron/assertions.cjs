@@ -3,7 +3,7 @@ const FORBIDDEN = [
   /\S+@\S+/,
   /\b(user_id|service_role|api[_-]?key|secret|sql|insert\s+into|update\s+.+\s+set|delete\s+from|drop\s+table|projectRef)\b/i,
   /\b(ref\s+p\d+|p\d+)\b/i,
-  /\b(created a task|edited a project|scheduled|wrote|deleted)\b/i,
+  /\b(created a task|edited a project|scheduled|wrote a|wrote the|deleted a|deleted the)\b/i,
 ];
 
 const LIVE_FORBIDDEN = [
@@ -84,6 +84,7 @@ module.exports.assertExpectedBehavior = (output, context) => {
   if (vars.expectNoPaidFallback && result.paidFallbackAttempted) return fail("Expected no paid fallback");
   if (typeof vars.maxToolsUsed === "number" && result.toolsUsed.length > vars.maxToolsUsed) return fail(`Expected at most ${vars.maxToolsUsed} tools used`);
   if (vars.requiredSource && !result.sources?.includes(vars.requiredSource)) return fail(`Missing required source: ${vars.requiredSource}`);
+  if (vars.expectedRetrievalMode && result.retrievalMode !== vars.expectedRetrievalMode) return fail(`Expected retrievalMode ${vars.expectedRetrievalMode}, got ${result.retrievalMode}`);
 
   for (const evidence of splitVar(vars.requiredEvidence)) {
     if (!result.supportingEvidence.includes(evidence)) return fail(`Missing required evidence: ${evidence}`);

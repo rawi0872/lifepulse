@@ -100,6 +100,15 @@ const CASES = {
   knowledge_context_bounded: knowledge({ facts: [{ category: "knowledge", text: "Knowledge retrieval returned at most three bounded snippets" }], interpretation: "NEXTRON does not dump whole notes or the whole account.", sources: ["Project Atlas launch decision — 2026-07-12"] }),
   knowledge_memory_separate: knowledge({ facts: [{ category: "knowledge", text: "Project Atlas launch timing came from a Knowledge note" }, { category: "memory", text: "Confirmed preference is context only" }], interpretation: "Memory can shape style but does not become document evidence.", sources: ["Project Atlas launch decision — 2026-07-12"] }),
   knowledge_structured_truth_override: knowledge({ facts: [{ category: "knowledge", text: "A stale note says Project Atlas launch was planned Friday" }, { category: "projects", text: "Current structured project state can override stale note evidence" }], interpretation: "NEXTRON should state the conflict and avoid treating the stale note as current truth.", sources: ["Project Atlas old launch note — 2026-07-01"] }),
+  knowledge_v2_semantic_paraphrase: knowledge({ facts: [{ category: "knowledge", text: "Atlas release note says beta launch should wait until signup testing is complete" }], interpretation: "Semantic retrieval can find the release decision even when the query uses different wording.", sources: ["Atlas release decision — 2026-07-12"], retrievalMode: "hybrid" }),
+  knowledge_v2_exact_fts: knowledge({ facts: [{ category: "knowledge", text: "Exact Atlas release wording matched the Knowledge note" }], interpretation: "FTS remains strong for direct names and exact terms.", sources: ["Atlas release decision — 2026-07-12"], retrievalMode: "fts" }),
+  knowledge_v2_hybrid_outranks_irrelevant: knowledge({ facts: [{ category: "knowledge", text: "Hybrid ranking keeps the Atlas release decision ahead of unrelated launch notes" }], interpretation: "Exact Knowledge evidence should outrank broad semantic similarity.", sources: ["Atlas release decision — 2026-07-12"], retrievalMode: "hybrid" }),
+  knowledge_v2_stale_deleted_excluded: knowledge({ facts: [{ category: "knowledge", text: "Deleted or stale chunks are excluded from Knowledge retrieval" }], interpretation: "Only current active chunks can support the answer.", sources: ["Atlas release decision — 2026-07-12"], retrievalMode: "hybrid" }),
+  knowledge_v2_edited_updates: knowledge({ facts: [{ category: "knowledge", text: "Edited Atlas note now says beta waits for signup testing" }], interpretation: "Updated chunks replace stale wording after re-indexing.", sources: ["Atlas release decision update — 2026-07-13"], retrievalMode: "hybrid" }),
+  knowledge_v2_embedding_unavailable_fts: knowledge({ facts: [{ category: "knowledge", text: "FTS found Atlas release evidence while semantic embedding was unavailable" }], interpretation: "Semantic failure does not break Knowledge retrieval.", sources: ["Atlas release decision — 2026-07-12"], retrievalMode: "fts" }),
+  knowledge_v2_semantic_service_failure_fts: knowledge({ facts: [{ category: "knowledge", text: "Keyword retrieval stayed available after semantic service failure" }], interpretation: "The system falls back to FTS rather than a paid embedding provider.", sources: ["Atlas release decision — 2026-07-12"], retrievalMode: "fts" }),
+  knowledge_v2_non_english_safe: knowledge({ facts: [{ category: "knowledge", text: "Non-English notes remain searchable by text but semantic retrieval is English-optimized" }], interpretation: "NEXTRON should not claim multilingual semantic coverage.", sources: ["Nota Atlas — 2026-07-12"], retrievalMode: "fts" }),
+  knowledge_v2_same_model: knowledge({ facts: [{ category: "knowledge", text: "Query and chunks use the same gte-small embedding model" }], interpretation: "Vector comparisons are valid only when the embedding model matches.", sources: ["Atlas release decision — 2026-07-12"], retrievalMode: "hybrid" }),
 };
 
 function projectAgent(overrides = {}) {
@@ -150,6 +159,7 @@ function response(overrides) {
     priority: "medium",
     supportingEvidence: facts.map((fact) => fact.text),
     sources: overrides.sources || [],
+    retrievalMode: overrides.retrievalMode || null,
     fallbackReason: overrides.fallbackReason ?? null,
     permissionsChecked: true,
     ownershipScoped: true,

@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod/v4";
 import { isNextronContextAllowed, type NextronPermissionState } from "@/lib/nextron/context";
 import type { NextronEvidencePacket } from "@/lib/nextron/evidence";
+import { hybridSearchKnowledge, sanitizeKnowledgeText, searchTokens, type KnowledgeSearchResult } from "@/lib/nextron/knowledge-hybrid";
 import { CROSS_DOMAIN_AGENT_MAX_TOOL_CALLS, KNOWLEDGE_AGENT_MAX_SNIPPET_CHARS, KNOWLEDGE_AGENT_MAX_TOTAL_CONTEXT_CHARS, KNOWLEDGE_AGENT_MAX_TOOL_CALLS, KNOWLEDGE_AGENT_TOP_K, PROJECT_AGENT_MAX_TOOL_CALLS, type CrossDomainAgentToolName, type KnowledgeAgentToolName, type ProjectAgentToolName } from "@/lib/nextron/project-agent/schemas";
 
 export interface NextronToolContext {
@@ -25,11 +26,6 @@ function safeText(value: string | null | undefined, max = 120): string | null {
 
 function requireAllowed(context: NextronToolContext, domain: "projects" | "tasks" | "goals") {
   if (!isNextronContextAllowed(context.permissions, domain)) throw new Error("PERMISSION_DENIED");
-}
-
-function searchTokens(value: string): string[] {
-  const stop = new Set(["about", "after", "again", "what", "when", "where", "which", "with", "from", "that", "this", "note", "notes", "write", "wrote", "knowledge", "decide", "decided", "decision"]);
-  return Array.from(new Set(value.toLowerCase().match(/[a-z0-9]{3,}/g) ?? [])).filter((token) => !stop.has(token)).slice(0, 8);
 }
 
 function sourceRef(row: KnowledgeRow): string {
@@ -297,6 +293,9 @@ export function createNextronKnowledgeAgentTools(context: NextronToolContext, tr
       record("searchKnowledge");
       if (!isNextronContextAllowed(context.permissions, "knowledge")) throw new Error("PERMISSION_DENIED");
 
+      const hybrid = await hybridSearchKnowledge(context.supabase, input.query);
+      if (hybrid.results.length > 0) return remember({ knowledge: { retrievalMode: hybrid.mode, results: hybrid.results } });
+
       const tokens = searchTokens(input.query);
       if (tokens.length === 0) return remember({ knowledge: { results: [] } });
       const patterns = tokens.slice(0, 4).map((token) => `title.ilike.%${token}%,summary.ilike.%${token}%,content.ilike.%${token}%`).join(",");
@@ -311,26 +310,28 @@ export function createNextronKnowledgeAgentTools(context: NextronToolContext, tr
       if (error) throw new Error("KNOWLEDGE_READ_FAILED");
 
       let totalChars = 0;
+      type KeywordResult = KnowledgeSearchResult & { score: number };
       const results = ((data ?? []) as KnowledgeRow[])
         .map((row) => {
           const searchable = [row.title, row.category, row.summary, row.content].filter(Boolean).join(" ").toLowerCase();
           const titleText = safeText(row.title, 90) ?? "Untitled Knowledge note";
           const score = tokens.reduce((sum, token) => sum + (searchable.includes(token) ? (titleText.toLowerCase().includes(token) ? 3 : 1) : 0), 0);
           const snippet = bestSnippet(row, tokens);
-          return score > 0 && snippet ? { title: titleText, type: safeText(row.type, 24) ?? "note", category: safeText(row.category, 48), updatedDate: (row.updated_at ?? row.created_at)?.slice(0, 10) ?? null, source: sourceRef(row), snippet, score } : null;
+          const result: KeywordResult | null = score > 0 && snippet ? { title: titleText, type: safeText(row.type, 24) ?? "note", category: safeText(row.category, 48), updatedDate: (row.updated_at ?? row.created_at)?.slice(0, 10) ?? null, section: null, source: sourceRef(row), snippet, retrieval: "keyword", score } : null;
+          return result;
         })
-        .filter((item): item is { title: string; type: string; category: string | null; updatedDate: string | null; source: string; snippet: string; score: number } => Boolean(item))
+        .filter((item): item is KeywordResult => Boolean(item))
         .sort((a, b) => b.score - a.score)
         .slice(0, KNOWLEDGE_AGENT_TOP_K)
         .map((item) => {
           const remaining = Math.max(0, KNOWLEDGE_AGENT_MAX_TOTAL_CONTEXT_CHARS - totalChars);
-          const snippet = safeText(item.snippet, Math.min(KNOWLEDGE_AGENT_MAX_SNIPPET_CHARS, remaining)) ?? "";
+          const snippet = sanitizeKnowledgeText(item.snippet, Math.min(KNOWLEDGE_AGENT_MAX_SNIPPET_CHARS, remaining));
           totalChars += snippet.length;
           return { ...item, snippet };
         })
         .filter((item) => item.snippet.length > 0);
 
-      return remember({ knowledge: { results } });
+      return remember({ knowledge: { retrievalMode: "keyword", results } });
     },
   });
 

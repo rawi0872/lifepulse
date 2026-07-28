@@ -359,3 +359,101 @@ tests:
       expectedRoute: /knowledge
       expectedFallbackReason: ""
       requiredEvidence: A stale note says Project Atlas launch was planned Friday||Current structured project state can override stale note evidence
+  - description: Knowledge v2 semantic paraphrase retrieval
+    vars:
+      testId: knowledge_v2_semantic_paraphrase
+      prompt: What did I decide about when to release Atlas?
+      expectedRuleId: knowledge_notes_agent
+      expectedSource: ai
+      expectedRoute: /knowledge
+      expectedFallbackReason: ""
+      expectedRetrievalMode: hybrid
+      requiredEvidence: Atlas release note says beta launch should wait until signup testing is complete
+      requiredSource: Atlas release decision — 2026-07-12
+  - description: Knowledge v2 exact name FTS retrieval
+    vars:
+      testId: knowledge_v2_exact_fts
+      prompt: What do my notes say about Atlas release?
+      expectedRuleId: knowledge_notes_agent
+      expectedSource: ai
+      expectedRoute: /knowledge
+      expectedFallbackReason: ""
+      expectedRetrievalMode: fts
+      requiredEvidence: Exact Atlas release wording matched the Knowledge note
+  - description: Knowledge v2 hybrid outranks irrelevant semantic result
+    vars:
+      testId: knowledge_v2_hybrid_outranks_irrelevant
+      prompt: Which launch note controls Atlas release timing?
+      expectedRuleId: knowledge_notes_agent
+      expectedSource: ai
+      expectedRoute: /knowledge
+      expectedFallbackReason: ""
+      expectedRetrievalMode: hybrid
+      requiredEvidence: Hybrid ranking keeps the Atlas release decision ahead of unrelated launch notes
+      forbiddenText: cookbook launch||music launch
+  - description: Knowledge v2 stale deleted chunks excluded
+    vars:
+      testId: knowledge_v2_stale_deleted_excluded
+      prompt: What did the deleted Atlas note say?
+      expectedRuleId: knowledge_notes_agent
+      expectedSource: ai
+      expectedRoute: /knowledge
+      expectedFallbackReason: ""
+      expectedRetrievalMode: hybrid
+      requiredEvidence: Deleted or stale chunks are excluded from Knowledge retrieval
+      forbiddenText: deleted chunk||obsolete chunk
+  - description: Knowledge v2 edited note updates retrieval
+    vars:
+      testId: knowledge_v2_edited_updates
+      prompt: What is the updated Atlas release decision?
+      expectedRuleId: knowledge_notes_agent
+      expectedSource: ai
+      expectedRoute: /knowledge
+      expectedFallbackReason: ""
+      expectedRetrievalMode: hybrid
+      requiredEvidence: Edited Atlas note now says beta waits for signup testing
+      requiredSource: Atlas release decision update — 2026-07-13
+  - description: Knowledge v2 embedding unavailable falls back to FTS
+    vars:
+      testId: knowledge_v2_embedding_unavailable_fts
+      prompt: What do my notes say about Atlas release if embeddings are unavailable?
+      expectedRuleId: knowledge_notes_agent
+      expectedSource: ai
+      expectedRoute: /knowledge
+      expectedFallbackReason: ""
+      expectedRetrievalMode: fts
+      requiredEvidence: FTS found Atlas release evidence while semantic embedding was unavailable
+      expectNoPaidFallback: true
+  - description: Knowledge v2 semantic service failure falls back to FTS
+    vars:
+      testId: knowledge_v2_semantic_service_failure_fts
+      prompt: What do my notes say about Atlas release during semantic service failure?
+      expectedRuleId: knowledge_notes_agent
+      expectedSource: ai
+      expectedRoute: /knowledge
+      expectedFallbackReason: ""
+      expectedRetrievalMode: fts
+      requiredEvidence: Keyword retrieval stayed available after semantic service failure
+      expectNoPaidFallback: true
+  - description: Knowledge v2 non-English semantic limitation is safe
+    vars:
+      testId: knowledge_v2_non_english_safe
+      prompt: ¿Qué dicen mis notas sobre Atlas?
+      expectedRuleId: knowledge_notes_agent
+      expectedSource: ai
+      expectedRoute: /knowledge
+      expectedFallbackReason: ""
+      expectedRetrievalMode: fts
+      requiredEvidence: Non-English notes remain searchable by text but semantic retrieval is English-optimized
+      forbiddenText: multilingual semantic retrieval||works in every language
+  - description: Knowledge v2 same embedding model consistency
+    vars:
+      testId: knowledge_v2_same_model
+      prompt: Confirm Atlas release retrieval used matching embedding models.
+      expectedRuleId: knowledge_notes_agent
+      expectedSource: ai
+      expectedRoute: /knowledge
+      expectedFallbackReason: ""
+      expectedRetrievalMode: hybrid
+      requiredEvidence: Query and chunks use the same gte-small embedding model
+      forbiddenText: mixed embedding models||OpenAI embeddings
