@@ -13,20 +13,34 @@ export type ProjectAgentValidationResult =
 
 function clean(value: unknown, max: number): string | null {
   if (typeof value !== "string") return null;
-  const text = value.replace(/<!--[^>]*-->/g, " ").replace(/[{}<>]/g, " ").replace(/\s+/g, " ").trim();
+  const text = value.replace(/<!--[^>]*-->/g, " ").replace(/[{}<>`*]/g, " ").replace(/\s+/g, " ").trim();
   return text ? text.slice(0, max) : null;
 }
 
 function lineValue(lines: string[], label: string): string | null {
-  const prefix = `${label}:`;
-  const line = lines.find((item) => item.toLowerCase().startsWith(prefix.toLowerCase()));
-  return line ? line.slice(prefix.length).trim() : null;
+  const pattern = new RegExp(`^(?:[-*]\\s*)?(?:\\*\\*)?${label}(?:\\*\\*)?\\s*:`, "i");
+  const line = lines.find((item) => pattern.test(item));
+  return line ? line.replace(pattern, "").trim() : null;
+}
+
+function factsValue(lines: string[]): string | null {
+  const direct = lineValue(lines, "facts");
+  if (direct) return direct;
+  const start = lines.findIndex((line) => /^(?:[-*]\s*)?(?:\*\*)?facts(?:\*\*)?\s*:?\s*$/i.test(line));
+  if (start === -1) return null;
+  const collected: string[] = [];
+  for (const line of lines.slice(start + 1)) {
+    if (/^(?:[-*]\s*)?(?:\*\*)?(interpretation|nextActionLabel|nextActionRoute|nextActionRationale)(?:\*\*)?\s*:/i.test(line)) break;
+    const cleaned = line.replace(/^(?:[-*]\s*)/, "").trim();
+    if (cleaned.includes("|")) collected.push(cleaned);
+  }
+  return collected.length > 0 ? collected.join(";") : null;
 }
 
 export function parseProjectAgentOutput(text: unknown, allowedCategories: Set<string> = PROJECT_AGENT_CATEGORIES): ProjectAgentParsedOutput | null {
   if (typeof text !== "string" || text.length > PROJECT_AGENT_MAX_OUTPUT_CHARS) return null;
   const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
-  const factsText = lineValue(lines, "facts");
+  const factsText = factsValue(lines);
   const interpretation = clean(lineValue(lines, "interpretation"), 420);
   const nextActionLabel = clean(lineValue(lines, "nextActionLabel"), 80);
   const nextActionRoute = clean(lineValue(lines, "nextActionRoute"), 40);
