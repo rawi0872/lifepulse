@@ -56,7 +56,7 @@ const routes = [
   { path: "/mind", label: "Mind", text: ["Mind Pulse", "Mind Habits", "Log Today's Mind Data"] },
   { path: "/finance", label: "Finance", text: ["Finance"] },
   { path: "/passions", label: "Passions", text: ["Passions", "Your hobbies, skills, and creative pursuits", "Active Passions"] },
-  { path: "/settings", label: "Settings", text: ["Settings", "Profile", "Save setup"] },
+  { path: "/settings", label: "Settings", text: ["Settings", "NEXTRON Memory", "Save setup"] },
   { path: "/devices", label: "Devices", text: ["Device Pulse", "Coming Soon", "No devices connected"] },
 ];
 
