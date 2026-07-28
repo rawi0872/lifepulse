@@ -28,7 +28,9 @@
     "test:prod:network-audit": "node scripts/prod-route-network-audit.mjs",
     "test:nextron-project-agent": "node scripts/nextron-project-agent-test.mjs",
     "test:nextron-evals": "node scripts/nextron-evals.mjs",
-    "test:nextron-evals:live": "node scripts/nextron-evals.mjs --live"
+    "test:nextron-evals:live": "node scripts/nextron-evals.mjs --live",
+    "test:nextron-memory": "node scripts/nextron-memory-v1-test.mjs",
+    "test:nextron-memory-evals": "node scripts/nextron-memory-evals.mjs"
   },
   "dependencies": {
     "@mastra/core": "^1.53.0",

@@ -22,6 +22,14 @@ import {
   type ModuleStatus,
 } from "@/lib/modules";
 
+interface NextronMemoryItem {
+  id: string;
+  type: "PREFERENCE";
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 const moduleStatusStyles: Record<ModuleStatus, string> = {
   available: "border-[var(--success)]/30 bg-[var(--success-soft)] text-[var(--success)]",
   preview: "border-[var(--accent)]/30 bg-[var(--accent-soft)] text-[var(--accent)]",
@@ -40,6 +48,11 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [savingSetup, setSavingSetup] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [memories, setMemories] = useState<NextronMemoryItem[]>([]);
+  const [memoryLoading, setMemoryLoading] = useState(true);
+  const [editingMemoryId, setEditingMemoryId] = useState<string | null>(null);
+  const [editingMemoryContent, setEditingMemoryContent] = useState("");
+  const [savingMemory, setSavingMemory] = useState(false);
   const { toast } = useToast();
 
   interface Realm { id: string; name: string; color: string; icon: string }
@@ -89,6 +102,15 @@ export default function SettingsPage() {
         .eq("user_id", user.id)
         .order("sort_order");
       if (realmData) setRealms(realmData);
+
+      try {
+        const memoryResponse = await fetch("/api/nextron/memory", { cache: "no-store" });
+        if (memoryResponse.ok) {
+          const memoryPayload: { memories?: NextronMemoryItem[] } = await memoryResponse.json();
+          setMemories(memoryPayload.memories ?? []);
+        }
+      } catch {}
+      setMemoryLoading(false);
 
       setLoading(false);
     }
@@ -261,6 +283,51 @@ export default function SettingsPage() {
     setSavingEdit(false);
   }
 
+  function startEditingMemory(memory: NextronMemoryItem) {
+    setEditingMemoryId(memory.id);
+    setEditingMemoryContent(memory.content.replace(/^You\s+/i, "I "));
+  }
+
+  async function saveMemoryEdit() {
+    const content = editingMemoryContent.trim();
+    if (!editingMemoryId || !content) return;
+    setSavingMemory(true);
+    const response = await fetch("/api/nextron/memory", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: editingMemoryId, content }),
+    });
+    setSavingMemory(false);
+    if (!response.ok) {
+      const payload: { error?: string } = await response.json().catch(() => ({}));
+      toast({ type: "error", title: payload.error ?? "Failed to update memory." });
+      return;
+    }
+    const payload: { memory: NextronMemoryItem } = await response.json();
+    setMemories((current) => [payload.memory, ...current.filter((memory) => memory.id !== editingMemoryId)]);
+    setEditingMemoryId(null);
+    setEditingMemoryContent("");
+    toast({ type: "success", title: "NEXTRON memory updated." });
+  }
+
+  async function forgetMemory(memory: NextronMemoryItem) {
+    setSavingMemory(true);
+    const response = await fetch("/api/nextron/memory", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: memory.id }),
+    });
+    setSavingMemory(false);
+    if (!response.ok) {
+      const payload: { error?: string } = await response.json().catch(() => ({}));
+      toast({ type: "error", title: payload.error ?? "Failed to forget memory." });
+      return;
+    }
+    setMemories((current) => current.filter((item) => item.id !== memory.id));
+    if (editingMemoryId === memory.id) setEditingMemoryId(null);
+    toast({ type: "success", title: "NEXTRON memory forgotten." });
+  }
+
   const initials = (firstName?.[0] ?? "") + (lastName?.[0] ?? "");
   const recommendedModules = getRecommendedModules(intendedUse);
   const modulesByCategory = getModulesByCategory();
@@ -409,6 +476,77 @@ export default function SettingsPage() {
                 {savingSetup ? "Saving..." : "Save setup"}
               </Button>
             </div>
+          </div>
+        </Card>
+
+        {/* NEXTRON Memory */}
+        <Card className="mb-4 border-[var(--border-strong)]">
+          <div className="p-5">
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">NEXTRON</p>
+            <h3 className="mb-1 text-sm font-semibold text-[var(--text)]">NEXTRON Memory</h3>
+            <p className="mb-4 text-xs leading-relaxed text-[var(--text-muted)]">
+              NEXTRON Memory v1 stores only explicit preference memories you confirm, such as planning style. It does not store inferences, hidden facts, or conversation history.
+            </p>
+
+            {memoryLoading ? (
+              <p className="text-xs text-[var(--text-muted)]">Loading saved preferences...</p>
+            ) : memories.length === 0 ? (
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+                <p className="text-sm font-medium text-[var(--text)]">No active preference memories</p>
+                <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
+                  Ask NEXTRON something like: Remember that I prefer short daily plans.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {memories.map((memory) => (
+                  <div key={memory.id} className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+                    {editingMemoryId === memory.id ? (
+                      <div className="space-y-3">
+                        <label className="block text-xs font-medium text-[var(--text-muted)]">Preference</label>
+                        <textarea
+                          value={editingMemoryContent}
+                          onChange={(event) => setEditingMemoryContent(event.target.value)}
+                          maxLength={240}
+                          rows={3}
+                          className="w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)] placeholder-[var(--text-muted)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none"
+                        />
+                        <div className="flex flex-wrap gap-2">
+                          <Button size="sm" onClick={saveMemoryEdit} disabled={savingMemory || !editingMemoryContent.trim()}>
+                            {savingMemory ? "Saving..." : "Save memory"}
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => setEditingMemoryId(null)}>
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div>
+                          <span className="inline-flex rounded-full border border-[var(--accent)]/30 bg-[var(--accent-soft)] px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--accent)]">
+                            Preference
+                          </span>
+                          <p className="mt-2 text-sm leading-relaxed text-[var(--text)]">{memory.content}</p>
+                          <p className="mt-1 text-xs text-[var(--text-muted)]">Saved {new Date(memory.createdAt).toLocaleDateString()}</p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="secondary" onClick={() => startEditingMemory(memory)} disabled={savingMemory}>
+                            Edit
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => forgetMemory(memory)} disabled={savingMemory}>
+                            Forget
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <p className="mt-4 text-xs leading-relaxed text-[var(--text-muted)]">
+              Life Pulse facts remain authoritative. Memory can shape style only when it fits the current request.
+            </p>
           </div>
         </Card>
 

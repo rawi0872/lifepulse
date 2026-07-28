@@ -1,6 +1,6 @@
 import type { NextronEvidencePacket } from "@/lib/nextron/evidence";
 
-export type NextronEvidenceCategory = keyof Pick<NextronEvidencePacket, "today" | "tasks" | "habits" | "results" | "journal" | "eveningShutdown" | "weeklyReview" | "goals" | "projects" | "profile">;
+export type NextronEvidenceCategory = keyof Pick<NextronEvidencePacket, "today" | "tasks" | "habits" | "results" | "journal" | "eveningShutdown" | "weeklyReview" | "goals" | "projects" | "profile" | "memory">;
 
 export interface NextronFact {
   category: NextronEvidenceCategory;
@@ -172,6 +172,12 @@ function positiveFacts(packet: NextronEvidencePacket): NextronFact[] {
   return facts.slice(0, 3);
 }
 
+function memoryPreferenceFacts(packet: NextronEvidencePacket): NextronFact[] {
+  return (packet.memory.data?.preferences ?? [])
+    .map((preference) => fact("memory", `Confirmed preference: ${preference}`))
+    .slice(0, 2);
+}
+
 function noEvidenceResponse(intent: NextronCoachingIntent): NextronCoachResponse {
   return response(
     `interactive_${intent.toLowerCase()}_limited_evidence`,
@@ -265,7 +271,7 @@ export function buildInteractiveNextronResponse(packet: NextronEvidencePacket, r
     case "PROGRESS":
       return positives.length > 0 ? response("interactive_progress", "low", positives, "These are the strongest positive signals currently visible in permitted evidence.", "Open Today", "/today", "Keep the loop small: continue one thing that is already moving.") : noEvidenceResponse(request.intent);
     case "PLANNING":
-      return response("interactive_planning", "medium", facts.length > 0 ? facts.slice(0, 3) : [fact("today", "NEXTRON does not see a strong urgent signal in permitted evidence.")], "A safe plan is bounded: choose one immediate item, then one follow-up, then close the day with a review only if useful.", "Open Today", "/today", "Use Today to pick the first step; avoid inventing calendar times that are not already in Life Pulse.");
+      return response("interactive_planning", "medium", [...memoryPreferenceFacts(packet), ...(facts.length > 0 ? facts.slice(0, 2) : [fact("today", "NEXTRON does not see a strong urgent signal in permitted evidence.")])].slice(0, 3), "A safe plan is bounded: choose one immediate item, then one follow-up, then close the day with a review only if useful. Confirmed preferences can shape style, but current Life Pulse facts stay authoritative.", "Open Today", "/today", "Use Today to pick the first step; avoid inventing calendar times that are not already in Life Pulse.");
     case "REVIEW":
       return [...facts.slice(0, 2), ...positives.slice(0, 2)].length > 0
         ? response("interactive_review", "low", [...facts.slice(0, 2), ...positives.slice(0, 2)].slice(0, 4), "The best review target is the area with either unfinished work or recent activity.", "Open Weekly Review", "/weekly-review", "Review factual summaries first, then save a reflection only if it adds something real.")

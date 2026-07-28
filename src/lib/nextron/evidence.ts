@@ -114,6 +114,7 @@ export interface NextronEvidencePacket {
   weeklyReview: NextronPacketSection<{ existsThisWeek: boolean; nextWeekFocus: string | null }>;
   goals: NextronPacketSection<{ activeCount: number; sampleNames: string[] }>;
   projects: NextronPacketSection<{ activeCount: number; activeWithoutOpenTaskCount: number; sampleNames: string[] }>;
+  memory: NextronPacketSection<{ preferences: string[] }>;
   warnings: string[];
 }
 
@@ -186,6 +187,7 @@ export async function buildNextronEvidencePacket(
   let weeklyReview: NextronEvidencePacket["weeklyReview"] = denied("Weekly Review reflection is not loaded unless allowed.");
   let goals: NextronEvidencePacket["goals"] = denied();
   let projects: NextronEvidencePacket["projects"] = denied();
+  const memory: NextronEvidencePacket["memory"] = missing("No relevant confirmed preference memory was loaded for this request.");
 
   const wantsOperational = isNextronContextAllowed(permissions, "today") || isNextronContextAllowed(permissions, "tasks") || isNextronContextAllowed(permissions, "habits");
 
@@ -429,6 +431,7 @@ export async function buildNextronEvidencePacket(
     journal,
     eveningShutdown,
     weeklyReview,
+    memory,
     goals,
     projects,
     warnings: Array.from(new Set(warnings)).slice(0, 4),

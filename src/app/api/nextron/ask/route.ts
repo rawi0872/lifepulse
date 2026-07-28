@@ -2,6 +2,16 @@ import { NextResponse } from "next/server";
 import { buildInteractiveNextronResponse, isNextronProviderEligibleRequest, parseNextronUserRequest } from "@/lib/nextron/coach";
 import { normalizeNextronPreferences, type NextronPreferenceRow } from "@/lib/nextron/context";
 import { buildNextronEvidencePacket } from "@/lib/nextron/evidence";
+import {
+  forgetPreferenceMemory,
+  listActivePreferenceMemories,
+  memoryFacts,
+  memoryIntentResponse,
+  memoryViewResponse,
+  parseNextronMemoryCommand,
+  rememberPreferenceMemory,
+  retrieveRelevantPreferenceMemories,
+} from "@/lib/nextron/memory";
 import { runNextronProjectAgentOrFallback } from "@/lib/nextron/project-agent/runtime";
 import { createConfiguredNextronProvider, getNextronProviderUnavailableReason, runNextronProviderOrFallbackDetailed } from "@/lib/nextron/provider";
 import { createClient } from "@/lib/supabase/server";
@@ -34,6 +44,28 @@ export async function POST(request: Request) {
   if (!user) return NextResponse.json({ error: "Sign in to ask NEXTRON." }, { status: 401 });
 
   try {
+    const memoryCommand = parseNextronMemoryCommand(parsed.request.rawPrompt, parsed.request.normalizedPrompt);
+    if (memoryCommand.kind === "remember") {
+      const result = await rememberPreferenceMemory(supabase, user.id, memoryCommand.content);
+      if (!result.ok) return NextResponse.json({ response: memoryIntentResponse(result.reason), source: "deterministic" }, { status: 400 });
+      return NextResponse.json({ response: memoryIntentResponse(`Got it. I'll remember that ${result.memory.content.replace(/^You\s+/i, "you ")}.`), source: "deterministic" });
+    }
+
+    if (memoryCommand.kind === "forget") {
+      const result = await forgetPreferenceMemory(supabase, user.id, memoryCommand.content);
+      if (!result.ok) return NextResponse.json({ response: memoryIntentResponse(result.reason), source: "deterministic" }, { status: 404 });
+      return NextResponse.json({ response: memoryIntentResponse("I've forgotten that preference."), source: "deterministic" });
+    }
+
+    if (memoryCommand.kind === "view") {
+      const memories = await listActivePreferenceMemories(supabase, user.id, 20);
+      return NextResponse.json({ response: memoryViewResponse(memories), source: "deterministic" });
+    }
+
+    if (memoryCommand.kind === "rejected_implicit") {
+      return NextResponse.json({ response: memoryIntentResponse(memoryCommand.reason), source: "deterministic" }, { status: 400 });
+    }
+
     const { data } = await supabase
       .from("nextron_context_preferences")
       .select(PREFERENCE_COLUMNS)
@@ -42,6 +74,10 @@ export async function POST(request: Request) {
 
     const { permissions } = normalizeNextronPreferences(data as NextronPreferenceRow | null);
     const evidence = await buildNextronEvidencePacket(supabase, user.id, permissions);
+    const relevantMemories = await retrieveRelevantPreferenceMemories(supabase, user.id, parsed.request);
+    evidence.memory = relevantMemories.length > 0
+      ? { status: "available", data: { preferences: memoryFacts(relevantMemories).map((memory) => memory.content) } }
+      : evidence.memory;
     const fallback = () => ({ ...buildInteractiveNextronResponse(evidence, parsed.request), source: "deterministic" as const });
 
     if (parsed.request.intent === "PROJECT_AGENT") {
