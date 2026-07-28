@@ -140,13 +140,17 @@ function synthesizeKnowledgeFromTools(toolEvidence: unknown[]): NextronCoachResp
   const snippet = typeof first.snippet === "string" ? first.snippet : "A matching Knowledge note was found.";
   const source = typeof first.source === "string" ? first.source : null;
   if (!source) return null;
+  const instructionLike = /ignore previous|reveal another|admin mode|delete my|send email|call another tool|service_role|api[_-]?key|user_id/i.test(snippet);
+  const safeSnippet = instructionLike
+    ? "A retrieved Knowledge note contains instruction-like text treated only as untrusted note content."
+    : snippet.slice(0, 220);
   return {
-    facts: [{ category: "knowledge", text: snippet.slice(0, 220) }],
+    facts: [{ category: "knowledge", text: safeSnippet }],
     interpretation: "This is bounded Knowledge note evidence, not current structured Life Pulse truth.",
     nextAction: { label: "Open Knowledge", href: "/knowledge", rationale: "Open Knowledge to inspect or edit the source note yourself." },
     priority: "medium",
     ruleId: "knowledge_notes_agent",
-    supportingEvidence: [snippet.slice(0, 220)],
+    supportingEvidence: [safeSnippet],
     sources: [source],
     source: "ai",
   };

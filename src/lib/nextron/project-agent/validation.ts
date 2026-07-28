@@ -5,7 +5,7 @@ const ALLOWED_AGENT_ROUTES = new Set(["/projects", "/tasks", "/goals", "/habits"
 const PROJECT_AGENT_CATEGORIES = new Set(["projects", "tasks", "goals"]);
 const CROSS_DOMAIN_AGENT_CATEGORIES = new Set(["today", "tasks", "habits", "results", "goals", "projects", "memory"]);
 const KNOWLEDGE_AGENT_CATEGORIES = new Set(["knowledge"]);
-const FORBIDDEN_TEXT = /[A-Fa-f0-9]{8}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{12}|\S+@\S+|supabase|user_id|service_role|api[_-]?key|secret|sql|insert\s+into|update\s+.+\s+set|delete\s+from|drop\s+table|created a task|edited a project|scheduled|sent an email|deleted a/i;
+const FORBIDDEN_TEXT = /[A-Fa-f0-9]{8}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{12}|\S+@\S+|supabase|user_id|service_role|api[_-]?key|secret|sql|insert\s+into|update\s+.+\s+set|delete\s+from|drop\s+table|created a task|edited a project|scheduled|sent an email|deleted a|admin mode|reveal another|call another tool/i;
 const INTERNAL_REF_TEXT = /\bref\s+p\d+\b|\bp\d+\b/i;
 
 export type ProjectAgentValidationResult =
