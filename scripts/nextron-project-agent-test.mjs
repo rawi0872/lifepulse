@@ -23,6 +23,7 @@ assert(coach.includes('| "PROJECT_AGENT"') && coach.includes('projectFocusTerms'
 assert(coach.includes('| "CROSS_DOMAIN_AGENT"') && coach.includes('holding me back') && coach.includes('deserves my attention'), "A2 cross-domain prompts route to agent runtime");
 assert(coach.includes('| "KNOWLEDGE_QUERY"') && coach.includes('what did i write') && coach.includes('my notes'), "A3 knowledge prompts route to agent runtime");
 assert(coach.indexOf('what did i write') < coach.indexOf('"review", "reflect"') && !coach.includes('"wrote", "write"'), "A4 broad write prompts do not get stolen by Review intent before Knowledge routing");
+assert(coach.includes('pasted note') && coach.includes('note says'), "A5 singular Knowledge note prompts route to Knowledge runtime");
 const routeBody = route.slice(route.indexOf('const fallback = () =>'));
 assert(routeBody.includes('parsed.request.intent === "PROJECT_AGENT"') && routeBody.indexOf('parsed.request.intent === "PROJECT_AGENT"') < routeBody.indexOf('isNextronProviderEligibleRequest'), "B general Today Focus does not route to Mastra branch");
 assert(routeBody.includes('parsed.request.intent === "CROSS_DOMAIN_AGENT"') && routeBody.indexOf('parsed.request.intent === "CROSS_DOMAIN_AGENT"') < routeBody.indexOf('isNextronProviderEligibleRequest'), "B2 cross-domain path runs before generic provider path");
