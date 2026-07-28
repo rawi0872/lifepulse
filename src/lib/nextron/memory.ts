@@ -191,7 +191,7 @@ export async function rememberPreferenceMemory(supabase: SupabaseClient, userId:
 
 export async function forgetPreferenceMemory(supabase: SupabaseClient, userId: string, input: unknown): Promise<NextronMemoryForgetResult> {
   const sanitized = sanitizePreferenceMemory(input);
-  const target = sanitized.ok ? sanitized.content : compactText(String(input ?? ""));
+  const target = (sanitized.ok ? sanitized.content : compactText(String(input ?? ""))).replace(/[.!?]+$/, "");
   if (!target) return { ok: false, reason: "Tell me which preference to forget." };
 
   const active = await listActivePreferenceMemories(supabase, userId, 50);
