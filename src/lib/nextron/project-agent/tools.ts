@@ -49,9 +49,8 @@ export function createNextronProjectAgentTools(context: NextronToolContext, trac
     if (error) throw new Error("PROJECT_READ_FAILED");
     const rows = (data ?? []) as ProjectRow[];
     firstProjectId = rows[0]?.id ?? null;
-    return rows.map((project, index) => {
+    return rows.map((project) => {
       return {
-        listPosition: index + 1,
         title: safeText(project.title, 80) ?? "Untitled project",
         status: safeText(project.status, 24) ?? "unknown",
         deadline: project.deadline,
