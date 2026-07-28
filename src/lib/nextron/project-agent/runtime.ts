@@ -293,7 +293,7 @@ export class NextronAgentRuntime {
       if (output.length > PROJECT_AGENT_MAX_OUTPUT_CHARS) throw new ProjectAgentError("MODEL_OUTPUT_TOO_LARGE");
       const validation = validateKnowledgeAgentOutput(parseProjectAgentOutput(output, new Set(["knowledge"])), { toolResults: toolsUsed, toolEvidence, evidence: request.evidence });
       if (!validation.ok) {
-        const synthesized = validation.reason === "PARSER_FAILED" && toolsUsed.length > 0 ? synthesizeKnowledgeFromTools(toolEvidence) : null;
+        const synthesized = toolsUsed.length > 0 ? synthesizeKnowledgeFromTools(toolEvidence) : null;
         if (synthesized) return { response: synthesized, fallbackReason: null, toolsUsed };
         throw new ProjectAgentError(validation.reason);
       }
@@ -306,7 +306,7 @@ export class NextronAgentRuntime {
           : error instanceof Error && error.message === "PERMISSION_DENIED"
             ? "PERMISSION_DENIED"
             : "MASTRA_ERROR";
-      const synthesized = (reason === "PARSER_FAILED" || reason === "TIMEOUT") && toolsUsed.length > 0 ? synthesizeKnowledgeFromTools(toolEvidence) : null;
+      const synthesized = toolsUsed.length > 0 ? synthesizeKnowledgeFromTools(toolEvidence) : null;
       if (synthesized) return { response: synthesized, fallbackReason: null, toolsUsed };
       return fallbackResult(request.fallback, reason, toolsUsed);
     }

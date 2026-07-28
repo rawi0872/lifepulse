@@ -123,7 +123,7 @@ function classifyPrompt(normalizedPrompt: string): Pick<NextronUserRequest, "int
   if (includesAny(normalizedPrompt, ["making progress", "going well", "progress", "good"])) return { intent: "PROGRESS", handlingStatus: "handled", confidence: "medium" };
   if (includesAny(normalizedPrompt, ["neglect", "not keeping up", "haven t", "have not", "missing"])) return { intent: "NEGLECT", handlingStatus: "handled", confidence: "high" };
   if (includesAny(normalizedPrompt, ["plan", "structure today", "rest of today"])) return { intent: "PLANNING", handlingStatus: "handled", confidence: "high" };
-  if (includesAny(normalizedPrompt, ["review", "reflect", "look over", "journal", "wrote", "write", "evening shutdown", "weekly review"])) return { intent: "REVIEW", handlingStatus: "handled", confidence: "high" };
+  if (includesAny(normalizedPrompt, ["review", "reflect", "look over", "journal", "evening shutdown", "weekly review"])) return { intent: "REVIEW", handlingStatus: "handled", confidence: "high" };
   if (includesAny(normalizedPrompt, ["pattern", "patterns", "trend", "trends"])) return { intent: "PATTERN", handlingStatus: "handled", confidence: "high" };
   if (includesAny(normalizedPrompt, ["stuck", "friction", "blocked", "stalling"])) return { intent: "STUCK", handlingStatus: "handled", confidence: "high" };
   if (includesAny(normalizedPrompt, ["coach", "help", "what should", "how am i", "what needs", "what can i"])) return { intent: "GENERAL_SUPPORTED", handlingStatus: "handled", confidence: "low" };
