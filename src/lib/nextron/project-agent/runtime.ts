@@ -108,6 +108,46 @@ function fallbackResult(fallback: () => NextronCoachResponse, fallbackReason: Pr
   return { response: { ...fallback(), source: "deterministic" }, fallbackReason, toolsUsed };
 }
 
+function crossFact(category: "today" | "tasks" | "habits" | "results" | "goals" | "projects" | "memory", text: string) {
+  return { category, text };
+}
+
+function synthesizeCrossDomainFromTools(toolEvidence: unknown[]): NextronCoachResponse | null {
+  const facts: ReturnType<typeof crossFact>[] = [];
+  for (const item of toolEvidence) {
+    const record = item as Record<string, unknown>;
+    const today = record.today as { overdueTaskCount?: number; dueTodayTaskCount?: number; incompleteHabitCount?: number } | null | undefined;
+    const tasks = record.tasks as { overdueCount?: number; dueTodayCount?: number; boundedOpenTaskCount?: number } | null | undefined;
+    const habits = record.habits as { dueTodayCount?: number; completedTodayCount?: number; weeklyCompletedCount?: number } | null | undefined;
+    const projects = record.projects as { activeCount?: number; activeWithoutOpenTaskCount?: number } | null | undefined;
+    const goals = record.goals as { activeCount?: number } | null | undefined;
+    const results = record.results as { activeMetricCount?: number; recentEntryCount?: number } | null | undefined;
+    const memory = record.memory as { preferences?: string[] } | null | undefined;
+
+    if (tasks && Number(tasks.overdueCount) > 0) facts.push(crossFact("tasks", `${tasks.overdueCount} open tasks are overdue.`));
+    else if (tasks && Number(tasks.boundedOpenTaskCount) > 0) facts.push(crossFact("tasks", `${tasks.boundedOpenTaskCount} open tasks are visible.`));
+    if (habits && Number(habits.dueTodayCount) > Number(habits.completedTodayCount)) facts.push(crossFact("habits", `${Number(habits.dueTodayCount) - Number(habits.completedTodayCount)} due habits are incomplete today.`));
+    if (projects && Number(projects.activeWithoutOpenTaskCount) > 0) facts.push(crossFact("projects", `${projects.activeWithoutOpenTaskCount} active projects have no open task in the bounded check.`));
+    if (goals && Number(goals.activeCount) > 0) facts.push(crossFact("goals", `${goals.activeCount} active goals are visible.`));
+    if (results && Number(results.recentEntryCount) > 0) facts.push(crossFact("results", `${results.recentEntryCount} recent Results entries are visible.`));
+    if (today && Number(today.incompleteHabitCount) > 0 && facts.length === 0) facts.push(crossFact("today", `${today.incompleteHabitCount} due habits are incomplete today.`));
+    if (memory?.preferences?.length) facts.push(crossFact("memory", "A relevant confirmed preference is available as context only."));
+  }
+  const boundedFacts = facts.slice(0, 4);
+  if (boundedFacts.length === 0) return null;
+  const first = boundedFacts[0];
+  const route = first.category === "tasks" ? "/tasks" : first.category === "habits" ? "/habits" : first.category === "projects" ? "/projects" : first.category === "goals" ? "/goals" : first.category === "results" ? "/results" : "/today";
+  return {
+    facts: boundedFacts,
+    interpretation: "The strongest cross-domain signal is the first visible pressure point in permitted Life Pulse evidence.",
+    nextAction: { label: "Open relevant area", href: route, rationale: "Open the relevant Life Pulse area and choose the next manual step from current facts." },
+    priority: "medium",
+    ruleId: "cross_domain_agent",
+    supportingEvidence: boundedFacts.map((fact) => fact.text),
+    source: "ai",
+  };
+}
+
 export class NextronAgentRuntime {
   private readonly options: NextronAgentRuntimeOptions;
 
@@ -171,7 +211,11 @@ export class NextronAgentRuntime {
       const output = await withTimeout(this.generateCrossDomainText(buildProjectAgentPrompt(request.userRequest), toolContext, toolsUsed, tools), CROSS_DOMAIN_AGENT_TIMEOUT_MS);
       if (output.length > PROJECT_AGENT_MAX_OUTPUT_CHARS) throw new ProjectAgentError("MODEL_OUTPUT_TOO_LARGE");
       const validation = validateCrossDomainAgentOutput(parseProjectAgentOutput(output, new Set(["today", "tasks", "habits", "results", "goals", "projects", "memory"])), { toolResults: toolsUsed, toolEvidence, evidence: request.evidence });
-      if (!validation.ok) throw new ProjectAgentError(validation.reason);
+      if (!validation.ok) {
+        const synthesized = validation.reason === "PARSER_FAILED" && toolsUsed.length > 0 ? synthesizeCrossDomainFromTools(toolEvidence) : null;
+        if (synthesized) return { response: synthesized, fallbackReason: null, toolsUsed };
+        throw new ProjectAgentError(validation.reason);
+      }
       return { response: validation.response, fallbackReason: null, toolsUsed };
     } catch (error) {
       const reason = error instanceof ProjectAgentError
