@@ -1,8 +1,9 @@
 import type { NextronCoachResponse } from "@/lib/nextron/coach";
 import { PROJECT_AGENT_MAX_OUTPUT_CHARS, type ProjectAgentFallbackReason, type ProjectAgentParsedOutput } from "@/lib/nextron/project-agent/schemas";
 
-const ALLOWED_AGENT_ROUTES = new Set(["/projects", "/tasks", "/goals", "/coach"]);
-const ALLOWED_AGENT_CATEGORIES = new Set(["projects", "tasks", "goals"]);
+const ALLOWED_AGENT_ROUTES = new Set(["/projects", "/tasks", "/goals", "/habits", "/results", "/today", "/coach"]);
+const PROJECT_AGENT_CATEGORIES = new Set(["projects", "tasks", "goals"]);
+const CROSS_DOMAIN_AGENT_CATEGORIES = new Set(["today", "tasks", "habits", "results", "goals", "projects", "memory"]);
 const FORBIDDEN_TEXT = /[A-Fa-f0-9]{8}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{12}|\S+@\S+|supabase|user_id|service_role|api[_-]?key|secret|sql|insert|update|delete|drop|created a task|edited a project|scheduled/i;
 const INTERNAL_REF_TEXT = /\bref\s+p\d+\b|\bp\d+\b/i;
 
@@ -22,7 +23,7 @@ function lineValue(lines: string[], label: string): string | null {
   return line ? line.slice(prefix.length).trim() : null;
 }
 
-export function parseProjectAgentOutput(text: unknown): ProjectAgentParsedOutput | null {
+export function parseProjectAgentOutput(text: unknown, allowedCategories: Set<string> = PROJECT_AGENT_CATEGORIES): ProjectAgentParsedOutput | null {
   if (typeof text !== "string" || text.length > PROJECT_AGENT_MAX_OUTPUT_CHARS) return null;
   const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
   const factsText = lineValue(lines, "facts");
@@ -38,7 +39,7 @@ export function parseProjectAgentOutput(text: unknown): ProjectAgentParsedOutput
     return category && text ? { category: category.trim(), text } : null;
   }).filter((item): item is { category: string; text: string } => Boolean(item));
   if (facts.length < 1 || facts.length > 4) return null;
-  if (facts.some((fact) => !ALLOWED_AGENT_CATEGORIES.has(fact.category))) return null;
+  if (facts.some((fact) => !allowedCategories.has(fact.category))) return null;
   return { facts: facts as ProjectAgentParsedOutput["facts"], interpretation, nextAction: { label: nextActionLabel, href: nextActionRoute as ProjectAgentParsedOutput["nextAction"]["href"], rationale: nextActionRationale } };
 }
 
@@ -80,6 +81,14 @@ function hasInternalRefLeak(text: string, evidence: unknown): boolean {
 }
 
 export function validateProjectAgentOutput(parsed: ProjectAgentParsedOutput | null, evidence: unknown): ProjectAgentValidationResult {
+  return validateAgentOutput(parsed, evidence, PROJECT_AGENT_CATEGORIES, "project_agent_focus");
+}
+
+export function validateCrossDomainAgentOutput(parsed: ProjectAgentParsedOutput | null, evidence: unknown): ProjectAgentValidationResult {
+  return validateAgentOutput(parsed, evidence, CROSS_DOMAIN_AGENT_CATEGORIES, "cross_domain_agent");
+}
+
+function validateAgentOutput(parsed: ProjectAgentParsedOutput | null, evidence: unknown, allowedCategories: Set<string>, ruleId: "project_agent_focus" | "cross_domain_agent"): ProjectAgentValidationResult {
   if (!parsed) return { ok: false, reason: "PARSER_FAILED" };
   const allowedNumbers = collectNumbers(evidence);
   const allText = [parsed.interpretation, parsed.nextAction.label, parsed.nextAction.rationale, ...parsed.facts.map((fact) => fact.text)];
@@ -87,7 +96,7 @@ export function validateProjectAgentOutput(parsed: ProjectAgentParsedOutput | nu
   if (allText.some((text) => hasInternalRefLeak(text, evidence))) return { ok: false, reason: "FORBIDDEN_CONTENT" };
   if (allText.some((text) => hasUnsupportedNumber(text, allowedNumbers))) return { ok: false, reason: "NUMERIC_FACT_INVALID" };
   if (!ALLOWED_AGENT_ROUTES.has(parsed.nextAction.href)) return { ok: false, reason: "ROUTE_INVALID" };
-  if (parsed.facts.some((fact) => !ALLOWED_AGENT_CATEGORIES.has(fact.category))) return { ok: false, reason: "EVIDENCE_CATEGORY_INVALID" };
+  if (parsed.facts.some((fact) => !allowedCategories.has(fact.category))) return { ok: false, reason: "EVIDENCE_CATEGORY_INVALID" };
   return {
     ok: true,
     response: {
@@ -95,7 +104,7 @@ export function validateProjectAgentOutput(parsed: ProjectAgentParsedOutput | nu
       interpretation: parsed.interpretation,
       nextAction: parsed.nextAction,
       priority: "medium",
-      ruleId: "project_agent_focus",
+      ruleId,
       supportingEvidence: parsed.facts.map((fact) => fact.text),
       source: "ai",
     },

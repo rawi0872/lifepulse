@@ -5,8 +5,12 @@ export const PROJECT_AGENT_MAX_TOOL_CALLS = 3;
 export const PROJECT_AGENT_MAX_STEPS = 4;
 export const PROJECT_AGENT_TIMEOUT_MS = 8_000;
 export const PROJECT_AGENT_MAX_OUTPUT_CHARS = 2_048;
+export const CROSS_DOMAIN_AGENT_MAX_TOOL_CALLS = 4;
+export const CROSS_DOMAIN_AGENT_MAX_STEPS = 5;
+export const CROSS_DOMAIN_AGENT_TIMEOUT_MS = 10_000;
 
 export type ProjectAgentToolName = "getProjects" | "getProject" | "getProjectTasks" | "getGoals";
+export type CrossDomainAgentToolName = "getTodayContext" | "getTasksSummary" | "getGoalsSummary" | "getProjectsSummary" | "getHabitsSummary" | "getResultsSummary" | "getMemoryPreferences";
 export type ProjectAgentFallbackReason =
   | "PROVIDER_DISABLED"
   | "MISSING_KEY"
@@ -24,7 +28,7 @@ export type ProjectAgentFallbackReason =
   | "MASTRA_ERROR";
 
 export interface ProjectAgentFact {
-  category: Extract<NextronEvidenceCategory, "projects" | "tasks" | "goals">;
+  category: Extract<NextronEvidenceCategory, "today" | "tasks" | "habits" | "results" | "goals" | "projects" | "memory">;
   text: string;
 }
 
@@ -37,5 +41,5 @@ export interface ProjectAgentParsedOutput {
 export interface ProjectAgentRunResult {
   response: NextronCoachResponse;
   fallbackReason: ProjectAgentFallbackReason | null;
-  toolsUsed: ProjectAgentToolName[];
+  toolsUsed: Array<ProjectAgentToolName | CrossDomainAgentToolName>;
 }

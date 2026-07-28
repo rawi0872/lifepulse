@@ -28,6 +28,7 @@ export const NEXTRON_REQUEST_MAX_LENGTH = 500;
 export type NextronCoachingIntent =
   | "TODAY_FOCUS"
   | "PROJECT_AGENT"
+  | "CROSS_DOMAIN_AGENT"
   | "NEXT_ACTION"
   | "ATTENTION"
   | "WEEK_PROGRESS"
@@ -107,6 +108,8 @@ function classifyPrompt(normalizedPrompt: string): Pick<NextronUserRequest, "int
   const projectTerms = ["project", "projects"];
   const projectFocusTerms = ["blocking", "blocked", "stuck", "next step", "do next", "should i do next", "next action", "why is"];
   if (includesAny(normalizedPrompt, projectTerms) && includesAny(normalizedPrompt, projectFocusTerms)) return { intent: "PROJECT_AGENT", handlingStatus: "handled", confidence: "high" };
+
+  if (includesAny(normalizedPrompt, ["holding me back", "deserves my attention", "everything going on", "where am i making progress", "where am i progressing", "where am i slipping", "progressing and where", "part of my life needs attention", "based on everything", "prioritize based on everything"])) return { intent: "CROSS_DOMAIN_AGENT", handlingStatus: "handled", confidence: "high" };
 
   if (includesAny(normalizedPrompt, ["focus", "do today", "matters most", "right now", "priority"])) return { intent: "TODAY_FOCUS", handlingStatus: "handled", confidence: "high" };
   if (includesAny(normalizedPrompt, ["next step", "do next", "should i do next", "next action"])) return { intent: "NEXT_ACTION", handlingStatus: "handled", confidence: "high" };
@@ -252,6 +255,10 @@ export function buildInteractiveNextronResponse(packet: NextronEvidencePacket, r
         ? response("interactive_project_agent_fallback", "medium", [fact("projects", `${plural(packet.projects.data.activeCount, "active project")} visible.`)], "Use the Projects surface to inspect linked open tasks and choose the next manual step.", "Open Projects", "/projects", "Review the project and its tasks directly; NEXTRON will not create or edit anything.")
         : noEvidenceResponse(request.intent);
     }
+    case "CROSS_DOMAIN_AGENT":
+      return facts.length > 0
+        ? response("interactive_cross_domain_fallback", "medium", facts, "These are the clearest cross-domain attention signals in permitted evidence. NEXTRON is using deterministic fallback rather than agent synthesis right now.", fallback.nextAction.label, fallback.nextAction.href, fallback.nextAction.rationale)
+        : noEvidenceResponse(request.intent);
     case "NEXT_ACTION":
     case "GENERAL_SUPPORTED":
       return { ...fallback, ruleId: `interactive_${fallback.ruleId}` };

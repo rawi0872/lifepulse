@@ -12,7 +12,7 @@ import {
   rememberPreferenceMemory,
   retrieveRelevantPreferenceMemories,
 } from "@/lib/nextron/memory";
-import { runNextronProjectAgentOrFallback } from "@/lib/nextron/project-agent/runtime";
+import { runNextronCrossDomainAgentOrFallback, runNextronProjectAgentOrFallback } from "@/lib/nextron/project-agent/runtime";
 import { createConfiguredNextronProvider, getNextronProviderUnavailableReason, runNextronProviderOrFallbackDetailed } from "@/lib/nextron/provider";
 import { createClient } from "@/lib/supabase/server";
 
@@ -82,6 +82,14 @@ export async function POST(request: Request) {
 
     if (parsed.request.intent === "PROJECT_AGENT") {
       const result = await runNextronProjectAgentOrFallback({ supabase, userId: user.id, permissions, evidence, userRequest: parsed.request, fallback });
+      return NextResponse.json(
+        { response: result.response, source: result.response.source ?? "deterministic" },
+        result.fallbackReason ? { headers: { "X-Nextron-Fallback-Reason": result.fallbackReason } } : undefined,
+      );
+    }
+
+    if (parsed.request.intent === "CROSS_DOMAIN_AGENT") {
+      const result = await runNextronCrossDomainAgentOrFallback({ supabase, userId: user.id, permissions, evidence, userRequest: parsed.request, fallback });
       return NextResponse.json(
         { response: result.response, source: result.response.source ?? "deterministic" },
         result.fallbackReason ? { headers: { "X-Nextron-Fallback-Reason": result.fallbackReason } } : undefined,

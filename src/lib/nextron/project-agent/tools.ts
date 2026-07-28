@@ -2,7 +2,8 @@ import { createTool } from "@mastra/core/tools";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod/v4";
 import { isNextronContextAllowed, type NextronPermissionState } from "@/lib/nextron/context";
-import { PROJECT_AGENT_MAX_TOOL_CALLS, type ProjectAgentToolName } from "@/lib/nextron/project-agent/schemas";
+import type { NextronEvidencePacket } from "@/lib/nextron/evidence";
+import { CROSS_DOMAIN_AGENT_MAX_TOOL_CALLS, PROJECT_AGENT_MAX_TOOL_CALLS, type CrossDomainAgentToolName, type ProjectAgentToolName } from "@/lib/nextron/project-agent/schemas";
 
 export interface NextronToolContext {
   userId: string;
@@ -153,5 +154,105 @@ export function createNextronProjectAgentTools(context: NextronToolContext, trac
       },
     });
   }
+  return tools;
+}
+
+export function createNextronCrossDomainAgentTools(context: NextronToolContext, evidence: NextronEvidencePacket, trace: CrossDomainAgentToolName[], evidenceSink: unknown[] = []) {
+  function record(tool: CrossDomainAgentToolName) {
+    trace.push(tool);
+    if (trace.length > CROSS_DOMAIN_AGENT_MAX_TOOL_CALLS) throw new Error("TOOL_LIMIT_EXCEEDED");
+  }
+
+  function remember<T>(output: T): T {
+    evidenceSink.push(output);
+    return output;
+  }
+
+  const tools: Record<string, ReturnType<typeof createTool>> = {};
+
+  if (isNextronContextAllowed(context.permissions, "today")) {
+    tools.getTodayContext = createTool({
+      id: "getTodayContext",
+      description: "Read today's bounded planning context: local date, current task pressure, and habit completion counts. Read-only.",
+      inputSchema: z.object({}),
+      execute: async () => {
+        record("getTodayContext");
+        return remember({ today: evidence.today.status === "available" ? evidence.today.data : null, status: evidence.today.status });
+      },
+    });
+  }
+
+  if (isNextronContextAllowed(context.permissions, "tasks")) {
+    tools.getTasksSummary = createTool({
+      id: "getTasksSummary",
+      description: "Read a bounded task summary: overdue, due today, unscheduled, completed today, and up to three sanitized open task titles. Read-only.",
+      inputSchema: z.object({}),
+      execute: async () => {
+        record("getTasksSummary");
+        return remember({ tasks: evidence.tasks.status === "available" ? evidence.tasks.data : null, status: evidence.tasks.status });
+      },
+    });
+  }
+
+  if (isNextronContextAllowed(context.permissions, "goals")) {
+    tools.getGoalsSummary = createTool({
+      id: "getGoalsSummary",
+      description: "Read active goal count and up to three sanitized active goal names. Read-only.",
+      inputSchema: z.object({}),
+      execute: async () => {
+        record("getGoalsSummary");
+        return remember({ goals: evidence.goals.status === "available" ? evidence.goals.data : null, status: evidence.goals.status });
+      },
+    });
+  }
+
+  if (isNextronContextAllowed(context.permissions, "projects")) {
+    tools.getProjectsSummary = createTool({
+      id: "getProjectsSummary",
+      description: "Read active project count, projects without open tasks, and up to three sanitized active project names. Read-only.",
+      inputSchema: z.object({}),
+      execute: async () => {
+        record("getProjectsSummary");
+        return remember({ projects: evidence.projects.status === "available" ? evidence.projects.data : null, status: evidence.projects.status });
+      },
+    });
+  }
+
+  if (isNextronContextAllowed(context.permissions, "habits")) {
+    tools.getHabitsSummary = createTool({
+      id: "getHabitsSummary",
+      description: "Read due/completed habit counts for today and weekly completion/target counts. Read-only; no inferred streaks.",
+      inputSchema: z.object({}),
+      execute: async () => {
+        record("getHabitsSummary");
+        return remember({ habits: evidence.habits.status === "available" ? evidence.habits.data : null, status: evidence.habits.status });
+      },
+    });
+  }
+
+  if (isNextronContextAllowed(context.permissions, "results")) {
+    tools.getResultsSummary = createTool({
+      id: "getResultsSummary",
+      description: "Read active manual metric count, recent entry count, and up to four latest sanitized metric values. Read-only; do not infer trends unless directly supported.",
+      inputSchema: z.object({}),
+      execute: async () => {
+        record("getResultsSummary");
+        return remember({ results: evidence.results.status === "available" ? evidence.results.data : null, status: evidence.results.status });
+      },
+    });
+  }
+
+  if (evidence.memory.status === "available" && evidence.memory.data?.preferences.length) {
+    tools.getMemoryPreferences = createTool({
+      id: "getMemoryPreferences",
+      description: "Read relevant active confirmed preference memories already selected by Life Pulse policy. Memory is context only and never overrides structured facts.",
+      inputSchema: z.object({}),
+      execute: async () => {
+        record("getMemoryPreferences");
+        return remember({ memory: { preferences: evidence.memory.data?.preferences.slice(0, 3) ?? [] }, status: evidence.memory.status });
+      },
+    });
+  }
+
   return tools;
 }

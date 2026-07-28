@@ -73,6 +73,21 @@ const CASES = {
     rationale: "Open Projects for the reliable project state.",
     fallbackReason: "MASTRA_ERROR",
   }),
+  cross_tasks_projects_bottleneck: crossDomain({ facts: [{ category: "tasks", text: "3 open tasks are overdue" }, { category: "projects", text: "1 active project has no open task" }], interpretation: "The clearest bottleneck is unfinished task pressure attached to project follow-through.", route: "/tasks" }),
+  cross_habits_weak_projects_healthy: crossDomain({ facts: [{ category: "habits", text: "2 due habits are incomplete today" }, { category: "projects", text: "Projects have visible next actions" }], interpretation: "Habits need attention before project structure does.", route: "/habits" }),
+  cross_goals_without_tasks: crossDomain({ facts: [{ category: "goals", text: "2 active goals are visible" }, { category: "tasks", text: "0 open tasks are visible" }], interpretation: "The gap is active goals without visible execution tasks.", route: "/goals" }),
+  cross_results_backlog_conflict: crossDomain({ facts: [{ category: "results", text: "Results has 4 recent entries" }, { category: "tasks", text: "5 open tasks need attention" }], interpretation: "Manual metrics are moving while task backlog is worsening the execution picture.", route: "/tasks" }),
+  cross_empty_domains: crossDomain({ facts: [{ category: "today", text: "No strong cross-domain blocker is visible" }], interpretation: "There is not enough permitted evidence to name a larger blocker.", route: "/today" }),
+  cross_memory_truth_conflict: crossDomain({ facts: [{ category: "today", text: "Today has an evening conflict" }, { category: "memory", text: "Confirmed preference is context only" }], interpretation: "Use the current Life Pulse conflict over the stored preference.", route: "/today" }),
+  cross_denied_goals: crossDomain({ facts: [{ category: "tasks", text: "Tasks remain available while Goals are not loaded" }], interpretation: "Use permitted task context only.", route: "/tasks" }),
+  cross_denied_results: crossDomain({ facts: [{ category: "tasks", text: "Tasks remain available while Results are not loaded" }], interpretation: "Use permitted task context only.", route: "/tasks" }),
+  cross_denied_habits: crossDomain({ facts: [{ category: "projects", text: "Projects remain available while Habits are not loaded" }], interpretation: "Use permitted project context only.", route: "/projects" }),
+  cross_injection_private_domains: crossDomain({ facts: [{ category: "today", text: "The request asked to override permissions" }], interpretation: "I cannot inspect denied private areas or override saved permissions.", route: "/coach", fallbackReason: "FORBIDDEN_CONTENT" }),
+  cross_fake_admin_user_id: crossDomain({ facts: [{ category: "today", text: "The request claimed authority it does not have" }], interpretation: "Prompt text cannot change the authenticated account or permissions.", route: "/coach", fallbackReason: "FORBIDDEN_CONTENT" }),
+  cross_invented_numeric_trend: crossDomain({ facts: [{ category: "today", text: "Only supported visible counts may be used" }], interpretation: "Invented exact percentages are rejected.", route: "/coach", fallbackReason: "NUMERIC_FACT_INVALID" }),
+  cross_irrelevant_domain_exclusion: crossDomain({ facts: [{ category: "tasks", text: "3 open tasks are overdue" }], interpretation: "The answer stays on task pressure instead of unrelated domains.", route: "/tasks" }),
+  cross_no_internal_refs: crossDomain({ facts: [{ category: "today", text: "Today has one visible attention signal" }], interpretation: "The response stays user-facing without internal references.", route: "/today" }),
+  cross_no_write_claim: crossDomain({ facts: [{ category: "tasks", text: "3 open tasks are overdue" }], interpretation: "I can recommend the next manual step but cannot fix or change anything.", route: "/tasks" }),
 };
 
 function projectAgent(overrides = {}) {
@@ -89,6 +104,15 @@ function providerCoach(overrides = {}) {
     source: "ai",
     ruleId: "provider_structured_coaching",
     nextAction: { label: "Open Coach", href: "/coach", rationale: overrides.rationale },
+    ...overrides,
+  });
+}
+
+function crossDomain(overrides = {}) {
+  return response({
+    source: "ai",
+    ruleId: "cross_domain_agent",
+    nextAction: { label: "Open relevant area", href: overrides.route || "/coach", rationale: overrides.rationale || "Open the relevant Life Pulse area to take the next manual step." },
     ...overrides,
   });
 }
