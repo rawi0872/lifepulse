@@ -6,6 +6,7 @@ export type NextronContextDomain =
   | "results"
   | "goals"
   | "projects"
+  | "knowledge"
   | "journal"
   | "eveningShutdown"
   | "weeklyReview";
@@ -31,6 +32,7 @@ export type NextronPermissionColumn =
   | "allow_results"
   | "allow_goals"
   | "allow_projects"
+  | "allow_knowledge"
   | "allow_journal"
   | "allow_evening_shutdown"
   | "allow_weekly_review";
@@ -44,6 +46,7 @@ export interface NextronPreferenceRow {
   allow_results: boolean | null;
   allow_goals: boolean | null;
   allow_projects: boolean | null;
+  allow_knowledge?: boolean | null;
   allow_journal: boolean | null;
   allow_evening_shutdown: boolean | null;
   allow_weekly_review: boolean | null;
@@ -59,6 +62,7 @@ export interface NextronPreferenceUpsert {
   allow_results: boolean;
   allow_goals: boolean;
   allow_projects: boolean;
+  allow_knowledge: boolean;
   allow_journal: boolean;
   allow_evening_shutdown: boolean;
   allow_weekly_review: boolean;
@@ -69,7 +73,7 @@ export interface NormalizedNextronPreferences {
   warning: string | null;
 }
 
-export const NEXTRON_PERMISSION_VERSION = 1;
+export const NEXTRON_PERMISSION_VERSION = 2;
 
 const NEXTRON_DEFAULT_PERMISSION_LEVELS: NextronPermissionState = {
   profile: "allowed",
@@ -79,6 +83,7 @@ const NEXTRON_DEFAULT_PERMISSION_LEVELS: NextronPermissionState = {
   results: "allowed",
   goals: "allowed",
   projects: "allowed",
+  knowledge: "denied",
   journal: "denied",
   eveningShutdown: "denied",
   weeklyReview: "denied",
@@ -142,6 +147,14 @@ export const NEXTRON_CONTEXT_PERMISSIONS: readonly NextronContextPermission[] = 
     textHeavy: false,
   },
   {
+    domain: "knowledge",
+    dbColumn: "allow_knowledge",
+    label: "Knowledge notes",
+    description: "Allow NEXTRON to read bounded snippets from your Knowledge notes when relevant.",
+    level: NEXTRON_DEFAULT_PERMISSION_LEVELS.knowledge,
+    textHeavy: true,
+  },
+  {
     domain: "journal",
     dbColumn: "allow_journal",
     label: "Journal text",
@@ -196,7 +209,7 @@ export function normalizeNextronPreferences(row: NextronPreferenceRow | null | u
   const defaults = getDefaultNextronPermissions();
   if (!row) return { permissions: defaults, warning: null };
 
-  if (row.permission_version !== NEXTRON_PERMISSION_VERSION) {
+  if (row.permission_version !== NEXTRON_PERMISSION_VERSION && row.permission_version !== 1) {
     return {
       permissions: defaults,
       warning: "Saved NEXTRON context permissions use an unsupported version, so safe defaults are active.",
@@ -233,6 +246,7 @@ export function buildNextronPreferenceUpsert(userId: string, permissions: Nextro
     allow_results: permissions.results === "allowed",
     allow_goals: permissions.goals === "allowed",
     allow_projects: permissions.projects === "allowed",
+    allow_knowledge: permissions.knowledge === "allowed",
     allow_journal: permissions.journal === "allowed",
     allow_evening_shutdown: permissions.eveningShutdown === "allowed",
     allow_weekly_review: permissions.weeklyReview === "allowed",

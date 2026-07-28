@@ -114,6 +114,7 @@ export interface NextronEvidencePacket {
   weeklyReview: NextronPacketSection<{ existsThisWeek: boolean; nextWeekFocus: string | null }>;
   goals: NextronPacketSection<{ activeCount: number; sampleNames: string[] }>;
   projects: NextronPacketSection<{ activeCount: number; activeWithoutOpenTaskCount: number; sampleNames: string[] }>;
+  knowledge: NextronPacketSection<{ noteSearchAvailable: boolean }>;
   memory: NextronPacketSection<{ preferences: string[] }>;
   warnings: string[];
 }
@@ -187,6 +188,9 @@ export async function buildNextronEvidencePacket(
   let weeklyReview: NextronEvidencePacket["weeklyReview"] = denied("Weekly Review reflection is not loaded unless allowed.");
   let goals: NextronEvidencePacket["goals"] = denied();
   let projects: NextronEvidencePacket["projects"] = denied();
+  const knowledge: NextronEvidencePacket["knowledge"] = isNextronContextAllowed(permissions, "knowledge")
+    ? available({ noteSearchAvailable: true }, "Knowledge notes are searched only on explicit Knowledge questions.")
+    : denied("Knowledge notes are not loaded unless allowed.");
   const memory: NextronEvidencePacket["memory"] = missing("No relevant confirmed preference memory was loaded for this request.");
 
   const wantsOperational = isNextronContextAllowed(permissions, "today") || isNextronContextAllowed(permissions, "tasks") || isNextronContextAllowed(permissions, "habits");
@@ -413,7 +417,7 @@ export async function buildNextronEvidencePacket(
     }
   }
 
-  for (const [domain, section] of Object.entries({ profile, today: todaySection, tasks, habits, results, journal, eveningShutdown, weeklyReview, goals, projects }) as Array<[NextronContextDomain, EvidenceSection]>) {
+  for (const [domain, section] of Object.entries({ profile, today: todaySection, tasks, habits, results, journal, eveningShutdown, weeklyReview, goals, projects, knowledge }) as Array<[NextronContextDomain, EvidenceSection]>) {
     permissionSummary[domain] = section.status;
     if (section.status === "error" && section.note) warnings.push(section.note);
   }
@@ -431,6 +435,7 @@ export async function buildNextronEvidencePacket(
     journal,
     eveningShutdown,
     weeklyReview,
+    knowledge,
     memory,
     goals,
     projects,

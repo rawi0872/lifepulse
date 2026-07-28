@@ -97,7 +97,7 @@ function NextronContent() {
         setUserId(user.id);
         const { data, error: preferencesError } = await supabase
           .from("nextron_context_preferences")
-          .select("permission_version, allow_profile, allow_today, allow_tasks, allow_habits, allow_results, allow_goals, allow_projects, allow_journal, allow_evening_shutdown, allow_weekly_review")
+          .select("permission_version, allow_profile, allow_today, allow_tasks, allow_habits, allow_results, allow_goals, allow_projects, allow_knowledge, allow_journal, allow_evening_shutdown, allow_weekly_review")
           .eq("user_id", user.id)
           .maybeSingle();
 
@@ -172,7 +172,7 @@ function NextronContent() {
     const { data, error: saveError } = await supabase
       .from("nextron_context_preferences")
       .upsert(buildNextronPreferenceUpsert(user.id, draftPermissions), { onConflict: "user_id" })
-      .select("permission_version, allow_profile, allow_today, allow_tasks, allow_habits, allow_results, allow_goals, allow_projects, allow_journal, allow_evening_shutdown, allow_weekly_review")
+      .select("permission_version, allow_profile, allow_today, allow_tasks, allow_habits, allow_results, allow_goals, allow_projects, allow_knowledge, allow_journal, allow_evening_shutdown, allow_weekly_review")
       .single();
 
     if (seq !== requestSeq.current) return;
@@ -591,6 +591,14 @@ function ResponseView({ response }: { response: NextronCoachResponse }) {
         <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">Interpretation</p>
         <p className="mt-1 break-words text-sm leading-relaxed text-[var(--text-secondary)]">{response.interpretation}</p>
       </div>
+      {response.sources && response.sources.length > 0 && (
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">Sources</p>
+          <ul className="mt-2 space-y-1">
+            {response.sources.map((source) => <li key={source} className="break-words text-xs text-[var(--text-secondary)]">{source}</li>)}
+          </ul>
+        </div>
+      )}
       <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-3">
         <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">Suggested next action</p>
         <p className="mt-1 break-words text-sm text-[var(--text-secondary)]">{response.nextAction.rationale}</p>

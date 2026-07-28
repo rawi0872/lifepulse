@@ -1,6 +1,6 @@
 import type { NextronEvidencePacket } from "@/lib/nextron/evidence";
 
-export type NextronEvidenceCategory = keyof Pick<NextronEvidencePacket, "today" | "tasks" | "habits" | "results" | "journal" | "eveningShutdown" | "weeklyReview" | "goals" | "projects" | "profile" | "memory">;
+export type NextronEvidenceCategory = keyof Pick<NextronEvidencePacket, "today" | "tasks" | "habits" | "results" | "journal" | "eveningShutdown" | "weeklyReview" | "goals" | "projects" | "knowledge" | "profile" | "memory">;
 
 export interface NextronFact {
   category: NextronEvidenceCategory;
@@ -20,6 +20,7 @@ export interface NextronCoachResponse {
   priority: "high" | "medium" | "low" | "calm";
   ruleId: string;
   supportingEvidence: string[];
+  sources?: string[];
   source?: "ai" | "deterministic";
 }
 
@@ -29,6 +30,7 @@ export type NextronCoachingIntent =
   | "TODAY_FOCUS"
   | "PROJECT_AGENT"
   | "CROSS_DOMAIN_AGENT"
+  | "KNOWLEDGE_QUERY"
   | "NEXT_ACTION"
   | "ATTENTION"
   | "WEEK_PROGRESS"
@@ -108,6 +110,9 @@ function classifyPrompt(normalizedPrompt: string): Pick<NextronUserRequest, "int
   const projectTerms = ["project", "projects"];
   const projectFocusTerms = ["blocking", "blocked", "stuck", "next step", "do next", "should i do next", "next action", "why is"];
   if (includesAny(normalizedPrompt, projectTerms) && includesAny(normalizedPrompt, projectFocusTerms)) return { intent: "PROJECT_AGENT", handlingStatus: "handled", confidence: "high" };
+
+  const knowledgeTerms = ["my notes", "knowledge", "what did i write", "what did i note", "notes say", "did i decide", "did we decide", "in my notes", "what do my notes"];
+  if (includesAny(normalizedPrompt, knowledgeTerms)) return { intent: "KNOWLEDGE_QUERY", handlingStatus: "handled", confidence: "high" };
 
   if (includesAny(normalizedPrompt, ["holding me back", "deserves my attention", "everything going on", "where am i making progress", "where am i progressing", "where am i slipping", "progressing and where", "part of my life needs attention", "based on everything", "prioritize based on everything"])) return { intent: "CROSS_DOMAIN_AGENT", handlingStatus: "handled", confidence: "high" };
 
@@ -259,6 +264,10 @@ export function buildInteractiveNextronResponse(packet: NextronEvidencePacket, r
       return facts.length > 0
         ? response("interactive_cross_domain_fallback", "medium", facts, "These are the clearest cross-domain attention signals in permitted evidence. NEXTRON is using deterministic fallback rather than agent synthesis right now.", fallback.nextAction.label, fallback.nextAction.href, fallback.nextAction.rationale)
         : noEvidenceResponse(request.intent);
+    case "KNOWLEDGE_QUERY":
+      return packet.knowledge.status === "permission_denied"
+        ? response("interactive_knowledge_permission_denied", "calm", [fact("knowledge", "Knowledge notes are not loaded by the current saved permissions.")], "NEXTRON cannot inspect Knowledge notes unless that context is explicitly allowed.", "Review context permissions", "/coach", "Enable Knowledge notes only if you want NEXTRON to search your saved notes, then save permissions.")
+        : response("interactive_knowledge_fallback", "calm", [fact("knowledge", "No relevant Knowledge note evidence was found in the bounded check.")], "NEXTRON will not invent a note match or cite a source it did not retrieve.", "Open Knowledge", "/knowledge", "Use Knowledge to inspect or add the note manually.");
     case "NEXT_ACTION":
     case "GENERAL_SUPPORTED":
       return { ...fallback, ruleId: `interactive_${fallback.ruleId}` };

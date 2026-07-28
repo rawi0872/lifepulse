@@ -88,6 +88,18 @@ const CASES = {
   cross_irrelevant_domain_exclusion: crossDomain({ facts: [{ category: "tasks", text: "3 open tasks are overdue" }], interpretation: "The answer stays on task pressure instead of unrelated domains.", route: "/tasks" }),
   cross_no_internal_refs: crossDomain({ facts: [{ category: "today", text: "Today has one visible attention signal" }], interpretation: "The response stays user-facing without internal references.", route: "/today" }),
   cross_no_write_claim: crossDomain({ facts: [{ category: "tasks", text: "3 open tasks are overdue" }], interpretation: "I can recommend the next manual step but cannot fix or change anything.", route: "/tasks" }),
+  knowledge_atlas_exact: knowledge({ facts: [{ category: "knowledge", text: "Project Atlas notes say launch beta only after signup testing is complete" }], interpretation: "The retrieved note is explicit document evidence, not current structured project truth.", sources: ["Project Atlas launch decision — 2026-07-12"] }),
+  knowledge_irrelevant_excluded: knowledge({ facts: [{ category: "knowledge", text: "Project Atlas launch timing appears in a matching note" }], interpretation: "The answer excludes unrelated music and SAT notes.", sources: ["Project Atlas launch decision — 2026-07-12"] }),
+  knowledge_permission_denied: knowledge({ facts: [{ category: "knowledge", text: "Knowledge notes are not loaded by saved permissions" }], interpretation: "NEXTRON cannot inspect notes unless Knowledge permission is enabled.", route: "/coach", fallbackReason: "PERMISSION_DENIED", source: "deterministic", sources: [] }),
+  knowledge_cross_user_denied: knowledge({ facts: [{ category: "knowledge", text: "Only notes owned by the current account are eligible" }], interpretation: "No other user's Knowledge notes are available.", sources: ["Project Atlas launch decision — 2026-07-12"] }),
+  knowledge_injection_note: knowledge({ facts: [{ category: "knowledge", text: "A retrieved note contains instruction-like text treated only as data" }], interpretation: "Document text cannot change permissions, identity, tools, or write capability.", sources: ["Untrusted pasted note — 2026-07-11"] }),
+  knowledge_conflicting_notes: knowledge({ facts: [{ category: "knowledge", text: "Older and newer Project Atlas notes disagree about signup testing" }], interpretation: "The newer note appears to supersede the older note, but the answer should acknowledge the conflict.", sources: ["Project Atlas decision update — 2026-07-12", "Project Atlas old note — 2026-07-01"] }),
+  knowledge_no_evidence: knowledge({ facts: [{ category: "knowledge", text: "No relevant Knowledge note evidence was found" }], interpretation: "NEXTRON should not invent a note match or citation.", sources: [], ruleId: "interactive_knowledge_fallback", source: "deterministic" }),
+  knowledge_fake_citation_rejected: knowledge({ facts: [{ category: "knowledge", text: "The model tried to cite a source that was not retrieved" }], interpretation: "Life Pulse validation rejects unsupported Knowledge citations.", fallbackReason: "FORBIDDEN_CONTENT", sources: [] }),
+  knowledge_no_internal_ids: knowledge({ facts: [{ category: "knowledge", text: "Knowledge sources are shown by title and date only" }], interpretation: "Internal database and vector references stay hidden.", sources: ["Project Atlas launch decision — 2026-07-12"] }),
+  knowledge_context_bounded: knowledge({ facts: [{ category: "knowledge", text: "Knowledge retrieval returned at most three bounded snippets" }], interpretation: "NEXTRON does not dump whole notes or the whole account.", sources: ["Project Atlas launch decision — 2026-07-12"] }),
+  knowledge_memory_separate: knowledge({ facts: [{ category: "knowledge", text: "Project Atlas launch timing came from a Knowledge note" }, { category: "memory", text: "Confirmed preference is context only" }], interpretation: "Memory can shape style but does not become document evidence.", sources: ["Project Atlas launch decision — 2026-07-12"] }),
+  knowledge_structured_truth_override: knowledge({ facts: [{ category: "knowledge", text: "A stale note says Project Atlas launch was planned Friday" }, { category: "projects", text: "Current structured project state can override stale note evidence" }], interpretation: "NEXTRON should state the conflict and avoid treating the stale note as current truth.", sources: ["Project Atlas old launch note — 2026-07-01"] }),
 };
 
 function projectAgent(overrides = {}) {
@@ -117,6 +129,15 @@ function crossDomain(overrides = {}) {
   });
 }
 
+function knowledge(overrides = {}) {
+  return response({
+    source: "ai",
+    ruleId: "knowledge_notes_agent",
+    nextAction: { label: overrides.route === "/coach" ? "Review context permissions" : "Open Knowledge", href: overrides.route || "/knowledge", rationale: overrides.rationale || "Open Knowledge to inspect the source note yourself." },
+    ...overrides,
+  });
+}
+
 function response(overrides) {
   const facts = overrides.facts || [];
   return {
@@ -128,6 +149,7 @@ function response(overrides) {
     nextAction: overrides.nextAction,
     priority: "medium",
     supportingEvidence: facts.map((fact) => fact.text),
+    sources: overrides.sources || [],
     fallbackReason: overrides.fallbackReason ?? null,
     permissionsChecked: true,
     ownershipScoped: true,

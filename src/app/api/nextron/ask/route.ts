@@ -12,13 +12,13 @@ import {
   rememberPreferenceMemory,
   retrieveRelevantPreferenceMemories,
 } from "@/lib/nextron/memory";
-import { runNextronCrossDomainAgentOrFallback, runNextronProjectAgentOrFallback } from "@/lib/nextron/project-agent/runtime";
+import { runNextronCrossDomainAgentOrFallback, runNextronKnowledgeAgentOrFallback, runNextronProjectAgentOrFallback } from "@/lib/nextron/project-agent/runtime";
 import { createConfiguredNextronProvider, getNextronProviderUnavailableReason, runNextronProviderOrFallbackDetailed } from "@/lib/nextron/provider";
 import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 
-const PREFERENCE_COLUMNS = "permission_version, allow_profile, allow_today, allow_tasks, allow_habits, allow_results, allow_goals, allow_projects, allow_journal, allow_evening_shutdown, allow_weekly_review";
+const PREFERENCE_COLUMNS = "permission_version, allow_profile, allow_today, allow_tasks, allow_habits, allow_results, allow_goals, allow_projects, allow_knowledge, allow_journal, allow_evening_shutdown, allow_weekly_review";
 
 type AskBody = { prompt?: unknown };
 
@@ -90,6 +90,14 @@ export async function POST(request: Request) {
 
     if (parsed.request.intent === "CROSS_DOMAIN_AGENT") {
       const result = await runNextronCrossDomainAgentOrFallback({ supabase, userId: user.id, permissions, evidence, userRequest: parsed.request, fallback });
+      return NextResponse.json(
+        { response: result.response, source: result.response.source ?? "deterministic" },
+        result.fallbackReason ? { headers: { "X-Nextron-Fallback-Reason": result.fallbackReason } } : undefined,
+      );
+    }
+
+    if (parsed.request.intent === "KNOWLEDGE_QUERY") {
+      const result = await runNextronKnowledgeAgentOrFallback({ supabase, userId: user.id, permissions, evidence, userRequest: parsed.request, fallback });
       return NextResponse.json(
         { response: result.response, source: result.response.source ?? "deterministic" },
         result.fallbackReason ? { headers: { "X-Nextron-Fallback-Reason": result.fallbackReason } } : undefined,

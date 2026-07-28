@@ -1,10 +1,11 @@
 import type { NextronCoachResponse } from "@/lib/nextron/coach";
 import { PROJECT_AGENT_MAX_OUTPUT_CHARS, type ProjectAgentFallbackReason, type ProjectAgentParsedOutput } from "@/lib/nextron/project-agent/schemas";
 
-const ALLOWED_AGENT_ROUTES = new Set(["/projects", "/tasks", "/goals", "/habits", "/results", "/today", "/coach"]);
+const ALLOWED_AGENT_ROUTES = new Set(["/projects", "/tasks", "/goals", "/habits", "/results", "/today", "/coach", "/knowledge"]);
 const PROJECT_AGENT_CATEGORIES = new Set(["projects", "tasks", "goals"]);
 const CROSS_DOMAIN_AGENT_CATEGORIES = new Set(["today", "tasks", "habits", "results", "goals", "projects", "memory"]);
-const FORBIDDEN_TEXT = /[A-Fa-f0-9]{8}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{12}|\S+@\S+|supabase|user_id|service_role|api[_-]?key|secret|sql|insert|update|delete|drop|created a task|edited a project|scheduled/i;
+const KNOWLEDGE_AGENT_CATEGORIES = new Set(["knowledge"]);
+const FORBIDDEN_TEXT = /[A-Fa-f0-9]{8}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{12}|\S+@\S+|supabase|user_id|service_role|api[_-]?key|secret|sql|insert\s+into|update\s+.+\s+set|delete\s+from|drop\s+table|created a task|edited a project|scheduled|sent an email|deleted a/i;
 const INTERNAL_REF_TEXT = /\bref\s+p\d+\b|\bp\d+\b/i;
 
 export type ProjectAgentValidationResult =
@@ -45,6 +46,7 @@ export function parseProjectAgentOutput(text: unknown, allowedCategories: Set<st
   const nextActionLabel = clean(lineValue(lines, "nextActionLabel"), 80);
   const nextActionRoute = clean(lineValue(lines, "nextActionRoute"), 40);
   const nextActionRationale = clean(lineValue(lines, "nextActionRationale"), 260);
+  const sources = lineValue(lines, "sources")?.split(";").map((item) => clean(item, 120)).filter((item): item is string => Boolean(item)).slice(0, 3);
   if (!factsText || !interpretation || !nextActionLabel || !nextActionRoute || !nextActionRationale) return null;
   if (!ALLOWED_AGENT_ROUTES.has(nextActionRoute)) return null;
   const facts = factsText.split(";").map((item) => {
@@ -54,7 +56,7 @@ export function parseProjectAgentOutput(text: unknown, allowedCategories: Set<st
   }).filter((item): item is { category: string; text: string } => Boolean(item));
   if (facts.length < 1 || facts.length > 4) return null;
   if (facts.some((fact) => !allowedCategories.has(fact.category))) return null;
-  return { facts: facts as ProjectAgentParsedOutput["facts"], interpretation, nextAction: { label: nextActionLabel, href: nextActionRoute as ProjectAgentParsedOutput["nextAction"]["href"], rationale: nextActionRationale } };
+  return { facts: facts as ProjectAgentParsedOutput["facts"], interpretation, nextAction: { label: nextActionLabel, href: nextActionRoute as ProjectAgentParsedOutput["nextAction"]["href"], rationale: nextActionRationale }, sources };
 }
 
 function collectNumbers(evidence: unknown): Set<string> {
@@ -102,7 +104,40 @@ export function validateCrossDomainAgentOutput(parsed: ProjectAgentParsedOutput 
   return validateAgentOutput(parsed, evidence, CROSS_DOMAIN_AGENT_CATEGORIES, "cross_domain_agent");
 }
 
-function validateAgentOutput(parsed: ProjectAgentParsedOutput | null, evidence: unknown, allowedCategories: Set<string>, ruleId: "project_agent_focus" | "cross_domain_agent"): ProjectAgentValidationResult {
+export function validateKnowledgeAgentOutput(parsed: ProjectAgentParsedOutput | null, evidence: unknown): ProjectAgentValidationResult {
+  const result = validateAgentOutput(parsed, evidence, KNOWLEDGE_AGENT_CATEGORIES, "knowledge_notes_agent");
+  if (!result.ok) return result;
+  if (result.response.nextAction.href !== "/knowledge" && result.response.nextAction.href !== "/coach") return { ok: false, reason: "ROUTE_INVALID" };
+  const sources = parsed?.sources ?? [];
+  if (sources.length < 1 || sources.length > 3) return { ok: false, reason: "STRUCTURE_INVALID" };
+  const allowedSources = collectKnowledgeSources(evidence);
+  if (sources.some((source) => !allowedSources.has(source))) return { ok: false, reason: "FORBIDDEN_CONTENT" };
+  return { ok: true, response: { ...result.response, sources, supportingEvidence: [...result.response.supportingEvidence, ...sources].slice(0, 6) } };
+}
+
+function collectKnowledgeSources(evidence: unknown): Set<string> {
+  const sources = new Set<string>();
+  const stack = [evidence];
+  while (stack.length > 0) {
+    const item = stack.pop();
+    if (!item || typeof item !== "object") continue;
+    if (Array.isArray(item)) {
+      stack.push(...item);
+      continue;
+    }
+    for (const [key, value] of Object.entries(item)) {
+      if (key === "source" && typeof value === "string") {
+        const source = clean(value, 120);
+        if (source) sources.add(source);
+      } else if (value && typeof value === "object") {
+        stack.push(value);
+      }
+    }
+  }
+  return sources;
+}
+
+function validateAgentOutput(parsed: ProjectAgentParsedOutput | null, evidence: unknown, allowedCategories: Set<string>, ruleId: "project_agent_focus" | "cross_domain_agent" | "knowledge_notes_agent"): ProjectAgentValidationResult {
   if (!parsed) return { ok: false, reason: "PARSER_FAILED" };
   const allowedNumbers = collectNumbers(evidence);
   const allText = [parsed.interpretation, parsed.nextAction.label, parsed.nextAction.rationale, ...parsed.facts.map((fact) => fact.text)];
@@ -120,6 +155,7 @@ function validateAgentOutput(parsed: ProjectAgentParsedOutput | null, evidence: 
       priority: "medium",
       ruleId,
       supportingEvidence: parsed.facts.map((fact) => fact.text),
+      sources: parsed.sources,
       source: "ai",
     },
   };
