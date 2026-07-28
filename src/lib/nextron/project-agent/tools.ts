@@ -26,7 +26,7 @@ function requireAllowed(context: NextronToolContext, domain: "projects" | "tasks
 }
 
 export function createNextronProjectAgentTools(context: NextronToolContext, trace: ProjectAgentToolName[], evidenceSink: unknown[] = []) {
-  const projectRefs = new Map<string, string>();
+  let firstProjectId: string | null = null;
 
   function record(tool: ProjectAgentToolName) {
     trace.push(tool);
@@ -48,12 +48,10 @@ export function createNextronProjectAgentTools(context: NextronToolContext, trac
       .limit(limit);
     if (error) throw new Error("PROJECT_READ_FAILED");
     const rows = (data ?? []) as ProjectRow[];
-    projectRefs.clear();
+    firstProjectId = rows[0]?.id ?? null;
     return rows.map((project, index) => {
-      const ref = `p${index + 1}`;
-      projectRefs.set(ref, project.id);
       return {
-        ref,
+        listPosition: index + 1,
         title: safeText(project.title, 80) ?? "Untitled project",
         status: safeText(project.status, 24) ?? "unknown",
         deadline: project.deadline,
@@ -62,12 +60,12 @@ export function createNextronProjectAgentTools(context: NextronToolContext, trac
     });
   }
 
-  async function resolveProjectId(input: { projectRef?: string; projectTitle?: string }) {
-    if (input.projectRef && projectRefs.has(input.projectRef)) return projectRefs.get(input.projectRef) ?? null;
+  async function resolveProjectId(input: { projectTitle?: string }) {
     const title = safeText(input.projectTitle, 80)?.toLowerCase();
     if (!title) {
-      const projects = await loadProjects(1);
-      return projects[0]?.ref ? projectRefs.get(projects[0].ref) ?? null : null;
+      if (firstProjectId) return firstProjectId;
+      await loadProjects(1);
+      return firstProjectId;
     }
     const { data, error } = await context.supabase
       .from("projects")
@@ -80,7 +78,7 @@ export function createNextronProjectAgentTools(context: NextronToolContext, trac
     return match?.id ?? null;
   }
 
-  const projectInput = z.object({ projectRef: z.string().max(12).optional(), projectTitle: z.string().max(80).optional() });
+  const projectInput = z.object({ projectTitle: z.string().max(80).optional() });
 
   const getProjects = createTool({
     id: "getProjects",
@@ -94,7 +92,7 @@ export function createNextronProjectAgentTools(context: NextronToolContext, trac
 
   const getProject = createTool({
     id: "getProject",
-    description: "Read one authenticated user project by getProjects ref or visible title. Returns sanitized fields only.",
+    description: "Read one authenticated user project by visible title, or omit title to inspect the first bounded project. Returns sanitized fields only.",
     inputSchema: projectInput,
     execute: async (input) => {
       record("getProject");
