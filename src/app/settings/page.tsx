@@ -30,6 +30,16 @@ interface NextronMemoryItem {
   updatedAt: string;
 }
 
+interface GoogleCalendarStatus {
+  connected: boolean;
+  status: "connected" | "error" | "revoked" | "not_connected";
+  accountHint: string | null;
+  lastErrorCode: string | null;
+  allowNextronCalendar: boolean;
+  readOnly: true;
+  missingEnv: string[];
+}
+
 const moduleStatusStyles: Record<ModuleStatus, string> = {
   available: "border-[var(--success)]/30 bg-[var(--success-soft)] text-[var(--success)]",
   preview: "border-[var(--accent)]/30 bg-[var(--accent-soft)] text-[var(--accent)]",
@@ -53,6 +63,9 @@ export default function SettingsPage() {
   const [editingMemoryId, setEditingMemoryId] = useState<string | null>(null);
   const [editingMemoryContent, setEditingMemoryContent] = useState("");
   const [savingMemory, setSavingMemory] = useState(false);
+  const [calendarStatus, setCalendarStatus] = useState<GoogleCalendarStatus | null>(null);
+  const [calendarLoading, setCalendarLoading] = useState(true);
+  const [calendarSaving, setCalendarSaving] = useState(false);
   const { toast } = useToast();
 
   interface Realm { id: string; name: string; color: string; icon: string }
@@ -111,6 +124,15 @@ export default function SettingsPage() {
         }
       } catch {}
       setMemoryLoading(false);
+
+      try {
+        const calendarResponse = await fetch("/api/integrations/google/calendar", { cache: "no-store" });
+        if (calendarResponse.ok) {
+          const calendarPayload: GoogleCalendarStatus = await calendarResponse.json();
+          setCalendarStatus(calendarPayload);
+        }
+      } catch {}
+      setCalendarLoading(false);
 
       setLoading(false);
     }
@@ -328,6 +350,48 @@ export default function SettingsPage() {
     toast({ type: "success", title: "NEXTRON memory forgotten." });
   }
 
+  async function connectCalendar() {
+    setCalendarSaving(true);
+    const response = await fetch("/api/integrations/google/calendar/connect", { method: "POST" });
+    setCalendarSaving(false);
+    const payload: { authUrl?: string; error?: string; missingEnv?: string[] } = await response.json().catch(() => ({}));
+    if (!response.ok || !payload.authUrl) {
+      toast({ type: "error", title: payload.error ?? "Google Calendar connection is not ready yet." });
+      return;
+    }
+    window.location.assign(payload.authUrl);
+  }
+
+  async function saveCalendarPermission(allow: boolean) {
+    setCalendarSaving(true);
+    const response = await fetch("/api/integrations/google/calendar", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ allowNextronCalendar: allow }),
+    });
+    setCalendarSaving(false);
+    if (!response.ok) {
+      const payload: { error?: string } = await response.json().catch(() => ({}));
+      toast({ type: "error", title: payload.error ?? "Failed to update Calendar permission." });
+      return;
+    }
+    setCalendarStatus((current) => current ? { ...current, allowNextronCalendar: allow } : current);
+    toast({ type: "success", title: allow ? "NEXTRON Calendar reads enabled." : "NEXTRON Calendar reads disabled." });
+  }
+
+  async function disconnectCalendar() {
+    setCalendarSaving(true);
+    const response = await fetch("/api/integrations/google/calendar", { method: "DELETE" });
+    setCalendarSaving(false);
+    if (!response.ok) {
+      const payload: { error?: string } = await response.json().catch(() => ({}));
+      toast({ type: "error", title: payload.error ?? "Failed to disconnect Calendar." });
+      return;
+    }
+    setCalendarStatus((current) => current ? { ...current, connected: false, status: "not_connected", allowNextronCalendar: false } : current);
+    toast({ type: "success", title: "Google Calendar disconnected." });
+  }
+
   const initials = (firstName?.[0] ?? "") + (lastName?.[0] ?? "");
   const recommendedModules = getRecommendedModules(intendedUse);
   const modulesByCategory = getModulesByCategory();
@@ -476,6 +540,62 @@ export default function SettingsPage() {
                 {savingSetup ? "Saving..." : "Save setup"}
               </Button>
             </div>
+          </div>
+        </Card>
+
+        {/* Google Calendar */}
+        <Card className="mb-4 border-[var(--border-strong)]">
+          <div className="p-5">
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Integrations</p>
+            <h3 className="mb-1 text-sm font-semibold text-[var(--text)]">Google Calendar</h3>
+            <p className="mb-4 text-xs leading-relaxed text-[var(--text-muted)]">
+              Connect Google Calendar for bounded NEXTRON answers like what is on your calendar tomorrow. Calendar v1 is read-only.
+            </p>
+
+            {calendarLoading ? (
+              <p className="text-xs text-[var(--text-muted)]">Checking Calendar connection...</p>
+            ) : (
+              <div className="space-y-3 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-[var(--text)]">
+                      {calendarStatus?.connected ? "Connected" : calendarStatus?.status === "error" ? "Connection error" : "Not connected"}
+                    </p>
+                    <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
+                      {calendarStatus?.connected
+                        ? "OAuth tokens are stored server-side only and Calendar data is read only when relevant."
+                        : "Connect with the approved Google Calendar read-only scopes."}
+                    </p>
+                    {calendarStatus?.missingEnv?.length ? (
+                      <p className="mt-1 text-xs text-[var(--danger)]">Server configuration is still missing.</p>
+                    ) : null}
+                  </div>
+                  {calendarStatus?.connected ? (
+                    <Button size="sm" variant="ghost" onClick={disconnectCalendar} disabled={calendarSaving}>Disconnect</Button>
+                  ) : (
+                    <Button size="sm" onClick={connectCalendar} disabled={calendarSaving || Boolean(calendarStatus?.missingEnv?.length)}>
+                      {calendarSaving ? "Starting..." : "Connect"}
+                    </Button>
+                  )}
+                </div>
+
+                <label className="flex items-start gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(calendarStatus?.allowNextronCalendar)}
+                    disabled={calendarSaving || !calendarStatus?.connected}
+                    onChange={(event) => saveCalendarPermission(event.target.checked)}
+                    className="mt-1 h-4 w-4 rounded border-[var(--border-strong)] bg-[var(--surface-soft)]"
+                  />
+                  <span>
+                    <span className="block text-xs font-semibold text-[var(--text)]">Allow NEXTRON to read Calendar</span>
+                    <span className="mt-1 block text-xs leading-relaxed text-[var(--text-muted)]">
+                      This is separate from connecting your Google account. It does not allow creating, editing, deleting, or responding to events.
+                    </span>
+                  </span>
+                </label>
+              </div>
+            )}
           </div>
         </Card>
 

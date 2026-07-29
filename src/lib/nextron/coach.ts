@@ -1,6 +1,6 @@
 import type { NextronEvidencePacket } from "@/lib/nextron/evidence";
 
-export type NextronEvidenceCategory = keyof Pick<NextronEvidencePacket, "today" | "tasks" | "habits" | "results" | "journal" | "eveningShutdown" | "weeklyReview" | "goals" | "projects" | "knowledge" | "profile" | "memory">;
+export type NextronEvidenceCategory = keyof Pick<NextronEvidencePacket, "today" | "tasks" | "habits" | "results" | "journal" | "eveningShutdown" | "weeklyReview" | "goals" | "projects" | "knowledge" | "calendar" | "profile" | "memory">;
 
 export interface NextronFact {
   category: NextronEvidenceCategory;
@@ -31,6 +31,7 @@ export type NextronCoachingIntent =
   | "PROJECT_AGENT"
   | "CROSS_DOMAIN_AGENT"
   | "KNOWLEDGE_QUERY"
+  | "CALENDAR_QUERY"
   | "NEXT_ACTION"
   | "ATTENTION"
   | "WEEK_PROGRESS"
@@ -104,7 +105,10 @@ function classifyPrompt(normalizedPrompt: string): Pick<NextronUserRequest, "int
   if (includesAny(normalizedPrompt, ["diagnose", "medication", "medicine", "symptom", "disease", "medical advice"])) return { intent: "MEDICAL", handlingStatus: "boundary", confidence: "high" };
   if (isFinancialAdviceRequest(normalizedPrompt)) return { intent: "FINANCIAL_ADVICE", handlingStatus: "boundary", confidence: "high" };
   if (includesAny(normalizedPrompt, ["legal advice", "lawsuit", "contract", "sue", "attorney", "lawyer"])) return { intent: "LEGAL_ADVICE", handlingStatus: "boundary", confidence: "high" };
-  if (includesAny(normalizedPrompt, ["create a task", "delete", "complete this", "send", "schedule", "do this for me", "make a reminder", "email"])) return { intent: "AUTONOMOUS_ACTION", handlingStatus: "boundary", confidence: "high" };
+  const calendarTerms = ["calendar", "meeting", "meetings", "event", "events", "free", "busy", "availability", "available", "tomorrow", "this afternoon", "wednesday"];
+  if (includesAny(normalizedPrompt, calendarTerms) && includesAny(normalizedPrompt, ["what do i have", "what's on my", "whats on my", "when am i free", "am i free", "calendar", "meeting", "meetings", "event", "events", "availability"])) return { intent: "CALENDAR_QUERY", handlingStatus: "handled", confidence: "high" };
+
+  if (includesAny(normalizedPrompt, ["create a task", "delete", "complete this", "send", "schedule", "do this for me", "make a reminder", "email", "create a meeting", "add a meeting", "schedule a meeting", "cancel my meeting", "delete an event", "respond to event"])) return { intent: "AUTONOMOUS_ACTION", handlingStatus: "boundary", confidence: "high" };
   if (includesAny(normalizedPrompt, ["weather", "news", "who is", "what is the capital", "search the web", "latest", "recipe"])) return { intent: "OUT_OF_SCOPE_GENERAL_KNOWLEDGE", handlingStatus: "unsupported", confidence: "high" };
 
   const projectTerms = ["project", "projects"];

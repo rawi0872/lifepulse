@@ -115,6 +115,7 @@ export interface NextronEvidencePacket {
   goals: NextronPacketSection<{ activeCount: number; sampleNames: string[] }>;
   projects: NextronPacketSection<{ activeCount: number; activeWithoutOpenTaskCount: number; sampleNames: string[] }>;
   knowledge: NextronPacketSection<{ noteSearchAvailable: boolean }>;
+  calendar: NextronPacketSection<{ connected: boolean; readOnly: true }>;
   memory: NextronPacketSection<{ preferences: string[] }>;
   warnings: string[];
 }
@@ -191,6 +192,9 @@ export async function buildNextronEvidencePacket(
   const knowledge: NextronEvidencePacket["knowledge"] = isNextronContextAllowed(permissions, "knowledge")
     ? available({ noteSearchAvailable: true }, "Knowledge notes are searched only on explicit Knowledge questions.")
     : denied("Knowledge notes are not loaded unless allowed.");
+  const calendar: NextronEvidencePacket["calendar"] = isNextronContextAllowed(permissions, "calendar")
+    ? available({ connected: true, readOnly: true }, "Calendar is queried only for explicit Calendar questions.")
+    : denied("Calendar is not loaded unless allowed and connected.");
   const memory: NextronEvidencePacket["memory"] = missing("No relevant confirmed preference memory was loaded for this request.");
 
   const wantsOperational = isNextronContextAllowed(permissions, "today") || isNextronContextAllowed(permissions, "tasks") || isNextronContextAllowed(permissions, "habits");
@@ -436,6 +440,7 @@ export async function buildNextronEvidencePacket(
     eveningShutdown,
     weeklyReview,
     knowledge,
+    calendar,
     memory,
     goals,
     projects,

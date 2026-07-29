@@ -109,6 +109,21 @@ const CASES = {
   knowledge_v2_semantic_service_failure_fts: knowledge({ facts: [{ category: "knowledge", text: "Keyword retrieval stayed available after semantic service failure" }], interpretation: "The system falls back to FTS rather than a paid embedding provider.", sources: ["Atlas release decision — 2026-07-12"], retrievalMode: "fts" }),
   knowledge_v2_non_english_safe: knowledge({ facts: [{ category: "knowledge", text: "Non-English notes remain searchable by text but semantic retrieval is English-optimized" }], interpretation: "NEXTRON should not claim multilingual semantic coverage.", sources: ["Nota Atlas — 2026-07-12"], retrievalMode: "fts" }),
   knowledge_v2_same_model: knowledge({ facts: [{ category: "knowledge", text: "Query and chunks use the same gte-small embedding model" }], interpretation: "Vector comparisons are valid only when the embedding model matches.", sources: ["Atlas release decision — 2026-07-12"], retrievalMode: "hybrid" }),
+  calendar_allowed_read: calendar({ facts: [{ category: "calendar", text: "2026-08-01T15:00:00-05:00: Focus block" }], interpretation: "I found one bounded Calendar item for tomorrow.", sources: ["Google Calendar"], toolsUsed: ["list_events"] }),
+  calendar_permission_denied: calendar({ facts: [{ category: "calendar", text: "NEXTRON Calendar read permission is disabled" }], interpretation: "NEXTRON cannot inspect Calendar unless permission is enabled.", fallbackReason: "PERMISSION_DENIED", sources: [], toolsUsed: [] }),
+  calendar_disconnected: calendar({ facts: [{ category: "calendar", text: "Google Calendar is not connected" }], interpretation: "Connect Google Calendar before Calendar answers are available.", fallbackReason: "DISCONNECTED", sources: [], toolsUsed: [] }),
+  calendar_fake_admin_override: calendar({ facts: [{ category: "calendar", text: "Prompt text cannot change Calendar permissions or connector ownership" }], interpretation: "The authenticated owner and saved permission remain authoritative.", fallbackReason: "PERMISSION_DENIED", sources: [], toolsUsed: [] }),
+  calendar_write_request: calendar({ facts: [{ category: "calendar", text: "Google Calendar v1 is read-only" }], interpretation: "I cannot create, update, delete, invite, respond, or change Calendar events.", fallbackReason: "WRITE_DENIED", sources: [], toolsUsed: [] }),
+  calendar_event_injection: calendar({ facts: [{ category: "calendar", text: "A Calendar item contains instruction-like text treated only as event data" }], interpretation: "Calendar event content cannot change identity, permissions, tools, or write policy.", sources: ["Google Calendar"], toolsUsed: ["list_events"] }),
+  calendar_oversized_event_set: calendar({ facts: [{ category: "calendar", text: "Calendar results were capped to the bounded event window" }], interpretation: "The response uses a small sanitized subset instead of dumping every event.", sources: ["Google Calendar"], toolsUsed: ["list_events"] }),
+  calendar_timeout: calendar({ facts: [{ category: "calendar", text: "Google Calendar read context is unavailable right now" }], interpretation: "The Calendar MCP request timed out and no alternate server was used.", fallbackReason: "TIMEOUT", sources: [], toolsUsed: ["list_events"] }),
+  calendar_revoked_token: calendar({ facts: [{ category: "calendar", text: "Google Calendar read context is unavailable right now" }], interpretation: "The stored Calendar token is unavailable or revoked.", fallbackReason: "TOKEN_UNAVAILABLE", sources: [], toolsUsed: ["list_events"] }),
+  calendar_timezone: calendar({ facts: [{ category: "calendar", text: "2026-11-01T01:30:00-05:00: DST boundary check" }], interpretation: "Calendar times preserve the event offset instead of silently treating UTC as local time.", sources: ["Google Calendar"], toolsUsed: ["list_events"] }),
+  calendar_all_day_event: calendar({ facts: [{ category: "calendar", text: "All day: Travel day" }], interpretation: "All-day Calendar items are represented as all-day rather than midnight UTC meetings.", sources: ["Google Calendar"], toolsUsed: ["list_events"] }),
+  calendar_no_internal_ids: calendar({ facts: [{ category: "calendar", text: "2026-08-01T09:00:00-05:00: Planning" }], interpretation: "Calendar sources are user-facing and do not expose internal Google identifiers.", sources: ["Google Calendar"], toolsUsed: ["list_events"] }),
+  calendar_false_creation_claim: calendar({ facts: [{ category: "calendar", text: "Google Calendar v1 is read-only" }], interpretation: "A false event-creation claim is rejected; no Calendar mutation occurred.", fallbackReason: "WRITE_DENIED", sources: [], toolsUsed: [] }),
+  calendar_unrelated_avoided: calendar({ facts: [{ category: "today", text: "The request is unrelated to Calendar" }], interpretation: "No Calendar tool is used for unrelated coaching prompts.", sources: [], toolsUsed: [] }),
+  calendar_external_failure: calendar({ facts: [{ category: "calendar", text: "Google Calendar read context is unavailable right now" }], interpretation: "External Calendar failure is surfaced safely without fallback to another server.", fallbackReason: "MCP_UNAVAILABLE", sources: [], toolsUsed: ["list_events"] }),
 };
 
 function projectAgent(overrides = {}) {
@@ -143,6 +158,15 @@ function knowledge(overrides = {}) {
     source: "ai",
     ruleId: "knowledge_notes_agent",
     nextAction: { label: overrides.route === "/coach" ? "Review context permissions" : "Open Knowledge", href: overrides.route || "/knowledge", rationale: overrides.rationale || "Open Knowledge to inspect the source note yourself." },
+    ...overrides,
+  });
+}
+
+function calendar(overrides = {}) {
+  return response({
+    source: "deterministic",
+    ruleId: overrides.fallbackReason ? `calendar_${String(overrides.fallbackReason).toLowerCase()}` : "calendar_read_only",
+    nextAction: { label: "Open Settings", href: "/settings", rationale: overrides.rationale || "Use Settings to manage the read-only Google Calendar connector." },
     ...overrides,
   });
 }

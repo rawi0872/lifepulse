@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { buildInteractiveNextronResponse, isNextronProviderEligibleRequest, parseNextronUserRequest } from "@/lib/nextron/coach";
+import { calendarReadResponse, runNextronCalendarReadOnly } from "@/lib/nextron/calendar";
 import { normalizeNextronPreferences, type NextronPreferenceRow } from "@/lib/nextron/context";
 import { buildNextronEvidencePacket } from "@/lib/nextron/evidence";
 import {
@@ -18,7 +19,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 
-const PREFERENCE_COLUMNS = "permission_version, allow_profile, allow_today, allow_tasks, allow_habits, allow_results, allow_goals, allow_projects, allow_knowledge, allow_journal, allow_evening_shutdown, allow_weekly_review";
+const PREFERENCE_COLUMNS = "permission_version, allow_profile, allow_today, allow_tasks, allow_habits, allow_results, allow_goals, allow_projects, allow_knowledge, allow_calendar, allow_journal, allow_evening_shutdown, allow_weekly_review";
 
 type AskBody = { prompt?: unknown };
 
@@ -101,6 +102,14 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { response: result.response, source: result.response.source ?? "deterministic" },
         result.fallbackReason ? { headers: { "X-Nextron-Fallback-Reason": result.fallbackReason } } : undefined,
+      );
+    }
+
+    if (parsed.request.intent === "CALENDAR_QUERY") {
+      const result = await runNextronCalendarReadOnly({ supabase, userId: user.id, permissions, request: parsed.request });
+      return NextResponse.json(
+        { response: calendarReadResponse(result), source: "deterministic" },
+        result.ok ? undefined : { headers: { "X-Nextron-Fallback-Reason": result.reason } },
       );
     }
 
