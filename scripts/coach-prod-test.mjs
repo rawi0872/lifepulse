@@ -49,7 +49,8 @@ const requiredCoachText = [
 
 const requiredTransparencyText = [
   "External AI memory",
-  "Calendar, reminders, email, and messages",
+  "Google Calendar",
+  "Reminders, email, and messages",
   "Server-side AI coaching is available only when explicitly configured",
   "falls back to deterministic coaching",
   "NEXTRON does not diagnose",
