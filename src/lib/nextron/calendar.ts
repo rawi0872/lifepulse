@@ -51,7 +51,7 @@ export interface SanitizedCalendarEvent {
 
 export type CalendarReadResult =
   | { ok: true; events: SanitizedCalendarEvent[]; rangeLabel: string; toolsUsed: CalendarToolName[] }
-  | { ok: false; reason: "PERMISSION_DENIED" | "DISCONNECTED" | "ENV_MISSING" | "TOKEN_UNAVAILABLE" | "MCP_UNAVAILABLE" | "TIMEOUT" | "WRITE_DENIED"; toolsUsed: CalendarToolName[] };
+  | { ok: false; reason: "PERMISSION_DENIED" | "DISCONNECTED" | "ENV_MISSING" | "TOKEN_DECRYPT_FAILED" | "TOKEN_REFRESH_FAILED" | "TOKEN_UNAVAILABLE" | "MCP_HTTP_401" | "MCP_HTTP_403" | "MCP_PROTOCOL_ERROR" | "MCP_TOOL_ERROR" | "MCP_UNAVAILABLE" | "TIMEOUT" | "WRITE_DENIED"; toolsUsed: CalendarToolName[] };
 
 export function getGoogleCalendarEnv() {
   return {
@@ -237,18 +237,34 @@ async function callCalendarMcp(tool: CalendarToolName, accessToken: string, args
   } finally {
     clearTimeout(timeout);
   }
-  if (!response.ok) throw new Error(response.status === 401 ? "TOKEN_UNAVAILABLE" : "MCP_UNAVAILABLE");
-  const payload = await response.json() as { result?: { isError?: boolean } | unknown; error?: unknown };
-  if (payload.error || (typeof payload.result === "object" && payload.result !== null && "isError" in payload.result && payload.result.isError)) throw new Error("MCP_UNAVAILABLE");
+  if (!response.ok) {
+    if (response.status === 401) throw new Error("MCP_HTTP_401");
+    if (response.status === 403) throw new Error("MCP_HTTP_403");
+    if (response.status === 400) throw new Error("MCP_PROTOCOL_ERROR");
+    throw new Error("MCP_UNAVAILABLE");
+  }
+  const payload = await response.json().catch(() => null) as { result?: { isError?: boolean } | unknown; error?: unknown } | null;
+  if (!payload) throw new Error("MCP_PROTOCOL_ERROR");
+  if (payload.error || (typeof payload.result === "object" && payload.result !== null && "isError" in payload.result && payload.result.isError)) throw new Error("MCP_TOOL_ERROR");
   return payload.result;
 }
 
 async function getUsableTokens(supabase: SupabaseClient, row: CalendarConnectionRow): Promise<CalendarTokenSet> {
-  const tokens = await decryptCalendarTokens(row);
+  let tokens: CalendarTokenSet;
+  try {
+    tokens = await decryptCalendarTokens(row);
+  } catch {
+    throw new Error("TOKEN_DECRYPT_FAILED");
+  }
   const expiresAt = tokens.expires_at ? Date.parse(tokens.expires_at) : 0;
   if (!expiresAt || expiresAt - Date.now() > 60_000) return tokens;
   if (!tokens.refresh_token) throw new Error("TOKEN_UNAVAILABLE");
-  const refreshed = await refreshGoogleCalendarToken(tokens.refresh_token);
+  let refreshed: CalendarTokenSet;
+  try {
+    refreshed = await refreshGoogleCalendarToken(tokens.refresh_token);
+  } catch {
+    throw new Error("TOKEN_REFRESH_FAILED");
+  }
   const encrypted = await encryptCalendarTokens(refreshed);
   await supabase.from("google_calendar_connections").update({ ...encrypted, token_expires_at: refreshed.expires_at ?? null, status: "connected", last_error_code: null }).eq("user_id", row.user_id);
   return refreshed;
@@ -279,7 +295,13 @@ export async function runNextronCalendarReadOnly(args: { supabase: SupabaseClien
   } catch (error) {
     const message = error instanceof Error ? error.message : "MCP_UNAVAILABLE";
     const name = error instanceof Error ? error.name : "";
+    if (message === "TOKEN_DECRYPT_FAILED") return { ok: false, reason: "TOKEN_DECRYPT_FAILED", toolsUsed };
+    if (message === "TOKEN_REFRESH_FAILED") return { ok: false, reason: "TOKEN_REFRESH_FAILED", toolsUsed };
     if (message === "TOKEN_UNAVAILABLE") return { ok: false, reason: "TOKEN_UNAVAILABLE", toolsUsed };
+    if (message === "MCP_HTTP_401") return { ok: false, reason: "MCP_HTTP_401", toolsUsed };
+    if (message === "MCP_HTTP_403") return { ok: false, reason: "MCP_HTTP_403", toolsUsed };
+    if (message === "MCP_PROTOCOL_ERROR") return { ok: false, reason: "MCP_PROTOCOL_ERROR", toolsUsed };
+    if (message === "MCP_TOOL_ERROR") return { ok: false, reason: "MCP_TOOL_ERROR", toolsUsed };
     if (message === "CALENDAR_TOOL_DENIED") return { ok: false, reason: "WRITE_DENIED", toolsUsed };
     if (message === "AbortError" || name === "AbortError") return { ok: false, reason: "TIMEOUT", toolsUsed };
     return { ok: false, reason: "MCP_UNAVAILABLE", toolsUsed };
