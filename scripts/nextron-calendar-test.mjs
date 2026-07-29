@@ -48,3 +48,4 @@ assert(calendar.includes('if (!isNextronContextAllowed(args.permissions, "calend
 assert(askRoute.includes('const { permissions } = normalizeNextronPreferences') && askRoute.includes('runNextronCalendarReadOnly({ supabase, userId: user.id, permissions'), "Y prompt cannot override saved Calendar permission resolver");
 assert(calendar.includes('startTime: range.timeMin') && calendar.includes('endTime: range.timeMax') && !calendar.includes('timeMin: range.timeMin') && !calendar.includes('maxResults: CALENDAR_MAX_EVENTS'), "Z Calendar MCP request uses official list_events argument names");
 assert(calendar.includes('structuredContent') && calendar.includes('payload.result.isError'), "Z2 Calendar MCP result handles structured content and tool errors");
+assert(calendar.includes('CALENDAR_MCP_TIMEOUT_MS = 15_000') && calendar.includes('name === "AbortError"'), "Z3 Calendar MCP timeout remains bounded and classifies aborts safely");

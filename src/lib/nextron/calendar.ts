@@ -15,7 +15,7 @@ export const GOOGLE_CALENDAR_DENIED_TOOLS = ["create_event", "update_event", "de
 
 const CALENDAR_MAX_EVENTS = 12;
 const CALENDAR_MAX_TOTAL_TEXT = 1_500;
-const CALENDAR_MCP_TIMEOUT_MS = 6_000;
+const CALENDAR_MCP_TIMEOUT_MS = 15_000;
 
 type CalendarToolName = typeof GOOGLE_CALENDAR_ALLOWED_TOOLS[number];
 
@@ -278,9 +278,10 @@ export async function runNextronCalendarReadOnly(args: { supabase: SupabaseClien
     return { ok: true, events: sanitizeCalendarEvents(result), rangeLabel: range.rangeLabel, toolsUsed };
   } catch (error) {
     const message = error instanceof Error ? error.message : "MCP_UNAVAILABLE";
+    const name = error instanceof Error ? error.name : "";
     if (message === "TOKEN_UNAVAILABLE") return { ok: false, reason: "TOKEN_UNAVAILABLE", toolsUsed };
     if (message === "CALENDAR_TOOL_DENIED") return { ok: false, reason: "WRITE_DENIED", toolsUsed };
-    if (message === "AbortError") return { ok: false, reason: "TIMEOUT", toolsUsed };
+    if (message === "AbortError" || name === "AbortError") return { ok: false, reason: "TIMEOUT", toolsUsed };
     return { ok: false, reason: "MCP_UNAVAILABLE", toolsUsed };
   }
 }
