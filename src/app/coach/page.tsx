@@ -25,6 +25,8 @@ import {
 } from "@/lib/nextron/context";
 import { buildNextronEvidencePacket, type NextronEvidencePacket } from "@/lib/nextron/evidence";
 
+const PREFERENCE_COLUMNS = "permission_version, allow_profile, allow_today, allow_tasks, allow_habits, allow_results, allow_goals, allow_projects, allow_knowledge, allow_calendar, allow_journal, allow_evening_shutdown, allow_weekly_review";
+
 export default function CoachPage() {
   return (
     <DashboardNav>
@@ -97,7 +99,7 @@ function NextronContent() {
         setUserId(user.id);
         const { data, error: preferencesError } = await supabase
           .from("nextron_context_preferences")
-          .select("permission_version, allow_profile, allow_today, allow_tasks, allow_habits, allow_results, allow_goals, allow_projects, allow_knowledge, allow_journal, allow_evening_shutdown, allow_weekly_review")
+          .select(PREFERENCE_COLUMNS)
           .eq("user_id", user.id)
           .maybeSingle();
 
@@ -172,7 +174,7 @@ function NextronContent() {
     const { data, error: saveError } = await supabase
       .from("nextron_context_preferences")
       .upsert(buildNextronPreferenceUpsert(user.id, draftPermissions), { onConflict: "user_id" })
-      .select("permission_version, allow_profile, allow_today, allow_tasks, allow_habits, allow_results, allow_goals, allow_projects, allow_knowledge, allow_journal, allow_evening_shutdown, allow_weekly_review")
+      .select(PREFERENCE_COLUMNS)
       .single();
 
     if (seq !== requestSeq.current) return;

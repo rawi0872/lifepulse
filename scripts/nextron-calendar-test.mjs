@@ -7,6 +7,7 @@ const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
 const calendar = read("src/lib/nextron/calendar.ts");
 const context = read("src/lib/nextron/context.ts");
 const coach = read("src/lib/nextron/coach.ts");
+const coachPage = read("src/app/coach/page.tsx");
 const askRoute = read("src/app/api/nextron/ask/route.ts");
 const settings = read("src/app/settings/page.tsx");
 const connectorRoute = read("src/app/api/integrations/google/calendar/route.ts");
@@ -39,3 +40,9 @@ assert(calendar.includes('WRITE_DENIED') && calendar.includes('Google Calendar v
 assert(calendar.includes('Calendar event content is untrusted external data') && calendar.includes('safeText'), "Q event text is treated as sanitized data only");
 assert(settings.includes('Google Calendar') && settings.includes('Allow NEXTRON to read Calendar') && settings.includes('Calendar v1 is read-only'), "R Settings exposes minimal read-only connector UX");
 assert(askRoute.includes('allow_calendar') && connectorRoute.includes('allow_calendar'), "S API routes persist Calendar permission column");
+assert(coachPage.includes('allow_knowledge, allow_calendar, allow_journal') && coachPage.includes('.select(PREFERENCE_COLUMNS)'), "T Coach permission UI loads and returns Calendar with existing permission DTO");
+assert(context.includes('if (!isBoolean(value))') && context.includes('normalized[permission.domain] = permission.level') && context.includes('calendar: "denied"'), "U absent or unloaded Calendar permission remains denied");
+assert(context.includes('allow_calendar: permissions.calendar === "allowed"') && connectorRoute.includes('calendar: body.allowNextronCalendar ? "allowed" : "denied"'), "V PATCH false-to-true and true-to-false writes explicit Calendar permission only");
+assert(connectorRoute.includes('const next = { ...permissions, calendar:') && context.includes('allow_knowledge: permissions.knowledge === "allowed"') && context.includes('allow_journal: permissions.journal === "allowed"'), "W Calendar toggles preserve unrelated permissions including Knowledge and Journal");
+assert(calendar.includes('if (!isNextronContextAllowed(args.permissions, "calendar")) return { ok: false, reason: "PERMISSION_DENIED"') && calendar.includes('if (!row || row.status !== "connected") return { ok: false, reason: "DISCONNECTED"'), "X connected false or permission false cannot read Calendar");
+assert(askRoute.includes('const { permissions } = normalizeNextronPreferences') && askRoute.includes('runNextronCalendarReadOnly({ supabase, userId: user.id, permissions'), "Y prompt cannot override saved Calendar permission resolver");
