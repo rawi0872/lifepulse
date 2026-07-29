@@ -38,10 +38,11 @@ function safeToolError(result: unknown) {
   return { category, isError: record.isError === true, fromStructuredContent: Boolean(record.structuredContent), rawHash: hashPayload(raw), rawByteLength: Buffer.byteLength(raw) };
 }
 
-async function mcp(method: string, params: Record<string, unknown> | null, accessToken?: string) {
+async function mcp(method: string, params: Record<string, unknown> | null, accessToken?: string, protocolHeader = false) {
   const start = performance.now();
   const headers: Record<string, string> = { "Content-Type": "application/json", "Accept": "application/json, text/event-stream" };
   if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+  if (protocolHeader) headers["MCP-Protocol-Version"] = "2024-11-05";
   const response = await fetch(MCP_ENDPOINT, {
     method: "POST",
     headers,
@@ -122,10 +123,16 @@ export async function GET() {
   const tokenStatus = { decrypt: "SUCCESS", refresh: !expiresAt || expiresAt > Date.now() + 60_000 ? "NOT_REQUIRED" : "REQUIRED_NOT_PERFORMED" };
 
   const listCalendars = await mcp("tools/call", { name: "list_calendars", arguments: { pageSize: 1 } }, tokens.access_token);
+  const listCalendarsWithProtocol = listCalendars.ok ? null : await mcp("tools/call", { name: "list_calendars", arguments: { pageSize: 1 } }, tokens.access_token, true);
   const calendars = listCalendars.ok ? itemsFromResult(listCalendars.result, ["calendars", "items"]) : [];
   const listCalendarsSummary = listCalendars.ok
     ? { result: "SUCCESS", tool: "list_calendars", durationMs: listCalendars.durationMs, resultCount: calendars.length > 0 ? ">0" : "0", timezoneFieldExisted: calendars.some((item) => typeof (item as { timeZone?: unknown }).timeZone === "string") }
     : summarizeFailure("list_calendars", listCalendars);
+  const listCalendarsWithProtocolSummary = listCalendarsWithProtocol
+    ? listCalendarsWithProtocol.ok
+      ? { result: "SUCCESS", tool: "list_calendars", durationMs: listCalendarsWithProtocol.durationMs, resultCount: itemsFromResult(listCalendarsWithProtocol.result, ["calendars", "items"]).length > 0 ? ">0" : "0" }
+      : summarizeFailure("list_calendars", listCalendarsWithProtocol)
+    : { result: "SKIPPED" };
 
   let minimalListEvents: unknown = { result: "SKIPPED" };
   let explicitCalendarListEvents: unknown = { result: "SKIPPED" };
@@ -174,6 +181,7 @@ export async function GET() {
     connection,
     tokenStatus,
     listCalendars: listCalendarsSummary,
+    listCalendarsWithProtocolHeader: listCalendarsWithProtocolSummary,
     minimalListEvents,
     explicitCalendarListEvents,
     tomorrowRange,
