@@ -191,7 +191,16 @@ function sanitizeEvent(input: unknown): SanitizedCalendarEvent | null {
 
 export function sanitizeCalendarEvents(payload: unknown): SanitizedCalendarEvent[] {
   const record = payload as Record<string, unknown>;
-  const candidate = Array.isArray(record.items) ? record.items : Array.isArray(record.events) ? record.events : Array.isArray(payload) ? payload : [];
+  const structured = record.structuredContent as Record<string, unknown> | undefined;
+  const candidate = Array.isArray(record.items)
+    ? record.items
+    : Array.isArray(record.events)
+      ? record.events
+      : Array.isArray(structured?.events)
+        ? structured.events
+        : Array.isArray(payload)
+          ? payload
+          : [];
   const events = candidate.map(sanitizeEvent).filter((event): event is SanitizedCalendarEvent => Boolean(event)).slice(0, CALENDAR_MAX_EVENTS);
   let total = 0;
   return events.filter((event) => {
@@ -229,8 +238,8 @@ async function callCalendarMcp(tool: CalendarToolName, accessToken: string, args
     clearTimeout(timeout);
   }
   if (!response.ok) throw new Error(response.status === 401 ? "TOKEN_UNAVAILABLE" : "MCP_UNAVAILABLE");
-  const payload = await response.json() as { result?: unknown; error?: unknown };
-  if (payload.error) throw new Error("MCP_UNAVAILABLE");
+  const payload = await response.json() as { result?: { isError?: boolean } | unknown; error?: unknown };
+  if (payload.error || (typeof payload.result === "object" && payload.result !== null && "isError" in payload.result && payload.result.isError)) throw new Error("MCP_UNAVAILABLE");
   return payload.result;
 }
 
@@ -265,7 +274,7 @@ export async function runNextronCalendarReadOnly(args: { supabase: SupabaseClien
     if (!tokens.access_token) return { ok: false, reason: "TOKEN_UNAVAILABLE", toolsUsed };
     const range = calendarRangeForRequest(args.request);
     toolsUsed.push("list_events");
-    const result = await callCalendarMcp("list_events", tokens.access_token, { timeMin: range.timeMin, timeMax: range.timeMax, maxResults: CALENDAR_MAX_EVENTS, singleEvents: true, orderBy: "startTime" });
+    const result = await callCalendarMcp("list_events", tokens.access_token, { startTime: range.timeMin, endTime: range.timeMax, pageSize: CALENDAR_MAX_EVENTS, orderBy: "startTime" });
     return { ok: true, events: sanitizeCalendarEvents(result), rangeLabel: range.rangeLabel, toolsUsed };
   } catch (error) {
     const message = error instanceof Error ? error.message : "MCP_UNAVAILABLE";
