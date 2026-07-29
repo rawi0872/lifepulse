@@ -2,7 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { NextronCoachResponse, NextronUserRequest } from "@/lib/nextron/coach";
 import { isNextronContextAllowed, type NextronPermissionState } from "@/lib/nextron/context";
 
-export const GOOGLE_CALENDAR_MCP_ENDPOINT = "https://calendarmcp.googleapis.com/mcp/v1";
+export const GOOGLE_CALENDAR_API_BASE = "https://www.googleapis.com/calendar/v3";
 
 export const GOOGLE_CALENDAR_SCOPES = [
   "https://www.googleapis.com/auth/calendar.calendarlist.readonly",
@@ -10,14 +10,14 @@ export const GOOGLE_CALENDAR_SCOPES = [
   "https://www.googleapis.com/auth/calendar.events.readonly",
 ] as const;
 
-export const GOOGLE_CALENDAR_ALLOWED_TOOLS = ["list_calendars", "list_events", "get_event", "search_events"] as const;
-export const GOOGLE_CALENDAR_DENIED_TOOLS = ["create_event", "update_event", "delete_event", "respond_to_event"] as const;
+export const GOOGLE_CALENDAR_READ_OPERATIONS = ["calendar_list", "events_list", "freebusy_query"] as const;
+export const GOOGLE_CALENDAR_DENIED_OPERATIONS = ["events_insert", "events_update", "events_patch", "events_delete"] as const;
 
 const CALENDAR_MAX_EVENTS = 12;
 const CALENDAR_MAX_TOTAL_TEXT = 1_500;
-const CALENDAR_MCP_TIMEOUT_MS = 15_000;
+const CALENDAR_REST_TIMEOUT_MS = 15_000;
 
-type CalendarToolName = typeof GOOGLE_CALENDAR_ALLOWED_TOOLS[number];
+type CalendarReadOperation = typeof GOOGLE_CALENDAR_READ_OPERATIONS[number];
 
 export interface CalendarConnectionRow {
   user_id: string;
@@ -50,15 +50,14 @@ export interface SanitizedCalendarEvent {
 }
 
 export type CalendarReadResult =
-  | { ok: true; events: SanitizedCalendarEvent[]; rangeLabel: string; toolsUsed: CalendarToolName[] }
-  | { ok: false; reason: "PERMISSION_DENIED" | "DISCONNECTED" | "ENV_MISSING" | "TOKEN_DECRYPT_FAILED" | "TOKEN_REFRESH_FAILED" | "TOKEN_UNAVAILABLE" | "MCP_HTTP_401" | "MCP_HTTP_403" | "MCP_PREVIEW_NOT_ENABLED" | "MCP_PROTOCOL_ERROR" | "MCP_SCOPE_DENIED" | "MCP_TOOL_ERROR" | "MCP_UNAVAILABLE" | "TIMEOUT" | "WRITE_DENIED"; toolsUsed: CalendarToolName[] };
+  | { ok: true; events: SanitizedCalendarEvent[]; rangeLabel: string; toolsUsed: CalendarReadOperation[] }
+  | { ok: false; reason: "PERMISSION_DENIED" | "DISCONNECTED" | "ENV_MISSING" | "TOKEN_DECRYPT_FAILED" | "TOKEN_REFRESH_FAILED" | "TOKEN_UNAVAILABLE" | "CALENDAR_AUTH_REQUIRED" | "CALENDAR_SCOPE_DENIED" | "CALENDAR_BAD_REQUEST" | "CALENDAR_RATE_LIMITED" | "CALENDAR_API_UNAVAILABLE" | "TIMEOUT" | "WRITE_DENIED"; toolsUsed: CalendarReadOperation[] };
 
 export function getGoogleCalendarEnv() {
   return {
     clientId: process.env.GOOGLE_CALENDAR_CLIENT_ID?.trim() || "",
     clientSecret: process.env.GOOGLE_CALENDAR_CLIENT_SECRET?.trim() || "",
     redirectUri: process.env.GOOGLE_CALENDAR_REDIRECT_URI?.trim() || "",
-    mcpUrl: process.env.GOOGLE_CALENDAR_MCP_URL?.trim() || "",
     encryptionKey: process.env.GOOGLE_CALENDAR_TOKEN_ENCRYPTION_KEY?.trim() || "",
   };
 }
@@ -69,7 +68,6 @@ export function missingGoogleCalendarEnv(): string[] {
   if (!env.clientId) missing.push("GOOGLE_CALENDAR_CLIENT_ID");
   if (!env.clientSecret) missing.push("GOOGLE_CALENDAR_CLIENT_SECRET");
   if (!env.redirectUri) missing.push("GOOGLE_CALENDAR_REDIRECT_URI");
-  if (!env.mcpUrl) missing.push("GOOGLE_CALENDAR_MCP_URL");
   if (!env.encryptionKey) missing.push("GOOGLE_CALENDAR_TOKEN_ENCRYPTION_KEY");
   return missing;
 }
@@ -160,8 +158,8 @@ export async function revokeGoogleCalendarToken(token: string): Promise<void> {
   }).catch(() => undefined);
 }
 
-export function isAllowedCalendarTool(toolName: string): toolName is CalendarToolName {
-  return (GOOGLE_CALENDAR_ALLOWED_TOOLS as readonly string[]).includes(toolName) && !(GOOGLE_CALENDAR_DENIED_TOOLS as readonly string[]).includes(toolName);
+export function isAllowedCalendarReadOperation(operation: string): operation is CalendarReadOperation {
+  return (GOOGLE_CALENDAR_READ_OPERATIONS as readonly string[]).includes(operation) && !(GOOGLE_CALENDAR_DENIED_OPERATIONS as readonly string[]).includes(operation);
 }
 
 function safeText(value: unknown, max = 90): string | null {
@@ -187,19 +185,6 @@ function sanitizeEvent(input: unknown): SanitizedCalendarEvent | null {
     calendar: safeText(event.calendarSummary ?? event.calendar, 60),
     location: safeText(event.location, 80),
   };
-}
-
-function classifyMcpToolError(result: unknown): string {
-  const record = result as { content?: unknown };
-  const content = Array.isArray(record.content) ? record.content : [];
-  const text = content
-    .map((item) => typeof (item as { text?: unknown }).text === "string" ? (item as { text: string }).text : "")
-    .join(" ")
-    .toLowerCase();
-  if (/developer preview|preview|not enabled|not been enabled|access not configured|api has not been used|disabled/.test(text)) return "MCP_PREVIEW_NOT_ENABLED";
-  if (/insufficient authentication scopes|insufficient permission|forbidden|permission denied|access denied/.test(text)) return "MCP_SCOPE_DENIED";
-  if (/invalid argument|invalid request|bad request|unknown parameter|schema|parse/.test(text)) return "MCP_PROTOCOL_ERROR";
-  return "MCP_TOOL_ERROR";
 }
 
 export function sanitizeCalendarEvents(payload: unknown): SanitizedCalendarEvent[] {
@@ -235,32 +220,46 @@ function calendarRangeForRequest(request: NextronUserRequest, now = new Date()):
   return { timeMin: start.toISOString(), timeMax: end.toISOString(), rangeLabel: prompt.includes("tomorrow") ? "tomorrow" : prompt.includes("week") ? "this week" : "the requested window" };
 }
 
-async function callCalendarMcp(tool: CalendarToolName, accessToken: string, args: Record<string, unknown>): Promise<unknown> {
-  if (!isAllowedCalendarTool(tool)) throw new Error("CALENDAR_TOOL_DENIED");
+async function callGoogleCalendarRest(operation: CalendarReadOperation, accessToken: string, init: { path: string; method?: "GET" | "POST"; query?: Record<string, string>; body?: Record<string, unknown> }): Promise<unknown> {
+  if (!isAllowedCalendarReadOperation(operation)) throw new Error("CALENDAR_OPERATION_DENIED");
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), CALENDAR_MCP_TIMEOUT_MS);
+  const timeout = setTimeout(() => controller.abort(), CALENDAR_REST_TIMEOUT_MS);
+  const url = new URL(`${GOOGLE_CALENDAR_API_BASE}${init.path}`);
+  for (const [key, value] of Object.entries(init.query ?? {})) url.searchParams.set(key, value);
   let response: Response;
   try {
-    response = await fetch(getGoogleCalendarEnv().mcpUrl || GOOGLE_CALENDAR_MCP_ENDPOINT, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "Accept": "application/json, text/event-stream", "Authorization": `Bearer ${accessToken}` },
-    body: JSON.stringify({ jsonrpc: "2.0", id: crypto.randomUUID(), method: "tools/call", params: { name: tool, arguments: args } }),
-    signal: controller.signal,
+    response = await fetch(url, {
+      method: init.method ?? "GET",
+      headers: { "Authorization": `Bearer ${accessToken}`, ...(init.body ? { "Content-Type": "application/json" } : {}) },
+      body: init.body ? JSON.stringify(init.body) : undefined,
+      signal: controller.signal,
     });
   } finally {
     clearTimeout(timeout);
   }
   if (!response.ok) {
-    if (response.status === 401) throw new Error("MCP_HTTP_401");
-    if (response.status === 403) throw new Error("MCP_HTTP_403");
-    if (response.status === 400) throw new Error("MCP_PROTOCOL_ERROR");
-    throw new Error("MCP_UNAVAILABLE");
+    if (response.status === 401) throw new Error("CALENDAR_AUTH_REQUIRED");
+    if (response.status === 403) throw new Error("CALENDAR_SCOPE_DENIED");
+    if (response.status === 400) throw new Error("CALENDAR_BAD_REQUEST");
+    if (response.status === 429) throw new Error("CALENDAR_RATE_LIMITED");
+    throw new Error("CALENDAR_API_UNAVAILABLE");
   }
-  const payload = await response.json().catch(() => null) as { result?: { isError?: boolean } | unknown; error?: unknown } | null;
-  if (!payload) throw new Error("MCP_PROTOCOL_ERROR");
-  if (payload.error) throw new Error("MCP_PROTOCOL_ERROR");
-  if (typeof payload.result === "object" && payload.result !== null && "isError" in payload.result && payload.result.isError) throw new Error(classifyMcpToolError(payload.result));
-  return payload.result;
+  const payload = await response.json().catch(() => null);
+  if (!payload) throw new Error("CALENDAR_API_UNAVAILABLE");
+  return payload;
+}
+
+async function readGoogleCalendarEvents(accessToken: string, range: { timeMin: string; timeMax: string }, toolsUsed: CalendarReadOperation[]): Promise<SanitizedCalendarEvent[]> {
+  toolsUsed.push("calendar_list");
+  await callGoogleCalendarRest("calendar_list", accessToken, { path: "/users/me/calendarList", query: { minAccessRole: "reader", maxResults: "20" } });
+  toolsUsed.push("freebusy_query");
+  await callGoogleCalendarRest("freebusy_query", accessToken, { path: "/freeBusy", method: "POST", body: { timeMin: range.timeMin, timeMax: range.timeMax, items: [{ id: "primary" }] } });
+  toolsUsed.push("events_list");
+  const result = await callGoogleCalendarRest("events_list", accessToken, {
+    path: "/calendars/primary/events",
+    query: { timeMin: range.timeMin, timeMax: range.timeMax, maxResults: String(CALENDAR_MAX_EVENTS), singleEvents: "true", orderBy: "startTime" },
+  });
+  return sanitizeCalendarEvents(result);
 }
 
 async function getUsableTokens(supabase: SupabaseClient, row: CalendarConnectionRow): Promise<CalendarTokenSet> {
@@ -285,7 +284,7 @@ async function getUsableTokens(supabase: SupabaseClient, row: CalendarConnection
 }
 
 export async function runNextronCalendarReadOnly(args: { supabase: SupabaseClient; userId: string; permissions: NextronPermissionState; request: NextronUserRequest }): Promise<CalendarReadResult> {
-  const toolsUsed: CalendarToolName[] = [];
+  const toolsUsed: CalendarReadOperation[] = [];
   if (/(^|\b)(create|schedule|add|update|delete|cancel|respond|invite)\b/.test(args.request.normalizedPrompt)) return { ok: false, reason: "WRITE_DENIED", toolsUsed };
   if (!isNextronContextAllowed(args.permissions, "calendar")) return { ok: false, reason: "PERMISSION_DENIED", toolsUsed };
   if (missingGoogleCalendarEnv().length > 0) return { ok: false, reason: "ENV_MISSING", toolsUsed };
@@ -295,7 +294,7 @@ export async function runNextronCalendarReadOnly(args: { supabase: SupabaseClien
     .select("user_id, encrypted_tokens, token_iv, token_tag, scopes, token_expires_at, google_account_hint, status, last_error_code")
     .eq("user_id", args.userId)
     .maybeSingle();
-  if (error) return { ok: false, reason: "MCP_UNAVAILABLE", toolsUsed };
+  if (error) return { ok: false, reason: "CALENDAR_API_UNAVAILABLE", toolsUsed };
   const row = data as CalendarConnectionRow | null;
   if (!row || row.status !== "connected") return { ok: false, reason: "DISCONNECTED", toolsUsed };
 
@@ -303,24 +302,20 @@ export async function runNextronCalendarReadOnly(args: { supabase: SupabaseClien
     const tokens = await getUsableTokens(args.supabase, row);
     if (!tokens.access_token) return { ok: false, reason: "TOKEN_UNAVAILABLE", toolsUsed };
     const range = calendarRangeForRequest(args.request);
-    toolsUsed.push("list_events");
-    const result = await callCalendarMcp("list_events", tokens.access_token, { startTime: range.timeMin, endTime: range.timeMax, pageSize: CALENDAR_MAX_EVENTS, orderBy: "startTime" });
-    return { ok: true, events: sanitizeCalendarEvents(result), rangeLabel: range.rangeLabel, toolsUsed };
+    return { ok: true, events: await readGoogleCalendarEvents(tokens.access_token, range, toolsUsed), rangeLabel: range.rangeLabel, toolsUsed };
   } catch (error) {
-    const message = error instanceof Error ? error.message : "MCP_UNAVAILABLE";
+    const message = error instanceof Error ? error.message : "CALENDAR_API_UNAVAILABLE";
     const name = error instanceof Error ? error.name : "";
     if (message === "TOKEN_DECRYPT_FAILED") return { ok: false, reason: "TOKEN_DECRYPT_FAILED", toolsUsed };
     if (message === "TOKEN_REFRESH_FAILED") return { ok: false, reason: "TOKEN_REFRESH_FAILED", toolsUsed };
     if (message === "TOKEN_UNAVAILABLE") return { ok: false, reason: "TOKEN_UNAVAILABLE", toolsUsed };
-    if (message === "MCP_HTTP_401") return { ok: false, reason: "MCP_HTTP_401", toolsUsed };
-    if (message === "MCP_HTTP_403") return { ok: false, reason: "MCP_HTTP_403", toolsUsed };
-    if (message === "MCP_PREVIEW_NOT_ENABLED") return { ok: false, reason: "MCP_PREVIEW_NOT_ENABLED", toolsUsed };
-    if (message === "MCP_PROTOCOL_ERROR") return { ok: false, reason: "MCP_PROTOCOL_ERROR", toolsUsed };
-    if (message === "MCP_SCOPE_DENIED") return { ok: false, reason: "MCP_SCOPE_DENIED", toolsUsed };
-    if (message === "MCP_TOOL_ERROR") return { ok: false, reason: "MCP_TOOL_ERROR", toolsUsed };
-    if (message === "CALENDAR_TOOL_DENIED") return { ok: false, reason: "WRITE_DENIED", toolsUsed };
+    if (message === "CALENDAR_AUTH_REQUIRED") return { ok: false, reason: "CALENDAR_AUTH_REQUIRED", toolsUsed };
+    if (message === "CALENDAR_SCOPE_DENIED") return { ok: false, reason: "CALENDAR_SCOPE_DENIED", toolsUsed };
+    if (message === "CALENDAR_BAD_REQUEST") return { ok: false, reason: "CALENDAR_BAD_REQUEST", toolsUsed };
+    if (message === "CALENDAR_RATE_LIMITED") return { ok: false, reason: "CALENDAR_RATE_LIMITED", toolsUsed };
+    if (message === "CALENDAR_OPERATION_DENIED") return { ok: false, reason: "WRITE_DENIED", toolsUsed };
     if (message === "AbortError" || name === "AbortError") return { ok: false, reason: "TIMEOUT", toolsUsed };
-    return { ok: false, reason: "MCP_UNAVAILABLE", toolsUsed };
+    return { ok: false, reason: "CALENDAR_API_UNAVAILABLE", toolsUsed };
   }
 }
 
