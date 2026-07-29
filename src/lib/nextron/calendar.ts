@@ -51,7 +51,7 @@ export interface SanitizedCalendarEvent {
 
 export type CalendarReadResult =
   | { ok: true; events: SanitizedCalendarEvent[]; rangeLabel: string; toolsUsed: CalendarToolName[] }
-  | { ok: false; reason: "PERMISSION_DENIED" | "DISCONNECTED" | "ENV_MISSING" | "TOKEN_DECRYPT_FAILED" | "TOKEN_REFRESH_FAILED" | "TOKEN_UNAVAILABLE" | "MCP_HTTP_401" | "MCP_HTTP_403" | "MCP_PROTOCOL_ERROR" | "MCP_TOOL_ERROR" | "MCP_UNAVAILABLE" | "TIMEOUT" | "WRITE_DENIED"; toolsUsed: CalendarToolName[] };
+  | { ok: false; reason: "PERMISSION_DENIED" | "DISCONNECTED" | "ENV_MISSING" | "TOKEN_DECRYPT_FAILED" | "TOKEN_REFRESH_FAILED" | "TOKEN_UNAVAILABLE" | "MCP_HTTP_401" | "MCP_HTTP_403" | "MCP_PREVIEW_NOT_ENABLED" | "MCP_PROTOCOL_ERROR" | "MCP_SCOPE_DENIED" | "MCP_TOOL_ERROR" | "MCP_UNAVAILABLE" | "TIMEOUT" | "WRITE_DENIED"; toolsUsed: CalendarToolName[] };
 
 export function getGoogleCalendarEnv() {
   return {
@@ -189,6 +189,19 @@ function sanitizeEvent(input: unknown): SanitizedCalendarEvent | null {
   };
 }
 
+function classifyMcpToolError(result: unknown): string {
+  const record = result as { content?: unknown };
+  const content = Array.isArray(record.content) ? record.content : [];
+  const text = content
+    .map((item) => typeof (item as { text?: unknown }).text === "string" ? (item as { text: string }).text : "")
+    .join(" ")
+    .toLowerCase();
+  if (/developer preview|preview|not enabled|not been enabled|access not configured|api has not been used|disabled/.test(text)) return "MCP_PREVIEW_NOT_ENABLED";
+  if (/insufficient authentication scopes|insufficient permission|forbidden|permission denied|access denied/.test(text)) return "MCP_SCOPE_DENIED";
+  if (/invalid argument|invalid request|bad request|unknown parameter|schema|parse/.test(text)) return "MCP_PROTOCOL_ERROR";
+  return "MCP_TOOL_ERROR";
+}
+
 export function sanitizeCalendarEvents(payload: unknown): SanitizedCalendarEvent[] {
   const record = payload as Record<string, unknown>;
   const structured = record.structuredContent as Record<string, unknown> | undefined;
@@ -245,7 +258,8 @@ async function callCalendarMcp(tool: CalendarToolName, accessToken: string, args
   }
   const payload = await response.json().catch(() => null) as { result?: { isError?: boolean } | unknown; error?: unknown } | null;
   if (!payload) throw new Error("MCP_PROTOCOL_ERROR");
-  if (payload.error || (typeof payload.result === "object" && payload.result !== null && "isError" in payload.result && payload.result.isError)) throw new Error("MCP_TOOL_ERROR");
+  if (payload.error) throw new Error("MCP_PROTOCOL_ERROR");
+  if (typeof payload.result === "object" && payload.result !== null && "isError" in payload.result && payload.result.isError) throw new Error(classifyMcpToolError(payload.result));
   return payload.result;
 }
 
@@ -300,7 +314,9 @@ export async function runNextronCalendarReadOnly(args: { supabase: SupabaseClien
     if (message === "TOKEN_UNAVAILABLE") return { ok: false, reason: "TOKEN_UNAVAILABLE", toolsUsed };
     if (message === "MCP_HTTP_401") return { ok: false, reason: "MCP_HTTP_401", toolsUsed };
     if (message === "MCP_HTTP_403") return { ok: false, reason: "MCP_HTTP_403", toolsUsed };
+    if (message === "MCP_PREVIEW_NOT_ENABLED") return { ok: false, reason: "MCP_PREVIEW_NOT_ENABLED", toolsUsed };
     if (message === "MCP_PROTOCOL_ERROR") return { ok: false, reason: "MCP_PROTOCOL_ERROR", toolsUsed };
+    if (message === "MCP_SCOPE_DENIED") return { ok: false, reason: "MCP_SCOPE_DENIED", toolsUsed };
     if (message === "MCP_TOOL_ERROR") return { ok: false, reason: "MCP_TOOL_ERROR", toolsUsed };
     if (message === "CALENDAR_TOOL_DENIED") return { ok: false, reason: "WRITE_DENIED", toolsUsed };
     if (message === "AbortError" || name === "AbortError") return { ok: false, reason: "TIMEOUT", toolsUsed };
