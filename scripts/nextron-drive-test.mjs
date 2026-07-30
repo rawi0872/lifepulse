@@ -9,6 +9,8 @@ function assert(condition, message) {
 }
 
 const driveLib = read("src/lib/nextron/drive.ts");
+const pickerLoader = read("src/lib/google-picker-loader.ts");
+const nextConfig = read("next.config.ts");
 const knowledgeHybrid = read("src/lib/nextron/knowledge-hybrid.ts");
 const tools = read("src/lib/nextron/project-agent/tools.ts");
 const migration = read("supabase/migrations/00027_google_drive_selected_files.sql");
@@ -44,5 +46,15 @@ assert(driveRoute.includes("allowNextronDrive") && driveRoute.includes("disconne
 assert(importsRoute.includes("importSelectedDriveFile") && !importsRoute.includes("files.list"), "Drive import route must import selected files only.");
 assert(knowledgePage.includes("PickerBuilder") && knowledgePage.includes("Select Drive files"), "Knowledge page must expose Google Picker selected-file import.");
 assert(knowledgePage.includes("Remove from Drive panel"), "Drive copies must be removed through the Drive import panel.");
+
+assert(pickerLoader.includes('GOOGLE_PICKER_API_SCRIPT_URL = "https://apis.google.com/js/api.js"'), "Picker loader must use the official Google API loader script.");
+assert(pickerLoader.includes("if (isGapiReady()) return Promise.resolve()") && pickerLoader.includes("if (isPickerReady()) return"), "Picker loader must reuse existing loaded gapi and picker state.");
+assert(pickerLoader.includes("if (apiScriptPromise) return apiScriptPromise") && pickerLoader.includes("if (pickerModulePromise) return pickerModulePromise"), "Picker loader must share simultaneous script and picker module loads.");
+assert(pickerLoader.includes('reject(new Error("SCRIPT_LOAD_FAILED"))') && pickerLoader.includes('reject(new Error("PICKER_LOAD_FAILED"))'), "Picker loader must return safe errors for script and picker module failures.");
+assert((pickerLoader.match(/apiScriptPromise = null/g) ?? []).length >= 2 && pickerLoader.includes("pickerModulePromise = null"), "Picker loader must allow retry after prior script or picker failure.");
+assert(pickerLoader.includes('window.gapi?.load("picker"') && pickerLoader.includes("PickerBuilder"), "Picker loader must resolve only after the Picker module callback exposes PickerBuilder.");
+assert(!pickerLoader.includes("console.") && !knowledgePage.includes("console.log(token") && !knowledgePage.includes("console.log(driveStatus.picker"), "Picker path must not log API keys or OAuth tokens.");
+assert(!pickerLoader.includes("files.list") && !knowledgePage.includes("files.list") && !driveLib.includes("files.list"), "Picker fix must not add a Drive listing fallback.");
+assert(nextConfig.includes("script-src 'self' 'unsafe-inline' https://apis.google.com") && nextConfig.includes("frame-src 'self' https://docs.google.com https://drive.google.com https://accounts.google.com"), "Production CSP must minimally allow Google Picker script and frame origins.");
 
 console.log("NEXTRON Drive selected-files contract checks passed.");

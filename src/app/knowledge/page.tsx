@@ -13,6 +13,7 @@ import type {
   KnowledgeItem, KnowledgeItemFormData,
   KnowledgeCollection, KnowledgeCollectionFormData,
 } from "@/lib/knowledge";
+import { loadGooglePickerModule } from "@/lib/google-picker-loader";
 import { KNOWLEDGE_TYPES, KNOWLEDGE_CATEGORIES } from "@/lib/knowledge";
 
 interface DriveImport {
@@ -210,19 +211,6 @@ function KnowledgeContent() {
     setItems((prev) => prev.filter((i) => i.id !== id));
   };
 
-  function loadScript(src: string): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const existing = document.querySelector(`script[src="${src}"]`);
-      if (existing) { resolve(); return; }
-      const script = document.createElement("script");
-      script.src = src;
-      script.async = true;
-      script.onload = () => resolve();
-      script.onerror = () => reject(new Error("SCRIPT_LOAD_FAILED"));
-      document.body.appendChild(script);
-    });
-  }
-
   async function openDrivePicker() {
     if (!driveStatus?.connected) {
       toast({ type: "error", title: "Connect Google Drive in Settings first." });
@@ -237,10 +225,7 @@ function KnowledgeContent() {
       const tokenResponse = await fetch("/api/integrations/google/drive/picker-token", { method: "POST" });
       const tokenPayload: { accessToken?: string; error?: string } = await tokenResponse.json().catch(() => ({}));
       if (!tokenResponse.ok || !tokenPayload.accessToken) throw new Error(tokenPayload.error ?? "PICKER_TOKEN_FAILED");
-      await loadScript("https://apis.google.com/js/api.js");
-      await new Promise<void>((resolve, reject) => {
-        window.gapi?.load("picker", () => window.google?.picker ? resolve() : reject(new Error("PICKER_LOAD_FAILED")));
-      });
+      await loadGooglePickerModule();
       const pickerApi = window.google?.picker;
       if (!pickerApi) throw new Error("PICKER_LOAD_FAILED");
       const view = new pickerApi.DocsView(pickerApi.ViewId.DOCS);
