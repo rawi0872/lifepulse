@@ -38,7 +38,7 @@ interface GoogleDriveStatus {
 type GooglePickerDoc = { id?: string; name?: string; resourceKey?: string };
 type GooglePickerResponse = { action?: string; docs?: GooglePickerDoc[] };
 interface GoogleDocsView { setIncludeFolders: (value: boolean) => GoogleDocsView; setSelectFolderEnabled: (value: boolean) => GoogleDocsView; setMimeTypes: (value: string) => GoogleDocsView }
-interface GooglePickerBuilder { addView: (view: unknown) => GooglePickerBuilder; enableFeature: (feature: string) => GooglePickerBuilder; setAppId: (id: string) => GooglePickerBuilder; setDeveloperKey: (key: string) => GooglePickerBuilder; setOAuthToken: (token: string) => GooglePickerBuilder; setCallback: (callback: (data: GooglePickerResponse) => void) => GooglePickerBuilder; build: () => { setVisible: (value: boolean) => void } }
+interface GooglePickerBuilder { addView: (view: unknown) => GooglePickerBuilder; enableFeature: (feature: string) => GooglePickerBuilder; setAppId: (id: string) => GooglePickerBuilder; setDeveloperKey: (key: string) => GooglePickerBuilder; setOAuthToken: (token: string) => GooglePickerBuilder; setOrigin: (origin: string) => GooglePickerBuilder; setCallback: (callback: (data: GooglePickerResponse) => void) => GooglePickerBuilder; build: () => { setVisible: (value: boolean) => void; isVisible?: () => boolean } }
 
 declare global {
   interface Window {
@@ -82,6 +82,8 @@ function KnowledgeContent() {
   const [selectedCategory, setSelectedCategory] = useState("");
   const [driveStatus, setDriveStatus] = useState<GoogleDriveStatus | null>(null);
   const [driveLoading, setDriveLoading] = useState(true);
+  const [drivePickerLaunching, setDrivePickerLaunching] = useState(false);
+  const [drivePickerOpen, setDrivePickerOpen] = useState(false);
   const [driveImporting, setDriveImporting] = useState(false);
 
   const [itemForm, setItemForm] = useState<KnowledgeItemFormData>({
@@ -212,6 +214,7 @@ function KnowledgeContent() {
   };
 
   async function openDrivePicker() {
+    if (drivePickerLaunching || drivePickerOpen || driveImporting) return;
     if (!driveStatus?.connected) {
       toast({ type: "error", title: "Connect Google Drive in Settings first." });
       return;
@@ -220,7 +223,7 @@ function KnowledgeContent() {
       toast({ type: "error", title: "Google Drive Picker is not configured yet." });
       return;
     }
-    setDriveImporting(true);
+    setDrivePickerLaunching(true);
     try {
       const tokenResponse = await fetch("/api/integrations/google/drive/picker-token", { method: "POST" });
       const tokenPayload: { accessToken?: string; error?: string } = await tokenResponse.json().catch(() => ({}));
@@ -232,25 +235,32 @@ function KnowledgeContent() {
       view.setIncludeFolders(false);
       view.setSelectFolderEnabled(false);
       view.setMimeTypes("application/vnd.google-apps.document,text/plain,text/markdown,text/x-markdown");
-      new pickerApi.PickerBuilder()
+      const picker = new pickerApi.PickerBuilder()
         .addView(view)
         .enableFeature(pickerApi.Feature.NAV_HIDDEN)
         .enableFeature(pickerApi.Feature.MULTISELECT_ENABLED)
         .setAppId(driveStatus.picker.appId)
         .setDeveloperKey(driveStatus.picker.apiKey)
         .setOAuthToken(tokenPayload.accessToken)
+        .setOrigin(window.location.origin)
         .setCallback((data) => {
           if (data.action !== pickerApi.Action.PICKED || !data.docs?.length) {
-            setDriveImporting(false);
+            setDrivePickerOpen(false);
             return;
           }
+          setDrivePickerOpen(false);
+          setDriveImporting(true);
           void importDriveDocs(data.docs);
         })
-        .build()
-        .setVisible(true);
+        .build();
+      picker.setVisible(true);
+      if (picker.isVisible && !picker.isVisible()) throw new Error("PICKER_VISIBLE_FAILED");
+      setDrivePickerOpen(true);
     } catch (error) {
-      setDriveImporting(false);
+      setDrivePickerOpen(false);
       toast({ type: "error", title: error instanceof Error ? error.message : "Failed to open Google Drive Picker." });
+    } finally {
+      setDrivePickerLaunching(false);
     }
   }
 
@@ -408,10 +418,10 @@ function KnowledgeContent() {
                   {driveStatus?.connected ? (
                     <button
                       onClick={openDrivePicker}
-                      disabled={driveImporting || Boolean(driveStatus?.missingEnv?.length)}
+                      disabled={drivePickerLaunching || drivePickerOpen || driveImporting || Boolean(driveStatus?.missingEnv?.length)}
                       className="min-h-11 shrink-0 rounded-lg bg-[var(--accent)] px-4 py-2.5 text-xs font-medium text-[var(--text-on-accent)] transition-all hover:opacity-90 disabled:opacity-40 sm:min-h-0 sm:py-2"
                     >
-                      {driveImporting ? "Importing..." : "Select Drive files"}
+                      {driveImporting ? "Importing..." : drivePickerLaunching ? "Opening Drive..." : "Select Drive files"}
                     </button>
                   ) : (
                     <Link href="/settings" className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-lg border border-[var(--border)] px-4 py-2.5 text-xs font-medium text-[var(--text)] transition-colors hover:bg-[var(--surface-soft)] sm:min-h-0 sm:py-2">Connect in Settings</Link>

@@ -46,6 +46,17 @@ assert(driveRoute.includes("allowNextronDrive") && driveRoute.includes("disconne
 assert(importsRoute.includes("importSelectedDriveFile") && !importsRoute.includes("files.list"), "Drive import route must import selected files only.");
 assert(knowledgePage.includes("PickerBuilder") && knowledgePage.includes("Select Drive files"), "Knowledge page must expose Google Picker selected-file import.");
 assert(knowledgePage.includes("Remove from Drive panel"), "Drive copies must be removed through the Drive import panel.");
+assert(knowledgePage.includes("drivePickerLaunching") && knowledgePage.includes('"Opening Drive..."') && knowledgePage.includes('"Importing..."'), "Picker launch and file import must use distinct loading states.");
+assert(knowledgePage.includes("if (drivePickerLaunching || drivePickerOpen || driveImporting) return"), "Duplicate Picker launch clicks must be blocked while launch, Picker, or import is active.");
+assert(knowledgePage.includes('fetch("/api/integrations/google/drive/picker-token", { method: "POST" })') && knowledgePage.includes("tokenPayload.accessToken"), "Picker launch must request and validate the server-issued Picker token.");
+assert(knowledgePage.includes("driveStatus.picker.apiKey") && knowledgePage.includes("driveStatus.picker.appId"), "Picker launch must require API key and App ID config before building.");
+assert(knowledgePage.includes("const picker = new pickerApi.PickerBuilder()") && knowledgePage.includes(".addView(view)") && knowledgePage.includes(".setOAuthToken(tokenPayload.accessToken)") && knowledgePage.includes(".setDeveloperKey(driveStatus.picker.apiKey)") && knowledgePage.includes(".setAppId(driveStatus.picker.appId)") && knowledgePage.includes(".setCallback((data) =>"), "Picker builder must receive view, token, key, App ID, and callback.");
+assert(knowledgePage.includes(".setOrigin(window.location.origin)"), "Picker builder must set the current web origin explicitly.");
+assert(knowledgePage.includes("picker.setVisible(true)") && knowledgePage.includes("PICKER_VISIBLE_FAILED"), "Picker launch must call setVisible(true) and classify visible failures.");
+assert(knowledgePage.includes("setDrivePickerOpen(false)") && knowledgePage.includes("data.action !== pickerApi.Action.PICKED"), "Picker cancel/non-picked callback must reset Picker-open state.");
+assert(knowledgePage.includes("setDriveImporting(true)") && knowledgePage.includes("void importDriveDocs(data.docs)"), "Picked files must transition to import only after PICKED callback.");
+assert(knowledgePage.indexOf("void importDriveDocs(data.docs)") > knowledgePage.indexOf("data.action !== pickerApi.Action.PICKED"), "Drive import must not run before the PICKED guard.");
+assert(knowledgePage.includes("setDrivePickerLaunching(false)"), "Picker token, config, builder, and visible failures must reset launch loading state.");
 
 assert(pickerLoader.includes('GOOGLE_PICKER_API_SCRIPT_URL = "https://apis.google.com/js/api.js"'), "Picker loader must use the official Google API loader script.");
 assert(pickerLoader.includes("if (isGapiReady()) return Promise.resolve()") && pickerLoader.includes("if (isPickerReady()) return"), "Picker loader must reuse existing loaded gapi and picker state.");
