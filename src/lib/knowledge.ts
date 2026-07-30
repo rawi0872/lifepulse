@@ -5,6 +5,7 @@ export interface KnowledgeItem {
   type: string;
   category: string | null;
   source_url: string | null;
+  source_provider?: "life_pulse" | "google_drive" | null;
   summary: string | null;
   content: string | null;
   status: string | null;

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { buildNextronPreferenceUpsert, normalizeNextronPreferences, type NextronPreferenceRow, type NextronPermissionState } from "@/lib/nextron/context";
-import { decryptCalendarTokens, missingGoogleCalendarEnv, revokeGoogleCalendarToken, type CalendarConnectionRow } from "@/lib/nextron/calendar";
+import { disconnectGoogleDrive, getGoogleDriveEnv, listDriveImports, missingGoogleDriveEnv, type DriveConnectionRow } from "@/lib/nextron/drive";
 import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -29,49 +29,46 @@ async function readBody(request: Request): Promise<Record<string, unknown> | nul
 
 export async function GET() {
   const auth = await authenticated();
-  if (!auth) return NextResponse.json({ error: "Sign in to manage Google Calendar." }, { status: 401 });
-  const [permissions, connection] = await Promise.all([
+  if (!auth) return NextResponse.json({ error: "Sign in to manage Google Drive." }, { status: 401 });
+  const [permissions, connection, imports] = await Promise.all([
     currentPermissions(auth.supabase, auth.userId),
-    auth.supabase.from("google_calendar_connections").select("status, token_expires_at, google_account_hint, last_error_code").eq("user_id", auth.userId).maybeSingle(),
+    auth.supabase.from("google_drive_connections").select("status, token_expires_at, google_account_hint, last_error_code").eq("user_id", auth.userId).maybeSingle(),
+    listDriveImports(auth.supabase, auth.userId),
   ]);
-  const row = connection.data as Pick<CalendarConnectionRow, "status" | "token_expires_at" | "google_account_hint" | "last_error_code"> | null;
+  const row = connection.data as Pick<DriveConnectionRow, "status" | "token_expires_at" | "google_account_hint" | "last_error_code"> | null;
+  const env = getGoogleDriveEnv();
   return NextResponse.json({
     connected: row?.status === "connected",
     status: row?.status ?? "not_connected",
     accountHint: row?.google_account_hint ?? null,
     lastErrorCode: row?.last_error_code ?? null,
-    allowNextronCalendar: permissions.calendar === "allowed",
+    allowNextronDrive: permissions.drive === "allowed",
     readOnly: true,
-    missingEnv: missingGoogleCalendarEnv(),
+    scope: "drive.file",
+    picker: { apiKey: env.pickerApiKey || null, appId: env.pickerAppId || null },
+    imports,
+    missingEnv: missingGoogleDriveEnv(),
   });
 }
 
 export async function PATCH(request: Request) {
   const auth = await authenticated();
-  if (!auth) return NextResponse.json({ error: "Sign in to manage Google Calendar." }, { status: 401 });
+  if (!auth) return NextResponse.json({ error: "Sign in to manage Google Drive." }, { status: 401 });
   const body = await readBody(request);
-  if (!body || typeof body.allowNextronCalendar !== "boolean") return NextResponse.json({ error: "Invalid Calendar permission request." }, { status: 400 });
+  if (!body || typeof body.allowNextronDrive !== "boolean") return NextResponse.json({ error: "Invalid Drive permission request." }, { status: 400 });
   const permissions = await currentPermissions(auth.supabase, auth.userId);
-  const next = { ...permissions, calendar: body.allowNextronCalendar ? "allowed" : "denied" } satisfies NextronPermissionState;
+  const next = { ...permissions, drive: body.allowNextronDrive ? "allowed" : "denied" } satisfies NextronPermissionState;
   const { error } = await auth.supabase.from("nextron_context_preferences").upsert(buildNextronPreferenceUpsert(auth.userId, next), { onConflict: "user_id" });
-  if (error) return NextResponse.json({ error: "Failed to save Calendar permission." }, { status: 500 });
-  return NextResponse.json({ allowNextronCalendar: next.calendar === "allowed" });
+  if (error) return NextResponse.json({ error: "Failed to save Drive permission." }, { status: 500 });
+  return NextResponse.json({ allowNextronDrive: next.drive === "allowed" });
 }
 
 export async function DELETE() {
   const auth = await authenticated();
-  if (!auth) return NextResponse.json({ error: "Sign in to manage Google Calendar." }, { status: 401 });
-  const { data } = await auth.supabase.from("google_calendar_connections").select("user_id, encrypted_tokens, token_iv, token_tag, scopes, token_expires_at, google_account_hint, status, last_error_code").eq("user_id", auth.userId).maybeSingle();
-  const row = data as CalendarConnectionRow | null;
-  if (row) {
-    try {
-      const tokens = await decryptCalendarTokens(row);
-      await revokeGoogleCalendarToken(tokens.refresh_token ?? tokens.access_token);
-    } catch {}
-  }
-  await auth.supabase.from("google_calendar_connections").delete().eq("user_id", auth.userId);
+  if (!auth) return NextResponse.json({ error: "Sign in to manage Google Drive." }, { status: 401 });
+  await disconnectGoogleDrive(auth.supabase, auth.userId);
   const permissions = await currentPermissions(auth.supabase, auth.userId);
-  const next = { ...permissions, calendar: "denied" } satisfies NextronPermissionState;
+  const next = { ...permissions, drive: "denied" } satisfies NextronPermissionState;
   await auth.supabase.from("nextron_context_preferences").upsert(buildNextronPreferenceUpsert(auth.userId, next), { onConflict: "user_id" });
-  return NextResponse.json({ connected: false, allowNextronCalendar: false });
+  return NextResponse.json({ connected: false, allowNextronDrive: false, imports: [] });
 }

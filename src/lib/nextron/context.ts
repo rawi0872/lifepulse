@@ -7,6 +7,7 @@ export type NextronContextDomain =
   | "goals"
   | "projects"
   | "knowledge"
+  | "drive"
   | "calendar"
   | "journal"
   | "eveningShutdown"
@@ -34,6 +35,7 @@ export type NextronPermissionColumn =
   | "allow_goals"
   | "allow_projects"
   | "allow_knowledge"
+  | "allow_drive"
   | "allow_calendar"
   | "allow_journal"
   | "allow_evening_shutdown"
@@ -49,6 +51,7 @@ export interface NextronPreferenceRow {
   allow_goals: boolean | null;
   allow_projects: boolean | null;
   allow_knowledge?: boolean | null;
+  allow_drive?: boolean | null;
   allow_calendar?: boolean | null;
   allow_journal: boolean | null;
   allow_evening_shutdown: boolean | null;
@@ -66,6 +69,7 @@ export interface NextronPreferenceUpsert {
   allow_goals: boolean;
   allow_projects: boolean;
   allow_knowledge: boolean;
+  allow_drive: boolean;
   allow_calendar: boolean;
   allow_journal: boolean;
   allow_evening_shutdown: boolean;
@@ -77,7 +81,7 @@ export interface NormalizedNextronPreferences {
   warning: string | null;
 }
 
-export const NEXTRON_PERMISSION_VERSION = 3;
+export const NEXTRON_PERMISSION_VERSION = 4;
 
 const NEXTRON_DEFAULT_PERMISSION_LEVELS: NextronPermissionState = {
   profile: "allowed",
@@ -88,6 +92,7 @@ const NEXTRON_DEFAULT_PERMISSION_LEVELS: NextronPermissionState = {
   goals: "allowed",
   projects: "allowed",
   knowledge: "denied",
+  drive: "denied",
   calendar: "denied",
   journal: "denied",
   eveningShutdown: "denied",
@@ -160,6 +165,14 @@ export const NEXTRON_CONTEXT_PERMISSIONS: readonly NextronContextPermission[] = 
     textHeavy: true,
   },
   {
+    domain: "drive",
+    dbColumn: "allow_drive",
+    label: "Imported Google Drive files",
+    description: "Allow NEXTRON to use only Google Drive files you explicitly imported into Knowledge.",
+    level: NEXTRON_DEFAULT_PERMISSION_LEVELS.drive,
+    textHeavy: true,
+  },
+  {
     domain: "calendar",
     dbColumn: "allow_calendar",
     label: "Google Calendar",
@@ -222,7 +235,7 @@ export function normalizeNextronPreferences(row: NextronPreferenceRow | null | u
   const defaults = getDefaultNextronPermissions();
   if (!row) return { permissions: defaults, warning: null };
 
-  if (row.permission_version !== NEXTRON_PERMISSION_VERSION && row.permission_version !== 2 && row.permission_version !== 1) {
+  if (row.permission_version !== NEXTRON_PERMISSION_VERSION && row.permission_version !== 3 && row.permission_version !== 2 && row.permission_version !== 1) {
     return {
       permissions: defaults,
       warning: "Saved NEXTRON context permissions use an unsupported version, so safe defaults are active.",
@@ -260,6 +273,7 @@ export function buildNextronPreferenceUpsert(userId: string, permissions: Nextro
     allow_goals: permissions.goals === "allowed",
     allow_projects: permissions.projects === "allowed",
     allow_knowledge: permissions.knowledge === "allowed",
+    allow_drive: permissions.drive === "allowed",
     allow_calendar: permissions.calendar === "allowed",
     allow_journal: permissions.journal === "allowed",
     allow_evening_shutdown: permissions.eveningShutdown === "allowed",

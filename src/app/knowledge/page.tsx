@@ -15,6 +15,45 @@ import type {
 } from "@/lib/knowledge";
 import { KNOWLEDGE_TYPES, KNOWLEDGE_CATEGORIES } from "@/lib/knowledge";
 
+interface DriveImport {
+  id: string;
+  display_title: string;
+  mime_type: string;
+  drive_modified_at: string | null;
+  last_synced_at: string | null;
+  status: string;
+  last_error_code: string | null;
+  content_size: number | null;
+}
+
+interface GoogleDriveStatus {
+  connected: boolean;
+  allowNextronDrive: boolean;
+  picker: { apiKey: string | null; appId: string | null };
+  imports: DriveImport[];
+  missingEnv: string[];
+}
+
+type GooglePickerDoc = { id?: string; name?: string; resourceKey?: string };
+type GooglePickerResponse = { action?: string; docs?: GooglePickerDoc[] };
+interface GoogleDocsView { setIncludeFolders: (value: boolean) => GoogleDocsView; setSelectFolderEnabled: (value: boolean) => GoogleDocsView; setMimeTypes: (value: string) => GoogleDocsView }
+interface GooglePickerBuilder { addView: (view: unknown) => GooglePickerBuilder; enableFeature: (feature: string) => GooglePickerBuilder; setAppId: (id: string) => GooglePickerBuilder; setDeveloperKey: (key: string) => GooglePickerBuilder; setOAuthToken: (token: string) => GooglePickerBuilder; setCallback: (callback: (data: GooglePickerResponse) => void) => GooglePickerBuilder; build: () => { setVisible: (value: boolean) => void } }
+
+declare global {
+  interface Window {
+    gapi?: { load: (name: string, callback: () => void) => void };
+    google?: {
+      picker?: {
+        Action: { PICKED: string };
+        DocsView: new (viewId?: string) => GoogleDocsView;
+        Feature: { NAV_HIDDEN: string; MULTISELECT_ENABLED: string };
+        PickerBuilder: new () => GooglePickerBuilder;
+        ViewId: { DOCS: string };
+      };
+    };
+  }
+}
+
 const TABS = [
   { id: "overview", label: "Overview" },
   { id: "add", label: "Add Knowledge" },
@@ -40,6 +79,9 @@ function KnowledgeContent() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedType, setSelectedType] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
+  const [driveStatus, setDriveStatus] = useState<GoogleDriveStatus | null>(null);
+  const [driveLoading, setDriveLoading] = useState(true);
+  const [driveImporting, setDriveImporting] = useState(false);
 
   const [itemForm, setItemForm] = useState<KnowledgeItemFormData>({
     title: "", type: "note", category: "", source_url: "", summary: "", content: "",
@@ -54,9 +96,10 @@ function KnowledgeContent() {
     if (!user) { router.push("/login"); return; }
     setCurrentUser(user);
 
-    const [iRes, cRes] = await Promise.all([
+    const [iRes, cRes, driveRes] = await Promise.all([
       supabase.from("knowledge_items").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(20),
       supabase.from("knowledge_collections").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
+      fetch("/api/integrations/google/drive", { cache: "no-store" }).catch(() => null),
     ]);
 
     const loadedItems = (iRes.data ?? []) as KnowledgeItem[];
@@ -85,6 +128,11 @@ function KnowledgeContent() {
     setItems(loadedItems);
     setCollections(loadedCollections);
     setItemCollectionNames(collectionNamesByItem);
+    if (driveRes?.ok) {
+      const drivePayload: GoogleDriveStatus = await driveRes.json();
+      setDriveStatus(drivePayload);
+    }
+    setDriveLoading(false);
     setLoading(false);
   }, [supabase, router]);
 
@@ -161,6 +209,113 @@ function KnowledgeContent() {
     toast({ type: "success", title: "Item deleted" });
     setItems((prev) => prev.filter((i) => i.id !== id));
   };
+
+  function loadScript(src: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const existing = document.querySelector(`script[src="${src}"]`);
+      if (existing) { resolve(); return; }
+      const script = document.createElement("script");
+      script.src = src;
+      script.async = true;
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error("SCRIPT_LOAD_FAILED"));
+      document.body.appendChild(script);
+    });
+  }
+
+  async function openDrivePicker() {
+    if (!driveStatus?.connected) {
+      toast({ type: "error", title: "Connect Google Drive in Settings first." });
+      return;
+    }
+    if (!driveStatus.picker.apiKey || !driveStatus.picker.appId) {
+      toast({ type: "error", title: "Google Drive Picker is not configured yet." });
+      return;
+    }
+    setDriveImporting(true);
+    try {
+      const tokenResponse = await fetch("/api/integrations/google/drive/picker-token", { method: "POST" });
+      const tokenPayload: { accessToken?: string; error?: string } = await tokenResponse.json().catch(() => ({}));
+      if (!tokenResponse.ok || !tokenPayload.accessToken) throw new Error(tokenPayload.error ?? "PICKER_TOKEN_FAILED");
+      await loadScript("https://apis.google.com/js/api.js");
+      await new Promise<void>((resolve, reject) => {
+        window.gapi?.load("picker", () => window.google?.picker ? resolve() : reject(new Error("PICKER_LOAD_FAILED")));
+      });
+      const pickerApi = window.google?.picker;
+      if (!pickerApi) throw new Error("PICKER_LOAD_FAILED");
+      const view = new pickerApi.DocsView(pickerApi.ViewId.DOCS);
+      view.setIncludeFolders(false);
+      view.setSelectFolderEnabled(false);
+      view.setMimeTypes("application/vnd.google-apps.document,text/plain,text/markdown,text/x-markdown");
+      new pickerApi.PickerBuilder()
+        .addView(view)
+        .enableFeature(pickerApi.Feature.NAV_HIDDEN)
+        .enableFeature(pickerApi.Feature.MULTISELECT_ENABLED)
+        .setAppId(driveStatus.picker.appId)
+        .setDeveloperKey(driveStatus.picker.apiKey)
+        .setOAuthToken(tokenPayload.accessToken)
+        .setCallback((data) => {
+          if (data.action !== pickerApi.Action.PICKED || !data.docs?.length) {
+            setDriveImporting(false);
+            return;
+          }
+          void importDriveDocs(data.docs);
+        })
+        .build()
+        .setVisible(true);
+    } catch (error) {
+      setDriveImporting(false);
+      toast({ type: "error", title: error instanceof Error ? error.message : "Failed to open Google Drive Picker." });
+    }
+  }
+
+  async function importDriveDocs(docs: GooglePickerDoc[]) {
+    try {
+      for (const doc of docs) {
+        if (!doc.id) continue;
+        const response = await fetch("/api/integrations/google/drive/imports", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ fileId: doc.id, resourceKey: doc.resourceKey ?? null }),
+        });
+        const payload: { imports?: DriveImport[]; error?: string } = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(payload.error ?? `Failed to import ${doc.name ?? "Drive file"}.`);
+        if (payload.imports) setDriveStatus((current) => current ? { ...current, imports: payload.imports ?? [] } : current);
+      }
+      toast({ type: "success", title: "Google Drive file imported into Knowledge." });
+      await loadAll();
+    } catch (error) {
+      toast({ type: "error", title: error instanceof Error ? error.message : "Failed to import Google Drive file." });
+    } finally {
+      setDriveImporting(false);
+    }
+  }
+
+  async function refreshDriveImport(importId: string) {
+    setDriveImporting(true);
+    const response = await fetch(`/api/integrations/google/drive/imports/${importId}`, { method: "PATCH" });
+    setDriveImporting(false);
+    const payload: { imports?: DriveImport[]; error?: string } = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      toast({ type: "error", title: payload.error ?? "Failed to refresh Drive import." });
+      return;
+    }
+    setDriveStatus((current) => current ? { ...current, imports: payload.imports ?? current.imports } : current);
+    toast({ type: "success", title: "Drive import refreshed." });
+    await loadAll();
+  }
+
+  async function removeDriveImport(importId: string) {
+    const response = await fetch(`/api/integrations/google/drive/imports/${importId}`, { method: "DELETE" });
+    const payload: { imports?: DriveImport[]; error?: string } = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      toast({ type: "error", title: payload.error ?? "Failed to remove Drive import." });
+      return;
+    }
+    setDriveStatus((current) => current ? { ...current, imports: payload.imports ?? current.imports } : current);
+    toast({ type: "success", title: "Drive import removed from Life Pulse." });
+    await loadAll();
+  }
 
   const handleDeleteCollection = async (id: string) => {
     const { error } = await supabase.from("knowledge_collections").delete().eq("id", id);
@@ -253,6 +408,52 @@ function KnowledgeContent() {
         {/* ════════════════ ADD KNOWLEDGE ════════════════ */}
         {activeTab === "add" && (
           <div className="space-y-6">
+            <PulseCard title="Import from Google Drive" accent="accent" description="Selected files only — no Drive browsing by Life Pulse">
+              <div className="space-y-4 p-4 sm:p-5">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-[var(--text)]">
+                      {driveLoading ? "Checking Google Drive..." : driveStatus?.connected ? "Google Drive connected" : "Google Drive not connected"}
+                    </p>
+                    <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
+                      Import Google Docs, plain text, or Markdown files you explicitly select. The original file stays in Drive; removing an import only deletes the Life Pulse copy.
+                    </p>
+                    {driveStatus?.missingEnv?.length ? <p className="mt-1 text-xs text-[var(--danger)]">Drive import is not configured on the server yet.</p> : null}
+                  </div>
+                  {driveStatus?.connected ? (
+                    <button
+                      onClick={openDrivePicker}
+                      disabled={driveImporting || Boolean(driveStatus?.missingEnv?.length)}
+                      className="min-h-11 shrink-0 rounded-lg bg-[var(--accent)] px-4 py-2.5 text-xs font-medium text-[var(--text-on-accent)] transition-all hover:opacity-90 disabled:opacity-40 sm:min-h-0 sm:py-2"
+                    >
+                      {driveImporting ? "Importing..." : "Select Drive files"}
+                    </button>
+                  ) : (
+                    <Link href="/settings" className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-lg border border-[var(--border)] px-4 py-2.5 text-xs font-medium text-[var(--text)] transition-colors hover:bg-[var(--surface-soft)] sm:min-h-0 sm:py-2">Connect in Settings</Link>
+                  )}
+                </div>
+
+                {driveStatus?.imports?.length ? (
+                  <div className="divide-y divide-[var(--border)] rounded-xl border border-[var(--border)] bg-[var(--surface-soft)]">
+                    {driveStatus.imports.map((item) => (
+                      <div key={item.id} className="flex flex-col gap-2 px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="min-w-0">
+                          <p className="break-words text-xs font-medium text-[var(--text)]">{item.display_title}</p>
+                          <p className="mt-1 text-[10px] text-[var(--text-muted)]">
+                            Google Drive {item.status === "active" ? "imported" : item.status}{item.last_synced_at ? ` · synced ${new Date(item.last_synced_at).toLocaleDateString()}` : ""}
+                          </p>
+                        </div>
+                        <div className="flex gap-2 self-end sm:self-auto">
+                          <button onClick={() => refreshDriveImport(item.id)} disabled={driveImporting} className="min-h-10 rounded-md px-2 py-1.5 text-[10px] text-[var(--accent)] hover:underline disabled:opacity-40 sm:min-h-0 sm:py-0">Refresh</button>
+                          <button onClick={() => removeDriveImport(item.id)} disabled={driveImporting} className="min-h-10 rounded-md px-2 py-1.5 text-[10px] text-[var(--danger)] hover:underline disabled:opacity-40 sm:min-h-0 sm:py-0">Remove</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            </PulseCard>
+
             <PulseCard title="Add Knowledge Item" accent="accent" description="Private and manual — no AI summaries or external processing">
               <div className="grid min-w-0 grid-cols-1 gap-3 p-4 sm:grid-cols-2 sm:p-5">
                 <input type="text" placeholder="Title" value={itemForm.title}
@@ -405,6 +606,7 @@ function KnowledgeContent() {
                           <div className="flex min-w-0 flex-wrap items-center gap-2">
                             <span className="min-w-0 break-words text-xs font-medium text-[var(--text)]">{item.title}</span>
                             <span className="shrink-0 rounded-full bg-[var(--surface-soft)] px-2 py-1 text-[9px] font-medium text-[var(--text-muted)] sm:py-0.5">{item.type}</span>
+                            {item.source_provider === "google_drive" && <span className="shrink-0 rounded-full bg-[var(--accent-soft)] px-2 py-1 text-[9px] font-medium text-[var(--accent)] sm:py-0.5">Google Drive</span>}
                             {item.category && <span className="shrink-0 rounded-full bg-[var(--surface-soft)] px-2 py-1 text-[9px] text-[var(--text-muted)] sm:bg-transparent sm:px-0 sm:py-0">{item.category}</span>}
                           </div>
                           {item.summary && <span className="break-words text-[10px] text-[var(--text-muted)]">{item.summary}</span>}
@@ -419,8 +621,12 @@ function KnowledgeContent() {
                           )}
                           <span className="text-[9px] text-[var(--text-muted)]">{new Date(item.created_at).toLocaleDateString()}</span>
                         </div>
-                        <button onClick={() => handleDeleteItem(item.id)}
-                          className="min-h-10 self-end rounded-md px-2 py-1.5 text-[10px] text-[var(--danger)] opacity-100 transition-opacity sm:min-h-0 sm:self-auto sm:opacity-0 sm:group-hover:opacity-100">Delete</button>
+                        {item.source_provider === "google_drive" ? (
+                          <span className="self-end rounded-md px-2 py-1.5 text-[10px] text-[var(--text-muted)] sm:self-auto">Remove from Drive panel</span>
+                        ) : (
+                          <button onClick={() => handleDeleteItem(item.id)}
+                            className="min-h-10 self-end rounded-md px-2 py-1.5 text-[10px] text-[var(--danger)] opacity-100 transition-opacity sm:min-h-0 sm:self-auto sm:opacity-0 sm:group-hover:opacity-100">Delete</button>
+                        )}
                       </div>
                     ))}
                   </div>

@@ -40,6 +40,18 @@ interface GoogleCalendarStatus {
   missingEnv: string[];
 }
 
+interface GoogleDriveStatus {
+  connected: boolean;
+  status: "connected" | "error" | "revoked" | "not_connected";
+  accountHint: string | null;
+  lastErrorCode: string | null;
+  allowNextronDrive: boolean;
+  readOnly: true;
+  scope: "drive.file";
+  imports: Array<{ id: string; display_title: string; status: string }>;
+  missingEnv: string[];
+}
+
 const moduleStatusStyles: Record<ModuleStatus, string> = {
   available: "border-[var(--success)]/30 bg-[var(--success-soft)] text-[var(--success)]",
   preview: "border-[var(--accent)]/30 bg-[var(--accent-soft)] text-[var(--accent)]",
@@ -66,6 +78,9 @@ export default function SettingsPage() {
   const [calendarStatus, setCalendarStatus] = useState<GoogleCalendarStatus | null>(null);
   const [calendarLoading, setCalendarLoading] = useState(true);
   const [calendarSaving, setCalendarSaving] = useState(false);
+  const [driveStatus, setDriveStatus] = useState<GoogleDriveStatus | null>(null);
+  const [driveLoading, setDriveLoading] = useState(true);
+  const [driveSaving, setDriveSaving] = useState(false);
   const { toast } = useToast();
 
   interface Realm { id: string; name: string; color: string; icon: string }
@@ -133,6 +148,15 @@ export default function SettingsPage() {
         }
       } catch {}
       setCalendarLoading(false);
+
+      try {
+        const driveResponse = await fetch("/api/integrations/google/drive", { cache: "no-store" });
+        if (driveResponse.ok) {
+          const drivePayload: GoogleDriveStatus = await driveResponse.json();
+          setDriveStatus(drivePayload);
+        }
+      } catch {}
+      setDriveLoading(false);
 
       setLoading(false);
     }
@@ -392,6 +416,48 @@ export default function SettingsPage() {
     toast({ type: "success", title: "Google Calendar disconnected." });
   }
 
+  async function connectDrive() {
+    setDriveSaving(true);
+    const response = await fetch("/api/integrations/google/drive/connect", { method: "POST" });
+    setDriveSaving(false);
+    const payload: { authUrl?: string; error?: string; missingEnv?: string[] } = await response.json().catch(() => ({}));
+    if (!response.ok || !payload.authUrl) {
+      toast({ type: "error", title: payload.error ?? "Google Drive connection is not ready yet." });
+      return;
+    }
+    window.location.assign(payload.authUrl);
+  }
+
+  async function saveDrivePermission(allow: boolean) {
+    setDriveSaving(true);
+    const response = await fetch("/api/integrations/google/drive", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ allowNextronDrive: allow }),
+    });
+    setDriveSaving(false);
+    if (!response.ok) {
+      const payload: { error?: string } = await response.json().catch(() => ({}));
+      toast({ type: "error", title: payload.error ?? "Failed to update Drive permission." });
+      return;
+    }
+    setDriveStatus((current) => current ? { ...current, allowNextronDrive: allow } : current);
+    toast({ type: "success", title: allow ? "NEXTRON Drive reads enabled." : "NEXTRON Drive reads disabled." });
+  }
+
+  async function disconnectDrive() {
+    setDriveSaving(true);
+    const response = await fetch("/api/integrations/google/drive", { method: "DELETE" });
+    setDriveSaving(false);
+    if (!response.ok) {
+      const payload: { error?: string } = await response.json().catch(() => ({}));
+      toast({ type: "error", title: payload.error ?? "Failed to disconnect Drive." });
+      return;
+    }
+    setDriveStatus((current) => current ? { ...current, connected: false, status: "not_connected", allowNextronDrive: false, imports: [] } : current);
+    toast({ type: "success", title: "Google Drive disconnected and imported Drive copies removed." });
+  }
+
   const initials = (firstName?.[0] ?? "") + (lastName?.[0] ?? "");
   const recommendedModules = getRecommendedModules(intendedUse);
   const modulesByCategory = getModulesByCategory();
@@ -591,6 +657,62 @@ export default function SettingsPage() {
                     <span className="block text-xs font-semibold text-[var(--text)]">Allow NEXTRON to read Calendar</span>
                     <span className="mt-1 block text-xs leading-relaxed text-[var(--text-muted)]">
                       This is separate from connecting your Google account. It does not allow creating, editing, deleting, or responding to events.
+                    </span>
+                  </span>
+                </label>
+              </div>
+            )}
+          </div>
+        </Card>
+
+        {/* Google Drive */}
+        <Card className="mb-4 border-[var(--border-strong)]">
+          <div className="p-5">
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Integrations</p>
+            <h3 className="mb-1 text-sm font-semibold text-[var(--text)]">Google Drive</h3>
+            <p className="mb-4 text-xs leading-relaxed text-[var(--text-muted)]">
+              Connect Google Drive to import specific files you select into Knowledge. Drive v1 is read-only and uses the limited drive.file scope.
+            </p>
+
+            {driveLoading ? (
+              <p className="text-xs text-[var(--text-muted)]">Checking Drive connection...</p>
+            ) : (
+              <div className="space-y-3 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-[var(--text)]">
+                      {driveStatus?.connected ? "Connected" : driveStatus?.status === "error" ? "Connection error" : "Not connected"}
+                    </p>
+                    <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
+                      {driveStatus?.connected
+                        ? `${driveStatus.imports.length} selected Drive file${driveStatus.imports.length === 1 ? "" : "s"} imported. Life Pulse cannot browse or search your whole Drive.`
+                        : "Connect with Google Drive selected-file access, then import files from Knowledge."}
+                    </p>
+                    {driveStatus?.missingEnv?.length ? (
+                      <p className="mt-1 text-xs text-[var(--danger)]">Server configuration is still missing.</p>
+                    ) : null}
+                  </div>
+                  {driveStatus?.connected ? (
+                    <Button size="sm" variant="ghost" onClick={disconnectDrive} disabled={driveSaving}>Disconnect</Button>
+                  ) : (
+                    <Button size="sm" onClick={connectDrive} disabled={driveSaving || Boolean(driveStatus?.missingEnv?.length)}>
+                      {driveSaving ? "Starting..." : "Connect"}
+                    </Button>
+                  )}
+                </div>
+
+                <label className="flex items-start gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(driveStatus?.allowNextronDrive)}
+                    disabled={driveSaving || !driveStatus?.connected}
+                    onChange={(event) => saveDrivePermission(event.target.checked)}
+                    className="mt-1 h-4 w-4 rounded border-[var(--border-strong)] bg-[var(--surface-soft)]"
+                  />
+                  <span>
+                    <span className="block text-xs font-semibold text-[var(--text)]">Allow NEXTRON to read imported Drive files</span>
+                    <span className="mt-1 block text-xs leading-relaxed text-[var(--text-muted)]">
+                      This only exposes files you imported into Knowledge. It does not allow Drive browsing, search, edits, sharing, or deletion.
                     </span>
                   </span>
                 </label>

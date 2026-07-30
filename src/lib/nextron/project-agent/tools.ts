@@ -17,7 +17,7 @@ interface ProjectRow { id: string; title: string | null; description: string | n
 interface TaskRow { title: string | null; status: string | null; priority: string | null; due_date: string | null; project_id: string | null }
 interface GoalRow { title: string | null; status: string | null }
 interface GoalLinkRow { goal_id: string | null; linked_id: string | null }
-interface KnowledgeRow { title: string | null; type: string | null; category: string | null; summary: string | null; content: string | null; source_url: string | null; created_at: string | null; updated_at: string | null }
+interface KnowledgeRow { title: string | null; type: string | null; category: string | null; summary: string | null; content: string | null; source_url: string | null; source_provider?: string | null; created_at: string | null; updated_at: string | null }
 
 function safeText(value: string | null | undefined, max = 120): string | null {
   const text = value?.replace(/<!--[^>]*-->/g, " ").replace(/[{}<>]/g, " ").replace(/\s+/g, " ").trim() ?? "";
@@ -31,6 +31,7 @@ function requireAllowed(context: NextronToolContext, domain: "projects" | "tasks
 function sourceRef(row: KnowledgeRow): string {
   const title = safeText(row.title, 90) ?? "Untitled Knowledge note";
   const date = (row.updated_at ?? row.created_at)?.slice(0, 10);
+  if (row.source_provider === "google_drive") return `${title} — Google Drive${date ? ` — ${date}` : ""}`;
   return date ? `${title} — ${date}` : title;
 }
 
@@ -293,7 +294,8 @@ export function createNextronKnowledgeAgentTools(context: NextronToolContext, tr
       record("searchKnowledge");
       if (!isNextronContextAllowed(context.permissions, "knowledge")) throw new Error("PERMISSION_DENIED");
 
-      const hybrid = await hybridSearchKnowledge(context.supabase, input.query);
+      const includeGoogleDrive = isNextronContextAllowed(context.permissions, "drive");
+      const hybrid = await hybridSearchKnowledge(context.supabase, input.query, { includeGoogleDrive });
       if (hybrid.results.length > 0) return remember({ knowledge: { retrievalMode: hybrid.mode, results: hybrid.results } });
 
       const tokens = searchTokens(input.query);
@@ -301,7 +303,7 @@ export function createNextronKnowledgeAgentTools(context: NextronToolContext, tr
       const patterns = tokens.slice(0, 4).map((token) => `title.ilike.%${token}%,summary.ilike.%${token}%,content.ilike.%${token}%`).join(",");
       const { data, error } = await context.supabase
         .from("knowledge_items")
-        .select("title, type, category, summary, content, source_url, created_at, updated_at")
+        .select("title, type, category, summary, content, source_url, source_provider, created_at, updated_at")
         .eq("user_id", context.userId)
         .eq("status", "active")
         .or(patterns)
@@ -312,12 +314,13 @@ export function createNextronKnowledgeAgentTools(context: NextronToolContext, tr
       let totalChars = 0;
       type KeywordResult = KnowledgeSearchResult & { score: number };
       const results = ((data ?? []) as KnowledgeRow[])
+        .filter((row) => includeGoogleDrive || row.source_provider !== "google_drive")
         .map((row) => {
           const searchable = [row.title, row.category, row.summary, row.content].filter(Boolean).join(" ").toLowerCase();
           const titleText = safeText(row.title, 90) ?? "Untitled Knowledge note";
           const score = tokens.reduce((sum, token) => sum + (searchable.includes(token) ? (titleText.toLowerCase().includes(token) ? 3 : 1) : 0), 0);
           const snippet = bestSnippet(row, tokens);
-          const result: KeywordResult | null = score > 0 && snippet ? { title: titleText, type: safeText(row.type, 24) ?? "note", category: safeText(row.category, 48), updatedDate: (row.updated_at ?? row.created_at)?.slice(0, 10) ?? null, section: null, source: sourceRef(row), snippet, retrieval: "keyword", score } : null;
+          const result: KeywordResult | null = score > 0 && snippet ? { title: titleText, type: safeText(row.type, 24) ?? "note", category: safeText(row.category, 48), updatedDate: (row.updated_at ?? row.created_at)?.slice(0, 10) ?? null, section: null, source: sourceRef(row), sourceProvider: row.source_provider === "google_drive" ? "google_drive" : "life_pulse", snippet, retrieval: "keyword", score } : null;
           return result;
         })
         .filter((item): item is KeywordResult => Boolean(item))

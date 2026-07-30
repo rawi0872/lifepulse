@@ -28,6 +28,7 @@ export interface KnowledgeSearchResult {
   updatedDate: string | null;
   section: string | null;
   source: string;
+  sourceProvider: "life_pulse" | "google_drive";
   snippet: string;
   retrieval: "hybrid" | "semantic" | "fts" | "keyword";
 }
@@ -39,6 +40,7 @@ interface HybridRpcRow {
   section: string | null;
   content: string | null;
   source_url: string | null;
+  source_provider: string | null;
   updated_at: string | null;
   retrieval_source: string | null;
 }
@@ -134,7 +136,7 @@ export async function embedKnowledgeQuery(supabase: SupabaseClient, query: strin
   return embedding.every((value) => typeof value === "number" && Number.isFinite(value)) ? embedding : null;
 }
 
-export async function hybridSearchKnowledge(supabase: SupabaseClient, query: string): Promise<{ results: KnowledgeSearchResult[]; mode: "hybrid" | "fts" | "keyword" }> {
+export async function hybridSearchKnowledge(supabase: SupabaseClient, query: string, options: { includeGoogleDrive?: boolean } = {}): Promise<{ results: KnowledgeSearchResult[]; mode: "hybrid" | "fts" | "keyword" }> {
   const boundedQuery = sanitizeKnowledgeText(query, KNOWLEDGE_AGENT_QUERY_MAX_CHARS);
   if (!boundedQuery) return { results: [], mode: "keyword" };
   const embedding = await embedKnowledgeQuery(supabase, boundedQuery);
@@ -148,9 +150,10 @@ export async function hybridSearchKnowledge(supabase: SupabaseClient, query: str
         fts_candidate_count: KNOWLEDGE_AGENT_FTS_CANDIDATES,
         semantic_candidate_count: KNOWLEDGE_AGENT_SEMANTIC_CANDIDATES,
         embedding_model_filter: KNOWLEDGE_EMBEDDING_MODEL,
+        include_google_drive: options.includeGoogleDrive === true,
       });
       if (!error) {
-        const results = formatHybridRows((data ?? []) as HybridRpcRow[]);
+        const results = formatHybridRows((data ?? []) as HybridRpcRow[], options);
         if (results.length > 0) return { results, mode: "hybrid" };
       }
     }
@@ -160,19 +163,21 @@ export async function hybridSearchKnowledge(supabase: SupabaseClient, query: str
     query_text: boundedQuery,
     match_count: KNOWLEDGE_AGENT_TOP_K,
     candidate_count: KNOWLEDGE_AGENT_FTS_CANDIDATES,
+    include_google_drive: options.includeGoogleDrive === true,
   });
   if (!error) {
-    const results = formatHybridRows((data ?? []) as HybridRpcRow[]);
+    const results = formatHybridRows((data ?? []) as HybridRpcRow[], options);
     if (results.length > 0) return { results, mode: "fts" };
   }
   return { results: [], mode: "keyword" };
 }
 
-function formatHybridRows(rows: HybridRpcRow[]): KnowledgeSearchResult[] {
+function formatHybridRows(rows: HybridRpcRow[], options: { includeGoogleDrive?: boolean }): KnowledgeSearchResult[] {
   let totalChars = 0;
-  return rows.slice(0, KNOWLEDGE_AGENT_TOP_K).map((row) => {
+  return rows.filter((row) => options.includeGoogleDrive || row.source_provider !== "google_drive").slice(0, KNOWLEDGE_AGENT_TOP_K).map((row) => {
     const title = sanitizeKnowledgeText(row.title, 90) || "Untitled Knowledge note";
     const date = row.updated_at?.slice(0, 10) ?? null;
+    const sourceProvider: KnowledgeSearchResult["sourceProvider"] = row.source_provider === "google_drive" ? "google_drive" : "life_pulse";
     const remaining = Math.max(0, KNOWLEDGE_AGENT_MAX_TOTAL_CONTEXT_CHARS - totalChars);
     const snippet = sanitizeKnowledgeText(row.content, Math.min(KNOWLEDGE_AGENT_MAX_SNIPPET_CHARS, remaining));
     totalChars += snippet.length;
@@ -183,7 +188,8 @@ function formatHybridRows(rows: HybridRpcRow[]): KnowledgeSearchResult[] {
       category: sanitizeKnowledgeText(row.category, 48) || null,
       updatedDate: date,
       section: sanitizeKnowledgeText(row.section, 80) || null,
-      source: date ? `${title} — ${date}` : title,
+      source: sourceProvider === "google_drive" ? `${title} — Google Drive${date ? ` — ${date}` : ""}` : date ? `${title} — ${date}` : title,
+      sourceProvider,
       snippet,
       retrieval,
     };

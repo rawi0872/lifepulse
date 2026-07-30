@@ -12,6 +12,7 @@ const context = read("src/lib/nextron/context.ts");
 const migration24 = read("supabase/migrations/00024_nextron_knowledge_permission.sql");
 const migration25 = read("supabase/migrations/00025_knowledge_hybrid_retrieval.sql");
 const migration26 = read("supabase/migrations/00026_google_calendar_readonly_connector.sql");
+const migration27 = read("supabase/migrations/00027_google_drive_selected_files.sql");
 const edgeKnowledge = read("supabase/functions/knowledge-embed/index.ts");
 const hybridKnowledge = read("src/lib/nextron/knowledge-hybrid.ts");
 
@@ -42,7 +43,7 @@ assert(tools.includes('if (isNextronContextAllowed(context.permissions, "results
 assert(tools.includes('id: "searchKnowledge"') && tools.includes('.from("knowledge_items")') && tools.includes('.eq("user_id", context.userId)'), "H4 knowledge tool is owner-scoped read-only search");
 assert(runtime.includes('!isNextronContextAllowed(request.permissions, "knowledge")') && runtime.includes('validateKnowledgeAgentOutput'), "H5 denied Knowledge permission fails closed before retrieval");
 assert(context.includes('allow_knowledge') && context.includes('knowledge: "denied"') && migration24.includes('allow_knowledge boolean not null default false'), "H6 Knowledge permission defaults denied and persists explicitly");
-assert(migration26.includes('permission_version in (1, 2, 3)') && context.includes('row.permission_version !== NEXTRON_PERMISSION_VERSION && row.permission_version !== 2 && row.permission_version !== 1'), "H7 permission migration preserves existing version 1 rows");
+assert(migration27.includes('permission_version in (1, 2, 3, 4)') && context.includes('row.permission_version !== NEXTRON_PERMISSION_VERSION && row.permission_version !== 3 && row.permission_version !== 2 && row.permission_version !== 1'), "H7 permission migration preserves existing version 1 rows");
 assert(coach.includes('includesAny(normalizedPrompt, projectTerms)'), "I malformed project reference remains bounded to project intent");
 assert(tools.includes('PROJECT_NOT_FOUND'), "J project not found falls back");
 assert(tools.includes('KNOWLEDGE_AGENT_TOP_K') && tools.includes('KNOWLEDGE_AGENT_MAX_SNIPPET_CHARS') && tools.includes('KNOWLEDGE_AGENT_MAX_TOTAL_CONTEXT_CHARS'), "J2 Knowledge retrieval enforces top-k and text caps");
