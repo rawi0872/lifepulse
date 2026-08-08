@@ -34,26 +34,29 @@ const PASSWORD = env.LIFE_PULSE_TEST_PASSWORD;
 const ERROR_SCREENSHOT_PATH = "screenshot-coach-prod-error.png";
 
 const requiredCoachText = [
-  "Life Pulse AI Coach",
+  "Personal Intelligence",
   "NEXTRON",
-  "Current coaching response",
-  "Facts used",
+  "Command channel",
   "Ask NEXTRON",
+  "Main intelligence",
+  "NEXTRON answer",
+  "System Awareness",
+  "Live Context",
   "Context permissions",
+  "Context permissions and access controls",
   "Operational context",
   "Private text context",
-  "What NEXTRON can currently access",
-  "What NEXTRON cannot currently access",
-  "Future AI boundary",
+  "Currently available",
+  "Not available to NEXTRON",
 ];
 
 const requiredTransparencyText = [
   "External AI memory",
   "Google Calendar",
   "Reminders, email, and messages",
-  "Server-side AI coaching is available only when explicitly configured",
-  "falls back to deterministic coaching",
-  "NEXTRON does not diagnose",
+  "External connectors are read-only",
+  "Drive uses selected imported files only",
+  "NEXTRON is permissioned, bounded, and user-controlled",
 ];
 
 const forbiddenFinancePhrases = [

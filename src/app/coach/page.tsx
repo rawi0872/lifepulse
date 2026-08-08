@@ -404,7 +404,7 @@ function NextronContent() {
               <li>No autonomous actions in Prompt 1.</li>
               <li>External connectors are read-only.</li>
               <li>Drive uses selected imported files only.</li>
-              <li>No medical, legal, financial, or therapy advice.</li>
+              <li>No medical, legal, financial, or therapy guidance.</li>
             </ul>
           </NextronPanel>
         </aside>
