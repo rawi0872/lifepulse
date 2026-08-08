@@ -60,8 +60,25 @@ interface DailyBrief {
 }
 interface DailyBriefMeta { maxPriorities: number; cache: string; persisted: boolean; modelCalls: number; provider: string; knowledgeAutomaticRetrieval: boolean; memoryAutomaticUse: boolean }
 
+type NextronSignalSeverity = "info" | "attention" | "important";
+interface NextronSignal {
+  id: string;
+  type: string;
+  severity: NextronSignalSeverity;
+  title: string;
+  summary: string;
+  evidence: string[];
+  sourceTypes: string[];
+  observedAt: string;
+  validForLocalDate: string;
+  route: string;
+  bridgePrompt: string;
+}
+interface NextronSignalMeta { localDate: string; observedAt: string; maxVisible: number; persisted: boolean; modelCalls: number; provider: string; knowledgeAutomaticScan: boolean; driveAutomaticScan: boolean; memoryAutomaticMonitoring: boolean }
+
 type IntelligenceCoreState = "idle" | "thinking" | "syncing" | "ready" | "error";
 type DailyBriefStatus = "idle" | "generating" | "ready" | "error";
+type SignalStatus = "idle" | "loading" | "ready" | "error";
 
 export default function CoachPage() {
   return (
@@ -103,6 +120,10 @@ function NextronContent() {
   const [dailyBriefMeta, setDailyBriefMeta] = useState<DailyBriefMeta | null>(null);
   const [dailyBriefStatus, setDailyBriefStatus] = useState<DailyBriefStatus>("idle");
   const [dailyBriefError, setDailyBriefError] = useState<string | null>(null);
+  const [signals, setSignals] = useState<NextronSignal[]>([]);
+  const [signalMeta, setSignalMeta] = useState<NextronSignalMeta | null>(null);
+  const [signalStatus, setSignalStatus] = useState<SignalStatus>("idle");
+  const [signalError, setSignalError] = useState<string | null>(null);
 
   const openConversation = useCallback(async (id: string) => {
     setThreadStatus("loading");
@@ -143,6 +164,21 @@ function NextronContent() {
     setResponse(buildDeterministicNextronResponse(result.packet));
   }, []);
 
+  const loadSignals = useCallback(async () => {
+    setSignalStatus("loading");
+    setSignalError(null);
+    const result = await fetch("/api/nextron/signals").then((res) => res.ok ? res.json() : null).catch(() => null) as { signals?: unknown; meta?: unknown } | null;
+    if (!result || !Array.isArray(result.signals) || !isNextronSignalMeta(result.meta)) {
+      setSignalStatus("error");
+      setSignalError("NEXTRON signals could not be loaded.");
+      return;
+    }
+    const safeSignals = result.signals.filter(isNextronSignal).slice(0, result.meta.maxVisible);
+    setSignals(safeSignals);
+    setSignalMeta(result.meta);
+    setSignalStatus("ready");
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -164,6 +200,10 @@ function NextronContent() {
       setDailyBriefMeta(null);
       setDailyBriefStatus("idle");
       setDailyBriefError(null);
+      setSignals([]);
+      setSignalMeta(null);
+      setSignalStatus("idle");
+      setSignalError(null);
       setThreadStatus("loading");
       setThreadError(null);
 
@@ -185,6 +225,10 @@ function NextronContent() {
           setDailyBriefMeta(null);
           setDailyBriefStatus("idle");
           setDailyBriefError(null);
+          setSignals([]);
+          setSignalMeta(null);
+          setSignalStatus("idle");
+          setSignalError(null);
           setConversations([]);
           setCurrentConversation(null);
           setMessages([]);
@@ -213,6 +257,8 @@ function NextronContent() {
 
         await loadLiveContext();
         if (cancelled || seq !== requestSeq.current) return;
+        await loadSignals();
+        if (cancelled || seq !== requestSeq.current) return;
         await loadConversations();
       } catch {
         if (!cancelled && seq === requestSeq.current) setError("NEXTRON could not load the permitted context right now.");
@@ -231,12 +277,15 @@ function NextronContent() {
       askAbortController.current?.abort();
       dailyBriefAbortController.current?.abort();
     };
-  }, [loadConversations, loadLiveContext, router, supabase]);
+  }, [loadConversations, loadLiveContext, loadSignals, router, supabase]);
 
   useEffect(() => {
     if (!userId) return;
     function refreshIfVisible() {
-      if (document.visibilityState === "visible") void loadLiveContext().catch(() => undefined);
+      if (document.visibilityState === "visible") {
+        void loadLiveContext().catch(() => undefined);
+        void loadSignals().catch(() => undefined);
+      }
     }
     window.addEventListener("focus", refreshIfVisible);
     document.addEventListener("visibilitychange", refreshIfVisible);
@@ -244,7 +293,7 @@ function NextronContent() {
       window.removeEventListener("focus", refreshIfVisible);
       document.removeEventListener("visibilitychange", refreshIfVisible);
     };
-  }, [loadLiveContext, userId]);
+  }, [loadLiveContext, loadSignals, userId]);
 
   async function startNewConversation() {
     setThreadError(null);
@@ -333,6 +382,8 @@ function NextronContent() {
     try {
       await loadLiveContext();
       if (seq !== requestSeq.current) return;
+      await loadSignals();
+      if (seq !== requestSeq.current) return;
     } catch {
       setError("NEXTRON saved your permissions, but could not refresh the permitted context right now.");
     }
@@ -381,6 +432,7 @@ function NextronContent() {
       setDailyBriefMeta(parsed.meta);
       setDailyBriefStatus("ready");
       dailyBriefSessionCache.current.set(key, parsed);
+      void loadSignals().catch(() => undefined);
     } catch (errorValue) {
       if (errorValue instanceof DOMException && errorValue.name === "AbortError") return;
       setDailyBriefStatus("error");
@@ -463,6 +515,7 @@ function NextronContent() {
       setAskStatus(parsed.request.handlingStatus === "handled" ? "answered" : "unsupported");
       setAskPrompt("");
       void loadLiveContext().catch(() => undefined);
+      void loadSignals().catch(() => undefined);
     } catch (askErrorValue) {
       if (askErrorValue instanceof DOMException && askErrorValue.name === "AbortError") return;
       if (seq === requestSeq.current) {
@@ -492,7 +545,7 @@ function NextronContent() {
       ]
     : [];
   const availableSystems = activeSystems.filter((system) => system.status === "available").length;
-  const coreState: IntelligenceCoreState = askStatus === "asking" || dailyBriefStatus === "generating" ? "thinking" : error || askStatus === "error" || dailyBriefStatus === "error" ? "error" : askStatus === "answered" || dailyBriefStatus === "ready" ? "ready" : loading ? "syncing" : "idle";
+  const coreState: IntelligenceCoreState = askStatus === "asking" || dailyBriefStatus === "generating" ? "thinking" : error || askStatus === "error" || dailyBriefStatus === "error" || signalStatus === "error" ? "error" : askStatus === "answered" || dailyBriefStatus === "ready" || signalStatus === "ready" ? "ready" : loading || signalStatus === "loading" ? "syncing" : "idle";
   const activeSourceNames = liveResponse ? inferActiveSourceNames(liveResponse) : [];
   const contextStats = packet ? [
     { label: "Overdue", value: packet.tasks.data?.overdueCount ?? 0, detail: "tasks" },
@@ -573,6 +626,15 @@ function NextronContent() {
             disabled={loading || !packet}
             onGenerate={() => void generateDailyBriefAction(false)}
             onRefresh={() => void generateDailyBriefAction(true)}
+            onAsk={(prompt) => { setAskPrompt(prompt); void askNextron(prompt); }}
+          />
+
+          <NextronSignalsView
+            signals={signals}
+            meta={signalMeta}
+            status={signalStatus}
+            error={signalError}
+            onRefresh={() => void loadSignals()}
             onAsk={(prompt) => { setAskPrompt(prompt); void askNextron(prompt); }}
           />
 
@@ -723,6 +785,38 @@ function isDailyBriefMeta(value: unknown): value is DailyBriefMeta {
     && typeof candidate.provider === "string"
     && typeof candidate.knowledgeAutomaticRetrieval === "boolean"
     && typeof candidate.memoryAutomaticUse === "boolean";
+}
+
+function isNextronSignal(value: unknown): value is NextronSignal {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Partial<NextronSignal>;
+  return typeof candidate.id === "string"
+    && typeof candidate.type === "string"
+    && (candidate.severity === "info" || candidate.severity === "attention" || candidate.severity === "important")
+    && typeof candidate.title === "string"
+    && typeof candidate.summary === "string"
+    && Array.isArray(candidate.evidence)
+    && candidate.evidence.every((item) => typeof item === "string")
+    && Array.isArray(candidate.sourceTypes)
+    && candidate.sourceTypes.every((item) => typeof item === "string")
+    && typeof candidate.observedAt === "string"
+    && typeof candidate.validForLocalDate === "string"
+    && typeof candidate.route === "string"
+    && typeof candidate.bridgePrompt === "string";
+}
+
+function isNextronSignalMeta(value: unknown): value is NextronSignalMeta {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Partial<NextronSignalMeta>;
+  return typeof candidate.localDate === "string"
+    && typeof candidate.observedAt === "string"
+    && typeof candidate.maxVisible === "number"
+    && typeof candidate.persisted === "boolean"
+    && typeof candidate.modelCalls === "number"
+    && typeof candidate.provider === "string"
+    && typeof candidate.knowledgeAutomaticScan === "boolean"
+    && typeof candidate.driveAutomaticScan === "boolean"
+    && typeof candidate.memoryAutomaticMonitoring === "boolean";
 }
 
 function isConversationSummary(value: unknown): value is ConversationSummary {
@@ -953,6 +1047,67 @@ function DailyBriefView({ brief, meta, status, error, disabled, onGenerate, onRe
 
 function DailyBriefMiniBlock({ title, text }: { title: string; text: string }) {
   return <div className="rounded-2xl border border-cyan-300/10 bg-black/15 p-3"><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-cyan-200/65">{title}</p><p className="mt-2 break-words text-sm leading-relaxed text-[var(--text-secondary)]">{text}</p></div>;
+}
+
+function NextronSignalsView({ signals, meta, status, error, onRefresh, onAsk }: { signals: NextronSignal[]; meta: NextronSignalMeta | null; status: SignalStatus; error: string | null; onRefresh: () => void; onAsk: (prompt: string) => void }) {
+  const loading = status === "loading";
+  return (
+    <section aria-labelledby="nextron-signals-heading" data-nextron-signals="true" className="nextron-surface relative overflow-hidden rounded-[2rem] p-4 sm:p-5">
+      <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-cyan-200/30 to-transparent" aria-hidden="true" />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-200/70">NEXTRON Signals</p>
+          <h2 id="nextron-signals-heading" className="mt-1 text-lg font-semibold tracking-[-0.03em] text-[var(--text)]">What changed or deserves attention</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[var(--text-muted)]">Deterministic observations from current permitted evidence. No notifications, no writes, no background monitoring.</p>
+        </div>
+        <button type="button" onClick={onRefresh} disabled={loading} className="inline-flex min-h-10 shrink-0 items-center rounded-xl border border-cyan-300/20 bg-cyan-300/10 px-3 py-2 text-xs font-semibold text-cyan-50/85 transition-all hover:-translate-y-0.5 hover:border-cyan-200/35 disabled:translate-y-0 disabled:opacity-50">
+          {loading ? "Refreshing..." : "Refresh signals"}
+        </button>
+      </div>
+
+      <div className="mt-4 space-y-3">
+        {loading && signals.length === 0 && <p className="rounded-2xl border border-cyan-300/10 bg-black/15 p-3 text-sm text-[var(--text-muted)]">Checking current signals...</p>}
+        {status === "error" && <p className="rounded-2xl border border-[var(--warning)]/25 bg-[var(--warning-soft)] p-3 text-sm text-[var(--warning)]">{error ?? "Signals are unavailable right now."}</p>}
+        {status !== "loading" && status !== "error" && signals.length === 0 && <p className="rounded-2xl border border-cyan-300/10 bg-black/15 p-3 text-sm text-[var(--text-muted)]">No meaningful signals right now. NEXTRON is not manufacturing urgency.</p>}
+        {signals.length > 0 && (
+          <div className="grid gap-2">
+            {signals.slice(0, 5).map((signal) => <SignalCard key={signal.id} signal={signal} onAsk={onAsk} />)}
+          </div>
+        )}
+      </div>
+      {meta && <p className="mt-3 text-[10px] text-[var(--text-muted)]">Observed {formatTime(meta.observedAt)}. Max visible: {meta.maxVisible}. Provider: {meta.provider}. Model calls: {meta.modelCalls}. Persistence: {meta.persisted ? "durable" : "derived only"}.</p>}
+    </section>
+  );
+}
+
+function SignalCard({ signal, onAsk }: { signal: NextronSignal; onAsk: (prompt: string) => void }) {
+  const tone = signal.severity === "important" ? "border-[var(--warning)]/30 bg-[var(--warning-soft)]" : signal.severity === "attention" ? "border-cyan-300/22 bg-cyan-300/10" : "border-cyan-300/12 bg-black/15";
+  const marker = signal.severity === "important" ? "Important" : signal.severity === "attention" ? "Attention" : "Info";
+  return (
+    <article data-nextron-signal="true" className={`rounded-2xl border p-3 ${tone}`}>
+      <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-cyan-100/70">{marker}</p>
+          <h3 className="mt-1 break-words text-sm font-semibold text-[var(--text)]">{signal.title}</h3>
+          <p className="mt-1 break-words text-sm leading-relaxed text-[var(--text-secondary)]">{signal.summary}</p>
+        </div>
+        <Link href={signal.route} className="inline-flex min-h-9 shrink-0 items-center rounded-lg border border-cyan-300/15 bg-black/15 px-2.5 py-1 text-xs font-medium text-cyan-50/85 transition-all hover:-translate-y-0.5 hover:border-cyan-200/35">Open source</Link>
+      </div>
+      <details className="mt-3 rounded-xl border border-cyan-300/10 bg-black/15 p-2">
+        <summary className="cursor-pointer text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">Why this signal exists</summary>
+        <ul className="mt-2 space-y-1.5">
+          {signal.evidence.slice(0, 3).map((item, index) => <li key={`${signal.id}-${index}`} className="break-words text-xs leading-relaxed text-[var(--text-secondary)]">{item}</li>)}
+        </ul>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {signal.sourceTypes.map((source) => <span key={source} className="rounded-full border border-cyan-300/18 bg-cyan-300/10 px-2 py-0.5 text-[10px] text-cyan-50/75">{source}</span>)}
+        </div>
+      </details>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <PanelButton onClick={() => onAsk(signal.bridgePrompt)}>Why does this matter?</PanelButton>
+        <PanelButton onClick={() => onAsk(`What should I do about this signal: ${signal.title}?`)}>What should I do?</PanelButton>
+      </div>
+    </article>
+  );
 }
 
 function NextronPanel({ eyebrow, title, children }: { eyebrow: string; title: string; children: ReactNode }) {

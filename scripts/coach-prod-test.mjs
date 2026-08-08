@@ -39,6 +39,9 @@ const requiredCoachText = [
   "NEXTRON Daily Brief",
   "What to know and protect today",
   "Generate brief",
+  "NEXTRON Signals",
+  "What changed or deserves attention",
+  "Refresh signals",
   "Command channel",
   "Ask NEXTRON",
   "Main intelligence",
@@ -215,6 +218,21 @@ async function main() {
       expect(lowerBodyText).not.toContain(phrase.toLowerCase());
       pass(`Forbidden Coach memory phrase absent: ${phrase}`);
     }
+
+    await expect(page.locator('[data-nextron-signals="true"]')).toBeVisible({ timeout: 20000 });
+    const signalCount = await page.locator('[data-nextron-signal="true"]').count();
+    expect(signalCount).toBeLessThanOrEqual(5);
+    if (signalCount > 0) {
+      await expect(page.locator('[data-nextron-signals="true"]')).toContainText("Why this signal exists", { timeout: 10000 });
+      await expect(page.getByRole("button", { name: "Why does this matter?" }).first()).toBeVisible({ timeout: 10000 });
+      pass(`NEXTRON Signals visible with ${signalCount} active signal(s)`);
+    } else {
+      await expect(page.locator('[data-nextron-signals="true"]')).toContainText("No meaningful signals right now", { timeout: 10000 });
+      pass("NEXTRON Signals empty state is visible");
+    }
+    await page.getByRole("button", { name: "Refresh signals" }).click();
+    await expect(page.locator('[data-nextron-signals="true"]')).toContainText("Provider: deterministic", { timeout: 15000 });
+    pass("NEXTRON Signals refresh completed");
 
     if (bodyText.includes(financeCoachNudgeTitle)) {
       pass(`Finance Coach nudge visible: ${financeCoachNudgeTitle}`);
