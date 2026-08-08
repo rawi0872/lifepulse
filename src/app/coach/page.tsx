@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DashboardNav } from "@/components/DashboardNav";
@@ -289,218 +289,152 @@ function NextronContent() {
   const privateTextPermissions = NEXTRON_CONTEXT_PERMISSIONS.filter((permission) => permission.textHeavy);
   const trimmedAskPrompt = askPrompt.trim();
   const askDisabled = loading || !packet || askStatus === "asking" || trimmedAskPrompt.length === 0 || trimmedAskPrompt.length > NEXTRON_REQUEST_MAX_LENGTH;
+  const liveResponse = askResponse ?? response;
+  const activeSystems = packet
+    ? [
+        { domain: "today", status: packet.today.status },
+        { domain: "tasks", status: packet.tasks.status },
+        { domain: "projects", status: packet.projects.status },
+        { domain: "knowledge", status: packet.knowledge.status },
+        { domain: "drive", status: savedPermissions.drive === "allowed" ? "available" : "permission_denied" },
+        { domain: "calendar", status: packet.calendar.status },
+        { domain: "memory", status: packet.memory.status },
+      ]
+    : [];
+  const availableSystems = activeSystems.filter((system) => system.status === "available").length;
+  const contextStats = packet ? [
+    { label: "Overdue", value: packet.tasks.data?.overdueCount ?? 0, detail: "tasks" },
+    { label: "Today", value: packet.tasks.data?.dueTodayCount ?? 0, detail: "due" },
+    { label: "Projects", value: packet.projects.data?.activeCount ?? 0, detail: "active" },
+    { label: "Memory", value: packet.memory.data?.preferences.length ?? 0, detail: "signals" },
+  ] : [];
+  const quickPrompts = ["What should I focus on today?", "What needs my attention?", "What's slipping?", "What should I do next?"];
 
   return (
-    <div className="mx-auto max-w-3xl overflow-x-hidden px-4 py-6 animate-fade-in sm:px-5 sm:py-8">
-      <header className="mb-6 min-w-0">
-        <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--accent)]">Life Pulse AI Coach</p>
-        <h1 className="break-words text-3xl font-bold tracking-tight text-[var(--text)]">NEXTRON</h1>
-        <p className="mt-2 text-sm leading-relaxed text-[var(--text-muted)]">
-          NEXTRON uses permitted Life Pulse evidence, separates facts from interpretation, and recommends one practical next action. This is an early private-beta foundation: AI coaching is server-side and opt-in, with no autonomous actions and no medical, mental-health, legal, or financial professional replacement.
-        </p>
-      </header>
-
-      <section aria-labelledby="nextron-response" className="mb-6">
-        <Card className="border-[var(--accent)]/25 bg-[var(--surface-soft)]/80 p-4 sm:p-5">
-          <div className="mb-3 flex min-w-0 flex-wrap items-center justify-between gap-2">
-            <div>
-              <h2 id="nextron-response" className="text-base font-semibold text-[var(--text)]">Current coaching response</h2>
-              <p className="mt-1 text-xs text-[var(--text-muted)]">One deterministic response from permitted evidence.</p>
-            </div>
-            {response && (
-              <span className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">
-                {response.priority}
-              </span>
-            )}
-          </div>
-
-          {loading && <p className="text-sm text-[var(--text-muted)]">Loading permitted context...</p>}
-          {!loading && error && <p className="text-sm text-[var(--warning)]">{error}</p>}
-          {!loading && !error && response && <ResponseView response={response} />}
-        </Card>
-      </section>
-
-      <section aria-labelledby="nextron-facts" className="mb-6">
-        <h2 id="nextron-facts" className="mb-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Facts used</h2>
-        <Card variant="subtle" className="p-4">
-          {response ? (
-            <ul className="space-y-2">
-              {response.facts.map((item, index) => (
-                <li key={`${item.category}-${index}`} className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">{item.category}</p>
-                  <p className="mt-1 break-words text-sm text-[var(--text-secondary)]">{item.text}</p>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-sm text-[var(--text-muted)]">Facts will appear after permitted context loads.</p>
-          )}
-        </Card>
-      </section>
-
-      <section aria-labelledby="ask-nextron" className="mb-6">
-        <Card className="p-4 sm:p-5">
-          <div className="mb-3">
-            <h2 id="ask-nextron" className="text-base font-semibold text-[var(--text)]">Ask NEXTRON</h2>
-            <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
-              Ask one practical coaching question. NEXTRON answers from saved permitted evidence only; prompts are not saved.
+    <div className="relative mx-auto max-w-7xl overflow-x-hidden px-4 py-5 animate-fade-in sm:px-5 sm:py-7">
+      <div className="pointer-events-none absolute inset-x-4 top-4 h-72 rounded-[2rem] bg-[radial-gradient(circle_at_50%_20%,rgba(56,189,248,0.16),rgba(15,23,42,0)_64%)]" aria-hidden="true" />
+      <header className="relative mb-5 min-w-0 rounded-[2rem] border border-cyan-300/10 bg-[linear-gradient(135deg,rgba(8,18,32,0.92),rgba(10,18,28,0.72)),var(--surface)] p-4 shadow-2xl shadow-cyan-950/20 sm:p-5">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="min-w-0">
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-200/80">Personal Intelligence</p>
+            <h1 className="break-words text-3xl font-bold tracking-[-0.04em] text-[var(--text)] sm:text-4xl">NEXTRON</h1>
+            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[var(--text-muted)]">
+              A permissioned intelligence layer for Life Pulse: coaching, projects, Knowledge, Calendar, Memory, and selected Drive sources, grounded in context you explicitly allow.
             </p>
           </div>
-          <form
-            className="space-y-3"
-            onSubmit={(event) => {
-              event.preventDefault();
-              void askNextron();
-            }}
-          >
-            <label htmlFor="nextron-question" className="block text-sm font-semibold text-[var(--text)]">Coaching question</label>
-            <textarea
-              id="nextron-question"
-              value={askPrompt}
-              onChange={(event) => {
-                setAskPrompt(event.target.value.slice(0, NEXTRON_REQUEST_MAX_LENGTH));
-                setAskError(null);
-                if (askStatus === "error") setAskStatus("idle");
-              }}
-              onKeyDown={(event) => {
-                if (event.nativeEvent.isComposing) return;
-                if (event.key === "Enter" && !event.shiftKey) {
-                  event.preventDefault();
-                  if (!askDisabled) void askNextron();
-                }
-              }}
-              maxLength={NEXTRON_REQUEST_MAX_LENGTH}
-              rows={3}
-              aria-describedby="nextron-question-help nextron-question-status"
-              placeholder="What should I focus on today?"
-              className="min-h-24 w-full resize-y rounded-xl border border-[var(--border-strong)] bg-[var(--surface-soft)] px-3 py-2 text-sm text-[var(--text)] outline-none transition-colors focus:border-[var(--accent)]/70 focus:ring-2 focus:ring-[var(--accent-soft)]"
-            />
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <p id="nextron-question-help" className="text-xs text-[var(--text-muted)]">
-                {trimmedAskPrompt.length}/{NEXTRON_REQUEST_MAX_LENGTH} characters. Enter asks; Shift+Enter adds a line.
-              </p>
-              <button
-                type="submit"
-                disabled={askDisabled}
-                className="inline-flex min-h-11 items-center rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-45"
-              >
-                {askStatus === "asking" ? "Asking NEXTRON..." : "Ask NEXTRON"}
-              </button>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {["What should I focus on today?", "What needs my attention?", "What should I do next?", "What patterns can you see?"].map((prompt) => (
-                <button
-                  key={prompt}
-                  type="button"
-                  disabled={askStatus === "asking" || !packet}
-                  onClick={() => {
-                    setAskPrompt(prompt);
-                    void askNextron(prompt);
-                  }}
-                  className="rounded-full border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-1.5 text-xs text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/50 disabled:cursor-not-allowed disabled:opacity-50"
-                >
+          <div className="grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-4 lg:w-[34rem]">
+            {contextStats.map((stat) => <ContextStat key={stat.label} {...stat} />)}
+          </div>
+        </div>
+      </header>
+
+      <div className="relative grid gap-4 xl:grid-cols-[minmax(0,0.82fr)_minmax(0,1.5fr)_minmax(18rem,0.78fr)]">
+        <aside className="space-y-4 xl:sticky xl:top-4 xl:self-start">
+          <NextronPanel title="Live Context" eyebrow="Life Pulse state">
+            {loading ? <p className="text-sm text-[var(--text-muted)]">Loading permitted context...</p> : error ? <p className="text-sm text-[var(--warning)]">{error}</p> : (
+              <div className="space-y-3">
+                <SignalRow label="Task pressure" value={`${packet?.tasks.data?.overdueCount ?? 0} overdue`} detail={`${packet?.tasks.data?.dueTodayCount ?? 0} due today`} tone={(packet?.tasks.data?.overdueCount ?? 0) > 0 ? "attention" : "stable"} />
+                <SignalRow label="Projects" value={`${packet?.projects.data?.activeCount ?? 0} active`} detail={`${packet?.projects.data?.activeWithoutOpenTaskCount ?? 0} without open tasks`} tone={(packet?.projects.data?.activeWithoutOpenTaskCount ?? 0) > 0 ? "attention" : "stable"} />
+                <SignalRow label="Knowledge" value={packet?.knowledge.status === "available" ? "available" : "not loaded"} detail={savedPermissions.drive === "allowed" ? "Drive sources allowed" : "Drive sources off"} tone={packet?.knowledge.status === "available" ? "active" : "muted"} />
+              </div>
+            )}
+          </NextronPanel>
+
+          <NextronPanel title="Questions" eyebrow="Quick intelligence">
+            <div className="grid gap-2">
+              {quickPrompts.map((prompt) => (
+                <button key={prompt} type="button" disabled={askStatus === "asking" || !packet} onClick={() => { setAskPrompt(prompt); void askNextron(prompt); }} className="min-h-11 rounded-xl border border-cyan-200/10 bg-cyan-950/10 px-3 py-2 text-left text-xs font-medium text-[var(--text-secondary)] transition-colors hover:border-cyan-300/30 hover:bg-cyan-300/10 disabled:cursor-not-allowed disabled:opacity-50">
                   {prompt}
                 </button>
               ))}
             </div>
-            <p id="nextron-question-status" className="text-xs leading-relaxed text-[var(--text-muted)]" aria-live="polite">
-              {askStatus === "asking"
-                ? "NEXTRON is checking the current permitted evidence."
-                : askStatus === "unsupported"
-                  ? "NEXTRON answered with a private-beta boundary."
-                  : askError ?? "No prompt or answer is saved."}
-            </p>
-          </form>
-          {askQuestion && askResponse && (
-            <div className="mt-5 rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">Question</p>
-              <p className="mt-1 break-words text-sm text-[var(--text-secondary)]">{askQuestion}</p>
-              <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">
-                {askSource === "ai" ? "AI coaching" : "NEXTRON coaching"}
-              </p>
-              <div className="mt-4">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">Facts</p>
-                <FactList facts={askResponse.facts} />
+          </NextronPanel>
+        </aside>
+
+        <main className="min-w-0 space-y-4">
+          <section aria-labelledby="ask-nextron" className="rounded-[2rem] border border-cyan-300/15 bg-[linear-gradient(180deg,rgba(8,18,32,0.88),rgba(8,13,23,0.94)),var(--surface)] p-4 shadow-2xl shadow-cyan-950/25 sm:p-5">
+            <div className="mb-5 flex flex-col items-center gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-200/70">Command channel</p>
+                <h2 id="ask-nextron" className="mt-1 text-xl font-semibold tracking-[-0.03em] text-[var(--text)]">Ask NEXTRON</h2>
+                <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[var(--text-muted)]">Ask about your Life Pulse context, saved Knowledge, projects, Calendar, or next focus. NEXTRON only uses context currently permitted.</p>
               </div>
-              <div className="mt-4">
-                <ResponseView response={askResponse} />
-              </div>
+              <IntelligenceCore status={askStatus === "asking" ? "thinking" : loading ? "syncing" : "idle"} systems={activeSystems} />
             </div>
-          )}
-        </Card>
-      </section>
 
-      <section aria-labelledby="nextron-context" className="mb-6">
-        <h2 id="nextron-context" className="mb-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Context permissions</h2>
-        <Card className="p-4 sm:p-5">
-          <p className="mb-3 text-xs leading-relaxed text-[var(--text-muted)]">
-            Saved permissions control what evidence enters NEXTRON. Change checkboxes locally, then save to refresh the coaching response. Text-heavy reflection areas are off by default.
-          </p>
-          {permissionWarning && (
-            <p className="mb-3 rounded-xl border border-[var(--warning)]/30 bg-[var(--warning-soft)] px-3 py-2 text-xs leading-relaxed text-[var(--warning)]">
-              {permissionWarning}
-            </p>
-          )}
-          <PermissionGroup title="Operational context" permissions={operationalPermissions} draftPermissions={draftPermissions} savedPermissions={savedPermissions} onChange={setPermission} />
-          <PermissionGroup title="Private text context" permissions={privateTextPermissions} draftPermissions={draftPermissions} savedPermissions={savedPermissions} onChange={setPermission} />
-          <div className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-3">
-            <p className="text-xs leading-relaxed text-[var(--text-muted)]">
-              {permissionLoading
-                ? "Loading saved permissions..."
-                : !permissionsAvailable
-                  ? "Saved permissions are currently unavailable, so safe defaults are active. Try again after the hosted migration is available."
-                : hasUnsavedChanges
-                  ? "You have unsaved local permission changes. Evidence will not broaden until saving succeeds."
-                  : saveStatus === "saved"
-                    ? "Context permissions saved and NEXTRON refreshed."
-                    : saveStatus === "error"
-                      ? "Context permissions were not saved. Your local choices are still visible; try again when ready."
-                      : "Saved permissions are active."}
-            </p>
-            <button
-              type="button"
-              onClick={() => void savePermissions()}
-              disabled={!permissionsAvailable || !hasUnsavedChanges || saveStatus === "saving" || !userId}
-              className="mt-3 inline-flex min-h-11 items-center rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-45"
-            >
-              {saveStatus === "saving" ? "Saving context permissions..." : "Save context permissions"}
-            </button>
+            <form className="space-y-3" onSubmit={(event) => { event.preventDefault(); void askNextron(); }}>
+              <label htmlFor="nextron-question" className="sr-only">Ask NEXTRON</label>
+              <div className="rounded-2xl border border-cyan-300/20 bg-black/20 p-2 shadow-inner shadow-cyan-950/20 focus-within:border-cyan-300/45 focus-within:ring-2 focus-within:ring-cyan-400/10">
+                <textarea id="nextron-question" value={askPrompt} onChange={(event) => { setAskPrompt(event.target.value.slice(0, NEXTRON_REQUEST_MAX_LENGTH)); setAskError(null); if (askStatus === "error") setAskStatus("idle"); }} onKeyDown={(event) => { if (event.nativeEvent.isComposing) return; if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); if (!askDisabled) void askNextron(); } }} maxLength={NEXTRON_REQUEST_MAX_LENGTH} rows={3} aria-describedby="nextron-question-help nextron-question-status" placeholder="What should I focus on today?" className="min-h-28 w-full resize-y rounded-xl border-0 bg-transparent px-3 py-3 text-base leading-relaxed text-[var(--text)] outline-none placeholder:text-[var(--text-muted)]" />
+                <div className="flex flex-wrap items-center justify-between gap-2 border-t border-cyan-300/10 px-2 pt-2">
+                  <p id="nextron-question-help" className="text-xs text-[var(--text-muted)]">{trimmedAskPrompt.length}/{NEXTRON_REQUEST_MAX_LENGTH}. Enter asks; Shift+Enter adds a line.</p>
+                  <button type="submit" disabled={askDisabled} className="inline-flex min-h-11 items-center rounded-xl bg-cyan-300 px-4 py-2 text-sm font-semibold text-slate-950 shadow-lg shadow-cyan-950/30 transition-all hover:-translate-y-0.5 hover:bg-cyan-200 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-45">
+                    {askStatus === "asking" ? "Analyzing..." : "Send to NEXTRON"}
+                  </button>
+                </div>
+              </div>
+              <p id="nextron-question-status" className="text-xs leading-relaxed text-[var(--text-muted)]" aria-live="polite">{askStatus === "asking" ? "NEXTRON is checking permitted evidence." : askStatus === "unsupported" ? "NEXTRON answered with a private-beta boundary." : askError ?? "Prompts are processed for this response and are not saved as memory."}</p>
+            </form>
+          </section>
+
+          <section aria-labelledby="nextron-answer" className="rounded-[2rem] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
+            <div className="mb-4 flex min-w-0 flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-200/70">Main intelligence</p>
+                <h2 id="nextron-answer" className="mt-1 text-lg font-semibold text-[var(--text)]">{askQuestion ? "Latest response" : "Current baseline"}</h2>
+              </div>
+              {liveResponse && <span className="rounded-full border border-cyan-300/20 bg-cyan-300/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-cyan-100">{liveResponse.priority}</span>}
+            </div>
+            {askQuestion && <div className="mb-4 rounded-2xl border border-cyan-300/10 bg-cyan-950/10 px-3 py-2"><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">Question</p><p className="mt-1 break-words text-sm text-[var(--text-secondary)]">{askQuestion}</p><p className="mt-1 text-[10px] text-[var(--text-muted)]">{askSource === "ai" ? "AI synthesis" : "Deterministic synthesis"}</p></div>}
+            {loading && <p className="text-sm text-[var(--text-muted)]">Loading permitted context...</p>}
+            {!loading && error && <p className="text-sm text-[var(--warning)]">{error}</p>}
+            {!loading && !error && liveResponse && <ResponseView response={liveResponse} />}
+          </section>
+        </main>
+
+        <aside className="space-y-4 xl:sticky xl:top-4 xl:self-start">
+          <NextronPanel title="System Awareness" eyebrow={`${availableSystems} systems available`}>
+            <div className="space-y-2">
+              {activeSystems.map((system) => <SystemStatus key={system.domain} domain={system.domain} status={system.status} />)}
+            </div>
+          </NextronPanel>
+
+          <NextronPanel title="Boundaries" eyebrow="Safety state">
+            <ul className="space-y-2 text-xs leading-relaxed text-[var(--text-muted)]">
+              <li>No autonomous actions in Prompt 1.</li>
+              <li>External connectors are read-only.</li>
+              <li>Drive uses selected imported files only.</li>
+              <li>No medical, legal, financial, or therapy advice.</li>
+            </ul>
+          </NextronPanel>
+        </aside>
+      </div>
+
+      <section aria-labelledby="nextron-context" className="relative mt-5">
+        <details className="rounded-[2rem] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
+          <summary className="cursor-pointer list-none text-sm font-semibold text-[var(--text)] [&::-webkit-details-marker]:hidden">
+            Context permissions and access controls
+            <span className="ml-2 text-xs font-normal text-[var(--text-muted)]">Saved permissions remain the authority.</span>
+          </summary>
+          <div className="mt-4">
+            <p id="nextron-context" className="mb-3 text-xs leading-relaxed text-[var(--text-muted)]">Saved permissions control what evidence enters NEXTRON. Change checkboxes locally, then save to refresh the Command Center.</p>
+            {permissionWarning && <p className="mb-3 rounded-xl border border-[var(--warning)]/30 bg-[var(--warning-soft)] px-3 py-2 text-xs leading-relaxed text-[var(--warning)]">{permissionWarning}</p>}
+            <PermissionGroup title="Operational context" permissions={operationalPermissions} draftPermissions={draftPermissions} savedPermissions={savedPermissions} onChange={setPermission} />
+            <PermissionGroup title="Private text context" permissions={privateTextPermissions} draftPermissions={draftPermissions} savedPermissions={savedPermissions} onChange={setPermission} />
+            <div className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-3">
+              <p className="text-xs leading-relaxed text-[var(--text-muted)]">{permissionLoading ? "Loading saved permissions..." : !permissionsAvailable ? "Saved permissions are currently unavailable, so safe defaults are active." : hasUnsavedChanges ? "You have unsaved local permission changes. Evidence will not broaden until saving succeeds." : saveStatus === "saved" ? "Context permissions saved and NEXTRON refreshed." : saveStatus === "error" ? "Context permissions were not saved. Try again when ready." : "Saved permissions are active."}</p>
+              <button type="button" onClick={() => void savePermissions()} disabled={!permissionsAvailable || !hasUnsavedChanges || saveStatus === "saving" || !userId} className="mt-3 inline-flex min-h-11 items-center rounded-xl bg-cyan-300 px-3 py-2 text-sm font-semibold text-slate-950 transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-45">{saveStatus === "saving" ? "Saving permissions..." : "Save context permissions"}</button>
+            </div>
           </div>
-        </Card>
+        </details>
       </section>
 
-      <section aria-labelledby="nextron-access" className="mb-6 grid gap-3 sm:grid-cols-2">
-        <Card variant="subtle" className="p-4">
-          <h2 id="nextron-access" className="text-sm font-semibold text-[var(--text)]">What NEXTRON can currently access</h2>
-          <ul className="mt-3 space-y-2 text-xs text-[var(--text-secondary)]">
-            {packet ? Object.entries(packet.permissionSummary).filter(([, status]) => status === "available").map(([domain]) => (
-              <li key={domain} className="break-words">{domain}</li>
-            )) : <li>Permitted context is loading.</li>}
-          </ul>
-        </Card>
-        <Card variant="subtle" className="p-4">
-          <h2 className="text-sm font-semibold text-[var(--text)]">What NEXTRON cannot currently access</h2>
-          <ul className="mt-3 space-y-2 text-xs text-[var(--text-secondary)]">
-            {NEXTRON_UNAVAILABLE_CONTEXT.map((item) => <li key={item} className="break-words">{item}</li>)}
-            {packet && Object.entries(packet.permissionSummary).filter(([, status]) => status === "permission_denied").map(([domain]) => (
-              <li key={domain} className="break-words">{domain} is not loaded by current permission.</li>
-            ))}
-          </ul>
-        </Card>
+      <section aria-labelledby="nextron-access" className="relative mt-5 grid gap-3 sm:grid-cols-2">
+        <Card variant="subtle" className="p-4"><h2 id="nextron-access" className="text-sm font-semibold text-[var(--text)]">Currently available</h2><ul className="mt-3 space-y-2 text-xs text-[var(--text-secondary)]">{packet ? Object.entries(packet.permissionSummary).filter(([, status]) => status === "available").map(([domain]) => <li key={domain} className="break-words">{formatDomainLabel(domain)}</li>) : <li>Permitted context is loading.</li>}</ul></Card>
+        <Card variant="subtle" className="p-4"><h2 className="text-sm font-semibold text-[var(--text)]">Not available to NEXTRON</h2><ul className="mt-3 space-y-2 text-xs text-[var(--text-secondary)]">{NEXTRON_UNAVAILABLE_CONTEXT.map((item) => <li key={item} className="break-words">{item}</li>)}{packet && Object.entries(packet.permissionSummary).filter(([, status]) => status === "permission_denied").map(([domain]) => <li key={domain} className="break-words">{formatDomainLabel(domain)} is not loaded by current permission.</li>)}</ul></Card>
       </section>
 
-      <section aria-labelledby="nextron-boundary" className="mb-6">
-        <Card variant="subtle" className="p-4">
-          <h2 id="nextron-boundary" className="text-sm font-semibold text-[var(--text)]">Future AI boundary</h2>
-          <p className="mt-2 text-xs leading-relaxed text-[var(--text-muted)]">
-            Server-side AI coaching is available only when explicitly configured. NEXTRON sends bounded permitted evidence, never client-supplied evidence, and falls back to deterministic coaching when AI is unavailable.
-          </p>
-        </Card>
-      </section>
-
-      <p className="text-center text-[10px] leading-relaxed text-[var(--text-muted)]">
-        NEXTRON does not diagnose, provide therapy, give legal or financial advice, infer hidden traits, claim certainty, or mutate Life Pulse data. Suggested actions are optional and user-controlled.
-      </p>
+      <p className="relative mt-5 text-center text-[10px] leading-relaxed text-[var(--text-muted)]">NEXTRON is permissioned, bounded, and user-controlled. It does not mutate Life Pulse data or external services in this phase.</p>
     </div>
   );
 }
@@ -527,6 +461,90 @@ function isNextronCoachResponse(value: unknown): value is NextronCoachResponse {
     && typeof candidate.priority === "string"
     && typeof candidate.ruleId === "string"
     && Array.isArray(candidate.supportingEvidence);
+}
+
+function formatDomainLabel(value: string): string {
+  const labels: Record<string, string> = {
+    eveningShutdown: "Evening Shutdown",
+    weeklyReview: "Weekly Review",
+    today: "Today",
+    tasks: "Tasks",
+    habits: "Habits",
+    results: "Results",
+    goals: "Goals",
+    projects: "Projects",
+    knowledge: "Knowledge",
+    drive: "Drive",
+    calendar: "Calendar",
+    profile: "Profile",
+    memory: "Memory",
+    journal: "Journal",
+  };
+  return labels[value] ?? value.replace(/([A-Z])/g, " $1").replace(/^./, (char) => char.toUpperCase());
+}
+
+function NextronPanel({ eyebrow, title, children }: { eyebrow: string; title: string; children: ReactNode }) {
+  return (
+    <section className="rounded-[1.5rem] border border-cyan-300/10 bg-[linear-gradient(180deg,rgba(8,18,32,0.82),rgba(8,13,23,0.9)),var(--surface)] p-4 shadow-xl shadow-cyan-950/10">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-200/60">{eyebrow}</p>
+      <h2 className="mt-1 text-sm font-semibold text-[var(--text)]">{title}</h2>
+      <div className="mt-4">{children}</div>
+    </section>
+  );
+}
+
+function ContextStat({ label, value, detail }: { label: string; value: number; detail: string }) {
+  return (
+    <div className="rounded-2xl border border-cyan-300/10 bg-black/20 px-3 py-2">
+      <p className="text-[10px] font-medium text-[var(--text-muted)]">{label}</p>
+      <p className="mt-1 text-xl font-semibold tabular-nums text-[var(--text)]">{value}</p>
+      <p className="text-[10px] text-cyan-100/55">{detail}</p>
+    </div>
+  );
+}
+
+function IntelligenceCore({ status, systems }: { status: "idle" | "thinking" | "syncing"; systems: Array<{ domain: string; status: string }> }) {
+  const activeCount = systems.filter((system) => system.status === "available").length;
+  const statusText = status === "thinking" ? "Analyzing" : status === "syncing" ? "Syncing" : "Ready";
+  return (
+    <div className="relative flex h-28 w-28 shrink-0 items-center justify-center sm:h-32 sm:w-32" aria-label={`NEXTRON core ${statusText.toLowerCase()}, ${activeCount} systems available`}>
+      <div className={`absolute inset-0 rounded-full border border-cyan-300/20 bg-cyan-300/5 shadow-[0_0_42px_rgba(34,211,238,0.14)] ${status === "thinking" ? "animate-pulse" : ""}`} />
+      <div className="absolute inset-3 rounded-full border border-dashed border-cyan-200/20" />
+      <div className="absolute inset-7 rounded-2xl border border-cyan-300/25 bg-[radial-gradient(circle,rgba(125,211,252,0.24),rgba(8,18,32,0.52)_62%)] rotate-45" />
+      <div className="relative text-center">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-100">Core</p>
+        <p className="mt-1 text-xs text-cyan-100/70">{statusText}</p>
+        <p className="text-[10px] text-cyan-100/45">{activeCount} online</p>
+      </div>
+    </div>
+  );
+}
+
+function SystemStatus({ domain, status }: { domain: string; status: string }) {
+  const active = status === "available";
+  const denied = status === "permission_denied";
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-xl border border-cyan-300/10 bg-black/15 px-3 py-2">
+      <div className="min-w-0">
+        <p className="truncate text-xs font-medium text-[var(--text)]">{formatDomainLabel(domain)}</p>
+        <p className="text-[10px] text-[var(--text-muted)]">{active ? "Available" : denied ? "Not loaded" : "No signal"}</p>
+      </div>
+      <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${active ? "bg-cyan-300 shadow-[0_0_12px_rgba(103,232,249,0.65)]" : denied ? "bg-[var(--text-muted)]/35" : "bg-[var(--warning)]/70"}`} aria-hidden="true" />
+    </div>
+  );
+}
+
+function SignalRow({ label, value, detail, tone }: { label: string; value: string; detail: string; tone: "active" | "attention" | "stable" | "muted" }) {
+  const toneClass = tone === "attention" ? "border-[var(--warning)]/25 bg-[var(--warning-soft)]" : tone === "active" ? "border-cyan-300/20 bg-cyan-300/10" : "border-cyan-300/10 bg-black/15";
+  return (
+    <div className={`rounded-xl border px-3 py-2 ${toneClass}`}>
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs font-medium text-[var(--text)]">{label}</p>
+        <p className="text-xs font-semibold text-[var(--text)]">{value}</p>
+      </div>
+      <p className="mt-1 text-[10px] text-[var(--text-muted)]">{detail}</p>
+    </div>
+  );
 }
 
 function PermissionGroup({
@@ -570,19 +588,6 @@ function PermissionGroup({
         );
       })}
     </div>
-  );
-}
-
-function FactList({ facts }: { facts: NextronCoachResponse["facts"] }) {
-  return (
-    <ul className="mt-2 space-y-2">
-      {facts.map((item, index) => (
-        <li key={`${item.category}-${index}`} className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">{item.category}</p>
-          <p className="mt-1 break-words text-sm text-[var(--text-secondary)]">{item.text}</p>
-        </li>
-      ))}
-    </ul>
   );
 }
 
