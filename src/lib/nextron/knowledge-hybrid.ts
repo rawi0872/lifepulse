@@ -118,7 +118,7 @@ function splitChunkText(text: string): string[] {
 }
 
 export function searchTokens(value: string): string[] {
-  const stop = new Set(["about", "after", "again", "what", "when", "where", "which", "with", "from", "that", "this", "note", "notes", "write", "wrote", "knowledge", "decide", "decided", "decision"]);
+  const stop = new Set(["about", "after", "again", "what", "when", "where", "which", "with", "from", "that", "this", "note", "notes", "document", "documents", "write", "wrote", "knowledge", "decide", "decided", "decision", "phrase", "verification"]);
   return Array.from(new Set(value.toLowerCase().match(/[a-z0-9]{3,}/g) ?? [])).filter((token) => !stop.has(token)).slice(0, 8);
 }
 
