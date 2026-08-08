@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DashboardNav } from "@/components/DashboardNav";
@@ -26,6 +26,9 @@ import {
 import { buildNextronEvidencePacket, type NextronEvidencePacket } from "@/lib/nextron/evidence";
 
 const PREFERENCE_COLUMNS = "permission_version, allow_profile, allow_today, allow_tasks, allow_habits, allow_results, allow_goals, allow_projects, allow_knowledge, allow_drive, allow_calendar, allow_journal, allow_evening_shutdown, allow_weekly_review";
+
+interface ConversationSummary { id: string; title: string; created_at: string; updated_at: string }
+interface ConversationMessage { id: string; conversation_id: string; role: "user" | "assistant"; content: string; response: NextronCoachResponse | null; metadata: Record<string, unknown>; created_at: string }
 
 export default function CoachPage() {
   return (
@@ -53,10 +56,44 @@ function NextronContent() {
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [askPrompt, setAskPrompt] = useState("");
   const [askResponse, setAskResponse] = useState<NextronCoachResponse | null>(null);
-  const [askQuestion, setAskQuestion] = useState<string | null>(null);
-  const [askSource, setAskSource] = useState<"ai" | "deterministic" | null>(null);
   const [askStatus, setAskStatus] = useState<"idle" | "asking" | "answered" | "unsupported" | "error">("idle");
   const [askError, setAskError] = useState<string | null>(null);
+  const [conversations, setConversations] = useState<ConversationSummary[]>([]);
+  const [currentConversation, setCurrentConversation] = useState<ConversationSummary | null>(null);
+  const [messages, setMessages] = useState<ConversationMessage[]>([]);
+  const [threadStatus, setThreadStatus] = useState<"idle" | "loading" | "saving" | "error">("loading");
+  const [threadError, setThreadError] = useState<string | null>(null);
+
+  const openConversation = useCallback(async (id: string) => {
+    setThreadStatus("loading");
+    setThreadError(null);
+    const result = await fetch(`/api/nextron/conversations/${id}`).then((res) => res.ok ? res.json() : null).catch(() => null) as { conversation?: ConversationSummary; messages?: ConversationMessage[] } | null;
+    if (!result?.conversation) {
+      setThreadStatus("error");
+      setThreadError("That conversation could not be opened.");
+      return;
+    }
+    setCurrentConversation(result.conversation);
+    setMessages(result.messages ?? []);
+    setConversations((current) => current.some((item) => item.id === result.conversation?.id) ? current : [result.conversation!, ...current]);
+    setThreadStatus("idle");
+  }, []);
+
+  const loadConversations = useCallback(async (selectId?: string | null) => {
+    setThreadStatus("loading");
+    setThreadError(null);
+    const result = await fetch("/api/nextron/conversations").then((res) => res.ok ? res.json() : null).catch(() => null) as { conversations?: ConversationSummary[] } | null;
+    if (!result) setThreadError("Conversation history could not be loaded.");
+    const list = result?.conversations ?? [];
+    setConversations(list);
+    const targetId = selectId ?? list[0]?.id ?? null;
+    if (targetId) await openConversation(targetId);
+    else {
+      setCurrentConversation(null);
+      setMessages([]);
+      setThreadStatus("idle");
+    }
+  }, [openConversation]);
 
   useEffect(() => {
     let cancelled = false;
@@ -72,10 +109,10 @@ function NextronContent() {
       setPacket(null);
       setResponse(null);
       setAskResponse(null);
-      setAskQuestion(null);
-      setAskSource(null);
       setAskStatus("idle");
       setAskError(null);
+      setThreadStatus("loading");
+      setThreadError(null);
 
       try {
         const { data: { user } } = await supabase.auth.getUser();
@@ -88,10 +125,11 @@ function NextronContent() {
           setPacket(null);
           setResponse(null);
           setAskResponse(null);
-          setAskQuestion(null);
-          setAskSource(null);
           setAskStatus("idle");
           setAskError(null);
+          setConversations([]);
+          setCurrentConversation(null);
+          setMessages([]);
           router.replace("/login");
           return;
         }
@@ -121,6 +159,7 @@ function NextronContent() {
         if (cancelled || seq !== requestSeq.current) return;
         setPacket(nextPacket);
         setResponse(nextResponse);
+        await loadConversations();
       } catch {
         if (!cancelled && seq === requestSeq.current) setError("NEXTRON could not load the permitted context right now.");
       } finally {
@@ -137,7 +176,36 @@ function NextronContent() {
       requestSeq.current += 1;
       askAbortController.current?.abort();
     };
-  }, [router, supabase]);
+  }, [loadConversations, router, supabase]);
+
+  async function startNewConversation() {
+    setThreadError(null);
+    setCurrentConversation(null);
+    setMessages([]);
+    setAskResponse(null);
+    setAskPrompt("");
+    setAskStatus("idle");
+    setThreadStatus("idle");
+  }
+
+  async function deleteConversation(id: string) {
+    setThreadStatus("saving");
+    setThreadError(null);
+    const ok = await fetch(`/api/nextron/conversations/${id}`, { method: "DELETE" }).then((res) => res.ok).catch(() => false);
+    if (!ok) {
+      setThreadStatus("error");
+      setThreadError("Conversation could not be deleted.");
+      return;
+    }
+    const nextList = conversations.filter((item) => item.id !== id);
+    setConversations(nextList);
+    if (currentConversation?.id === id) {
+      setCurrentConversation(null);
+      setMessages([]);
+      setAskResponse(null);
+    }
+    setThreadStatus("idle");
+  }
 
   function setPermission(domain: NextronContextDomain, allowed: boolean) {
     setDraftPermissions((current) => ({ ...current, [domain]: allowed ? "allowed" : "denied" }));
@@ -162,8 +230,6 @@ function NextronContent() {
       setPacket(null);
       setResponse(null);
       setAskResponse(null);
-      setAskQuestion(null);
-      setAskSource(null);
       setAskStatus("idle");
       setAskError(null);
       setSaveStatus("error");
@@ -232,8 +298,6 @@ function NextronContent() {
       setPacket(null);
       setResponse(null);
       setAskResponse(null);
-      setAskQuestion(null);
-      setAskSource(null);
       setAskStatus("error");
       router.replace("/login");
       return;
@@ -247,7 +311,7 @@ function NextronContent() {
       const response = await fetch("/api/nextron/ask", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: parsed.request.rawPrompt }),
+        body: JSON.stringify({ prompt: parsed.request.rawPrompt, conversationId: currentConversation?.id ?? null, clientMessageId: crypto.randomUUID() }),
         signal: controller.signal,
       });
       if (seq !== requestSeq.current) return;
@@ -269,8 +333,11 @@ function NextronContent() {
 
       const nextResponse = parsedBody.response;
       setAskResponse(nextResponse);
-      setAskQuestion(parsed.request.rawPrompt);
-      setAskSource(parsedBody.source ?? nextResponse.source ?? "deterministic");
+      if (parsedBody.conversation) {
+        setCurrentConversation(parsedBody.conversation);
+        setConversations((current) => [parsedBody.conversation!, ...current.filter((item) => item.id !== parsedBody.conversation!.id)]);
+      }
+      if (parsedBody.messages) setMessages(parsedBody.messages);
       setAskStatus(parsed.request.handlingStatus === "handled" ? "answered" : "unsupported");
       setAskPrompt("");
     } catch (askErrorValue) {
@@ -330,6 +397,27 @@ function NextronContent() {
 
       <div className="relative grid gap-4 xl:grid-cols-[minmax(0,0.82fr)_minmax(0,1.5fr)_minmax(18rem,0.78fr)]">
         <aside className="space-y-4 xl:sticky xl:top-4 xl:self-start">
+          <NextronPanel title="Conversations" eyebrow="Thread history">
+            <div className="space-y-3">
+              <button type="button" onClick={() => void startNewConversation()} disabled={threadStatus === "saving"} className="min-h-11 w-full rounded-xl border border-cyan-300/25 bg-cyan-300/10 px-3 py-2 text-left text-xs font-semibold text-cyan-100 transition-colors hover:bg-cyan-300/15 disabled:opacity-50">New conversation</button>
+              <p className="text-[10px] leading-relaxed text-[var(--text-muted)]">Conversations are saved privately to your Life Pulse account. Memory still requires explicit remember commands.</p>
+              {threadError && <div className="rounded-lg border border-[var(--warning)]/25 bg-[var(--warning-soft)] px-2 py-1.5"><p className="text-[10px] text-[var(--warning)]">{threadError}</p><button type="button" onClick={() => void loadConversations(currentConversation?.id ?? null)} className="mt-1 text-[10px] font-semibold text-[var(--warning)] underline underline-offset-2">Retry history</button></div>}
+              <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
+                {threadStatus === "loading" && <p className="text-xs text-[var(--text-muted)]">Loading conversations...</p>}
+                {conversations.length === 0 && <p className="text-xs text-[var(--text-muted)]">No saved conversations yet.</p>}
+                {conversations.map((conversation) => (
+                  <div key={conversation.id} className={`rounded-xl border px-2 py-2 ${currentConversation?.id === conversation.id ? "border-cyan-300/35 bg-cyan-300/10" : "border-cyan-300/10 bg-black/15"}`}>
+                    <button type="button" onClick={() => void openConversation(conversation.id)} className="block w-full truncate text-left text-xs font-medium text-[var(--text)]">{conversation.title}</button>
+                    <div className="mt-1 flex items-center justify-between gap-2">
+                      <span className="text-[10px] text-[var(--text-muted)]">{conversation.updated_at.slice(0, 10)}</span>
+                      <button type="button" onClick={() => void deleteConversation(conversation.id)} className="rounded-md px-1.5 py-1 text-[10px] text-[var(--danger)] hover:bg-[var(--danger-soft)]">Delete</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </NextronPanel>
+
           <NextronPanel title="Live Context" eyebrow="Life Pulse state">
             {loading ? <p className="text-sm text-[var(--text-muted)]">Loading permitted context...</p> : error ? <p className="text-sm text-[var(--warning)]">{error}</p> : (
               <div className="space-y-3">
@@ -373,7 +461,7 @@ function NextronContent() {
                   </button>
                 </div>
               </div>
-              <p id="nextron-question-status" className="text-xs leading-relaxed text-[var(--text-muted)]" aria-live="polite">{askStatus === "asking" ? "NEXTRON is checking permitted evidence." : askStatus === "unsupported" ? "NEXTRON answered with a private-beta boundary." : askError ?? "Prompts are processed for this response and are not saved as memory."}</p>
+              <p id="nextron-question-status" className="text-xs leading-relaxed text-[var(--text-muted)]" aria-live="polite">{askStatus === "asking" ? "NEXTRON is checking permitted evidence." : askStatus === "unsupported" ? "NEXTRON answered with a private-beta boundary." : askError ?? "Successful turns are saved to this private conversation, not to Memory unless you explicitly ask NEXTRON to remember something."}</p>
             </form>
           </section>
 
@@ -381,14 +469,26 @@ function NextronContent() {
             <div className="mb-4 flex min-w-0 flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-200/70">Main intelligence</p>
-                <h2 id="nextron-answer" className="mt-1 text-lg font-semibold text-[var(--text)]">{askQuestion ? "Latest response" : "Current baseline"}</h2>
+                <h2 id="nextron-answer" className="mt-1 text-lg font-semibold text-[var(--text)]">{currentConversation ? currentConversation.title : "New conversation"}</h2>
               </div>
               {liveResponse && <span className="rounded-full border border-cyan-300/20 bg-cyan-300/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-cyan-100">{liveResponse.priority}</span>}
             </div>
-            {askQuestion && <div className="mb-4 rounded-2xl border border-cyan-300/10 bg-cyan-950/10 px-3 py-2"><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">Question</p><p className="mt-1 break-words text-sm text-[var(--text-secondary)]">{askQuestion}</p><p className="mt-1 text-[10px] text-[var(--text-muted)]">{askSource === "ai" ? "AI synthesis" : "Deterministic synthesis"}</p></div>}
             {loading && <p className="text-sm text-[var(--text-muted)]">Loading permitted context...</p>}
             {!loading && error && <p className="text-sm text-[var(--warning)]">{error}</p>}
-            {!loading && !error && liveResponse && <ResponseView response={liveResponse} />}
+            {!loading && !error && (
+              <div className="space-y-4">
+                {messages.length === 0 ? (
+                  <div className="rounded-2xl border border-cyan-300/10 bg-cyan-950/10 p-4">
+                    <p className="text-sm font-semibold text-[var(--text)]">What are we working through?</p>
+                    <p className="mt-2 text-sm leading-relaxed text-[var(--text-muted)]">Start a private thread. NEXTRON will use recent turns as context, but current Life Pulse evidence and saved permissions stay authoritative.</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {["What should I focus on today?", "Why?", "What should I do after that?"].map((prompt) => <button key={prompt} type="button" onClick={() => { setAskPrompt(prompt); void askNextron(prompt); }} disabled={askStatus === "asking" || !packet} className="rounded-full border border-cyan-300/15 bg-cyan-300/10 px-3 py-1.5 text-xs text-cyan-50/80 disabled:opacity-50">{prompt}</button>)}
+                    </div>
+                  </div>
+                ) : messages.map((message) => <ConversationTurn key={message.id} message={message} />)}
+                {messages.length === 0 && liveResponse && <ResponseView response={liveResponse} />}
+              </div>
+            )}
           </section>
         </main>
 
@@ -401,7 +501,7 @@ function NextronContent() {
 
           <NextronPanel title="Boundaries" eyebrow="Safety state">
             <ul className="space-y-2 text-xs leading-relaxed text-[var(--text-muted)]">
-              <li>No autonomous actions in Prompt 1.</li>
+              <li>No autonomous actions in Prompt 2.</li>
               <li>External connectors are read-only.</li>
               <li>Drive uses selected imported files only.</li>
               <li>No medical, legal, financial, or therapy guidance.</li>
@@ -439,12 +539,30 @@ function NextronContent() {
   );
 }
 
-function parseAskResponseBody(value: unknown): { response: NextronCoachResponse; source?: "ai" | "deterministic" } | null {
+function parseAskResponseBody(value: unknown): { response: NextronCoachResponse; source?: "ai" | "deterministic"; conversation?: ConversationSummary; messages?: ConversationMessage[] } | null {
   if (typeof value !== "object" || value === null) return null;
-  const candidate = value as { response?: unknown; source?: unknown };
+  const candidate = value as { response?: unknown; source?: unknown; conversation?: unknown; messages?: unknown };
   if (!isNextronCoachResponse(candidate.response)) return null;
   if (candidate.source !== undefined && candidate.source !== "ai" && candidate.source !== "deterministic") return null;
-  return { response: candidate.response, source: candidate.source };
+  const conversation = isConversationSummary(candidate.conversation) ? candidate.conversation : undefined;
+  const messages = Array.isArray(candidate.messages) ? candidate.messages.filter(isConversationMessage) : undefined;
+  return { response: candidate.response, source: candidate.source, conversation, messages };
+}
+
+function isConversationSummary(value: unknown): value is ConversationSummary {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Partial<ConversationSummary>;
+  return typeof candidate.id === "string" && typeof candidate.title === "string" && typeof candidate.created_at === "string" && typeof candidate.updated_at === "string";
+}
+
+function isConversationMessage(value: unknown): value is ConversationMessage {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Partial<ConversationMessage>;
+  return typeof candidate.id === "string"
+    && typeof candidate.conversation_id === "string"
+    && (candidate.role === "user" || candidate.role === "assistant")
+    && typeof candidate.content === "string"
+    && typeof candidate.created_at === "string";
 }
 
 function isNextronCoachResponse(value: unknown): value is NextronCoachResponse {
@@ -544,6 +662,34 @@ function SignalRow({ label, value, detail, tone }: { label: string; value: strin
       </div>
       <p className="mt-1 text-[10px] text-[var(--text-muted)]">{detail}</p>
     </div>
+  );
+}
+
+function ConversationTurn({ message }: { message: ConversationMessage }) {
+  const isAssistant = message.role === "assistant";
+  const response = isAssistant && message.response ? message.response : null;
+  return (
+    <article className={`rounded-2xl border p-4 ${isAssistant ? "border-cyan-300/12 bg-[linear-gradient(180deg,rgba(8,18,32,0.72),rgba(8,13,23,0.86))]" : "border-[var(--border)] bg-black/15"}`}>
+      <p className={`text-[10px] font-semibold uppercase tracking-[0.14em] ${isAssistant ? "text-cyan-200/70" : "text-[var(--text-muted)]"}`}>{isAssistant ? "NEXTRON" : "You"}</p>
+      {response ? (
+        <div className="mt-2">
+          <p className="break-words text-sm leading-relaxed text-[var(--text)]">{response.interpretation}</p>
+          {response.sources && response.sources.length > 0 && (
+            <ul className="mt-3 flex flex-wrap gap-2">
+              {response.sources.map((source) => <li key={source} className="break-words rounded-full border border-cyan-300/15 bg-cyan-300/10 px-2.5 py-1 text-[10px] text-cyan-50/80">{source}</li>)}
+            </ul>
+          )}
+          {response.supportingEvidence.length > 0 && (
+            <details className="mt-3 rounded-xl border border-[var(--border)] bg-black/15 p-2">
+              <summary className="cursor-pointer text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">Evidence used</summary>
+              <ul className="mt-2 space-y-1.5">
+                {response.supportingEvidence.slice(0, 3).map((item, index) => <li key={`${item}-${index}`} className="break-words text-xs leading-relaxed text-[var(--text-secondary)]">{item}</li>)}
+              </ul>
+            </details>
+          )}
+        </div>
+      ) : <p className="mt-2 break-words text-sm leading-relaxed text-[var(--text-secondary)]">{message.content}</p>}
+    </article>
   );
 }
 
