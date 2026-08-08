@@ -115,8 +115,11 @@ function classifyPrompt(normalizedPrompt: string): Pick<NextronUserRequest, "int
   const projectFocusTerms = ["blocking", "blocked", "stuck", "next step", "do next", "should i do next", "next action", "why is"];
   if (includesAny(normalizedPrompt, projectTerms) && includesAny(normalizedPrompt, projectFocusTerms)) return { intent: "PROJECT_AGENT", handlingStatus: "handled", confidence: "high" };
 
-  const knowledgeTerms = ["my notes", "my note", "knowledge", "what did i write", "what did i note", "what does my", "notes say", "note say", "note says", "pasted note", "did i decide", "did we decide", "in my notes", "in my note", "what do my notes"];
+  const knowledgeTerms = ["my notes", "my note", "knowledge", "what did i write", "what did i note", "what does my", "notes say", "note say", "note says", "pasted note", "did i decide", "did we decide", "in my notes", "in my note", "what do my notes", "my launch document", "my document", "that document", "the document", "saved note", "saved document"];
   if (includesAny(normalizedPrompt, knowledgeTerms)) return { intent: "KNOWLEDGE_QUERY", handlingStatus: "handled", confidence: "high" };
+  const asksStoredPhrase = includesAny(normalizedPrompt, ["verification phrase", "phrase in", "phrase from", "phrase was", "what was the phrase", "what is the phrase"]);
+  const hasNamedSubject = /\b(atlas|orion|launch|pricing|document|note|plan)\b/.test(normalizedPrompt);
+  if (asksStoredPhrase && hasNamedSubject) return { intent: "KNOWLEDGE_QUERY", handlingStatus: "handled", confidence: "medium" };
 
   if (includesAny(normalizedPrompt, ["holding me back", "deserves my attention", "everything going on", "where am i making progress", "where am i progressing", "where am i slipping", "progressing and where", "part of my life needs attention", "based on everything", "prioritize based on everything"])) return { intent: "CROSS_DOMAIN_AGENT", handlingStatus: "handled", confidence: "high" };
 

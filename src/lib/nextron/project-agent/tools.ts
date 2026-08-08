@@ -44,6 +44,11 @@ function bestSnippet(row: KnowledgeRow, tokens: string[]): string | null {
   return safeText(text.slice(start, start + KNOWLEDGE_AGENT_MAX_SNIPPET_CHARS), KNOWLEDGE_AGENT_MAX_SNIPPET_CHARS);
 }
 
+function isMetadataOnlyDriveSnippet(result: KnowledgeSearchResult): boolean {
+  const withoutLabels = result.snippet.replace(/Title:\s*[^.]+/i, " ").replace(/Section:\s*Summary/i, " ").trim();
+  return result.sourceProvider === "google_drive" && /^Imported from Google Drive(?:; Drive modified \d{4}-\d{2}-\d{2})?\.?$/i.test(withoutLabels);
+}
+
 export function createNextronProjectAgentTools(context: NextronToolContext, trace: ProjectAgentToolName[], evidenceSink: unknown[] = []) {
   let firstProjectId: string | null = null;
 
@@ -292,51 +297,55 @@ export function createNextronKnowledgeAgentTools(context: NextronToolContext, tr
     inputSchema: z.object({ query: z.string().min(1).max(180) }),
     execute: async (input) => {
       record("searchKnowledge");
-      if (!isNextronContextAllowed(context.permissions, "knowledge")) throw new Error("PERMISSION_DENIED");
-
-      const includeGoogleDrive = isNextronContextAllowed(context.permissions, "drive");
-      const hybrid = await hybridSearchKnowledge(context.supabase, input.query, { includeGoogleDrive });
-      if (hybrid.results.length > 0) return remember({ knowledge: { retrievalMode: hybrid.mode, results: hybrid.results } });
-
-      const tokens = searchTokens(input.query);
-      if (tokens.length === 0) return remember({ knowledge: { results: [] } });
-      const patterns = tokens.slice(0, 4).map((token) => `title.ilike.%${token}%,summary.ilike.%${token}%,content.ilike.%${token}%`).join(",");
-      const { data, error } = await context.supabase
-        .from("knowledge_items")
-        .select("title, type, category, summary, content, source_url, source_provider, created_at, updated_at")
-        .eq("user_id", context.userId)
-        .eq("status", "active")
-        .or(patterns)
-        .order("updated_at", { ascending: false })
-        .limit(20);
-      if (error) throw new Error("KNOWLEDGE_READ_FAILED");
-
-      let totalChars = 0;
-      type KeywordResult = KnowledgeSearchResult & { score: number };
-      const results = ((data ?? []) as KnowledgeRow[])
-        .filter((row) => includeGoogleDrive || row.source_provider !== "google_drive")
-        .map((row) => {
-          const searchable = [row.title, row.category, row.summary, row.content].filter(Boolean).join(" ").toLowerCase();
-          const titleText = safeText(row.title, 90) ?? "Untitled Knowledge note";
-          const score = tokens.reduce((sum, token) => sum + (searchable.includes(token) ? (titleText.toLowerCase().includes(token) ? 3 : 1) : 0), 0);
-          const snippet = bestSnippet(row, tokens);
-          const result: KeywordResult | null = score > 0 && snippet ? { title: titleText, type: safeText(row.type, 24) ?? "note", category: safeText(row.category, 48), updatedDate: (row.updated_at ?? row.created_at)?.slice(0, 10) ?? null, section: null, source: sourceRef(row), sourceProvider: row.source_provider === "google_drive" ? "google_drive" : "life_pulse", snippet, retrieval: "keyword", score } : null;
-          return result;
-        })
-        .filter((item): item is KeywordResult => Boolean(item))
-        .sort((a, b) => b.score - a.score)
-        .slice(0, KNOWLEDGE_AGENT_TOP_K)
-        .map((item) => {
-          const remaining = Math.max(0, KNOWLEDGE_AGENT_MAX_TOTAL_CONTEXT_CHARS - totalChars);
-          const snippet = sanitizeKnowledgeText(item.snippet, Math.min(KNOWLEDGE_AGENT_MAX_SNIPPET_CHARS, remaining));
-          totalChars += snippet.length;
-          return { ...item, snippet };
-        })
-        .filter((item) => item.snippet.length > 0);
-
-      return remember({ knowledge: { retrievalMode: "keyword", results } });
+      return remember(await searchKnowledgeForNextron(context, input.query));
     },
   });
 
   return { searchKnowledge };
+}
+
+export async function searchKnowledgeForNextron(context: NextronToolContext, query: string): Promise<{ knowledge: { retrievalMode?: "hybrid" | "fts" | "keyword"; results: KnowledgeSearchResult[] } }> {
+  if (!isNextronContextAllowed(context.permissions, "knowledge")) throw new Error("PERMISSION_DENIED");
+
+  const includeGoogleDrive = isNextronContextAllowed(context.permissions, "drive");
+  const hybrid = await hybridSearchKnowledge(context.supabase, query, { includeGoogleDrive });
+  if (hybrid.results.length > 0 && !hybrid.results.every(isMetadataOnlyDriveSnippet)) return { knowledge: { retrievalMode: hybrid.mode, results: hybrid.results } };
+
+  const tokens = searchTokens(query);
+  if (tokens.length === 0) return { knowledge: { results: [] } };
+  const patterns = tokens.slice(0, 4).map((token) => `title.ilike.%${token}%,summary.ilike.%${token}%,content.ilike.%${token}%`).join(",");
+  const { data, error } = await context.supabase
+    .from("knowledge_items")
+    .select("title, type, category, summary, content, source_url, source_provider, created_at, updated_at")
+    .eq("user_id", context.userId)
+    .eq("status", "active")
+    .or(patterns)
+    .order("updated_at", { ascending: false })
+    .limit(20);
+  if (error) throw new Error("KNOWLEDGE_READ_FAILED");
+
+  let totalChars = 0;
+  type KeywordResult = KnowledgeSearchResult & { score: number };
+  const results = ((data ?? []) as KnowledgeRow[])
+    .filter((row) => includeGoogleDrive || row.source_provider !== "google_drive")
+    .map((row) => {
+      const searchable = [row.title, row.category, row.summary, row.content].filter(Boolean).join(" ").toLowerCase();
+      const titleText = safeText(row.title, 90) ?? "Untitled Knowledge note";
+      const score = tokens.reduce((sum, token) => sum + (searchable.includes(token) ? (titleText.toLowerCase().includes(token) ? 3 : 1) : 0), 0);
+      const snippet = bestSnippet(row, tokens);
+      const result: KeywordResult | null = score > 0 && snippet ? { title: titleText, type: safeText(row.type, 24) ?? "note", category: safeText(row.category, 48), updatedDate: (row.updated_at ?? row.created_at)?.slice(0, 10) ?? null, section: null, source: sourceRef(row), sourceProvider: row.source_provider === "google_drive" ? "google_drive" : "life_pulse", snippet, retrieval: "keyword", score } : null;
+      return result;
+    })
+    .filter((item): item is KeywordResult => Boolean(item))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, KNOWLEDGE_AGENT_TOP_K)
+    .map((item) => {
+      const remaining = Math.max(0, KNOWLEDGE_AGENT_MAX_TOTAL_CONTEXT_CHARS - totalChars);
+      const snippet = sanitizeKnowledgeText(item.snippet, Math.min(KNOWLEDGE_AGENT_MAX_SNIPPET_CHARS, remaining));
+      totalChars += snippet.length;
+      return { ...item, snippet };
+    })
+    .filter((item) => item.snippet.length > 0);
+
+  return { knowledge: { retrievalMode: "keyword", results } };
 }

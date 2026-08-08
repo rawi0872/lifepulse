@@ -4,7 +4,7 @@ import type { NextronCoachResponse, NextronUserRequest } from "@/lib/nextron/coa
 import type { NextronPermissionState } from "@/lib/nextron/context";
 import { isNextronContextAllowed } from "@/lib/nextron/context";
 import type { NextronEvidencePacket } from "@/lib/nextron/evidence";
-import { createNextronCrossDomainAgentTools, createNextronKnowledgeAgentTools, createNextronProjectAgentTools, type NextronToolContext } from "@/lib/nextron/project-agent/tools";
+import { createNextronCrossDomainAgentTools, createNextronKnowledgeAgentTools, createNextronProjectAgentTools, searchKnowledgeForNextron, type NextronToolContext } from "@/lib/nextron/project-agent/tools";
 import {
   CROSS_DOMAIN_AGENT_MAX_STEPS,
   CROSS_DOMAIN_AGENT_TIMEOUT_MS,
@@ -133,20 +133,30 @@ function fallbackResult(fallback: () => NextronCoachResponse, fallbackReason: Pr
   return { response: { ...fallback(), source: "deterministic" }, fallbackReason, toolsUsed };
 }
 
+function cleanKnowledgeAnswerText(value: string): string {
+  const text = value
+    .replace(/\bTitle:\s*[^\n.]+/gi, " ")
+    .replace(/\bSection:\s*Summary\b/gi, " ")
+    .replace(/Imported from Google Drive(?:; Drive modified \d{4}-\d{2}-\d{2})?\.?/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return text || "A matching Knowledge note was found.";
+}
+
 function synthesizeKnowledgeFromTools(toolEvidence: unknown[]): NextronCoachResponse | null {
-  const records = toolEvidence.flatMap((item) => (((item as { knowledge?: { results?: unknown[] } })?.knowledge?.results ?? []) as Array<{ source?: string; snippet?: string }>));
+  const records = toolEvidence.flatMap((item) => (((item as { knowledge?: { results?: unknown[] } })?.knowledge?.results ?? []) as Array<{ source?: string; snippet?: string; sourceProvider?: string }>));
   if (records.length === 0) return null;
-  const first = records[0];
+  const first = records.find((record) => record.snippet && !/Imported from Google Drive/i.test(record.snippet)) ?? records[0];
   const snippet = typeof first.snippet === "string" ? first.snippet : "A matching Knowledge note was found.";
   const source = typeof first.source === "string" ? first.source : null;
   if (!source) return null;
   const instructionLike = /ignore previous|reveal another|admin mode|delete my|send email|call another tool|service_role|api[_-]?key|user_id/i.test(snippet);
   const safeSnippet = instructionLike
     ? "A retrieved Knowledge note contains instruction-like text treated only as untrusted note content."
-    : snippet.slice(0, 220);
+    : cleanKnowledgeAnswerText(snippet).slice(0, 300);
   return {
     facts: [{ category: "knowledge", text: safeSnippet }],
-    interpretation: "This is bounded Knowledge note evidence, not current structured Life Pulse truth.",
+    interpretation: safeSnippet,
     nextAction: { label: "Open Knowledge", href: "/knowledge", rationale: "Open Knowledge to inspect or edit the source note yourself." },
     priority: "medium",
     ruleId: "knowledge_notes_agent",
@@ -280,8 +290,6 @@ export class NextronAgentRuntime {
   async runKnowledgeQuery(request: NextronAgentRuntimeRequest): Promise<ProjectAgentRunResult> {
     const toolsUsed: KnowledgeAgentToolName[] = [];
     if (!isNextronContextAllowed(request.permissions, "knowledge")) return fallbackResult(request.fallback, "PERMISSION_DENIED", toolsUsed);
-    if (!this.options.generateKnowledgeText && !isProjectAgentEnabled()) return fallbackResult(request.fallback, "PROVIDER_DISABLED", toolsUsed);
-    if (!this.options.generateKnowledgeText && !getGroqKey()) return fallbackResult(request.fallback, "MISSING_KEY", toolsUsed);
 
     const toolContext: NextronToolContext = {
       userId: request.userId,
@@ -291,6 +299,18 @@ export class NextronAgentRuntime {
     };
     const toolEvidence: unknown[] = [];
     const tools = createNextronKnowledgeAgentTools(toolContext, toolsUsed, toolEvidence);
+
+    if (!this.options.generateKnowledgeText && (!isProjectAgentEnabled() || !getGroqKey())) {
+      try {
+        toolsUsed.push("searchKnowledge");
+        toolEvidence.push(await searchKnowledgeForNextron(toolContext, request.userRequest.rawPrompt));
+        const synthesized = synthesizeKnowledgeFromTools(toolEvidence);
+        if (synthesized) return { response: synthesized, fallbackReason: null, toolsUsed };
+      } catch (error) {
+        if (error instanceof Error && error.message === "PERMISSION_DENIED") return fallbackResult(request.fallback, "PERMISSION_DENIED", toolsUsed);
+      }
+      return fallbackResult(request.fallback, !isProjectAgentEnabled() ? "PROVIDER_DISABLED" : "MISSING_KEY", toolsUsed);
+    }
 
     try {
       const output = await withTimeout(this.generateKnowledgeText(buildProjectAgentPrompt(request.userRequest), toolContext, toolsUsed, tools), KNOWLEDGE_AGENT_TIMEOUT_MS);

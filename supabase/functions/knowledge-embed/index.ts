@@ -134,8 +134,6 @@ async function embed(text: string): Promise<number[]> {
 function buildChunks(item: KnowledgeItem): Chunk[] {
   const title = sanitize(item.title, 140);
   const sections: Array<{ section: string | null; text: string }> = [];
-  const summary = sanitize(item.summary, 1_200);
-  if (summary) sections.push({ section: "Summary", text: summary });
 
   let currentSection: string | null = null;
   let buffer: string[] = [];
@@ -155,6 +153,9 @@ function buildChunks(item: KnowledgeItem): Chunk[] {
     if (trimmed) buffer.push(trimmed);
   }
   flush();
+
+  const summary = sanitize(item.summary, 1_200);
+  if (summary) sections.push({ section: "Summary", text: summary });
 
   const chunks: Chunk[] = [];
   let index = 0;

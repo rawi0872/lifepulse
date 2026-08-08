@@ -587,27 +587,38 @@ function FactList({ facts }: { facts: NextronCoachResponse["facts"] }) {
 }
 
 function ResponseView({ response }: { response: NextronCoachResponse }) {
+  const showNextAction = response.nextAction.href !== "/knowledge" || !response.ruleId.includes("knowledge");
   return (
     <div className="space-y-4">
-      <div>
-        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">Interpretation</p>
-        <p className="mt-1 break-words text-sm leading-relaxed text-[var(--text-secondary)]">{response.interpretation}</p>
+      <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">NEXTRON answer</p>
+        <p className="mt-2 break-words text-sm leading-relaxed text-[var(--text)]">{response.interpretation}</p>
       </div>
       {response.sources && response.sources.length > 0 && (
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">Sources</p>
-          <ul className="mt-2 space-y-1">
-            {response.sources.map((source) => <li key={source} className="break-words text-xs text-[var(--text-secondary)]">{source}</li>)}
+          <ul className="mt-2 flex flex-wrap gap-2">
+            {response.sources.map((source) => <li key={source} className="break-words rounded-full border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-1.5 text-xs text-[var(--text-secondary)]">{source}</li>)}
           </ul>
         </div>
       )}
-      <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-3">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">Suggested next action</p>
-        <p className="mt-1 break-words text-sm text-[var(--text-secondary)]">{response.nextAction.rationale}</p>
-        <Link href={response.nextAction.href} className="mt-3 inline-flex min-h-11 items-center rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90">
-          {response.nextAction.label}
-        </Link>
-      </div>
+      {response.supportingEvidence.length > 0 && (
+        <details className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-3">
+          <summary className="cursor-pointer text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">Evidence used</summary>
+          <ul className="mt-2 space-y-2">
+            {response.supportingEvidence.slice(0, 3).map((item, index) => <li key={`${item}-${index}`} className="break-words text-xs leading-relaxed text-[var(--text-secondary)]">{item}</li>)}
+          </ul>
+        </details>
+      )}
+      {showNextAction && (
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-3">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">Next action</p>
+          <p className="mt-1 break-words text-sm text-[var(--text-secondary)]">{response.nextAction.rationale}</p>
+          <Link href={response.nextAction.href} className="mt-3 inline-flex min-h-11 items-center rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90">
+            {response.nextAction.label}
+          </Link>
+        </div>
+      )}
     </div>
   );
 }

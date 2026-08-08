@@ -64,8 +64,6 @@ export function contentHash(value: string): string {
 export function buildKnowledgeChunks(input: { title?: string | null; summary?: string | null; content?: string | null }): KnowledgeChunkInput[] {
   const title = sanitizeKnowledgeText(input.title, 140);
   const sections: Array<{ section: string | null; text: string }> = [];
-  const summary = sanitizeKnowledgeText(input.summary, 1_200);
-  if (summary) sections.push({ section: "Summary", text: summary });
 
   const rawContent = (input.content ?? "").replace(/\r\n/g, "\n");
   let currentSection: string | null = null;
@@ -86,6 +84,9 @@ export function buildKnowledgeChunks(input: { title?: string | null; summary?: s
     if (trimmed) buffer.push(trimmed);
   }
   flush();
+
+  const summary = sanitizeKnowledgeText(input.summary, 1_200);
+  if (summary) sections.push({ section: "Summary", text: summary });
 
   const chunks: KnowledgeChunkInput[] = [];
   let index = 0;

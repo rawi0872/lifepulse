@@ -13,6 +13,9 @@ const pickerLoader = read("src/lib/google-picker-loader.ts");
 const nextConfig = read("next.config.ts");
 const knowledgeHybrid = read("src/lib/nextron/knowledge-hybrid.ts");
 const tools = read("src/lib/nextron/project-agent/tools.ts");
+const runtime = read("src/lib/nextron/project-agent/runtime.ts");
+const coach = read("src/lib/nextron/coach.ts");
+const coachPage = read("src/app/coach/page.tsx");
 const migration = read("supabase/migrations/00027_google_drive_selected_files.sql");
 const driveRoute = read("src/app/api/integrations/google/drive/route.ts");
 const importsRoute = read("src/app/api/integrations/google/drive/imports/route.ts");
@@ -43,6 +46,13 @@ assert(knowledgeHybrid.includes("include_google_drive: options.includeGoogleDriv
 assert(knowledgeHybrid.includes("sourceProvider") && knowledgeHybrid.includes("Google Drive"), "Knowledge results must include Drive provenance labels.");
 assert(tools.includes('isNextronContextAllowed(context.permissions, "drive")'), "Knowledge agent must require explicit Drive permission for Drive sources.");
 assert(tools.includes('row.source_provider !== "google_drive"'), "Keyword fallback must filter Drive rows when Drive is disabled.");
+assert(knowledgeHybrid.indexOf('const rawContent = (input.content ?? "")') < knowledgeHybrid.indexOf('const summary = sanitizeKnowledgeText(input.summary') && read("supabase/functions/knowledge-embed/index.ts").indexOf('for (const block of (item.content ?? "")') < read("supabase/functions/knowledge-embed/index.ts").indexOf('const summary = sanitize(item.summary'), "Drive-imported document body chunks must be indexed before metadata summary chunks.");
+assert(runtime.includes("searchKnowledgeForNextron") && runtime.includes('toolsUsed.push("searchKnowledge")') && runtime.includes("synthesizeKnowledgeFromTools"), "Knowledge fallback must actually search bounded Knowledge when the provider is unavailable.");
+assert(runtime.includes("cleanKnowledgeAnswerText") && runtime.includes("Imported from Google Drive") && runtime.includes("interpretation: safeSnippet"), "Knowledge fallback answer must prefer body evidence over raw Drive metadata.");
+assert(tools.includes("isMetadataOnlyDriveSnippet") && tools.includes("!hybrid.results.every(isMetadataOnlyDriveSnippet)"), "Metadata-only Drive retrieval must fall through to body-backed Knowledge item search.");
+assert(coach.includes("verification phrase") && coach.includes("hasNamedSubject") && coach.includes('intent: "KNOWLEDGE_QUERY"'), "Natural stored-document phrase questions must route to Knowledge retrieval.");
+assert(!runtime.includes("callGoogleDriveRest") && !tools.includes("files_get") && !tools.includes("google_drive_file_id"), "NEXTRON Knowledge retrieval must not call Drive REST or accept model-supplied Drive file IDs.");
+assert(coachPage.includes("NEXTRON answer") && coachPage.includes("Evidence used") && coachPage.includes("Sources") && !coachPage.includes(">Interpretation<") && !coachPage.includes("Suggested next action"), "User-facing NEXTRON answer renderer must avoid internal debug labels while preserving evidence and sources.");
 
 assert(driveRoute.includes("allowNextronDrive") && driveRoute.includes("disconnectGoogleDrive"), "Drive status route must manage permission and disconnect.");
 assert(importsRoute.includes("importSelectedDriveFile") && !importsRoute.includes("files.list"), "Drive import route must import selected files only.");
