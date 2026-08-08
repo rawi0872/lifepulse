@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { contentHash, sanitizeKnowledgeText } from "@/lib/nextron/knowledge-hybrid";
-import { createOAuthState, encryptCalendarTokens, decryptCalendarTokens, revokeGoogleCalendarToken, sha256Base64Url } from "@/lib/nextron/calendar";
+import { createOAuthState, encryptCalendarTokens, decryptCalendarTokens, revokeGoogleCalendarToken, sha256Base64Url, classifyGoogleOAuthTokenResponse, GoogleOAuthRefreshError } from "@/lib/nextron/calendar";
 
 export const GOOGLE_DRIVE_API_BASE = "https://www.googleapis.com/drive/v3";
 export const GOOGLE_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
@@ -121,7 +121,7 @@ async function refreshGoogleDriveToken(refreshToken: string): Promise<DriveToken
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({ client_id: env.clientId, client_secret: env.clientSecret, refresh_token: refreshToken, grant_type: "refresh_token" }),
   });
-  if (!response.ok) throw new Error("GOOGLE_DRIVE_TOKEN_REFRESH_FAILED");
+  if (!response.ok) throw await classifyGoogleOAuthTokenResponse(response);
   const token = await response.json() as { access_token?: string; expires_in?: number; scope?: string; token_type?: string };
   if (!token.access_token) throw new Error("GOOGLE_DRIVE_TOKEN_MISSING");
   return { access_token: token.access_token, refresh_token: refreshToken, expires_at: token.expires_in ? new Date(Date.now() + token.expires_in * 1000).toISOString() : undefined, scope: token.scope, token_type: token.token_type };
@@ -144,7 +144,11 @@ async function getUsableDriveTokens(supabase: SupabaseClient, row: DriveConnecti
   let refreshed: DriveTokenSet;
   try {
     refreshed = await refreshGoogleDriveToken(tokens.refresh_token);
-  } catch {
+  } catch (error) {
+    if (error instanceof GoogleOAuthRefreshError && error.permanent) {
+      await supabase.from("google_drive_connections").update({ status: "revoked", last_error_code: "RECONNECT_REQUIRED" }).eq("user_id", row.user_id);
+      throw new Error("DRIVE_RECONNECT_REQUIRED");
+    }
     throw new Error("TOKEN_REFRESH_FAILED");
   }
   const encrypted = await encryptCalendarTokens(refreshed);
@@ -155,7 +159,9 @@ async function getUsableDriveTokens(supabase: SupabaseClient, row: DriveConnecti
 export async function getGoogleDrivePickerToken(supabase: SupabaseClient, userId: string): Promise<{ ok: true; accessToken: string; expiresAt: string | null } | { ok: false; reason: string }> {
   const { data } = await supabase.from("google_drive_connections").select("user_id, encrypted_tokens, token_iv, token_tag, scopes, token_expires_at, google_account_hint, status, last_error_code").eq("user_id", userId).maybeSingle();
   const row = data as DriveConnectionRow | null;
-  if (!row || row.status !== "connected" || !row.scopes?.includes(GOOGLE_DRIVE_SCOPE)) return { ok: false, reason: "DRIVE_DISCONNECTED" };
+  if (!row) return { ok: false, reason: "DRIVE_DISCONNECTED" };
+  if (row.status === "revoked" || row.last_error_code === "RECONNECT_REQUIRED") return { ok: false, reason: "DRIVE_RECONNECT_REQUIRED" };
+  if (row.status !== "connected" || !row.scopes?.includes(GOOGLE_DRIVE_SCOPE)) return { ok: false, reason: "DRIVE_DISCONNECTED" };
   try {
     const tokens = await getUsableDriveTokens(supabase, row);
     return { ok: true, accessToken: tokens.access_token, expiresAt: tokens.expires_at ?? null };
@@ -227,7 +233,9 @@ export async function importSelectedDriveFile(args: { supabase: SupabaseClient; 
   if (missingGoogleDriveEnv().length > 0) return { ok: false, reason: "ENV_MISSING" };
   const { data } = await args.supabase.from("google_drive_connections").select("user_id, encrypted_tokens, token_iv, token_tag, scopes, token_expires_at, google_account_hint, status, last_error_code").eq("user_id", args.userId).maybeSingle();
   const row = data as DriveConnectionRow | null;
-  if (!row || row.status !== "connected" || !row.scopes?.includes(GOOGLE_DRIVE_SCOPE)) return { ok: false, reason: "DRIVE_DISCONNECTED" };
+  if (!row) return { ok: false, reason: "DRIVE_DISCONNECTED" };
+  if (row.status === "revoked" || row.last_error_code === "RECONNECT_REQUIRED") return { ok: false, reason: "DRIVE_RECONNECT_REQUIRED" };
+  if (row.status !== "connected" || !row.scopes?.includes(GOOGLE_DRIVE_SCOPE)) return { ok: false, reason: "DRIVE_DISCONNECTED" };
   try {
     const tokens = await getUsableDriveTokens(args.supabase, row);
     const file = await readSelectedDriveFile(tokens.access_token, args.fileId, args.resourceKey);
@@ -266,6 +274,7 @@ export async function importSelectedDriveFile(args: { supabase: SupabaseClient; 
     return { ok: true, importId: importResult.data.id as string, title, knowledgeItemId: itemResult.data.id as string, unchanged: false };
   } catch (error) {
     const reason = error instanceof Error ? error.message : "DRIVE_API_UNAVAILABLE";
+    if (reason === "DRIVE_RECONNECT_REQUIRED") return { ok: false, reason };
     const status = reason === "UNSUPPORTED_FILE_TYPE" ? "unsupported" : reason === "FILE_TOO_LARGE" ? "too_large" : "error";
     try {
       await args.supabase.from("google_drive_imports").upsert({

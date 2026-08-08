@@ -11,6 +11,7 @@ export async function POST() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Sign in to import Google Drive files." }, { status: 401 });
   const result = await getGoogleDrivePickerToken(supabase, user.id);
+  if (!result.ok && result.reason === "DRIVE_RECONNECT_REQUIRED") return NextResponse.json({ error: "DRIVE_RECONNECT_REQUIRED" }, { status: 409 });
   if (!result.ok) return NextResponse.json({ error: result.reason }, { status: 403 });
   return NextResponse.json({ accessToken: result.accessToken, expiresAt: result.expiresAt, scope: "drive.file" });
 }

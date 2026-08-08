@@ -17,6 +17,7 @@ const migration = read("supabase/migrations/00027_google_drive_selected_files.sq
 const driveRoute = read("src/app/api/integrations/google/drive/route.ts");
 const importsRoute = read("src/app/api/integrations/google/drive/imports/route.ts");
 const knowledgePage = read("src/app/knowledge/page.tsx");
+const settings = read("src/app/settings/page.tsx");
 
 assert(driveLib.includes('GOOGLE_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file"'), "Drive connector must request drive.file only.");
 assert(driveLib.includes('GOOGLE_DRIVE_SCOPES = [GOOGLE_DRIVE_SCOPE]'), "Drive scopes must be derived from drive.file only.");
@@ -30,6 +31,7 @@ assert(driveLib.includes("MAX_BLOB_BYTES") && driveLib.includes("MAX_EXTRACTED_T
 assert(driveLib.includes('source_provider: "google_drive"'), "Imported Drive files must enter Knowledge v2 as google_drive sources.");
 assert(driveLib.includes('body: { action: "index-item"'), "Imported Drive files must reuse Knowledge v2 indexing.");
 assert(driveLib.includes("removeDriveImport") && driveLib.includes("disconnectGoogleDrive"), "Drive imports must be removable from Life Pulse.");
+assert(driveLib.includes('classifyGoogleOAuthTokenResponse') && driveLib.includes('error instanceof GoogleOAuthRefreshError') && driveLib.includes('status: "revoked", last_error_code: "RECONNECT_REQUIRED"') && driveLib.includes('DRIVE_RECONNECT_REQUIRED'), "Drive permanent refresh failures must become reconnect-required without raw Google error leakage.");
 
 assert(migration.includes("allow_drive boolean not null default false"), "Drive permission must default denied.");
 assert(migration.includes("source_provider text not null default 'life_pulse'"), "Knowledge items must keep source provider provenance.");
@@ -44,8 +46,11 @@ assert(tools.includes('row.source_provider !== "google_drive"'), "Keyword fallba
 
 assert(driveRoute.includes("allowNextronDrive") && driveRoute.includes("disconnectGoogleDrive"), "Drive status route must manage permission and disconnect.");
 assert(importsRoute.includes("importSelectedDriveFile") && !importsRoute.includes("files.list"), "Drive import route must import selected files only.");
+assert(driveLib.includes('if (reason === "DRIVE_RECONNECT_REQUIRED") return { ok: false, reason }'), "Drive authorization failures must not create import records or duplicate imports.");
 assert(knowledgePage.includes("PickerBuilder") && knowledgePage.includes("Select Drive files"), "Knowledge page must expose Google Picker selected-file import.");
 assert(knowledgePage.includes("Remove from Drive panel"), "Drive copies must be removed through the Drive import panel.");
+assert(knowledgePage.includes('Google Drive needs to be reconnected.') && knowledgePage.includes('tokenResponse.status === 409') && knowledgePage.includes('status: "revoked", lastErrorCode: "RECONNECT_REQUIRED"'), "Knowledge Picker must show reconnect UX instead of generic token refresh failure.");
+assert(settings.includes('Reconnect Google Drive') && settings.includes('Your Google authorization expired or was revoked. Reconnect Google Drive to continue.') && settings.includes('disabled={driveSaving || !driveStatus?.connected || driveReconnectRequired}'), "Settings must show Drive reconnect-required state and preserve allow_drive without enabling reads while revoked.");
 assert(knowledgePage.includes("drivePickerLaunching") && knowledgePage.includes('"Opening Drive..."') && knowledgePage.includes('"Importing..."'), "Picker launch and file import must use distinct loading states.");
 assert(knowledgePage.includes("if (drivePickerLaunching || drivePickerOpen || driveImporting) return"), "Duplicate Picker launch clicks must be blocked while launch, Picker, or import is active.");
 assert(knowledgePage.includes('fetch("/api/integrations/google/drive/picker-token", { method: "POST" })') && knowledgePage.includes("tokenPayload.accessToken"), "Picker launch must request and validate the server-issued Picker token.");

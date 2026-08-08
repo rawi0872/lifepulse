@@ -83,6 +83,9 @@ export default function SettingsPage() {
   const [driveSaving, setDriveSaving] = useState(false);
   const { toast } = useToast();
 
+  const calendarReconnectRequired = calendarStatus?.status === "revoked" || calendarStatus?.lastErrorCode === "RECONNECT_REQUIRED";
+  const driveReconnectRequired = driveStatus?.status === "revoked" || driveStatus?.lastErrorCode === "RECONNECT_REQUIRED";
+
   interface Realm { id: string; name: string; color: string; icon: string }
   const [realms, setRealms] = useState<Realm[]>([]);
   const [showAddRealm, setShowAddRealm] = useState(false);
@@ -625,10 +628,12 @@ export default function SettingsPage() {
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="text-sm font-semibold text-[var(--text)]">
-                      {calendarStatus?.connected ? "Connected" : calendarStatus?.status === "error" ? "Connection error" : "Not connected"}
+                      {calendarReconnectRequired ? "Reconnect required" : calendarStatus?.connected ? "Connected" : calendarStatus?.status === "error" ? "Connection error" : "Not connected"}
                     </p>
                     <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
-                      {calendarStatus?.connected
+                      {calendarReconnectRequired
+                        ? "Your Google authorization expired or was revoked. Reconnect Google Calendar to continue."
+                        : calendarStatus?.connected
                         ? "OAuth tokens are stored server-side only and Calendar data is read only when relevant."
                         : "Connect with the approved Google Calendar read-only scopes."}
                     </p>
@@ -636,11 +641,11 @@ export default function SettingsPage() {
                       <p className="mt-1 text-xs text-[var(--danger)]">Server configuration is still missing.</p>
                     ) : null}
                   </div>
-                  {calendarStatus?.connected ? (
+                  {calendarStatus?.connected && !calendarReconnectRequired ? (
                     <Button size="sm" variant="ghost" onClick={disconnectCalendar} disabled={calendarSaving}>Disconnect</Button>
                   ) : (
                     <Button size="sm" onClick={connectCalendar} disabled={calendarSaving || Boolean(calendarStatus?.missingEnv?.length)}>
-                      {calendarSaving ? "Starting..." : "Connect"}
+                      {calendarSaving ? "Starting..." : calendarReconnectRequired ? "Reconnect Google Calendar" : "Connect"}
                     </Button>
                   )}
                 </div>
@@ -649,7 +654,7 @@ export default function SettingsPage() {
                   <input
                     type="checkbox"
                     checked={Boolean(calendarStatus?.allowNextronCalendar)}
-                    disabled={calendarSaving || !calendarStatus?.connected}
+                    disabled={calendarSaving || !calendarStatus?.connected || calendarReconnectRequired}
                     onChange={(event) => saveCalendarPermission(event.target.checked)}
                     className="mt-1 h-4 w-4 rounded border-[var(--border-strong)] bg-[var(--surface-soft)]"
                   />
@@ -681,10 +686,12 @@ export default function SettingsPage() {
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="text-sm font-semibold text-[var(--text)]">
-                      {driveStatus?.connected ? "Connected" : driveStatus?.status === "error" ? "Connection error" : "Not connected"}
+                      {driveReconnectRequired ? "Reconnect required" : driveStatus?.connected ? "Connected" : driveStatus?.status === "error" ? "Connection error" : "Not connected"}
                     </p>
                     <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
-                      {driveStatus?.connected
+                      {driveReconnectRequired
+                        ? "Your Google authorization expired or was revoked. Reconnect Google Drive to continue."
+                        : driveStatus?.connected
                         ? `${driveStatus.imports.length} selected Drive file${driveStatus.imports.length === 1 ? "" : "s"} imported. Life Pulse cannot browse or search your whole Drive.`
                         : "Connect with Google Drive selected-file access, then import files from Knowledge."}
                     </p>
@@ -692,11 +699,11 @@ export default function SettingsPage() {
                       <p className="mt-1 text-xs text-[var(--danger)]">Server configuration is still missing.</p>
                     ) : null}
                   </div>
-                  {driveStatus?.connected ? (
+                  {driveStatus?.connected && !driveReconnectRequired ? (
                     <Button size="sm" variant="ghost" onClick={disconnectDrive} disabled={driveSaving}>Disconnect</Button>
                   ) : (
                     <Button size="sm" onClick={connectDrive} disabled={driveSaving || Boolean(driveStatus?.missingEnv?.length)}>
-                      {driveSaving ? "Starting..." : "Connect"}
+                      {driveSaving ? "Starting..." : driveReconnectRequired ? "Reconnect Google Drive" : "Connect"}
                     </Button>
                   )}
                 </div>
@@ -705,7 +712,7 @@ export default function SettingsPage() {
                   <input
                     type="checkbox"
                     checked={Boolean(driveStatus?.allowNextronDrive)}
-                    disabled={driveSaving || !driveStatus?.connected}
+                    disabled={driveSaving || !driveStatus?.connected || driveReconnectRequired}
                     onChange={(event) => saveDrivePermission(event.target.checked)}
                     className="mt-1 h-4 w-4 rounded border-[var(--border-strong)] bg-[var(--surface-soft)]"
                   />

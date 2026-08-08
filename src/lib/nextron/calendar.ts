@@ -51,7 +51,32 @@ export interface SanitizedCalendarEvent {
 
 export type CalendarReadResult =
   | { ok: true; events: SanitizedCalendarEvent[]; rangeLabel: string; toolsUsed: CalendarReadOperation[] }
-  | { ok: false; reason: "PERMISSION_DENIED" | "DISCONNECTED" | "ENV_MISSING" | "TOKEN_DECRYPT_FAILED" | "TOKEN_REFRESH_FAILED" | "TOKEN_UNAVAILABLE" | "CALENDAR_AUTH_REQUIRED" | "CALENDAR_SCOPE_DENIED" | "CALENDAR_BAD_REQUEST" | "CALENDAR_RATE_LIMITED" | "CALENDAR_API_UNAVAILABLE" | "TIMEOUT" | "WRITE_DENIED"; toolsUsed: CalendarReadOperation[] };
+  | { ok: false; reason: "PERMISSION_DENIED" | "DISCONNECTED" | "RECONNECT_REQUIRED" | "ENV_MISSING" | "TOKEN_DECRYPT_FAILED" | "TOKEN_REFRESH_FAILED" | "TOKEN_UNAVAILABLE" | "CALENDAR_AUTH_REQUIRED" | "CALENDAR_SCOPE_DENIED" | "CALENDAR_BAD_REQUEST" | "CALENDAR_RATE_LIMITED" | "CALENDAR_API_UNAVAILABLE" | "TIMEOUT" | "WRITE_DENIED"; toolsUsed: CalendarReadOperation[] };
+
+export type GoogleOAuthRefreshFailure = "REFRESH_TOKEN_EXPIRED" | "REFRESH_TOKEN_REVOKED" | "INVALID_GRANT" | "CLIENT_CONFIG_ERROR" | "NETWORK_ERROR" | "OTHER_SAFE_CLASSIFICATION";
+
+export class GoogleOAuthRefreshError extends Error {
+  constructor(public readonly classification: GoogleOAuthRefreshFailure, public readonly permanent: boolean) {
+    super(classification);
+  }
+}
+
+export async function classifyGoogleOAuthTokenResponse(response: Response): Promise<GoogleOAuthRefreshError> {
+  let error = "";
+  let description = "";
+  try {
+    const payload = await response.json() as { error?: unknown; error_description?: unknown };
+    error = typeof payload.error === "string" ? payload.error : "";
+    description = typeof payload.error_description === "string" ? payload.error_description.toLowerCase() : "";
+  } catch {}
+  if (error === "invalid_grant") {
+    if (description.includes("expired") || description.includes("expire")) return new GoogleOAuthRefreshError("REFRESH_TOKEN_EXPIRED", true);
+    if (description.includes("revoked") || description.includes("deleted") || description.includes("invalid")) return new GoogleOAuthRefreshError("REFRESH_TOKEN_REVOKED", true);
+    return new GoogleOAuthRefreshError("INVALID_GRANT", true);
+  }
+  if (error === "invalid_client" || error === "unauthorized_client") return new GoogleOAuthRefreshError("CLIENT_CONFIG_ERROR", false);
+  return new GoogleOAuthRefreshError(response.status >= 500 ? "NETWORK_ERROR" : "OTHER_SAFE_CLASSIFICATION", false);
+}
 
 export function getGoogleCalendarEnv() {
   return {
@@ -144,7 +169,7 @@ async function refreshGoogleCalendarToken(refreshToken: string): Promise<Calenda
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({ client_id: env.clientId, client_secret: env.clientSecret, refresh_token: refreshToken, grant_type: "refresh_token" }),
   });
-  if (!response.ok) throw new Error("GOOGLE_TOKEN_REFRESH_FAILED");
+  if (!response.ok) throw await classifyGoogleOAuthTokenResponse(response);
   const token = await response.json() as { access_token?: string; expires_in?: number; scope?: string; token_type?: string };
   if (!token.access_token) throw new Error("GOOGLE_TOKEN_MISSING");
   return { access_token: token.access_token, refresh_token: refreshToken, expires_at: token.expires_in ? new Date(Date.now() + token.expires_in * 1000).toISOString() : undefined, scope: token.scope, token_type: token.token_type };
@@ -275,7 +300,11 @@ async function getUsableTokens(supabase: SupabaseClient, row: CalendarConnection
   let refreshed: CalendarTokenSet;
   try {
     refreshed = await refreshGoogleCalendarToken(tokens.refresh_token);
-  } catch {
+  } catch (error) {
+    if (error instanceof GoogleOAuthRefreshError && error.permanent) {
+      await supabase.from("google_calendar_connections").update({ status: "revoked", last_error_code: "RECONNECT_REQUIRED" }).eq("user_id", row.user_id);
+      throw new Error("RECONNECT_REQUIRED");
+    }
     throw new Error("TOKEN_REFRESH_FAILED");
   }
   const encrypted = await encryptCalendarTokens(refreshed);
@@ -296,7 +325,9 @@ export async function runNextronCalendarReadOnly(args: { supabase: SupabaseClien
     .maybeSingle();
   if (error) return { ok: false, reason: "CALENDAR_API_UNAVAILABLE", toolsUsed };
   const row = data as CalendarConnectionRow | null;
-  if (!row || row.status !== "connected") return { ok: false, reason: "DISCONNECTED", toolsUsed };
+  if (!row) return { ok: false, reason: "DISCONNECTED", toolsUsed };
+  if (row.status === "revoked" || row.last_error_code === "RECONNECT_REQUIRED") return { ok: false, reason: "RECONNECT_REQUIRED", toolsUsed };
+  if (row.status !== "connected") return { ok: false, reason: "DISCONNECTED", toolsUsed };
 
   try {
     const tokens = await getUsableTokens(args.supabase, row);
@@ -307,6 +338,7 @@ export async function runNextronCalendarReadOnly(args: { supabase: SupabaseClien
     const message = error instanceof Error ? error.message : "CALENDAR_API_UNAVAILABLE";
     const name = error instanceof Error ? error.name : "";
     if (message === "TOKEN_DECRYPT_FAILED") return { ok: false, reason: "TOKEN_DECRYPT_FAILED", toolsUsed };
+    if (message === "RECONNECT_REQUIRED") return { ok: false, reason: "RECONNECT_REQUIRED", toolsUsed };
     if (message === "TOKEN_REFRESH_FAILED") return { ok: false, reason: "TOKEN_REFRESH_FAILED", toolsUsed };
     if (message === "TOKEN_UNAVAILABLE") return { ok: false, reason: "TOKEN_UNAVAILABLE", toolsUsed };
     if (message === "CALENDAR_AUTH_REQUIRED") return { ok: false, reason: "CALENDAR_AUTH_REQUIRED", toolsUsed };
@@ -327,6 +359,8 @@ export function calendarReadResponse(result: CalendarReadResult): NextronCoachRe
         ? "NEXTRON Calendar read permission is disabled."
         : result.reason === "DISCONNECTED"
           ? "Google Calendar is not connected."
+          : result.reason === "RECONNECT_REQUIRED"
+            ? "Google Calendar authorization expired or was revoked. Reconnect Google Calendar in Settings."
           : "Google Calendar read context is unavailable right now.";
     return { facts: [{ category: "calendar", text }], interpretation: text, nextAction: { label: "Open Settings", href: "/settings", rationale: "Use Settings to connect Calendar or change NEXTRON Calendar read permission." }, priority: "calm", ruleId: `calendar_${result.reason.toLowerCase()}`, supportingEvidence: [text], source: "deterministic" };
   }

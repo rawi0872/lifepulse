@@ -29,6 +29,8 @@ interface DriveImport {
 
 interface GoogleDriveStatus {
   connected: boolean;
+  status: "connected" | "error" | "revoked" | "not_connected";
+  lastErrorCode: string | null;
   allowNextronDrive: boolean;
   picker: { apiKey: string | null; appId: string | null };
   imports: DriveImport[];
@@ -215,6 +217,10 @@ function KnowledgeContent() {
 
   async function openDrivePicker() {
     if (drivePickerLaunching || drivePickerOpen || driveImporting) return;
+    if (driveStatus?.status === "revoked" || driveStatus?.lastErrorCode === "RECONNECT_REQUIRED") {
+      toast({ type: "error", title: "Google Drive needs to be reconnected." });
+      return;
+    }
     if (!driveStatus?.connected) {
       toast({ type: "error", title: "Connect Google Drive in Settings first." });
       return;
@@ -227,6 +233,10 @@ function KnowledgeContent() {
     try {
       const tokenResponse = await fetch("/api/integrations/google/drive/picker-token", { method: "POST" });
       const tokenPayload: { accessToken?: string; error?: string } = await tokenResponse.json().catch(() => ({}));
+      if (tokenResponse.status === 409 || tokenPayload.error === "DRIVE_RECONNECT_REQUIRED") {
+        setDriveStatus((current) => current ? { ...current, connected: false, status: "revoked", lastErrorCode: "RECONNECT_REQUIRED" } : current);
+        throw new Error("Google Drive needs to be reconnected.");
+      }
       if (!tokenResponse.ok || !tokenPayload.accessToken) throw new Error(tokenPayload.error ?? "PICKER_TOKEN_FAILED");
       await loadGooglePickerModule();
       const pickerApi = window.google?.picker;
@@ -411,14 +421,16 @@ function KnowledgeContent() {
                       {driveLoading ? "Checking Google Drive..." : driveStatus?.connected ? "Google Drive connected" : "Google Drive not connected"}
                     </p>
                     <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
-                      Import Google Docs, plain text, or Markdown files you explicitly select. The original file stays in Drive; removing an import only deletes the Life Pulse copy.
+                      {driveStatus?.status === "revoked" || driveStatus?.lastErrorCode === "RECONNECT_REQUIRED"
+                        ? "Google Drive needs to be reconnected before importing selected files."
+                        : "Import Google Docs, plain text, or Markdown files you explicitly select. The original file stays in Drive; removing an import only deletes the Life Pulse copy."}
                     </p>
                     {driveStatus?.missingEnv?.length ? <p className="mt-1 text-xs text-[var(--danger)]">Drive import is not configured on the server yet.</p> : null}
                   </div>
                   {driveStatus?.connected ? (
                     <button
                       onClick={openDrivePicker}
-                      disabled={drivePickerLaunching || drivePickerOpen || driveImporting || Boolean(driveStatus?.missingEnv?.length)}
+                      disabled={drivePickerLaunching || drivePickerOpen || driveImporting || driveStatus.status === "revoked" || driveStatus.lastErrorCode === "RECONNECT_REQUIRED" || Boolean(driveStatus?.missingEnv?.length)}
                       className="min-h-11 shrink-0 rounded-lg bg-[var(--accent)] px-4 py-2.5 text-xs font-medium text-[var(--text-on-accent)] transition-all hover:opacity-90 disabled:opacity-40 sm:min-h-0 sm:py-2"
                     >
                       {driveImporting ? "Importing..." : drivePickerLaunching ? "Opening Drive..." : "Select Drive files"}
