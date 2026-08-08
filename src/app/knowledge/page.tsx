@@ -66,6 +66,19 @@ const TABS = [
 
 type TabId = (typeof TABS)[number]["id"];
 
+function formatDriveSyncDate(value: string | null): string {
+  if (!value) return "Not synced yet";
+  return `Synced ${new Date(value).toLocaleDateString()}`;
+}
+
+function driveStatusLabel(status: string): string {
+  if (status === "active") return "Ready";
+  if (status === "unsupported") return "Unsupported";
+  if (status === "too_large") return "Too large";
+  if (status === "error") return "Needs attention";
+  return status.replace(/_/g, " ");
+}
+
 function KnowledgeContent() {
   const router = useRouter();
   const supabase = createClient();
@@ -340,6 +353,7 @@ function KnowledgeContent() {
     const matchesSearch = !normalizedSearch || searchableText.includes(normalizedSearch);
     return matchesType && matchesCategory && matchesSearch;
   });
+  const driveReconnectRequired = driveStatus?.status === "revoked" || driveStatus?.lastErrorCode === "RECONNECT_REQUIRED";
 
   if (loading) return null;
 
@@ -413,49 +427,83 @@ function KnowledgeContent() {
         {/* ════════════════ ADD KNOWLEDGE ════════════════ */}
         {activeTab === "add" && (
           <div className="space-y-6">
-            <PulseCard title="Import from Google Drive" accent="accent" description="Selected files only — no Drive browsing by Life Pulse">
+            <PulseCard title="Google Drive imports" accent="accent" description="Selected files only — no Drive browsing by Life Pulse" className="border-[var(--accent)]/20 bg-[linear-gradient(135deg,rgba(122,162,199,0.075),rgba(244,247,251,0.018)),var(--surface)]">
               <div className="space-y-4 p-4 sm:p-5">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
-                    <p className="text-xs font-medium text-[var(--text)]">
-                      {driveLoading ? "Checking Google Drive..." : driveStatus?.connected ? "Google Drive connected" : "Google Drive not connected"}
+                <div className="flex flex-col gap-4 rounded-2xl border border-white/[0.08] bg-black/10 p-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <div className="mb-2 flex flex-wrap items-center gap-2">
+                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-[var(--accent)]/25 bg-[var(--accent-soft)] text-[var(--accent)]">
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 9.75h16.5m-13.5 0 1.5-3h7.5l1.5 3m-11.25 0v8.25A2.25 2.25 0 008.25 20.25h7.5A2.25 2.25 0 0018 18V9.75" />
+                        </svg>
+                      </span>
+                      <span className={`rounded-full border px-2.5 py-1 text-[10px] font-medium ${driveLoading ? "border-[var(--border)] text-[var(--text-muted)]" : driveReconnectRequired ? "border-[var(--danger)]/25 bg-[var(--danger-soft)] text-[var(--danger)]" : driveStatus?.connected ? "border-[var(--success)]/25 bg-[var(--success-soft)] text-[var(--success)]" : "border-[var(--border)] bg-[var(--surface-soft)] text-[var(--text-muted)]"}`}>
+                        {driveLoading ? "Checking" : driveReconnectRequired ? "Reconnect required" : driveStatus?.connected ? "Connected" : "Not connected"}
+                      </span>
+                    </div>
+                    <p className="text-sm font-semibold text-[var(--text)]">Bring selected Drive files into Knowledge</p>
+                    <p className="mt-1 max-w-2xl text-pretty text-xs leading-relaxed text-[var(--text-muted)]">
+                      {driveReconnectRequired
+                        ? "Google Drive needs to be reconnected before importing selected files. Existing Life Pulse copies stay under your saved Drive permission."
+                        : "Import Google Docs, plain text, or Markdown files you explicitly select. The original stays in Drive; removing an import only deletes the Life Pulse copy."}
                     </p>
-                    <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
-                      {driveStatus?.status === "revoked" || driveStatus?.lastErrorCode === "RECONNECT_REQUIRED"
-                        ? "Google Drive needs to be reconnected before importing selected files."
-                        : "Import Google Docs, plain text, or Markdown files you explicitly select. The original file stays in Drive; removing an import only deletes the Life Pulse copy."}
-                    </p>
-                    {driveStatus?.missingEnv?.length ? <p className="mt-1 text-xs text-[var(--danger)]">Drive import is not configured on the server yet.</p> : null}
+                    {driveStatus?.missingEnv?.length ? <p className="mt-2 text-xs text-[var(--danger)]">Drive import is not configured on the server yet.</p> : null}
                   </div>
+
                   {driveStatus?.connected ? (
                     <button
                       onClick={openDrivePicker}
                       disabled={drivePickerLaunching || drivePickerOpen || driveImporting || driveStatus.status === "revoked" || driveStatus.lastErrorCode === "RECONNECT_REQUIRED" || Boolean(driveStatus?.missingEnv?.length)}
-                      className="min-h-11 shrink-0 rounded-lg bg-[var(--accent)] px-4 py-2.5 text-xs font-medium text-[var(--text-on-accent)] transition-all hover:opacity-90 disabled:opacity-40 sm:min-h-0 sm:py-2"
+                      className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-4 py-2.5 text-xs font-semibold text-[var(--text-on-accent)] shadow-lg shadow-black/15 transition-all hover:-translate-y-0.5 hover:opacity-95 disabled:translate-y-0 disabled:opacity-40 sm:min-h-0 sm:py-2"
                     >
+                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                      </svg>
                       {driveImporting ? "Importing..." : drivePickerLaunching ? "Opening Drive..." : "Select Drive files"}
                     </button>
                   ) : (
-                    <Link href="/settings" className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-lg border border-[var(--border)] px-4 py-2.5 text-xs font-medium text-[var(--text)] transition-colors hover:bg-[var(--surface-soft)] sm:min-h-0 sm:py-2">Connect in Settings</Link>
+                    <Link href="/settings" className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-xs font-semibold text-[var(--text)] transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface-soft)] sm:min-h-0 sm:py-2">Connect in Settings</Link>
                   )}
                 </div>
 
                 {driveStatus?.imports?.length ? (
-                  <div className="divide-y divide-[var(--border)] rounded-xl border border-[var(--border)] bg-[var(--surface-soft)]">
-                    {driveStatus.imports.map((item) => (
-                      <div key={item.id} className="flex flex-col gap-2 px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="min-w-0">
-                          <p className="break-words text-xs font-medium text-[var(--text)]">{item.display_title}</p>
-                          <p className="mt-1 text-[10px] text-[var(--text-muted)]">
-                            Google Drive {item.status === "active" ? "imported" : item.status}{item.last_synced_at ? ` · synced ${new Date(item.last_synced_at).toLocaleDateString()}` : ""}
-                          </p>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between px-1">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">Imported files</p>
+                      <span className="rounded-full border border-[var(--border)] bg-[var(--surface-soft)] px-2 py-0.5 text-[10px] text-[var(--text-muted)]">{driveStatus.imports.length} active source{driveStatus.imports.length === 1 ? "" : "s"}</span>
+                    </div>
+                    <div className="grid gap-2">
+                      {driveStatus.imports.map((item) => (
+                        <div key={item.id} className="group flex items-start gap-3 rounded-2xl border border-white/[0.08] bg-[linear-gradient(180deg,rgba(244,247,251,0.028),rgba(244,247,251,0.008)),var(--surface-soft)] p-3 transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface-active)]">
+                          <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--accent)]">
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden="true">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625A3.375 3.375 0 0016.125 8.25h-1.5A1.125 1.125 0 0113.5 7.125v-1.5A3.375 3.375 0 0010.125 2.25H6.75A2.25 2.25 0 004.5 4.5v15A2.25 2.25 0 006.75 21.75h10.5A2.25 2.25 0 0019.5 19.5v-5.25z" />
+                            </svg>
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex min-w-0 flex-wrap items-center gap-2">
+                              <p className="min-w-0 flex-1 break-words text-xs font-semibold leading-relaxed text-[var(--text)] [overflow-wrap:anywhere]">{item.display_title}</p>
+                              <span className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-medium ${item.status === "active" ? "bg-[var(--success-soft)] text-[var(--success)]" : "bg-[var(--surface)] text-[var(--text-muted)]"}`}>{driveStatusLabel(item.status)}</span>
+                            </div>
+                            <p className="mt-1 text-[10px] leading-relaxed text-[var(--text-muted)]">Google Drive import · {formatDriveSyncDate(item.last_synced_at)}</p>
+                            {item.last_error_code ? <p className="mt-1 text-[10px] text-[var(--danger)]">Needs attention</p> : null}
+                          </div>
+                          <details className="relative shrink-0">
+                            <summary className="flex min-h-9 w-9 cursor-pointer list-none items-center justify-center rounded-lg text-[var(--text-muted)] transition-colors hover:bg-[var(--surface)] hover:text-[var(--text)] [&::-webkit-details-marker]:hidden" aria-label={`Manage ${item.display_title}`}>
+                              <span aria-hidden="true" className="text-lg leading-none">...</span>
+                            </summary>
+                            <div className="absolute right-0 z-20 mt-2 w-36 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 shadow-xl shadow-black/30">
+                              <button onClick={() => refreshDriveImport(item.id)} disabled={driveImporting} className="block w-full rounded-lg px-3 py-2 text-left text-[11px] font-medium text-[var(--text)] transition-colors hover:bg-[var(--surface-soft)] disabled:opacity-40">Refresh import</button>
+                              <button onClick={() => removeDriveImport(item.id)} disabled={driveImporting} className="block w-full rounded-lg px-3 py-2 text-left text-[11px] font-medium text-[var(--danger)] transition-colors hover:bg-[var(--danger-soft)] disabled:opacity-40">Remove copy</button>
+                            </div>
+                          </details>
                         </div>
-                        <div className="flex gap-2 self-end sm:self-auto">
-                          <button onClick={() => refreshDriveImport(item.id)} disabled={driveImporting} className="min-h-10 rounded-md px-2 py-1.5 text-[10px] text-[var(--accent)] hover:underline disabled:opacity-40 sm:min-h-0 sm:py-0">Refresh</button>
-                          <button onClick={() => removeDriveImport(item.id)} disabled={driveImporting} className="min-h-10 rounded-md px-2 py-1.5 text-[10px] text-[var(--danger)] hover:underline disabled:opacity-40 sm:min-h-0 sm:py-0">Remove</button>
-                        </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
+                  </div>
+                ) : driveStatus?.connected ? (
+                  <div className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface-soft)]/55 px-4 py-3 text-xs text-[var(--text-muted)]">
+                    No Drive files imported yet. Select a Google Doc, plain text, or Markdown file to create a private Knowledge copy.
                   </div>
                 ) : null}
               </div>
