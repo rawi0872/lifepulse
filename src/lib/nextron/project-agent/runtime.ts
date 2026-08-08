@@ -133,9 +133,14 @@ function fallbackResult(fallback: () => NextronCoachResponse, fallbackReason: Pr
   return { response: { ...fallback(), source: "deterministic" }, fallbackReason, toolsUsed };
 }
 
-function cleanKnowledgeAnswerText(value: string): string {
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function cleanKnowledgeAnswerText(value: string, title?: string): string {
+  const titlePattern = title ? new RegExp(`^Title:\\s*${escapeRegExp(title)}\\s*`, "i") : null;
   const text = value
-    .replace(/\bTitle:\s*[^\n.]+/gi, " ")
+    .replace(titlePattern ?? /^$/, " ")
     .replace(/\bSection:\s*Summary\b/gi, " ")
     .replace(/Imported from Google Drive(?:; Drive modified \d{4}-\d{2}-\d{2})?\.?/gi, " ")
     .replace(/\s+/g, " ")
@@ -144,7 +149,7 @@ function cleanKnowledgeAnswerText(value: string): string {
 }
 
 function synthesizeKnowledgeFromTools(toolEvidence: unknown[]): NextronCoachResponse | null {
-  const records = toolEvidence.flatMap((item) => (((item as { knowledge?: { results?: unknown[] } })?.knowledge?.results ?? []) as Array<{ source?: string; snippet?: string; sourceProvider?: string }>));
+  const records = toolEvidence.flatMap((item) => (((item as { knowledge?: { results?: unknown[] } })?.knowledge?.results ?? []) as Array<{ title?: string; source?: string; snippet?: string; sourceProvider?: string }>));
   if (records.length === 0) return null;
   const first = records.find((record) => record.snippet && !/Imported from Google Drive/i.test(record.snippet)) ?? records[0];
   const snippet = typeof first.snippet === "string" ? first.snippet : "A matching Knowledge note was found.";
@@ -153,7 +158,7 @@ function synthesizeKnowledgeFromTools(toolEvidence: unknown[]): NextronCoachResp
   const instructionLike = /ignore previous|reveal another|admin mode|delete my|send email|call another tool|service_role|api[_-]?key|user_id/i.test(snippet);
   const safeSnippet = instructionLike
     ? "A retrieved Knowledge note contains instruction-like text treated only as untrusted note content."
-    : cleanKnowledgeAnswerText(snippet).slice(0, 300);
+    : cleanKnowledgeAnswerText(snippet, typeof first.title === "string" ? first.title : undefined).slice(0, 300);
   return {
     facts: [{ category: "knowledge", text: safeSnippet }],
     interpretation: safeSnippet,
