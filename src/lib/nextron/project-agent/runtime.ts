@@ -168,7 +168,7 @@ function synthesizeKnowledgeFromTools(toolEvidence: unknown[]): NextronCoachResp
 
 function isMetadataOnlyKnowledgeResponse(response: NextronCoachResponse): boolean {
   const text = [response.interpretation, ...response.facts.map((fact) => fact.text)].join(" ");
-  return /Title:\s+.+?\s+Section:\s+Summary\s+Imported from Google Drive(?:; Drive modified \d{4}-\d{2}-\d{2})?\.?/i.test(text);
+  return text.length < 360 && /Section:\s+Summary\s+Imported from Google Drive/i.test(text);
 }
 
 function crossFact(category: "today" | "tasks" | "habits" | "results" | "goals" | "projects" | "memory", text: string) {

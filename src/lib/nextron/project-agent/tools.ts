@@ -45,7 +45,7 @@ function bestSnippet(row: KnowledgeRow, tokens: string[]): string | null {
 }
 
 function isMetadataOnlyDriveSnippet(result: KnowledgeSearchResult): boolean {
-  return result.sourceProvider === "google_drive" && /^Title:\s+.+?\s+Section:\s+Summary\s+Imported from Google Drive(?:; Drive modified \d{4}-\d{2}-\d{2})?\.?$/i.test(result.snippet.trim());
+  return result.sourceProvider === "google_drive" && result.snippet.length < 180 && /Section:\s+Summary\s+Imported from Google Drive/i.test(result.snippet);
 }
 
 export function createNextronProjectAgentTools(context: NextronToolContext, trace: ProjectAgentToolName[], evidenceSink: unknown[] = []) {
