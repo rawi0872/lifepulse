@@ -48,6 +48,12 @@ function isMetadataOnlyDriveSnippet(result: KnowledgeSearchResult): boolean {
   return result.sourceProvider === "google_drive" && result.snippet.length < 180 && /Section:\s+Summary\s+Imported from Google Drive/i.test(result.snippet);
 }
 
+function matchesQueryToken(result: KnowledgeSearchResult, tokens: string[]): boolean {
+  if (tokens.length === 0) return true;
+  const text = [result.title, result.source, result.snippet].join(" ").toLowerCase();
+  return tokens.some((token) => text.includes(token));
+}
+
 export function createNextronProjectAgentTools(context: NextronToolContext, trace: ProjectAgentToolName[], evidenceSink: unknown[] = []) {
   let firstProjectId: string | null = null;
 
@@ -307,10 +313,11 @@ export async function searchKnowledgeForNextron(context: NextronToolContext, que
   if (!isNextronContextAllowed(context.permissions, "knowledge")) throw new Error("PERMISSION_DENIED");
 
   const includeGoogleDrive = isNextronContextAllowed(context.permissions, "drive");
-  const hybrid = await hybridSearchKnowledge(context.supabase, query, { includeGoogleDrive });
-  if (hybrid.results.length > 0 && !hybrid.results.every(isMetadataOnlyDriveSnippet)) return { knowledge: { retrievalMode: hybrid.mode, results: hybrid.results } };
-
   const tokens = searchTokens(query);
+  const hybrid = await hybridSearchKnowledge(context.supabase, query, { includeGoogleDrive });
+  const groundedHybridResults = hybrid.results.filter((result) => matchesQueryToken(result, tokens));
+  if (groundedHybridResults.length > 0 && !groundedHybridResults.every(isMetadataOnlyDriveSnippet)) return { knowledge: { retrievalMode: hybrid.mode, results: groundedHybridResults } };
+
   if (tokens.length === 0) return { knowledge: { results: [] } };
   const patterns = tokens.slice(0, 4).map((token) => `title.ilike.%${token}%,summary.ilike.%${token}%,content.ilike.%${token}%`).join(",");
   const { data, error } = await context.supabase
