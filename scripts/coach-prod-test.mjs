@@ -36,6 +36,9 @@ const ERROR_SCREENSHOT_PATH = "screenshot-coach-prod-error.png";
 const requiredCoachText = [
   "Personal Intelligence",
   "NEXTRON",
+  "NEXTRON Daily Brief",
+  "What to know and protect today",
+  "Generate brief",
   "Command channel",
   "Ask NEXTRON",
   "Main intelligence",
@@ -232,6 +235,19 @@ async function main() {
     } else {
       info("Coach memory nudge is data-dependent and not visible for this account/week state.");
     }
+
+    await page.getByRole("button", { name: "Generate brief" }).click();
+    await expect(page.locator('[data-nextron-daily-brief="true"]')).toContainText("Updated", { timeout: 30000 });
+    await expect(page.locator('[data-nextron-daily-brief="true"]')).toContainText("Sources used", { timeout: 10000 });
+    await expect(page.locator('[data-nextron-daily-brief="true"]')).toContainText("Recommended approach", { timeout: 10000 });
+    await expect(page.getByRole("button", { name: "Ask why" })).toBeVisible({ timeout: 10000 });
+    const priorityCount = await page.locator('[data-nextron-daily-brief-priority="true"]').count();
+    expect(priorityCount).toBeLessThanOrEqual(3);
+    pass(`Daily Brief generated with ${priorityCount} primary priorities`);
+
+    await page.getByRole("button", { name: "Refresh brief" }).click();
+    await expect(page.locator('[data-nextron-daily-brief="true"]')).toContainText("Updated", { timeout: 30000 });
+    pass("Daily Brief refresh completed");
 
     console.log("");
     console.log("Coach production QA passed.");

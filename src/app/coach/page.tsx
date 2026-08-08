@@ -42,7 +42,26 @@ interface LiveContextPanels {
   };
 }
 
+type DailyBriefSource = "Today" | "Tasks" | "Habits" | "Projects" | "Goals" | "Calendar" | "Weekly Review" | "Profile";
+interface DailyBriefPriority { title: string; reason: string; sourceRefs: DailyBriefSource[] }
+interface DailyBriefOpenLoop { label: string; detail: string; sourceRefs: DailyBriefSource[] }
+interface DailyBrief {
+  date: string;
+  headline: string;
+  summary: string;
+  priorities: DailyBriefPriority[];
+  scheduleSummary: string | null;
+  openLoops: DailyBriefOpenLoop[];
+  recommendedApproach: string;
+  generatedAt: string;
+  sources: DailyBriefSource[];
+  source: "ai" | "deterministic";
+  fallbackReason?: string | null;
+}
+interface DailyBriefMeta { maxPriorities: number; cache: string; persisted: boolean; modelCalls: number; provider: string; knowledgeAutomaticRetrieval: boolean; memoryAutomaticUse: boolean }
+
 type IntelligenceCoreState = "idle" | "thinking" | "syncing" | "ready" | "error";
+type DailyBriefStatus = "idle" | "generating" | "ready" | "error";
 
 export default function CoachPage() {
   return (
@@ -57,6 +76,8 @@ function NextronContent() {
   const [supabase] = useState(() => createClient());
   const requestSeq = useRef(0);
   const askAbortController = useRef<AbortController | null>(null);
+  const dailyBriefAbortController = useRef<AbortController | null>(null);
+  const dailyBriefSessionCache = useRef<Map<string, { brief: DailyBrief; meta: DailyBriefMeta }>>(new Map());
   const [userId, setUserId] = useState<string | null>(null);
   const [savedPermissions, setSavedPermissions] = useState<NextronPermissionState>(() => getDefaultNextronPermissions());
   const [draftPermissions, setDraftPermissions] = useState<NextronPermissionState>(() => getDefaultNextronPermissions());
@@ -78,6 +99,10 @@ function NextronContent() {
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
   const [threadStatus, setThreadStatus] = useState<"idle" | "loading" | "saving" | "error">("loading");
   const [threadError, setThreadError] = useState<string | null>(null);
+  const [dailyBrief, setDailyBrief] = useState<DailyBrief | null>(null);
+  const [dailyBriefMeta, setDailyBriefMeta] = useState<DailyBriefMeta | null>(null);
+  const [dailyBriefStatus, setDailyBriefStatus] = useState<DailyBriefStatus>("idle");
+  const [dailyBriefError, setDailyBriefError] = useState<string | null>(null);
 
   const openConversation = useCallback(async (id: string) => {
     setThreadStatus("loading");
@@ -135,6 +160,10 @@ function NextronContent() {
       setAskResponse(null);
       setAskStatus("idle");
       setAskError(null);
+      setDailyBrief(null);
+      setDailyBriefMeta(null);
+      setDailyBriefStatus("idle");
+      setDailyBriefError(null);
       setThreadStatus("loading");
       setThreadError(null);
 
@@ -152,6 +181,10 @@ function NextronContent() {
           setAskResponse(null);
           setAskStatus("idle");
           setAskError(null);
+          setDailyBrief(null);
+          setDailyBriefMeta(null);
+          setDailyBriefStatus("idle");
+          setDailyBriefError(null);
           setConversations([]);
           setCurrentConversation(null);
           setMessages([]);
@@ -196,6 +229,7 @@ function NextronContent() {
       cancelled = true;
       requestSeq.current += 1;
       askAbortController.current?.abort();
+      dailyBriefAbortController.current?.abort();
     };
   }, [loadConversations, loadLiveContext, router, supabase]);
 
@@ -291,12 +325,68 @@ function NextronContent() {
     setPermissionWarning(normalized.warning);
     setPermissionsAvailable(true);
     setSaveStatus("saved");
+    setDailyBrief(null);
+    setDailyBriefMeta(null);
+    setDailyBriefStatus("idle");
+    setDailyBriefError("Daily Brief hidden until you refresh it with the newly saved permissions.");
 
     try {
       await loadLiveContext();
       if (seq !== requestSeq.current) return;
     } catch {
       setError("NEXTRON saved your permissions, but could not refresh the permitted context right now.");
+    }
+  }
+
+  function dailyBriefCacheKey() {
+    if (!userId || !packet) return null;
+    return `${userId}:${packet.generatedForLocalDate}:${JSON.stringify(savedPermissions)}`;
+  }
+
+  async function generateDailyBriefAction(forceRefresh = false) {
+    if (!userId || !packet || dailyBriefStatus === "generating") return;
+    const key = dailyBriefCacheKey();
+    if (!key) return;
+    const cached = dailyBriefSessionCache.current.get(key);
+    if (!forceRefresh && cached) {
+      setDailyBrief(cached.brief);
+      setDailyBriefMeta({ ...cached.meta, modelCalls: 0, cache: "client-session-hit" });
+      setDailyBriefStatus("ready");
+      setDailyBriefError(null);
+      return;
+    }
+
+    setDailyBriefStatus("generating");
+    setDailyBriefError(null);
+    const controller = new AbortController();
+    dailyBriefAbortController.current?.abort();
+    dailyBriefAbortController.current = controller;
+
+    try {
+      const response = await fetch("/api/nextron/daily-brief", { method: "POST", signal: controller.signal });
+      if (response.status === 401) {
+        setDailyBriefStatus("error");
+        setDailyBriefError("Sign in again to generate the Daily Brief.");
+        router.replace("/login");
+        return;
+      }
+      const body: unknown = await response.json().catch(() => null);
+      const parsed = parseDailyBriefResponseBody(body);
+      if (!response.ok || !parsed) {
+        setDailyBriefStatus("error");
+        setDailyBriefError("NEXTRON could not generate the Daily Brief right now.");
+        return;
+      }
+      setDailyBrief(parsed.brief);
+      setDailyBriefMeta(parsed.meta);
+      setDailyBriefStatus("ready");
+      dailyBriefSessionCache.current.set(key, parsed);
+    } catch (errorValue) {
+      if (errorValue instanceof DOMException && errorValue.name === "AbortError") return;
+      setDailyBriefStatus("error");
+      setDailyBriefError("NEXTRON could not generate the Daily Brief right now.");
+    } finally {
+      if (dailyBriefAbortController.current === controller) dailyBriefAbortController.current = null;
     }
   }
 
@@ -402,7 +492,7 @@ function NextronContent() {
       ]
     : [];
   const availableSystems = activeSystems.filter((system) => system.status === "available").length;
-  const coreState: IntelligenceCoreState = askStatus === "asking" ? "thinking" : error || askStatus === "error" ? "error" : askStatus === "answered" ? "ready" : loading ? "syncing" : "idle";
+  const coreState: IntelligenceCoreState = askStatus === "asking" || dailyBriefStatus === "generating" ? "thinking" : error || askStatus === "error" || dailyBriefStatus === "error" ? "error" : askStatus === "answered" || dailyBriefStatus === "ready" ? "ready" : loading ? "syncing" : "idle";
   const activeSourceNames = liveResponse ? inferActiveSourceNames(liveResponse) : [];
   const contextStats = packet ? [
     { label: "Overdue", value: packet.tasks.data?.overdueCount ?? 0, detail: "tasks" },
@@ -475,6 +565,17 @@ function NextronContent() {
         </aside>
 
         <main className="order-1 min-w-0 space-y-4 lg:order-1 xl:order-2">
+          <DailyBriefView
+            brief={dailyBrief}
+            meta={dailyBriefMeta}
+            status={dailyBriefStatus}
+            error={dailyBriefError}
+            disabled={loading || !packet}
+            onGenerate={() => void generateDailyBriefAction(false)}
+            onRefresh={() => void generateDailyBriefAction(true)}
+            onAsk={(prompt) => { setAskPrompt(prompt); void askNextron(prompt); }}
+          />
+
           <section aria-labelledby="ask-nextron" className={`nextron-surface nextron-scanline relative overflow-hidden rounded-[2rem] p-4 sm:p-5 ${askStatus === "asking" ? "border-cyan-200/35" : ""}`}>
             {askStatus === "asking" && <div className="pointer-events-none absolute inset-y-0 left-0 w-1/2 bg-[linear-gradient(90deg,transparent,rgba(103,232,249,0.10),transparent)] [animation:nextron-scan_1.7s_ease-in-out_infinite]" aria-hidden="true" />}
             <div className="mb-5 flex flex-col items-center gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -540,7 +641,7 @@ function NextronContent() {
 
           <NextronPanel title="Boundaries" eyebrow="Safety state">
             <ul className="space-y-2 text-xs leading-relaxed text-[var(--text-muted)]">
-              <li>No autonomous actions in Prompt 3.</li>
+              <li>No autonomous actions in this phase.</li>
               <li>External connectors are read-only.</li>
               <li>Drive uses selected imported files only.</li>
               <li>No medical, legal, financial, or therapy guidance.</li>
@@ -586,6 +687,42 @@ function parseAskResponseBody(value: unknown): { response: NextronCoachResponse;
   const conversation = isConversationSummary(candidate.conversation) ? candidate.conversation : undefined;
   const messages = Array.isArray(candidate.messages) ? candidate.messages.filter(isConversationMessage) : undefined;
   return { response: candidate.response, source: candidate.source, conversation, messages };
+}
+
+function parseDailyBriefResponseBody(value: unknown): { brief: DailyBrief; meta: DailyBriefMeta } | null {
+  if (typeof value !== "object" || value === null) return null;
+  const candidate = value as { brief?: unknown; meta?: unknown };
+  if (!isDailyBrief(candidate.brief) || !isDailyBriefMeta(candidate.meta)) return null;
+  return { brief: candidate.brief, meta: candidate.meta };
+}
+
+function isDailyBrief(value: unknown): value is DailyBrief {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Partial<DailyBrief>;
+  return typeof candidate.date === "string"
+    && typeof candidate.headline === "string"
+    && typeof candidate.summary === "string"
+    && Array.isArray(candidate.priorities)
+    && candidate.priorities.length <= 3
+    && candidate.priorities.every((item) => typeof item.title === "string" && typeof item.reason === "string" && Array.isArray(item.sourceRefs))
+    && (candidate.scheduleSummary === null || typeof candidate.scheduleSummary === "string")
+    && Array.isArray(candidate.openLoops)
+    && typeof candidate.recommendedApproach === "string"
+    && typeof candidate.generatedAt === "string"
+    && Array.isArray(candidate.sources)
+    && (candidate.source === "ai" || candidate.source === "deterministic");
+}
+
+function isDailyBriefMeta(value: unknown): value is DailyBriefMeta {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Partial<DailyBriefMeta>;
+  return typeof candidate.maxPriorities === "number"
+    && typeof candidate.cache === "string"
+    && typeof candidate.persisted === "boolean"
+    && typeof candidate.modelCalls === "number"
+    && typeof candidate.provider === "string"
+    && typeof candidate.knowledgeAutomaticRetrieval === "boolean"
+    && typeof candidate.memoryAutomaticUse === "boolean";
 }
 
 function isConversationSummary(value: unknown): value is ConversationSummary {
@@ -724,6 +861,98 @@ function inferActiveSourceNames(response: NextronCoachResponse): string[] {
   add("Drive", ["drive", "atlas"]);
   add("Memory", ["memory", "preference"]);
   return sources.slice(0, 3);
+}
+
+function DailyBriefView({ brief, meta, status, error, disabled, onGenerate, onRefresh, onAsk }: { brief: DailyBrief | null; meta: DailyBriefMeta | null; status: DailyBriefStatus; error: string | null; disabled: boolean; onGenerate: () => void; onRefresh: () => void; onAsk: (prompt: string) => void }) {
+  const generating = status === "generating";
+  return (
+    <section aria-labelledby="daily-brief-heading" data-nextron-daily-brief="true" className={`nextron-surface relative overflow-hidden rounded-[2rem] p-4 sm:p-5 ${generating ? "border-cyan-200/35" : ""}`}>
+      <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-cyan-200/35 to-transparent" aria-hidden="true" />
+      {generating && <div className="pointer-events-none absolute inset-y-0 left-0 w-1/2 bg-[linear-gradient(90deg,transparent,rgba(103,232,249,0.10),transparent)] [animation:nextron-scan_1.7s_ease-in-out_infinite]" aria-hidden="true" />}
+      <div className="relative flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-200/70">NEXTRON Daily Brief</p>
+          <h2 id="daily-brief-heading" className="mt-1 text-xl font-semibold tracking-[-0.03em] text-[var(--text)]">What to know and protect today</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[var(--text-muted)]">A concise synthesis of current permitted Life Pulse evidence. It is generated only when requested and can be refreshed after your day changes.</p>
+        </div>
+        <div className="flex shrink-0 flex-wrap gap-2">
+          <button type="button" onClick={brief ? onRefresh : onGenerate} disabled={disabled || generating} className="inline-flex min-h-11 items-center rounded-xl bg-cyan-300 px-4 py-2 text-sm font-semibold text-slate-950 shadow-lg shadow-cyan-950/30 transition-all hover:-translate-y-0.5 hover:bg-cyan-200 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-45">
+            {generating ? "Generating..." : brief ? "Refresh brief" : "Generate brief"}
+          </button>
+        </div>
+      </div>
+
+      <div className="relative mt-4">
+        {!brief && status !== "generating" && (
+          <div className="rounded-2xl border border-cyan-300/12 bg-black/15 p-4">
+            <p className="text-sm font-semibold text-[var(--text)]">NEXTRON can prepare today’s brief.</p>
+            <p className="mt-2 text-sm leading-relaxed text-[var(--text-muted)]">It will gather current permitted evidence, make at most one Groq call, and fall back to deterministic synthesis if the provider is unavailable.</p>
+            {error && <p className="mt-2 text-xs text-[var(--warning)]">{error}</p>}
+          </div>
+        )}
+
+        {generating && <p className="rounded-2xl border border-cyan-300/15 bg-cyan-300/10 p-4 text-sm text-cyan-50/85">Reviewing current Today, Tasks, Projects, Calendar, and other permitted evidence...</p>}
+
+        {brief && (
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-cyan-300/15 bg-[linear-gradient(180deg,rgba(8,18,32,0.72),rgba(4,9,18,0.78))] p-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h3 className="break-words text-lg font-semibold tracking-[-0.02em] text-[var(--text)]">{brief.headline}</h3>
+                  <p className="mt-2 break-words text-sm leading-relaxed text-[var(--text-secondary)]">{brief.summary}</p>
+                </div>
+                <span className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] ${brief.source === "ai" ? "border-cyan-300/25 bg-cyan-300/10 text-cyan-100" : "border-[var(--warning)]/25 bg-[var(--warning-soft)] text-[var(--warning)]"}`}>{brief.source === "ai" ? "AI brief" : "Fallback"}</span>
+              </div>
+              <p className="mt-3 text-[10px] text-[var(--text-muted)]">Updated {formatTime(brief.generatedAt)}. Cached only in this page session; live panels remain current truth.</p>
+            </div>
+
+            {brief.priorities.length > 0 && (
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-200/70">What matters</p>
+                <div className="mt-2 grid gap-2 md:grid-cols-3">
+                  {brief.priorities.slice(0, 3).map((priority, index) => (
+                    <div key={`${priority.title}-${index}`} data-nextron-daily-brief-priority="true" className="rounded-2xl border border-cyan-300/12 bg-black/15 p-3">
+                      <p className="text-[10px] font-semibold text-cyan-100/70">0{index + 1}</p>
+                      <p className="mt-1 break-words text-sm font-semibold text-[var(--text)]">{priority.title}</p>
+                      <p className="mt-1 break-words text-xs leading-relaxed text-[var(--text-muted)]">{priority.reason}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {(brief.scheduleSummary || brief.openLoops.length > 0) && (
+              <div className="grid gap-3 md:grid-cols-2">
+                {brief.scheduleSummary && <DailyBriefMiniBlock title="Schedule" text={brief.scheduleSummary} />}
+                {brief.openLoops.length > 0 && <DailyBriefMiniBlock title="Open loops" text={brief.openLoops.map((loop) => `${loop.label}: ${loop.detail}`).join(" ")} />}
+              </div>
+            )}
+
+            <DailyBriefMiniBlock title="Recommended approach" text={brief.recommendedApproach} />
+
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-cyan-300/10 bg-black/15 p-3">
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">Sources used</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {brief.sources.map((source) => <span key={source} className="rounded-full border border-cyan-300/20 bg-cyan-300/10 px-2.5 py-1 text-[10px] font-medium text-cyan-50/80">{source}</span>)}
+                </div>
+                {meta && <p className="mt-2 text-[10px] text-[var(--text-muted)]">Provider: {meta.provider}. Model calls this load: {meta.modelCalls}. Persistence: {meta.persisted ? "durable" : "session only"}.</p>}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <PanelButton onClick={() => onAsk("Why is this the Daily Brief priority?")}>Ask why</PanelButton>
+                <PanelButton onClick={() => onAsk("Plan around this Daily Brief without changing anything.")}>Plan around this</PanelButton>
+                <PanelButton onClick={() => onAsk("What can wait today?")}>What can wait?</PanelButton>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function DailyBriefMiniBlock({ title, text }: { title: string; text: string }) {
+  return <div className="rounded-2xl border border-cyan-300/10 bg-black/15 p-3"><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-cyan-200/65">{title}</p><p className="mt-2 break-words text-sm leading-relaxed text-[var(--text-secondary)]">{text}</p></div>;
 }
 
 function NextronPanel({ eyebrow, title, children }: { eyebrow: string; title: string; children: ReactNode }) {
