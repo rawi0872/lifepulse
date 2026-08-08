@@ -34,6 +34,7 @@
     "test:nextron-calendar": "node scripts/nextron-calendar-test.mjs",
     "test:nextron-drive": "node scripts/nextron-drive-test.mjs",
     "test:nextron-conversation": "node scripts/nextron-conversation-test.mjs",
+    "test:nextron-live-context": "node scripts/nextron-live-context-test.mjs",
     "test:knowledge-hybrid": "node scripts/knowledge-hybrid-test.mjs"
   },
   "dependencies": {

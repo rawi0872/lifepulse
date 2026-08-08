@@ -23,12 +23,24 @@ import {
   type NextronPreferenceRow,
   type NextronPermissionState,
 } from "@/lib/nextron/context";
-import { buildNextronEvidencePacket, type NextronEvidencePacket } from "@/lib/nextron/evidence";
+import type { NextronEvidencePacket } from "@/lib/nextron/evidence";
 
 const PREFERENCE_COLUMNS = "permission_version, allow_profile, allow_today, allow_tasks, allow_habits, allow_results, allow_goals, allow_projects, allow_knowledge, allow_drive, allow_calendar, allow_journal, allow_evening_shutdown, allow_weekly_review";
 
 interface ConversationSummary { id: string; title: string; created_at: string; updated_at: string }
 interface ConversationMessage { id: string; conversation_id: string; role: "user" | "assistant"; content: string; response: NextronCoachResponse | null; metadata: Record<string, unknown>; created_at: string }
+interface LiveContextPanels {
+  today: { localDate: string; tasksRemaining: number; completedToday: number; overdue: number; habitsDue: number; habitsCompleted: number; status: string };
+  projects: { status: string; activeCount: number; items: Array<{ title: string; openTaskCount: number }>; limit: number };
+  calendar: { status: string; events: Array<{ title: string; startsAt: string; endsAt: string | null; allDay: boolean }>; moreTodayCount: number; readOnly: true };
+  systems: {
+    knowledge: { status: string; count: number | null };
+    memory: { status: string; count: number | null };
+    drive: { status: string; count: number | null };
+    calendar: { status: string };
+    weeklyReview: { status: string; existsThisWeek: boolean };
+  };
+}
 
 export default function CoachPage() {
   return (
@@ -47,6 +59,7 @@ function NextronContent() {
   const [savedPermissions, setSavedPermissions] = useState<NextronPermissionState>(() => getDefaultNextronPermissions());
   const [draftPermissions, setDraftPermissions] = useState<NextronPermissionState>(() => getDefaultNextronPermissions());
   const [packet, setPacket] = useState<NextronEvidencePacket | null>(null);
+  const [livePanels, setLivePanels] = useState<LiveContextPanels | null>(null);
   const [response, setResponse] = useState<NextronCoachResponse | null>(null);
   const [permissionLoading, setPermissionLoading] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -95,6 +108,14 @@ function NextronContent() {
     }
   }, [openConversation]);
 
+  const loadLiveContext = useCallback(async () => {
+    const result = await fetch("/api/nextron/context").then((res) => res.ok ? res.json() : null).catch(() => null) as { packet?: unknown; panels?: unknown } | null;
+    if (!result || !isNextronEvidencePacket(result.packet) || !isLiveContextPanels(result.panels)) throw new Error("NEXTRON context unavailable");
+    setPacket(result.packet);
+    setLivePanels(result.panels);
+    setResponse(buildDeterministicNextronResponse(result.packet));
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -107,6 +128,7 @@ function NextronContent() {
       setPermissionsAvailable(true);
       setSaveStatus("idle");
       setPacket(null);
+      setLivePanels(null);
       setResponse(null);
       setAskResponse(null);
       setAskStatus("idle");
@@ -123,6 +145,7 @@ function NextronContent() {
           setSavedPermissions(defaults);
           setDraftPermissions(defaults);
           setPacket(null);
+          setLivePanels(null);
           setResponse(null);
           setAskResponse(null);
           setAskStatus("idle");
@@ -153,12 +176,8 @@ function NextronContent() {
         setPermissionWarning(normalized.warning);
         setPermissionLoading(false);
 
-        const nextPacket = await buildNextronEvidencePacket(supabase, user.id, normalized.permissions);
+        await loadLiveContext();
         if (cancelled || seq !== requestSeq.current) return;
-        const nextResponse = buildDeterministicNextronResponse(nextPacket);
-        if (cancelled || seq !== requestSeq.current) return;
-        setPacket(nextPacket);
-        setResponse(nextResponse);
         await loadConversations();
       } catch {
         if (!cancelled && seq === requestSeq.current) setError("NEXTRON could not load the permitted context right now.");
@@ -176,7 +195,20 @@ function NextronContent() {
       requestSeq.current += 1;
       askAbortController.current?.abort();
     };
-  }, [loadConversations, router, supabase]);
+  }, [loadConversations, loadLiveContext, router, supabase]);
+
+  useEffect(() => {
+    if (!userId) return;
+    function refreshIfVisible() {
+      if (document.visibilityState === "visible") void loadLiveContext().catch(() => undefined);
+    }
+    window.addEventListener("focus", refreshIfVisible);
+    document.addEventListener("visibilitychange", refreshIfVisible);
+    return () => {
+      window.removeEventListener("focus", refreshIfVisible);
+      document.removeEventListener("visibilitychange", refreshIfVisible);
+    };
+  }, [loadLiveContext, userId]);
 
   async function startNewConversation() {
     setThreadError(null);
@@ -228,6 +260,7 @@ function NextronContent() {
       setSavedPermissions(defaults);
       setDraftPermissions(defaults);
       setPacket(null);
+      setLivePanels(null);
       setResponse(null);
       setAskResponse(null);
       setAskStatus("idle");
@@ -258,12 +291,8 @@ function NextronContent() {
     setSaveStatus("saved");
 
     try {
-      const nextPacket = await buildNextronEvidencePacket(supabase, user.id, normalized.permissions);
+      await loadLiveContext();
       if (seq !== requestSeq.current) return;
-      const nextResponse = buildDeterministicNextronResponse(nextPacket);
-      if (seq !== requestSeq.current) return;
-      setPacket(nextPacket);
-      setResponse(nextResponse);
     } catch {
       setError("NEXTRON saved your permissions, but could not refresh the permitted context right now.");
     }
@@ -296,6 +325,7 @@ function NextronContent() {
       setSavedPermissions(defaults);
       setDraftPermissions(defaults);
       setPacket(null);
+      setLivePanels(null);
       setResponse(null);
       setAskResponse(null);
       setAskStatus("error");
@@ -340,6 +370,7 @@ function NextronContent() {
       if (parsedBody.messages) setMessages(parsedBody.messages);
       setAskStatus(parsed.request.handlingStatus === "handled" ? "answered" : "unsupported");
       setAskPrompt("");
+      void loadLiveContext().catch(() => undefined);
     } catch (askErrorValue) {
       if (askErrorValue instanceof DOMException && askErrorValue.name === "AbortError") return;
       if (seq === requestSeq.current) {
@@ -363,9 +394,9 @@ function NextronContent() {
         { domain: "tasks", status: packet.tasks.status },
         { domain: "projects", status: packet.projects.status },
         { domain: "knowledge", status: packet.knowledge.status },
-        { domain: "drive", status: savedPermissions.drive === "allowed" ? "available" : "permission_denied" },
-        { domain: "calendar", status: packet.calendar.status },
-        { domain: "memory", status: packet.memory.status },
+        { domain: "drive", status: livePanels?.systems.drive.status ?? (savedPermissions.drive === "allowed" ? "available" : "permission_denied") },
+        { domain: "calendar", status: livePanels?.systems.calendar.status ?? packet.calendar.status },
+        { domain: "memory", status: livePanels?.systems.memory.status ?? packet.memory.status },
       ]
     : [];
   const availableSystems = activeSystems.filter((system) => system.status === "available").length;
@@ -373,7 +404,7 @@ function NextronContent() {
     { label: "Overdue", value: packet.tasks.data?.overdueCount ?? 0, detail: "tasks" },
     { label: "Today", value: packet.tasks.data?.dueTodayCount ?? 0, detail: "due" },
     { label: "Projects", value: packet.projects.data?.activeCount ?? 0, detail: "active" },
-    { label: "Memory", value: packet.memory.data?.preferences.length ?? 0, detail: "signals" },
+    { label: "Memory", value: livePanels?.systems.memory.count ?? 0, detail: "confirmed" },
   ] : [];
   const quickPrompts = ["What should I focus on today?", "What needs my attention?", "What's slipping?", "What should I do next?"];
 
@@ -418,14 +449,12 @@ function NextronContent() {
             </div>
           </NextronPanel>
 
-          <NextronPanel title="Live Context" eyebrow="Life Pulse state">
-            {loading ? <p className="text-sm text-[var(--text-muted)]">Loading permitted context...</p> : error ? <p className="text-sm text-[var(--warning)]">{error}</p> : (
-              <div className="space-y-3">
-                <SignalRow label="Task pressure" value={`${packet?.tasks.data?.overdueCount ?? 0} overdue`} detail={`${packet?.tasks.data?.dueTodayCount ?? 0} due today`} tone={(packet?.tasks.data?.overdueCount ?? 0) > 0 ? "attention" : "stable"} />
-                <SignalRow label="Projects" value={`${packet?.projects.data?.activeCount ?? 0} active`} detail={`${packet?.projects.data?.activeWithoutOpenTaskCount ?? 0} without open tasks`} tone={(packet?.projects.data?.activeWithoutOpenTaskCount ?? 0) > 0 ? "attention" : "stable"} />
-                <SignalRow label="Knowledge" value={packet?.knowledge.status === "available" ? "available" : "not loaded"} detail={savedPermissions.drive === "allowed" ? "Drive sources allowed" : "Drive sources off"} tone={packet?.knowledge.status === "available" ? "active" : "muted"} />
-              </div>
-            )}
+          <NextronPanel title="Today" eyebrow="Live intelligence">
+            {loading ? <p className="text-sm text-[var(--text-muted)]">Loading today...</p> : error ? <p className="text-sm text-[var(--warning)]">{error}</p> : <TodayPanel panels={livePanels} onAsk={(prompt) => { setAskPrompt(prompt); void askNextron(prompt); }} />}
+          </NextronPanel>
+
+          <NextronPanel title="Calendar" eyebrow="Read-only schedule">
+            {loading ? <p className="text-sm text-[var(--text-muted)]">Checking Calendar...</p> : <CalendarPanel panels={livePanels} onAsk={(prompt) => { setAskPrompt(prompt); void askNextron(prompt); }} />}
           </NextronPanel>
 
           <NextronPanel title="Questions" eyebrow="Quick intelligence">
@@ -493,15 +522,17 @@ function NextronContent() {
         </main>
 
         <aside className="space-y-4 xl:sticky xl:top-4 xl:self-start">
-          <NextronPanel title="System Awareness" eyebrow={`${availableSystems} systems available`}>
-            <div className="space-y-2">
-              {activeSystems.map((system) => <SystemStatus key={system.domain} domain={system.domain} status={system.status} />)}
-            </div>
+          <NextronPanel title="Active Projects" eyebrow="Current work">
+            <ProjectsPanel panels={livePanels} onAsk={(prompt) => { setAskPrompt(prompt); void askNextron(prompt); }} />
+          </NextronPanel>
+
+          <NextronPanel title="Context Sources" eyebrow={`${availableSystems} systems available`}>
+            <SourceContextPanel panels={livePanels} systems={activeSystems} />
           </NextronPanel>
 
           <NextronPanel title="Boundaries" eyebrow="Safety state">
             <ul className="space-y-2 text-xs leading-relaxed text-[var(--text-muted)]">
-              <li>No autonomous actions in Prompt 2.</li>
+              <li>No autonomous actions in Prompt 3.</li>
               <li>External connectors are read-only.</li>
               <li>Drive uses selected imported files only.</li>
               <li>No medical, legal, financial, or therapy guidance.</li>
@@ -563,6 +594,77 @@ function isConversationMessage(value: unknown): value is ConversationMessage {
     && (candidate.role === "user" || candidate.role === "assistant")
     && typeof candidate.content === "string"
     && typeof candidate.created_at === "string";
+}
+
+function isNextronEvidencePacket(value: unknown): value is NextronEvidencePacket {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Partial<NextronEvidencePacket>;
+  return candidate.version === "nextron-evidence-v1"
+    && typeof candidate.generatedForLocalDate === "string"
+    && typeof candidate.permissionSummary === "object"
+    && candidate.permissionSummary !== null
+    && typeof candidate.today === "object"
+    && typeof candidate.tasks === "object"
+    && typeof candidate.projects === "object"
+    && typeof candidate.calendar === "object";
+}
+
+function isLiveContextPanels(value: unknown): value is LiveContextPanels {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Partial<LiveContextPanels>;
+  return isLiveToday(candidate.today)
+    && isLiveProjects(candidate.projects)
+    && isLiveCalendar(candidate.calendar)
+    && isLiveSystems(candidate.systems);
+}
+
+function isLiveToday(value: unknown): value is LiveContextPanels["today"] {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Partial<LiveContextPanels["today"]>;
+  return typeof candidate.localDate === "string"
+    && typeof candidate.tasksRemaining === "number"
+    && typeof candidate.completedToday === "number"
+    && typeof candidate.overdue === "number"
+    && typeof candidate.habitsDue === "number"
+    && typeof candidate.habitsCompleted === "number"
+    && typeof candidate.status === "string";
+}
+
+function isLiveProjects(value: unknown): value is LiveContextPanels["projects"] {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Partial<LiveContextPanels["projects"]>;
+  return typeof candidate.status === "string"
+    && typeof candidate.activeCount === "number"
+    && typeof candidate.limit === "number"
+    && Array.isArray(candidate.items)
+    && candidate.items.every((item) => typeof item.title === "string" && typeof item.openTaskCount === "number");
+}
+
+function isLiveCalendar(value: unknown): value is LiveContextPanels["calendar"] {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Partial<LiveContextPanels["calendar"]>;
+  return typeof candidate.status === "string"
+    && typeof candidate.moreTodayCount === "number"
+    && candidate.readOnly === true
+    && Array.isArray(candidate.events)
+    && candidate.events.every((event) => typeof event.title === "string" && typeof event.startsAt === "string" && (event.endsAt === null || typeof event.endsAt === "string") && typeof event.allDay === "boolean");
+}
+
+function isLiveSystems(value: unknown): value is LiveContextPanels["systems"] {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Partial<LiveContextPanels["systems"]>;
+  return isSourceMetric(candidate.knowledge)
+    && isSourceMetric(candidate.memory)
+    && isSourceMetric(candidate.drive)
+    && typeof candidate.calendar?.status === "string"
+    && typeof candidate.weeklyReview?.status === "string"
+    && typeof candidate.weeklyReview.existsThisWeek === "boolean";
+}
+
+function isSourceMetric(value: unknown): value is { status: string; count: number | null } {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as { status?: unknown; count?: unknown };
+  return typeof candidate.status === "string" && (candidate.count === null || typeof candidate.count === "number");
 }
 
 function isNextronCoachResponse(value: unknown): value is NextronCoachResponse {
@@ -638,20 +740,6 @@ function IntelligenceCore({ status, systems }: { status: "idle" | "thinking" | "
   );
 }
 
-function SystemStatus({ domain, status }: { domain: string; status: string }) {
-  const active = status === "available";
-  const denied = status === "permission_denied";
-  return (
-    <div className="flex items-center justify-between gap-3 rounded-xl border border-cyan-300/10 bg-black/15 px-3 py-2">
-      <div className="min-w-0">
-        <p className="truncate text-xs font-medium text-[var(--text)]">{formatDomainLabel(domain)}</p>
-        <p className="text-[10px] text-[var(--text-muted)]">{active ? "Available" : denied ? "Not loaded" : "No signal"}</p>
-      </div>
-      <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${active ? "bg-cyan-300 shadow-[0_0_12px_rgba(103,232,249,0.65)]" : denied ? "bg-[var(--text-muted)]/35" : "bg-[var(--warning)]/70"}`} aria-hidden="true" />
-    </div>
-  );
-}
-
 function SignalRow({ label, value, detail, tone }: { label: string; value: string; detail: string; tone: "active" | "attention" | "stable" | "muted" }) {
   const toneClass = tone === "attention" ? "border-[var(--warning)]/25 bg-[var(--warning-soft)]" : tone === "active" ? "border-cyan-300/20 bg-cyan-300/10" : "border-cyan-300/10 bg-black/15";
   return (
@@ -663,6 +751,146 @@ function SignalRow({ label, value, detail, tone }: { label: string; value: strin
       <p className="mt-1 text-[10px] text-[var(--text-muted)]">{detail}</p>
     </div>
   );
+}
+
+function TodayPanel({ panels, onAsk }: { panels: LiveContextPanels | null; onAsk: (prompt: string) => void }) {
+  const today = panels?.today;
+  if (!today) return <p className="text-sm text-[var(--text-muted)]">Today context is loading.</p>;
+  if (today.status === "permission_denied") return <LockedState label="Today permission is off." href="/coach" />;
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-3 gap-2">
+        <PanelNumber label="Remaining" value={today.tasksRemaining} tone={today.tasksRemaining > 0 ? "active" : "stable"} />
+        <PanelNumber label="Overdue" value={today.overdue} tone={today.overdue > 0 ? "attention" : "stable"} />
+        <PanelNumber label="Done" value={today.completedToday} tone="stable" />
+      </div>
+      <SignalRow label="Habits" value={`${today.habitsCompleted}/${today.habitsDue}`} detail={today.habitsDue === 0 ? "none due today" : "completed today"} tone={today.habitsDue > today.habitsCompleted ? "active" : "stable"} />
+      <div className="flex flex-wrap gap-2">
+        <PanelLink href="/today">View Today</PanelLink>
+        <PanelLink href="/tasks">View Tasks</PanelLink>
+        <PanelButton onClick={() => onAsk("What should I focus on today?")}>Ask about today</PanelButton>
+      </div>
+    </div>
+  );
+}
+
+function CalendarPanel({ panels, onAsk }: { panels: LiveContextPanels | null; onAsk: (prompt: string) => void }) {
+  const calendar = panels?.calendar;
+  if (!calendar) return <p className="text-sm text-[var(--text-muted)]">Calendar context is loading.</p>;
+  if (calendar.status === "permission_denied") return <LockedState label="Calendar permission is off." href="/settings" />;
+  if (calendar.status === "disconnected") return <LockedState label="Google Calendar is disconnected." href="/settings" />;
+  if (calendar.status === "reconnect_required") return <LockedState label="Calendar needs reconnect." href="/settings" />;
+  if (calendar.status !== "available") return <p className="text-sm text-[var(--text-muted)]">Calendar is unavailable right now.</p>;
+  const [nextEvent, ...rest] = calendar.events;
+  return (
+    <div className="space-y-3">
+      {nextEvent ? (
+        <div className="rounded-xl border border-cyan-300/15 bg-cyan-300/10 p-3">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-200/70">Next</p>
+          <p className="mt-1 break-words text-sm font-semibold text-[var(--text)]">{nextEvent.title}</p>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">{formatCalendarEventTime(nextEvent)}</p>
+        </div>
+      ) : <p className="rounded-xl border border-cyan-300/10 bg-black/15 px-3 py-2 text-sm text-[var(--text-muted)]">No more events today.</p>}
+      {rest.length > 0 && <p className="text-xs text-[var(--text-muted)]">{rest.length + calendar.moreTodayCount} more today</p>}
+      <div className="flex flex-wrap gap-2">
+        <PanelLink href="/settings">Calendar settings</PanelLink>
+        <PanelButton onClick={() => onAsk("What do I have today?")}>Ask about today</PanelButton>
+      </div>
+    </div>
+  );
+}
+
+function ProjectsPanel({ panels, onAsk }: { panels: LiveContextPanels | null; onAsk: (prompt: string) => void }) {
+  const projects = panels?.projects;
+  if (!projects) return <p className="text-sm text-[var(--text-muted)]">Project context is loading.</p>;
+  if (projects.status === "permission_denied") return <LockedState label="Projects permission is off." href="/coach" />;
+  return (
+    <div className="space-y-3">
+      <div className="flex items-baseline justify-between gap-3 rounded-xl border border-cyan-300/10 bg-black/15 px-3 py-2">
+        <p className="text-xs text-[var(--text-muted)]">Active projects</p>
+        <p className="text-2xl font-semibold text-[var(--text)]">{projects.activeCount}</p>
+      </div>
+      <div className="space-y-2">
+        {projects.items.length === 0 ? <p className="text-sm text-[var(--text-muted)]">No active projects.</p> : projects.items.map((project) => (
+          <div key={project.title} className="flex items-center justify-between gap-3 rounded-xl border border-cyan-300/10 bg-black/15 px-3 py-2">
+            <p className="min-w-0 truncate text-xs font-medium text-[var(--text)]">{project.title}</p>
+            <p className="shrink-0 text-[10px] text-[var(--text-muted)]">{project.openTaskCount} open</p>
+          </div>
+        ))}
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <PanelLink href="/projects">View Projects</PanelLink>
+        <PanelButton onClick={() => onAsk("What project needs attention?")}>Ask about projects</PanelButton>
+      </div>
+    </div>
+  );
+}
+
+function SourceContextPanel({ panels, systems }: { panels: LiveContextPanels | null; systems: Array<{ domain: string; status: string }> }) {
+  const sourceRows = panels ? [
+    { label: "Knowledge", status: panels.systems.knowledge.status, detail: panels.systems.knowledge.count === null ? "permission gated" : `${panels.systems.knowledge.count} items` },
+    { label: "Memory", status: panels.systems.memory.status, detail: panels.systems.memory.count === null ? "confirmed prefs" : `${panels.systems.memory.count} confirmed` },
+    { label: "Drive", status: panels.systems.drive.status, detail: panels.systems.drive.count === null ? "selected files gated" : `${panels.systems.drive.count} imports` },
+    { label: "Calendar", status: panels.systems.calendar.status, detail: calendarStatusLabel(panels.systems.calendar.status) },
+    { label: "Weekly Review", status: panels.systems.weeklyReview.status, detail: panels.systems.weeklyReview.existsThisWeek ? "completed this week" : "not completed this week" },
+  ] : systems.map((system) => ({ label: formatDomainLabel(system.domain), status: system.status, detail: statusText(system.status) }));
+  return (
+    <div className="space-y-2">
+      {sourceRows.map((row) => <SourceStatus key={row.label} {...row} />)}
+    </div>
+  );
+}
+
+function PanelNumber({ label, value, tone }: { label: string; value: number; tone: "active" | "attention" | "stable" }) {
+  const toneClass = tone === "attention" ? "border-[var(--warning)]/30 bg-[var(--warning-soft)]" : tone === "active" ? "border-cyan-300/25 bg-cyan-300/10" : "border-cyan-300/10 bg-black/15";
+  return <div className={`rounded-xl border px-2 py-2 ${toneClass}`}><p className="text-[10px] text-[var(--text-muted)]">{label}</p><p className="mt-1 text-xl font-semibold text-[var(--text)]">{value}</p></div>;
+}
+
+function PanelLink({ href, children }: { href: string; children: ReactNode }) {
+  return <Link href={href} className="inline-flex min-h-9 items-center rounded-lg border border-cyan-300/15 bg-cyan-300/10 px-2.5 py-1 text-xs font-medium text-cyan-50/85 hover:bg-cyan-300/15">{children}</Link>;
+}
+
+function PanelButton({ onClick, children }: { onClick: () => void; children: ReactNode }) {
+  return <button type="button" onClick={onClick} className="inline-flex min-h-9 items-center rounded-lg border border-cyan-300/15 bg-black/15 px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)] hover:bg-cyan-300/10">{children}</button>;
+}
+
+function LockedState({ label, href }: { label: string; href: string }) {
+  return <div className="space-y-3"><p className="rounded-xl border border-cyan-300/10 bg-black/15 px-3 py-2 text-sm text-[var(--text-muted)]">{label}</p><PanelLink href={href}>Manage access</PanelLink></div>;
+}
+
+function SourceStatus({ label, status, detail }: { label: string; status: string; detail: string }) {
+  const active = status === "available";
+  const denied = status === "permission_denied";
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-xl border border-cyan-300/10 bg-black/15 px-3 py-2">
+      <div className="min-w-0">
+        <p className="truncate text-xs font-medium text-[var(--text)]">{label}</p>
+        <p className="text-[10px] text-[var(--text-muted)]">{detail}</p>
+      </div>
+      <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">{active ? "Ready" : denied ? "Off" : statusText(status)}</span>
+    </div>
+  );
+}
+
+function formatCalendarEventTime(event: { startsAt: string; endsAt: string | null; allDay: boolean }): string {
+  if (event.allDay) return "All day";
+  const start = formatTime(event.startsAt);
+  const end = event.endsAt ? formatTime(event.endsAt) : null;
+  return end ? `${start}-${end}` : start;
+}
+
+function formatTime(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Time unavailable";
+  return new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit" }).format(date);
+}
+
+function statusText(status: string): string {
+  return status === "available" ? "Ready" : status === "permission_denied" ? "Off" : status === "disconnected" ? "Disconnected" : status === "reconnect_required" ? "Reconnect" : status === "missing" ? "Empty" : "Unavailable";
+}
+
+function calendarStatusLabel(status: string): string {
+  return status === "available" ? "read-only connected" : statusText(status);
 }
 
 function ConversationTurn({ message }: { message: ConversationMessage }) {
