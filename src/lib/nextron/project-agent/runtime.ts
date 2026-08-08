@@ -166,6 +166,11 @@ function synthesizeKnowledgeFromTools(toolEvidence: unknown[]): NextronCoachResp
   };
 }
 
+function isMetadataOnlyKnowledgeResponse(response: NextronCoachResponse): boolean {
+  const text = [response.interpretation, ...response.facts.map((fact) => fact.text)].join(" ");
+  return /Title:\s+.+?\s+Section:\s+Summary\s+Imported from Google Drive(?:; Drive modified \d{4}-\d{2}-\d{2})?\.?/i.test(text);
+}
+
 function crossFact(category: "today" | "tasks" | "habits" | "results" | "goals" | "projects" | "memory", text: string) {
   return { category, text };
 }
@@ -320,6 +325,10 @@ export class NextronAgentRuntime {
         const synthesized = toolsUsed.length > 0 ? synthesizeKnowledgeFromTools(toolEvidence) : null;
         if (synthesized) return { response: synthesized, fallbackReason: null, toolsUsed };
         throw new ProjectAgentError(validation.reason);
+      }
+      if (isMetadataOnlyKnowledgeResponse(validation.response)) {
+        const synthesized = synthesizeKnowledgeFromTools(toolEvidence);
+        if (synthesized && !isMetadataOnlyKnowledgeResponse(synthesized)) return { response: synthesized, fallbackReason: null, toolsUsed };
       }
       return { response: validation.response, fallbackReason: null, toolsUsed };
     } catch (error) {

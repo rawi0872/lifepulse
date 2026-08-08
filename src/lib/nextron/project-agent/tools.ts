@@ -45,8 +45,7 @@ function bestSnippet(row: KnowledgeRow, tokens: string[]): string | null {
 }
 
 function isMetadataOnlyDriveSnippet(result: KnowledgeSearchResult): boolean {
-  const withoutLabels = result.snippet.replace(/Title:\s*[^.]+/i, " ").replace(/Section:\s*Summary/i, " ").trim();
-  return result.sourceProvider === "google_drive" && /^Imported from Google Drive(?:; Drive modified \d{4}-\d{2}-\d{2})?\.?$/i.test(withoutLabels);
+  return result.sourceProvider === "google_drive" && /^Title:\s+.+?\s+Section:\s+Summary\s+Imported from Google Drive(?:; Drive modified \d{4}-\d{2}-\d{2})?\.?$/i.test(result.snippet.trim());
 }
 
 export function createNextronProjectAgentTools(context: NextronToolContext, trace: ProjectAgentToolName[], evidenceSink: unknown[] = []) {
