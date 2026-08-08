@@ -42,6 +42,8 @@ interface LiveContextPanels {
   };
 }
 
+type IntelligenceCoreState = "idle" | "thinking" | "syncing" | "ready" | "error";
+
 export default function CoachPage() {
   return (
     <DashboardNav>
@@ -400,6 +402,8 @@ function NextronContent() {
       ]
     : [];
   const availableSystems = activeSystems.filter((system) => system.status === "available").length;
+  const coreState: IntelligenceCoreState = askStatus === "asking" ? "thinking" : error || askStatus === "error" ? "error" : askStatus === "answered" ? "ready" : loading ? "syncing" : "idle";
+  const activeSourceNames = liveResponse ? inferActiveSourceNames(liveResponse) : [];
   const contextStats = packet ? [
     { label: "Overdue", value: packet.tasks.data?.overdueCount ?? 0, detail: "tasks" },
     { label: "Today", value: packet.tasks.data?.dueTodayCount ?? 0, detail: "due" },
@@ -409,9 +413,11 @@ function NextronContent() {
   const quickPrompts = ["What should I focus on today?", "What needs my attention?", "What's slipping?", "What should I do next?"];
 
   return (
-    <div className="relative mx-auto max-w-7xl overflow-x-hidden px-4 py-5 animate-fade-in sm:px-5 sm:py-7">
-      <div className="pointer-events-none absolute inset-x-4 top-4 h-72 rounded-[2rem] bg-[radial-gradient(circle_at_50%_20%,rgba(56,189,248,0.16),rgba(15,23,42,0)_64%)]" aria-hidden="true" />
-      <header className="relative mb-5 min-w-0 rounded-[2rem] border border-cyan-300/10 bg-[linear-gradient(135deg,rgba(8,18,32,0.92),rgba(10,18,28,0.72)),var(--surface)] p-4 shadow-2xl shadow-cyan-950/20 sm:p-5">
+    <div className="nextron-shell relative mx-auto max-w-[92rem] overflow-x-hidden px-3 py-4 animate-fade-in sm:px-5 sm:py-7 xl:px-6">
+      <div className="nextron-shell-grid pointer-events-none absolute inset-0 opacity-70" aria-hidden="true" />
+      <div className="pointer-events-none absolute inset-x-4 top-4 h-96 rounded-[3rem] bg-[radial-gradient(circle_at_50%_10%,rgba(56,189,248,0.20),rgba(15,23,42,0)_62%)]" aria-hidden="true" />
+      <header className="nextron-surface relative mb-4 min-w-0 overflow-hidden rounded-[2rem] p-4 sm:mb-5 sm:p-5">
+        <div className="nextron-precision-edge pointer-events-none absolute inset-x-6 top-0 h-px" aria-hidden="true" />
         <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0">
             <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-200/80">Personal Intelligence</p>
@@ -426,18 +432,18 @@ function NextronContent() {
         </div>
       </header>
 
-      <div className="relative grid gap-4 xl:grid-cols-[minmax(0,0.82fr)_minmax(0,1.5fr)_minmax(18rem,0.78fr)]">
-        <aside className="space-y-4 xl:sticky xl:top-4 xl:self-start">
+      <div className="relative grid gap-4 xl:grid-cols-[minmax(17rem,0.82fr)_minmax(0,1.62fr)_minmax(18rem,0.82fr)]">
+        <aside className="order-3 space-y-4 lg:order-2 xl:order-1 xl:sticky xl:top-4 xl:self-start">
           <NextronPanel title="Conversations" eyebrow="Thread history">
             <div className="space-y-3">
-              <button type="button" onClick={() => void startNewConversation()} disabled={threadStatus === "saving"} className="min-h-11 w-full rounded-xl border border-cyan-300/25 bg-cyan-300/10 px-3 py-2 text-left text-xs font-semibold text-cyan-100 transition-colors hover:bg-cyan-300/15 disabled:opacity-50">New conversation</button>
+              <button type="button" onClick={() => void startNewConversation()} disabled={threadStatus === "saving"} className="min-h-11 w-full rounded-xl border border-cyan-300/25 bg-[linear-gradient(90deg,rgba(103,232,249,0.12),rgba(14,165,233,0.05))] px-3 py-2 text-left text-xs font-semibold text-cyan-100 transition-all duration-150 hover:-translate-y-0.5 hover:border-cyan-200/40 hover:bg-cyan-300/15 disabled:translate-y-0 disabled:opacity-50">New conversation</button>
               <p className="text-[10px] leading-relaxed text-[var(--text-muted)]">Conversations are saved privately to your Life Pulse account. Memory still requires explicit remember commands.</p>
               {threadError && <div className="rounded-lg border border-[var(--warning)]/25 bg-[var(--warning-soft)] px-2 py-1.5"><p className="text-[10px] text-[var(--warning)]">{threadError}</p><button type="button" onClick={() => void loadConversations(currentConversation?.id ?? null)} className="mt-1 text-[10px] font-semibold text-[var(--warning)] underline underline-offset-2">Retry history</button></div>}
               <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
                 {threadStatus === "loading" && <p className="text-xs text-[var(--text-muted)]">Loading conversations...</p>}
                 {conversations.length === 0 && <p className="text-xs text-[var(--text-muted)]">No saved conversations yet.</p>}
                 {conversations.map((conversation) => (
-                  <div key={conversation.id} className={`rounded-xl border px-2 py-2 ${currentConversation?.id === conversation.id ? "border-cyan-300/35 bg-cyan-300/10" : "border-cyan-300/10 bg-black/15"}`}>
+                  <div key={conversation.id} className={`relative overflow-hidden rounded-xl border px-2 py-2 transition-colors duration-150 ${currentConversation?.id === conversation.id ? "border-cyan-300/40 bg-cyan-300/10 shadow-[inset_2px_0_0_rgba(103,232,249,0.55)]" : "border-cyan-300/10 bg-black/15 hover:border-cyan-300/22"}`}>
                     <button type="button" onClick={() => void openConversation(conversation.id)} className="block w-full truncate text-left text-xs font-medium text-[var(--text)]">{conversation.title}</button>
                     <div className="mt-1 flex items-center justify-between gap-2">
                       <span className="text-[10px] text-[var(--text-muted)]">{conversation.updated_at.slice(0, 10)}</span>
@@ -468,20 +474,21 @@ function NextronContent() {
           </NextronPanel>
         </aside>
 
-        <main className="min-w-0 space-y-4">
-          <section aria-labelledby="ask-nextron" className="rounded-[2rem] border border-cyan-300/15 bg-[linear-gradient(180deg,rgba(8,18,32,0.88),rgba(8,13,23,0.94)),var(--surface)] p-4 shadow-2xl shadow-cyan-950/25 sm:p-5">
+        <main className="order-1 min-w-0 space-y-4 lg:order-1 xl:order-2">
+          <section aria-labelledby="ask-nextron" className={`nextron-surface nextron-scanline relative overflow-hidden rounded-[2rem] p-4 sm:p-5 ${askStatus === "asking" ? "border-cyan-200/35" : ""}`}>
+            {askStatus === "asking" && <div className="pointer-events-none absolute inset-y-0 left-0 w-1/2 bg-[linear-gradient(90deg,transparent,rgba(103,232,249,0.10),transparent)] [animation:nextron-scan_1.7s_ease-in-out_infinite]" aria-hidden="true" />}
             <div className="mb-5 flex flex-col items-center gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0 flex-1">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-200/70">Command channel</p>
                 <h2 id="ask-nextron" className="mt-1 text-xl font-semibold tracking-[-0.03em] text-[var(--text)]">Ask NEXTRON</h2>
                 <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[var(--text-muted)]">Ask about your Life Pulse context, saved Knowledge, projects, Calendar, or next focus. NEXTRON only uses context currently permitted.</p>
               </div>
-              <IntelligenceCore status={askStatus === "asking" ? "thinking" : loading ? "syncing" : "idle"} systems={activeSystems} />
+              <IntelligenceCore status={coreState} systems={activeSystems} activeSources={activeSourceNames} />
             </div>
 
             <form className="space-y-3" onSubmit={(event) => { event.preventDefault(); void askNextron(); }}>
               <label htmlFor="nextron-question" className="sr-only">Ask NEXTRON</label>
-              <div className="rounded-2xl border border-cyan-300/20 bg-black/20 p-2 shadow-inner shadow-cyan-950/20 focus-within:border-cyan-300/45 focus-within:ring-2 focus-within:ring-cyan-400/10">
+              <div className="rounded-2xl border border-cyan-300/18 bg-[linear-gradient(180deg,rgba(2,6,23,0.44),rgba(2,6,23,0.24))] p-2 shadow-inner shadow-cyan-950/20 transition-all duration-200 focus-within:border-cyan-200/55 focus-within:shadow-[0_0_0_1px_rgba(103,232,249,0.12),0_0_42px_rgba(8,145,178,0.12)]">
                 <textarea id="nextron-question" value={askPrompt} onChange={(event) => { setAskPrompt(event.target.value.slice(0, NEXTRON_REQUEST_MAX_LENGTH)); setAskError(null); if (askStatus === "error") setAskStatus("idle"); }} onKeyDown={(event) => { if (event.nativeEvent.isComposing) return; if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); if (!askDisabled) void askNextron(); } }} maxLength={NEXTRON_REQUEST_MAX_LENGTH} rows={3} aria-describedby="nextron-question-help nextron-question-status" placeholder="What should I focus on today?" className="min-h-28 w-full resize-y rounded-xl border-0 bg-transparent px-3 py-3 text-base leading-relaxed text-[var(--text)] outline-none placeholder:text-[var(--text-muted)]" />
                 <div className="flex flex-wrap items-center justify-between gap-2 border-t border-cyan-300/10 px-2 pt-2">
                   <p id="nextron-question-help" className="text-xs text-[var(--text-muted)]">{trimmedAskPrompt.length}/{NEXTRON_REQUEST_MAX_LENGTH}. Enter asks; Shift+Enter adds a line.</p>
@@ -494,7 +501,8 @@ function NextronContent() {
             </form>
           </section>
 
-          <section aria-labelledby="nextron-answer" className="rounded-[2rem] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
+          <section aria-labelledby="nextron-answer" className="nextron-surface relative overflow-hidden rounded-[2rem] p-4 sm:p-5">
+            <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-cyan-200/25 to-transparent" aria-hidden="true" />
             <div className="mb-4 flex min-w-0 flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-200/70">Main intelligence</p>
@@ -521,7 +529,7 @@ function NextronContent() {
           </section>
         </main>
 
-        <aside className="space-y-4 xl:sticky xl:top-4 xl:self-start">
+        <aside className="order-4 space-y-4 lg:order-3 xl:sticky xl:top-4 xl:self-start">
           <NextronPanel title="Active Projects" eyebrow="Current work">
             <ProjectsPanel panels={livePanels} onAsk={(prompt) => { setAskPrompt(prompt); void askNextron(prompt); }} />
           </NextronPanel>
@@ -703,9 +711,25 @@ function formatDomainLabel(value: string): string {
   return labels[value] ?? value.replace(/([A-Z])/g, " $1").replace(/^./, (char) => char.toUpperCase());
 }
 
+function inferActiveSourceNames(response: NextronCoachResponse): string[] {
+  const text = [response.ruleId, ...(response.sources ?? []), ...response.facts.map((fact) => `${fact.category} ${fact.text}`)].join(" ").toLowerCase();
+  const sources: string[] = [];
+  const add = (label: string, patterns: string[]) => {
+    if (patterns.some((pattern) => text.includes(pattern.toLowerCase())) && !sources.includes(label)) sources.push(label);
+  };
+  add("Tasks", ["task", "overdue", "today"]);
+  add("Projects", ["project"]);
+  add("Calendar", ["calendar", "event"]);
+  add("Knowledge", ["knowledge", "note"]);
+  add("Drive", ["drive", "atlas"]);
+  add("Memory", ["memory", "preference"]);
+  return sources.slice(0, 3);
+}
+
 function NextronPanel({ eyebrow, title, children }: { eyebrow: string; title: string; children: ReactNode }) {
   return (
-    <section className="rounded-[1.5rem] border border-cyan-300/10 bg-[linear-gradient(180deg,rgba(8,18,32,0.82),rgba(8,13,23,0.9)),var(--surface)] p-4 shadow-xl shadow-cyan-950/10">
+    <section className="nextron-surface group relative overflow-hidden rounded-[1.5rem] p-4 transition-colors duration-200 hover:border-cyan-200/25">
+      <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-cyan-200/20 to-transparent opacity-70" aria-hidden="true" />
       <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-200/60">{eyebrow}</p>
       <h2 className="mt-1 text-sm font-semibold text-[var(--text)]">{title}</h2>
       <div className="mt-4">{children}</div>
@@ -715,7 +739,7 @@ function NextronPanel({ eyebrow, title, children }: { eyebrow: string; title: st
 
 function ContextStat({ label, value, detail }: { label: string; value: number; detail: string }) {
   return (
-    <div className="rounded-2xl border border-cyan-300/10 bg-black/20 px-3 py-2">
+    <div className="rounded-2xl border border-cyan-300/12 bg-[linear-gradient(180deg,rgba(2,6,23,0.42),rgba(2,6,23,0.18))] px-3 py-2 shadow-inner shadow-cyan-950/20">
       <p className="text-[10px] font-medium text-[var(--text-muted)]">{label}</p>
       <p className="mt-1 text-xl font-semibold tabular-nums text-[var(--text)]">{value}</p>
       <p className="text-[10px] text-cyan-100/55">{detail}</p>
@@ -723,18 +747,33 @@ function ContextStat({ label, value, detail }: { label: string; value: number; d
   );
 }
 
-function IntelligenceCore({ status, systems }: { status: "idle" | "thinking" | "syncing"; systems: Array<{ domain: string; status: string }> }) {
+function IntelligenceCore({ status, systems, activeSources }: { status: IntelligenceCoreState; systems: Array<{ domain: string; status: string }>; activeSources: string[] }) {
   const activeCount = systems.filter((system) => system.status === "available").length;
-  const statusText = status === "thinking" ? "Analyzing" : status === "syncing" ? "Syncing" : "Ready";
+  const statusLabel = status === "thinking" ? "Analyzing" : status === "syncing" ? "Syncing" : status === "error" ? "Degraded" : status === "ready" ? "Response ready" : "Ready";
+  const activeSourceSet = new Set(activeSources.map((source) => source.toLowerCase()));
+  const coreMotion = status === "thinking" ? "nextron-core-analyzing" : status === "ready" ? "nextron-core-ready" : "nextron-core-idle";
   return (
-    <div className="relative flex h-28 w-28 shrink-0 items-center justify-center sm:h-32 sm:w-32" aria-label={`NEXTRON core ${statusText.toLowerCase()}, ${activeCount} systems available`}>
-      <div className={`absolute inset-0 rounded-full border border-cyan-300/20 bg-cyan-300/5 shadow-[0_0_42px_rgba(34,211,238,0.14)] ${status === "thinking" ? "animate-pulse" : ""}`} />
-      <div className="absolute inset-3 rounded-full border border-dashed border-cyan-200/20" />
-      <div className="absolute inset-7 rounded-2xl border border-cyan-300/25 bg-[radial-gradient(circle,rgba(125,211,252,0.24),rgba(8,18,32,0.52)_62%)] rotate-45" />
-      <div className="relative text-center">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-100">Core</p>
-        <p className="mt-1 text-xs text-cyan-100/70">{statusText}</p>
-        <p className="text-[10px] text-cyan-100/45">{activeCount} online</p>
+    <div className="relative flex w-full shrink-0 items-center justify-center gap-3 sm:w-auto" aria-label={`NEXTRON core ${statusLabel.toLowerCase()}, ${activeCount} systems available`}>
+      <div className="relative flex h-28 w-28 items-center justify-center sm:h-36 sm:w-36">
+        <div className={`absolute inset-0 rounded-full border ${status === "error" ? "border-[var(--warning)]/40 bg-[var(--warning-soft)]" : "border-cyan-300/25 bg-cyan-300/5"} shadow-[0_0_54px_rgba(34,211,238,0.16)] ${coreMotion}`} />
+        <div className={`nextron-orbit-slow absolute inset-2 rounded-full border border-dashed ${status === "thinking" ? "border-cyan-100/50" : "border-cyan-200/20"}`} />
+        <div className="nextron-counter-orbit absolute inset-5 rounded-full border border-cyan-300/10" />
+        <div className={`absolute inset-8 rounded-2xl border ${status === "error" ? "border-[var(--warning)]/40" : "border-cyan-300/30"} bg-[radial-gradient(circle,rgba(125,211,252,0.30),rgba(8,18,32,0.50)_62%)] rotate-45 ${status === "thinking" ? "nextron-orbit-fast" : ""}`} />
+        <div className="absolute h-3 w-3 rounded-full bg-cyan-100 shadow-[0_0_28px_rgba(103,232,249,0.95)]" />
+        {systems.slice(0, 8).map((system, index) => {
+          const angle = (index / Math.max(1, Math.min(8, systems.length))) * Math.PI * 2 - Math.PI / 2;
+          const x = Math.cos(angle) * 48;
+          const y = Math.sin(angle) * 48;
+          const active = system.status === "available";
+          const sourceActive = activeSourceSet.has(system.domain.toLowerCase()) || activeSourceSet.has(formatDomainLabel(system.domain).toLowerCase());
+          return <span key={system.domain} className={`absolute h-2.5 w-2.5 rounded-full border ${sourceActive ? "border-cyan-100 bg-cyan-200 shadow-[0_0_14px_rgba(103,232,249,0.85)]" : active ? "border-cyan-300/50 bg-cyan-300/40" : "border-slate-500/30 bg-slate-600/25"}`} style={{ transform: `translate(${x}px, ${y}px)` }} title={`${formatDomainLabel(system.domain)} ${statusText(system.status)}`} aria-hidden="true" />;
+        })}
+      </div>
+      <div className="hidden min-w-24 text-left sm:block">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-100/75">Core</p>
+        <p className="mt-1 text-sm font-semibold text-cyan-50">{statusLabel}</p>
+        <p className="mt-1 text-[10px] text-cyan-100/50">{activeCount} systems ready</p>
+        {activeSources.length > 0 && <p className="mt-2 text-[10px] text-cyan-100/70">Used: {activeSources.slice(0, 2).join(" + ")}</p>}
       </div>
     </div>
   );
@@ -843,15 +882,15 @@ function SourceContextPanel({ panels, systems }: { panels: LiveContextPanels | n
 
 function PanelNumber({ label, value, tone }: { label: string; value: number; tone: "active" | "attention" | "stable" }) {
   const toneClass = tone === "attention" ? "border-[var(--warning)]/30 bg-[var(--warning-soft)]" : tone === "active" ? "border-cyan-300/25 bg-cyan-300/10" : "border-cyan-300/10 bg-black/15";
-  return <div className={`rounded-xl border px-2 py-2 ${toneClass}`}><p className="text-[10px] text-[var(--text-muted)]">{label}</p><p className="mt-1 text-xl font-semibold text-[var(--text)]">{value}</p></div>;
+  return <div className={`rounded-xl border px-2 py-2 shadow-inner shadow-cyan-950/10 transition-colors duration-200 ${toneClass}`}><p className="text-[10px] text-[var(--text-muted)]">{label}</p><p className="mt-1 text-xl font-semibold tabular-nums text-[var(--text)]">{value}</p></div>;
 }
 
 function PanelLink({ href, children }: { href: string; children: ReactNode }) {
-  return <Link href={href} className="inline-flex min-h-9 items-center rounded-lg border border-cyan-300/15 bg-cyan-300/10 px-2.5 py-1 text-xs font-medium text-cyan-50/85 hover:bg-cyan-300/15">{children}</Link>;
+  return <Link href={href} className="inline-flex min-h-9 items-center rounded-lg border border-cyan-300/15 bg-cyan-300/10 px-2.5 py-1 text-xs font-medium text-cyan-50/85 transition-all duration-150 hover:-translate-y-0.5 hover:border-cyan-200/35 hover:bg-cyan-300/15">{children}</Link>;
 }
 
 function PanelButton({ onClick, children }: { onClick: () => void; children: ReactNode }) {
-  return <button type="button" onClick={onClick} className="inline-flex min-h-9 items-center rounded-lg border border-cyan-300/15 bg-black/15 px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)] hover:bg-cyan-300/10">{children}</button>;
+  return <button type="button" onClick={onClick} className="inline-flex min-h-9 items-center rounded-lg border border-cyan-300/15 bg-black/15 px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)] transition-all duration-150 hover:-translate-y-0.5 hover:border-cyan-200/30 hover:bg-cyan-300/10">{children}</button>;
 }
 
 function LockedState({ label, href }: { label: string; href: string }) {
@@ -862,7 +901,7 @@ function SourceStatus({ label, status, detail }: { label: string; status: string
   const active = status === "available";
   const denied = status === "permission_denied";
   return (
-    <div className="flex items-center justify-between gap-3 rounded-xl border border-cyan-300/10 bg-black/15 px-3 py-2">
+    <div className="flex items-center justify-between gap-3 rounded-xl border border-cyan-300/10 bg-black/15 px-3 py-2 transition-colors duration-200 hover:border-cyan-200/20">
       <div className="min-w-0">
         <p className="truncate text-xs font-medium text-[var(--text)]">{label}</p>
         <p className="text-[10px] text-[var(--text-muted)]">{detail}</p>
@@ -897,14 +936,16 @@ function ConversationTurn({ message }: { message: ConversationMessage }) {
   const isAssistant = message.role === "assistant";
   const response = isAssistant && message.response ? message.response : null;
   return (
-    <article className={`rounded-2xl border p-4 ${isAssistant ? "border-cyan-300/12 bg-[linear-gradient(180deg,rgba(8,18,32,0.72),rgba(8,13,23,0.86))]" : "border-[var(--border)] bg-black/15"}`}>
-      <p className={`text-[10px] font-semibold uppercase tracking-[0.14em] ${isAssistant ? "text-cyan-200/70" : "text-[var(--text-muted)]"}`}>{isAssistant ? "NEXTRON" : "You"}</p>
+    <article className={`relative overflow-hidden rounded-2xl border p-4 pl-5 ${isAssistant ? "border-cyan-300/18 bg-[linear-gradient(180deg,rgba(8,18,32,0.78),rgba(4,9,18,0.90))] shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_18px_44px_rgba(2,6,23,0.22)]" : "border-cyan-300/8 bg-black/12"}`}>
+      <div className={`absolute inset-y-4 left-0 w-px ${isAssistant ? "bg-gradient-to-b from-cyan-200/20 via-cyan-200/70 to-transparent" : "bg-slate-400/18"}`} aria-hidden="true" />
+      {isAssistant && <div className="pointer-events-none absolute -right-16 -top-20 h-40 w-40 rounded-full bg-cyan-300/8 blur-2xl" aria-hidden="true" />}
+      <p className={`relative text-[10px] font-semibold uppercase tracking-[0.14em] ${isAssistant ? "text-cyan-200/75" : "text-[var(--text-muted)]"}`}>{isAssistant ? "NEXTRON" : "You"}</p>
       {response ? (
-        <div className="mt-2">
+        <div className="relative mt-2">
           <p className="break-words text-sm leading-relaxed text-[var(--text)]">{response.interpretation}</p>
           {response.sources && response.sources.length > 0 && (
             <ul className="mt-3 flex flex-wrap gap-2">
-              {response.sources.map((source) => <li key={source} className="break-words rounded-full border border-cyan-300/15 bg-cyan-300/10 px-2.5 py-1 text-[10px] text-cyan-50/80">{source}</li>)}
+              {response.sources.map((source) => <li key={source} className="break-words rounded-full border border-cyan-300/25 bg-cyan-300/10 px-2.5 py-1 text-[10px] font-medium text-cyan-50/85 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">{source}</li>)}
             </ul>
           )}
           {response.supportingEvidence.length > 0 && (
@@ -916,7 +957,7 @@ function ConversationTurn({ message }: { message: ConversationMessage }) {
             </details>
           )}
         </div>
-      ) : <p className="mt-2 break-words text-sm leading-relaxed text-[var(--text-secondary)]">{message.content}</p>}
+      ) : <p className="relative mt-2 break-words text-sm leading-relaxed text-[var(--text-secondary)]">{message.content}</p>}
     </article>
   );
 }
