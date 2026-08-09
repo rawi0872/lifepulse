@@ -148,7 +148,7 @@ async function validateActionIntent(supabase: SupabaseClient, userId: string, ac
     if (!taskTitle) return { ok: false, reason: "MALFORMED_PARAMETERS", message: "Task update proposals require deterministic resource resolution." };
     const { data, error } = await supabase
       .from("tasks")
-      .select("id, title, due_date, status")
+      .select("id, title, due_date, status, created_at")
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
       .limit(100);
