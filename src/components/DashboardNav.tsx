@@ -159,7 +159,7 @@ export function DashboardNav({ children }: { children: React.ReactNode }) {
           </div>
         </Link>
 
-        <Link href="/nextron" aria-current={nextronActive ? "page" : undefined} className={`group mx-3 mb-4 overflow-hidden rounded-2xl border p-3 transition-all duration-200 ${nextronActive ? "border-cyan-200/30 bg-cyan-300/10 shadow-[0_0_28px_rgba(34,211,238,0.10)]" : "border-cyan-300/12 bg-cyan-950/10 hover:border-cyan-200/25 hover:bg-cyan-300/10"}`}>
+        <div className={`mx-3 mb-4 overflow-hidden rounded-2xl border p-3 transition-all duration-200 ${nextronActive ? "border-cyan-200/30 bg-cyan-300/10 shadow-[0_0_28px_rgba(34,211,238,0.10)]" : "border-cyan-300/12 bg-cyan-950/10"}`}>
           <div className="flex items-center gap-2.5">
             <span className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-cyan-200/25 bg-cyan-300/10">
               <span className="absolute inset-1 rounded-full border border-cyan-200/15" />
@@ -170,8 +170,11 @@ export function DashboardNav({ children }: { children: React.ReactNode }) {
               <span className="block truncate text-[10px] text-cyan-100/60">Command center ready</span>
             </span>
           </div>
+          <Link href="/nextron" className="mt-3 inline-flex min-h-8 w-full items-center justify-center rounded-lg border border-cyan-300/15 bg-cyan-300/10 px-2 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-cyan-50/80 transition-colors hover:border-cyan-200/30 hover:bg-cyan-300/15" aria-label="Open command center">
+            Open command center
+          </Link>
           <span className="mt-3 block h-px origin-left rounded-full bg-gradient-to-r from-cyan-200/60 via-cyan-200/20 to-transparent command-pulse" aria-hidden="true" />
-        </Link>
+        </div>
 
         <nav className="flex flex-1 flex-col gap-4 overflow-y-auto px-2.5 pb-2">
           {navGroups.map((group, groupIndex) => (
