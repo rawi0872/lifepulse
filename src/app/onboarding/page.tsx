@@ -1,758 +1,300 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
-import { Button } from "@/components/ui/button";
-import { cn, getTodayDateString } from "@/lib/utils";
 import { LifePulseLogo } from "@/components/LifePulseLogo";
-import { StepIndicator } from "@/components/onboarding/StepIndicator";
-import { FeatureTour } from "@/components/onboarding/FeatureTour";
-import { DailyLoopGrid } from "@/components/onboarding/DailyLoopGrid";
-import { FinalSummary } from "@/components/onboarding/FinalSummary";
-import { INTENDED_USE_OPTIONS, type IntendedUse } from "@/lib/intendedUse";
-import { getModuleStatusLabel, getRecommendedModules, type ModuleKey, type ModuleStatus } from "@/lib/modules";
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+type OnboardingStatus = "not_started" | "in_progress" | "draft_ready" | "completed" | "skipped";
 
-const DEFAULT_REALMS = [
-  { name: "Mind", color: "#8b5cf6", icon: "🧠", description: "Learning, focus, mental clarity" },
-  { name: "Body", color: "#10b981", icon: "💪", description: "Health, training, sleep" },
-  { name: "Career", color: "#3b82f6", icon: "💼", description: "School, work, skills, ambition" },
-  { name: "Relationships", color: "#f43f5e", icon: "❤️", description: "Family, friends, social life" },
-  { name: "Finance", color: "#f59e0b", icon: "💰", description: "Money, spending, stability" },
-  { name: "Faith", color: "#a855f7", icon: "🙏", description: "Values, discipline, spiritual growth" },
-] as const;
+interface Understanding {
+  currentSituation: string[];
+  priorities: string[];
+  goals: string[];
+  constraints: string[];
+  deadlines: string[];
+  routines: string[];
+  frictionPoints: string[];
+  projects: string[];
+  preferences: string[];
+}
 
-const STEP_LABELS = ["Loop", "Setup", "Life Areas", "Daily Loop", "Start"];
+interface LifeSetupDraft {
+  currentFocus: string[];
+  goals: Array<{ title: string; why: string; horizon: string; priority: "high" | "medium" | "low" }>;
+  starterHabits: Array<{ title: string; why: string; frequency: string; supports: string }>;
+  initialTasks: Array<{ title: string; why: string; related: string }>;
+  projects: Array<{ title: string; desiredOutcome: string; nextMilestone: string }>;
+  routines: Array<{ title: string; cadence: string; description: string }>;
+  importantDates: Array<{ label: string; timing: string; why: string }>;
+  deliberatelyLeftOut: Array<{ item: string; reason: string }>;
+}
 
-const MODULE_PREVIEW_KEYS: Record<IntendedUse, readonly ModuleKey[]> = {
-  personal: ["today", "tasks", "habits", "journal", "weeklyReview", "body"],
-  business: ["today", "tasks", "projects", "weeklyReview", "finance", "knowledge"],
-  team: ["today", "tasks", "projects", "weeklyReview", "knowledge", "team"],
-  mixed: ["today", "tasks", "habits", "journal", "weeklyReview", "projects"],
+interface OnboardingMessage {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  metadata: Record<string, unknown>;
+  created_at: string;
+}
+
+interface OnboardingState {
+  id: string;
+  status: OnboardingStatus;
+  understanding: Understanding;
+  setup_draft: LifeSetupDraft | null;
+  last_error: string | null;
+  updated_at: string;
+  profile?: { onboardingCompleted: boolean; intendedUse: string | null };
+}
+
+interface OnboardingResponse { state: OnboardingState; messages: OnboardingMessage[] }
+
+const EMPTY_UNDERSTANDING: Understanding = {
+  currentSituation: [],
+  priorities: [],
+  goals: [],
+  constraints: [],
+  deadlines: [],
+  routines: [],
+  frictionPoints: [],
+  projects: [],
+  preferences: [],
 };
 
-const moduleStatusStyles: Record<ModuleStatus, string> = {
-  available: "border-[var(--success)]/30 bg-[var(--success-soft)] text-[var(--success)]",
-  preview: "border-[var(--accent)]/30 bg-[var(--accent-soft)] text-[var(--accent)]",
-  planned: "border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)]",
-};
+const EXAMPLES = [
+  "I'm preparing for university and want my evenings under control.",
+  "I want to get in shape, study consistently, and stop overcommitting.",
+  "I'm trying to take my freelance work seriously without burning out.",
+];
 
-const STEP_LEFT = [
-  {
-    title: "Start with the daily loop",
-    subtitle:
-      "Life Pulse is not many separate tools to learn at once. Begin with Today, one visible action, a short reflection, and a weekly review.",
-  },
-  {
-    title: "Personalize your starting setup",
-    subtitle:
-      "Choose why you are using Life Pulse so the app can emphasize the right starting path. Deeper areas can wait until you need them.",
-  },
-  {
-    title: "Choose your life areas",
-    subtitle:
-      "Life areas are labels for your activity. Keep the defaults for now if you are unsure; the first loop matters more than perfect setup.",
-  },
-  {
-    title: "Your daily rhythm",
-    subtitle:
-      "After setup, Today becomes the place you plan one priority, complete one visible action, and close the day with reflection.",
-  },
-  {
-    title: "Start Today",
-    subtitle:
-      "You are ready to start Today. Set one priority first; Weekly Review becomes useful after a few days of logged activity.",
-  },
-] as const;
+function isOnboardingResponse(value: unknown): value is OnboardingResponse {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Partial<OnboardingResponse>;
+  return typeof candidate.state === "object" && candidate.state !== null && Array.isArray(candidate.messages);
+}
 
-function IntendedUseCards({
-  selected,
-  onSelect,
-}: {
-  selected: IntendedUse | null;
-  onSelect: (value: IntendedUse) => void;
-}) {
+function sectionCount(understanding: Understanding): number {
+  return Object.values(understanding).reduce((count, items) => count + items.length, 0);
+}
+
+export default function OnboardingPage() {
+  const router = useRouter();
+  const [state, setState] = useState<OnboardingState | null>(null);
+  const [messages, setMessages] = useState<OnboardingMessage[]>([]);
+  const [prompt, setPrompt] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const [transitioning, setTransitioning] = useState<"skip" | "complete" | "resume" | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const composerRef = useRef<HTMLTextAreaElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  async function load() {
+    setError(null);
+    const result = await fetch("/api/nextron/onboarding", { method: "GET" }).then((res) => res.ok ? res.json() : null).catch(() => null) as unknown;
+    if (!isOnboardingResponse(result)) {
+      setError("NEXTRON onboarding could not be loaded. Refresh and try again.");
+      setLoading(false);
+      return;
+    }
+    setState(result.state);
+    setMessages(result.messages);
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => { void load(); }, 0);
+    return () => window.clearTimeout(timeoutId);
+  }, []);
+  useEffect(() => { bottomRef.current?.scrollIntoView({ block: "end" }); }, [messages.length, sending]);
+
+  async function send(nextPrompt = prompt) {
+    const value = nextPrompt.trim();
+    if (!value || sending) return;
+    setSending(true);
+    setError(null);
+    const result = await fetch("/api/nextron/onboarding", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt: value, clientMessageId: crypto.randomUUID() }),
+    }).then(async (res) => ({ ok: res.ok, body: await res.json().catch(() => null) as unknown })).catch(() => null);
+    setSending(false);
+    if (!result?.ok || !isOnboardingResponse(result.body)) {
+      const body = typeof result?.body === "object" && result.body !== null ? result.body as { error?: unknown } : null;
+      setError(typeof body?.error === "string" ? body.error : "NEXTRON could not process that. Your conversation is still saved up to the last turn.");
+      return;
+    }
+    setPrompt("");
+    setState(result.body.state);
+    setMessages(result.body.messages);
+  }
+
+  async function transition(action: "skip" | "complete" | "resume") {
+    setTransitioning(action);
+    setError(null);
+    const result = await fetch("/api/nextron/onboarding", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action }),
+    }).then(async (res) => ({ ok: res.ok, body: await res.json().catch(() => null) as unknown })).catch(() => null);
+    setTransitioning(null);
+    if (!result?.ok || !isOnboardingResponse(result.body)) {
+      const body = typeof result?.body === "object" && result.body !== null ? result.body as { error?: unknown } : null;
+      setError(typeof body?.error === "string" ? body.error : "NEXTRON could not update onboarding state.");
+      return;
+    }
+    setState(result.body.state);
+    setMessages(result.body.messages);
+    if (action === "skip" || action === "complete") router.push("/today");
+  }
+
+  if (loading) {
+    return <div className="command-shell flex min-h-screen items-center justify-center"><div className="flex flex-col items-center gap-4"><LifePulseLogo /><p className="text-sm text-[var(--text-muted)]">Opening NEXTRON onboarding...</p></div></div>;
+  }
+
+  const understanding = state?.understanding ?? EMPTY_UNDERSTANDING;
+  const draft = state?.setup_draft ?? null;
+  const hasConversation = messages.length > 0;
+  const assistantGreeting = "Before I organize anything, I want to understand what you're trying to change. Tell me what's going on in your life right now.";
+  const insightCount = sectionCount(understanding);
+  const skipped = state?.status === "skipped";
+
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-      {INTENDED_USE_OPTIONS.map((option) => {
-        const isSelected = selected === option.value;
-        return (
-          <button
-            key={option.value}
-            type="button"
-            role="radio"
-            aria-checked={isSelected}
-            onClick={() => onSelect(option.value)}
-            className={cn(
-              "group relative rounded-xl border p-4 text-left transition-all duration-300 focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2",
-              isSelected
-                ? "border-[var(--accent)]/50 bg-[var(--accent-ghost)] shadow-lg shadow-[var(--accent)]/8"
-                : "border-[var(--border)] bg-[var(--surface)] hover:-translate-y-0.5 hover:border-[var(--border-strong)] hover:bg-[var(--surface-raised)] hover:shadow-md hover:shadow-black/10",
-            )}
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-sm font-semibold text-[var(--text)]">{option.label}</p>
-                <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">{option.description}</p>
-              </div>
-              <span
-                className={cn(
-                  "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition-all",
-                  isSelected ? "border-[var(--accent)] bg-[var(--accent)]" : "border-[var(--border-strong)]",
-                )}
-              >
-                {isSelected && <span className="h-2 w-2 rounded-full bg-white" />}
-              </span>
-            </div>
-            {option.value === "team" && (
-              <p className="mt-3 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2 text-[11px] leading-relaxed text-[var(--text-muted)]">
-                Team collaboration is an early-access direction. This setup does not create shared permissions yet.
-              </p>
-            )}
+    <main className="nextron-shell relative min-h-screen overflow-x-hidden px-3 py-4 animate-fade-in sm:px-5 sm:py-6 lg:px-8">
+      <div className="nextron-shell-grid pointer-events-none absolute inset-0 opacity-70" aria-hidden="true" />
+      <div className="relative mx-auto grid max-w-[92rem] gap-4 xl:grid-cols-[minmax(18rem,0.78fr)_minmax(0,1.5fr)_minmax(20rem,0.9fr)]">
+        <aside className="nextron-surface relative overflow-hidden rounded-[2rem] p-4 sm:p-5 xl:sticky xl:top-5 xl:self-start">
+          <div className="nextron-precision-edge pointer-events-none absolute inset-x-6 top-0 h-px" aria-hidden="true" />
+          <LifePulseLogo />
+          <p className="mt-6 text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-200/70">First session</p>
+          <h1 className="mt-2 text-3xl font-bold tracking-[-0.04em] text-[var(--text)] sm:text-4xl">Build Life Pulse around your actual life.</h1>
+          <p className="mt-3 text-sm leading-relaxed text-[var(--text-secondary)]">Start by talking to NEXTRON. No goals, habits, tasks, or projects are created in this step. You are shaping a setup draft.</p>
+          <div className="mt-5 grid grid-cols-3 gap-2">
+            <MiniStat label="Status" value={state?.status === "draft_ready" ? "Draft" : skipped ? "Skipped" : "Learning"} />
+            <MiniStat label="Signals" value={String(insightCount)} />
+            <MiniStat label="Writes" value="0" />
+          </div>
+          <div className="mt-5 rounded-2xl border border-cyan-300/10 bg-black/15 p-3">
+            <p className="text-xs font-semibold text-[var(--text)]">Privacy boundary</p>
+            <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">This onboarding understanding is not Memory. NEXTRON will not permanently remember statements unless you later use explicit Memory behavior.</p>
+          </div>
+          <button type="button" onClick={() => void transition("skip")} disabled={transitioning !== null} className="mt-4 inline-flex min-h-10 w-full items-center justify-center rounded-xl border border-cyan-300/15 bg-black/15 px-3 py-2 text-sm font-semibold text-[var(--text-secondary)] transition-colors hover:border-cyan-200/30 hover:bg-cyan-300/10 disabled:opacity-50">
+            {transitioning === "skip" ? "Skipping..." : "Skip for now"}
           </button>
-        );
-      })}
-    </div>
+          {skipped && <button type="button" onClick={() => void transition("resume")} disabled={transitioning !== null} className="mt-2 inline-flex min-h-10 w-full items-center justify-center rounded-xl bg-cyan-300 px-3 py-2 text-sm font-semibold text-slate-950 transition-colors hover:bg-cyan-200 disabled:opacity-50">Resume onboarding</button>}
+        </aside>
+
+        <section className="nextron-surface nextron-scanline relative flex min-h-[72vh] flex-col overflow-hidden rounded-[2rem] p-4 sm:p-5">
+          {sending && <div className="pointer-events-none absolute inset-y-0 left-0 w-1/2 bg-[linear-gradient(90deg,transparent,rgba(103,232,249,0.10),transparent)] [animation:nextron-scan_1.7s_ease-in-out_infinite]" aria-hidden="true" />}
+          <div className="mb-4 flex flex-col gap-3 border-b border-cyan-300/10 pb-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-200/70">NEXTRON onboarding</p>
+              <h2 className="mt-1 text-xl font-semibold tracking-[-0.03em] text-[var(--text)]">Tell me what is changing.</h2>
+              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[var(--text-muted)]">NEXTRON will ask only for what changes the setup. Corrections are part of the conversation.</p>
+            </div>
+            <span className="w-fit rounded-full border border-cyan-300/18 bg-cyan-300/8 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-cyan-100/75">{sending ? "Analyzing" : draft ? "Draft ready" : "Listening"}</span>
+          </div>
+
+          <div className="flex-1 space-y-3 overflow-y-auto pr-1">
+            {!hasConversation && <OnboardingTurn role="assistant" content={assistantGreeting} />}
+            {messages.map((message) => <OnboardingTurn key={message.id} role={message.role} content={message.content} />)}
+            {sending && <OnboardingTurn role="assistant" content="NEXTRON is updating the setup draft from this turn..." pending />}
+            <div ref={bottomRef} />
+          </div>
+
+          {!hasConversation && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              {EXAMPLES.map((example) => <button key={example} type="button" onClick={() => { setPrompt(example); composerRef.current?.focus(); }} className="rounded-full border border-cyan-300/15 bg-cyan-300/10 px-3 py-1.5 text-xs text-cyan-50/80 transition-colors hover:border-cyan-200/35">{example}</button>)}
+            </div>
+          )}
+
+          <form className="mt-4 space-y-3" onSubmit={(event) => { event.preventDefault(); void send(); }}>
+            <label htmlFor="nextron-onboarding-composer" className="sr-only">Talk to NEXTRON</label>
+            <div className="rounded-2xl border border-cyan-300/18 bg-[linear-gradient(180deg,rgba(2,6,23,0.44),rgba(2,6,23,0.24))] p-2 shadow-inner shadow-cyan-950/20 transition-all duration-200 focus-within:border-cyan-200/55 focus-within:shadow-[0_0_0_1px_rgba(103,232,249,0.12),0_0_42px_rgba(8,145,178,0.12)]">
+              <textarea ref={composerRef} id="nextron-onboarding-composer" value={prompt} onChange={(event) => { setPrompt(event.target.value.slice(0, 1500)); setError(null); }} onKeyDown={(event) => { if (event.nativeEvent.isComposing) return; if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void send(); } }} rows={3} maxLength={1500} placeholder="Tell NEXTRON what is happening right now..." className="min-h-24 w-full resize-y rounded-xl border-0 bg-transparent px-3 py-3 text-base leading-relaxed text-[var(--text)] outline-none placeholder:text-[var(--text-muted)]" />
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-cyan-300/10 px-2 pt-2">
+                <p className="text-xs text-[var(--text-muted)]">{prompt.trim().length}/1500. Enter sends; Shift+Enter adds a line.</p>
+                <button type="submit" disabled={sending || !prompt.trim()} className="inline-flex min-h-11 items-center rounded-xl bg-cyan-300 px-4 py-2 text-sm font-semibold text-slate-950 shadow-lg shadow-cyan-950/30 transition-all hover:-translate-y-0.5 hover:bg-cyan-200 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-45">{sending ? "Analyzing..." : "Send to NEXTRON"}</button>
+              </div>
+            </div>
+            {error && <p className="rounded-xl border border-[var(--warning)]/25 bg-[var(--warning-soft)] px-3 py-2 text-xs text-[var(--warning)]">{error}</p>}
+          </form>
+        </section>
+
+        <aside className="space-y-4 xl:sticky xl:top-5 xl:self-start">
+          <UnderstandingPanel understanding={understanding} />
+          {draft ? <DraftPanel draft={draft} onComplete={() => void transition("complete")} busy={transitioning === "complete"} /> : <DraftWaitingPanel />}
+        </aside>
+      </div>
+    </main>
   );
 }
 
-function ModuleRecommendationPreview({ intendedUse }: { intendedUse: IntendedUse }) {
-  const modulesByKey = new Map(getRecommendedModules(intendedUse).map((module) => [module.key, module]));
-  const previewModules = MODULE_PREVIEW_KEYS[intendedUse]
-    .map((key) => modulesByKey.get(key))
-    .filter((module): module is NonNullable<typeof module> => Boolean(module));
+function MiniStat({ label, value }: { label: string; value: string }) {
+  return <div className="rounded-2xl border border-cyan-300/12 bg-black/18 px-3 py-2"><p className="text-[10px] text-[var(--text-muted)]">{label}</p><p className="mt-1 truncate text-sm font-semibold text-[var(--text)]">{value}</p></div>;
+}
 
+function OnboardingTurn({ role, content, pending }: { role: "user" | "assistant"; content: string; pending?: boolean }) {
+  const assistant = role === "assistant";
   return (
-    <section className="max-w-2xl rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-4 animate-fade-in">
-      <div className="mb-3">
-        <h3 className="text-sm font-semibold text-[var(--text)]">Starting path, not a checklist</h3>
-        <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
-          Today, action, reflection, and review are the main path. Other areas are available when they become useful.
-        </p>
-      </div>
+    <article className={`relative overflow-hidden rounded-2xl border p-4 pl-5 ${assistant ? "border-cyan-300/18 bg-[linear-gradient(180deg,rgba(8,18,32,0.78),rgba(4,9,18,0.90))]" : "border-cyan-300/8 bg-black/12"}`}>
+      <div className={`absolute inset-y-4 left-0 w-px ${assistant ? "bg-gradient-to-b from-cyan-200/20 via-cyan-200/70 to-transparent" : "bg-slate-400/18"}`} aria-hidden="true" />
+      <p className={`text-[10px] font-semibold uppercase tracking-[0.14em] ${assistant ? "text-cyan-200/75" : "text-[var(--text-muted)]"}`}>{assistant ? "NEXTRON" : "You"}</p>
+      <p className={`mt-2 break-words text-sm leading-relaxed ${pending ? "text-cyan-50/75" : assistant ? "text-[var(--text)]" : "text-[var(--text-secondary)]"}`}>{content}</p>
+    </article>
+  );
+}
 
-      <div className="flex flex-wrap gap-2">
-        {previewModules.map((module) => (
-          <span
-            key={module.key}
-            className={cn(
-              "inline-flex items-center gap-2 rounded-full border px-2.5 py-1.5 text-xs transition-colors",
-              module.status === "planned"
-                ? "border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)]"
-                : "border-[var(--border)] bg-[var(--surface)] text-[var(--text)]",
-            )}
-          >
-            {module.label}
-            <span className={`rounded-full border px-1.5 py-0.5 text-[9px] font-medium ${moduleStatusStyles[module.status]}`}>
-              {getModuleStatusLabel(module.status)}
-            </span>
-          </span>
-        ))}
+function UnderstandingPanel({ understanding }: { understanding: Understanding }) {
+  return (
+    <section className="nextron-surface rounded-[1.5rem] p-4">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-200/60">What I understand</p>
+      <h2 className="mt-1 text-sm font-semibold text-[var(--text)]">Current picture</h2>
+      <div className="mt-4 space-y-3">
+        <UnderstandingSection title="Right now" items={understanding.currentSituation} empty="Waiting for your first context." />
+        <UnderstandingSection title="What matters most" items={[...understanding.priorities, ...understanding.goals].slice(0, 4)} empty="NEXTRON has not identified priorities yet." />
+        <UnderstandingSection title="Constraints" items={[...understanding.constraints, ...understanding.deadlines].slice(0, 4)} empty="No constraints identified yet." />
+        <UnderstandingSection title="Friction" items={understanding.frictionPoints} empty="No friction points identified yet." />
       </div>
     </section>
   );
 }
 
-function RealmCards({
-  selectedRealms,
-  onToggle,
-}: {
-  selectedRealms: Set<string>;
-  onToggle: (name: string) => void;
-}) {
+function UnderstandingSection({ title, items, empty }: { title: string; items: string[]; empty: string }) {
+  return <div><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">{title}</p>{items.length > 0 ? <ul className="mt-2 space-y-1.5">{items.map((item) => <li key={item} className="break-words rounded-xl border border-cyan-300/10 bg-black/15 px-3 py-2 text-xs leading-relaxed text-[var(--text-secondary)]">{item}</li>)}</ul> : <p className="mt-2 rounded-xl border border-cyan-300/10 bg-black/15 px-3 py-2 text-xs text-[var(--text-muted)]">{empty}</p>}</div>;
+}
+
+function DraftWaitingPanel() {
+  return <section className="nextron-surface rounded-[1.5rem] p-4"><p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-200/60">Life Setup Draft</p><h2 className="mt-1 text-sm font-semibold text-[var(--text)]">Not ready yet</h2><p className="mt-3 text-xs leading-relaxed text-[var(--text-muted)]">NEXTRON will propose a compact setup once it understands your outcomes, near-term priorities, and real constraints. Unknown nonessential details will be left out instead of forcing questions.</p></section>;
+}
+
+function DraftPanel({ draft, onComplete, busy }: { draft: LifeSetupDraft; onComplete: () => void; busy: boolean }) {
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      {DEFAULT_REALMS.map((r) => {
-        const selected = selectedRealms.has(r.name);
-        return (
-          <button
-            key={r.name}
-            type="button"
-            role="checkbox"
-            aria-checked={selected}
-            onClick={() => onToggle(r.name)}
-            className={cn(
-              "group relative flex items-start gap-3.5 rounded-xl border p-4.5 text-left transition-all duration-300 focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2",
-              selected
-                ? "border-[var(--accent)]/30 bg-[var(--surface-raised)] shadow-lg shadow-[var(--accent)]/8"
-                : "border-[var(--border)] bg-[var(--surface)] hover:-translate-y-0.5 hover:border-[var(--border-strong)] hover:bg-[var(--surface-raised)] hover:shadow-md hover:shadow-black/10",
-            )}
-            style={selected ? { borderColor: `${r.color}44` } : undefined}
-          >
-            {/* Background glow when selected */}
-            {selected && (
-              <div
-                className="pointer-events-none absolute inset-0 rounded-xl opacity-[0.06]"
-                style={{ background: `radial-gradient(200px 140px at 30% 50%, ${r.color}, transparent 80%)` }}
-              />
-            )}
-
-            {/* Hover glow (when not selected) */}
-            <div className="pointer-events-none absolute -inset-px rounded-xl opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-              style={{
-                background: "radial-gradient(160px circle at 50% 0%, var(--accent-ghost), transparent 70%)",
-              }}
-            />
-
-            <div
-              className={cn(
-                "relative z-10 flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] text-lg transition-all duration-300",
-                selected ? "shadow-md shadow-black/10" : "group-hover:scale-105",
-              )}
-              style={{
-                backgroundColor: selected ? `${r.color}1a` : undefined,
-                color: selected ? r.color : undefined,
-              }}
-            >
-              <span className={cn("transition-transform duration-300", selected && "scale-105")}>
-                {r.icon}
-              </span>
-            </div>
-
-            <div className="relative z-10 min-w-0 flex-1">
-              <div className="flex items-center justify-between gap-2">
-                <p
-                  className={cn(
-                    "text-sm font-medium transition-colors duration-300",
-                    selected ? "text-[var(--text)]" : "text-[var(--text-secondary)]",
-                  )}
-                >
-                  {r.name}
-                </p>
-
-                <div
-                  className={cn(
-                    "flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-md border transition-all duration-300",
-                    selected
-                      ? "border-transparent"
-                      : "border-[var(--border-strong)] bg-transparent",
-                  )}
-                  style={{
-                    backgroundColor: selected ? `${r.color}` : undefined,
-                  }}
-                >
-                  {selected && (
-                    <svg viewBox="0 0 12 12" fill="none" className="h-2.5 w-2.5 text-white">
-                      <path d="M2.5 6L5 8.5 9.5 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  )}
-                </div>
-              </div>
-              <p
-                className={cn(
-                  "mt-0.5 text-xs leading-relaxed transition-colors duration-300",
-                  selected ? "text-[var(--text-secondary)]" : "text-[var(--text-muted)]",
-                )}
-              >
-                {r.description}
-              </p>
-            </div>
-          </button>
-        );
-      })}
-    </div>
+    <section className="nextron-surface rounded-[1.5rem] p-4" data-nextron-onboarding-draft="true">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-200/60">Life Setup Draft</p>
+      <h2 className="mt-1 text-lg font-semibold tracking-[-0.03em] text-[var(--text)]">Your plan is ready to build.</h2>
+      <p className="mt-2 text-xs leading-relaxed text-[var(--text-muted)]">Marking this ready does not create goals, habits, tasks, projects, or calendar events. It confirms the draft for the next step.</p>
+      <div className="mt-4 space-y-4">
+        <DraftList title="Current focus" items={draft.currentFocus} />
+        <DraftCards title="Recommended goals" items={draft.goals.map((goal) => `${goal.title} — ${goal.why} (${goal.horizon}, ${goal.priority})`)} />
+        <DraftCards title="Starter habits" items={draft.starterHabits.map((habit) => `${habit.title} — ${habit.frequency}. ${habit.why}`)} />
+        <DraftCards title="Initial tasks" items={draft.initialTasks.map((task) => `${task.title} — ${task.why}`)} />
+        {draft.projects.length > 0 && <DraftCards title="Projects" items={draft.projects.map((project) => `${project.title} — ${project.desiredOutcome}. Next: ${project.nextMilestone}`)} />}
+        <DraftCards title="Routines" items={draft.routines.map((routine) => `${routine.title} — ${routine.cadence}. ${routine.description}`)} />
+        {draft.importantDates.length > 0 && <DraftCards title="Important dates / constraints" items={draft.importantDates.map((date) => `${date.label} — ${date.timing}. ${date.why}`)} />}
+        <DraftCards title="Deliberately left out" items={draft.deliberatelyLeftOut.map((item) => `${item.item} — ${item.reason}`)} muted />
+      </div>
+      <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+        <button type="button" onClick={onComplete} disabled={busy} className="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl bg-cyan-300 px-4 py-2 text-sm font-semibold text-slate-950 transition-all hover:-translate-y-0.5 hover:bg-cyan-200 disabled:translate-y-0 disabled:opacity-50">{busy ? "Marking ready..." : "Looks right - setup ready"}</button>
+      </div>
+    </section>
   );
 }
 
-// ─── Main component ──────────────────────────────────────────────────────────
+function DraftList({ title, items }: { title: string; items: string[] }) {
+  return <div><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-cyan-200/65">{title}</p><ol className="mt-2 space-y-1.5">{items.map((item, index) => <li key={`${item}-${index}`} className="break-words rounded-xl border border-cyan-300/10 bg-cyan-300/8 px-3 py-2 text-xs leading-relaxed text-[var(--text)]">{index + 1}. {item}</li>)}</ol></div>;
+}
 
-export default function OnboardingPage() {
-  const [step, setStep] = useState(0);
-  const [selectedRealms, setSelectedRealms] = useState<Set<string>>(
-    () => new Set(DEFAULT_REALMS.map((r) => r.name)),
-  );
-  const [intendedUse, setIntendedUse] = useState<IntendedUse | null>(null);
-  const [checking, setChecking] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const router = useRouter();
-  const supabase = createClient();
-  const contentRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function check() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) {
-        router.push("/login");
-        return;
-      }
-
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("onboarding_completed")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (cancelled) return;
-
-      if (profile?.onboarding_completed) {
-        router.push("/today");
-        return;
-      }
-
-      setChecking(false);
-
-      const { data: existing } = await supabase
-        .from("realms")
-        .select("name")
-        .eq("user_id", user.id);
-
-      if (existing && existing.length > 0) {
-        const existingNames = new Set(existing.map((r) => r.name));
-        setSelectedRealms(existingNames);
-      }
-    }
-
-    check();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [router, supabase]);
-
-  useEffect(() => {
-    contentRef.current?.scrollTo({ top: 0, behavior: "smooth" });
-  }, [step]);
-
-  function toggleRealm(name: string) {
-    setSelectedRealms((prev) => {
-      const next = new Set(prev);
-      if (next.has(name)) {
-        if (next.size <= 1) return prev;
-        next.delete(name);
-      } else {
-        next.add(name);
-      }
-      return next;
-    });
-  }
-
-  function handleNext() {
-    if (step === 1 && !intendedUse) {
-      setError("Choose what you are using Life Pulse for to continue.");
-      return;
-    }
-    setStep((s) => s + 1);
-    setError(null);
-  }
-
-  function handleBack() {
-    setStep((s) => Math.max(s - 1, 0));
-    setError(null);
-  }
-
-  async function handleComplete() {
-    setSaving(true);
-    setError(null);
-
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) {
-        setError("Session expired. Please sign in again.");
-        setSaving(false);
-        return;
-      }
-
-      if (!intendedUse) {
-        setError("Choose what you are using Life Pulse for to finish setup.");
-        setSaving(false);
-        return;
-      }
-
-      const { data: existing } = await supabase
-        .from("realms")
-        .select("name, id")
-        .eq("user_id", user.id);
-
-      if (!existing || existing.length === 0) {
-        const realmsToInsert = DEFAULT_REALMS.filter((r) => selectedRealms.has(r.name)).map((r, i) => ({
-          user_id: user.id,
-          name: r.name,
-          color: r.color,
-          icon: r.icon,
-          sort_order: i,
-        }));
-
-        if (realmsToInsert.length > 0) {
-          const { error: rErr } = await supabase.from("realms").insert(realmsToInsert).select();
-          if (rErr) {
-            setError("Failed to create life areas. Please try again.");
-            setSaving(false);
-            return;
-          }
-        }
-      }
-
-      // ── Create starter data for new users (idempotent) ──────────────────────
-      const { data: existingHabits } = await supabase
-        .from("habits")
-        .select("id")
-        .eq("user_id", user.id)
-        .limit(1);
-
-      if (!existingHabits || existingHabits.length === 0) {
-        const { data: realms } = await supabase
-          .from("realms")
-          .select("id, name")
-          .eq("user_id", user.id);
-
-        const bodyRealm = realms?.find((r) => r.name === "Body") ?? realms?.[0];
-        const mindRealm = realms?.find((r) => r.name === "Mind") ?? realms?.[0];
-        const careerRealm = realms?.find((r) => r.name === "Career") ?? realms?.[0];
-
-        const starterHabits = [];
-        if (bodyRealm) {
-          const { data: existingLogs } = await supabase
-            .from("habit_logs")
-            .select("id")
-            .eq("user_id", user.id)
-            .limit(1);
-          if (!existingLogs || existingLogs.length === 0) {
-            starterHabits.push(
-              { user_id: user.id, realm_id: bodyRealm.id, title: "Morning stretch", frequency: "daily" },
-              { user_id: user.id, realm_id: bodyRealm.id, title: "Walk 10 minutes", frequency: "daily" },
-            );
-          }
-        }
-        if (mindRealm) {
-          starterHabits.push(
-            { user_id: user.id, realm_id: mindRealm.id, title: "Read 10 pages", frequency: "daily" },
-          );
-        }
-        if (careerRealm) {
-          starterHabits.push(
-            { user_id: user.id, realm_id: careerRealm.id, title: "Review today's priorities", frequency: "weekdays" },
-          );
-        }
-
-        if (starterHabits.length > 0) {
-          const { error: starterHabitError } = await supabase.from("habits").insert(starterHabits).select();
-          if (starterHabitError) {
-            setError("Failed to create starter habits. Please try again.");
-            setSaving(false);
-            return;
-          }
-        }
-
-        const { data: existingTasks } = await supabase
-          .from("tasks")
-          .select("id")
-          .eq("user_id", user.id)
-          .limit(1);
-
-        if (!existingTasks || existingTasks.length === 0) {
-          const today = getTodayDateString();
-          const { error: starterTaskError } = await supabase.from("tasks").insert([
-            { user_id: user.id, title: "Explore the Today dashboard", status: "todo", priority: "high", due_date: today },
-            { user_id: user.id, title: "Set up a habit on the Habits page", status: "todo", priority: "medium", due_date: today },
-            { user_id: user.id, title: "Log your first Body Pulse check-in", status: "todo", priority: "medium", due_date: today },
-          ]);
-          if (starterTaskError) {
-            setError("Failed to create starter tasks. Please try again.");
-            setSaving(false);
-            return;
-          }
-        }
-      }
-
-      const { error: pErr } = await supabase
-        .from("profiles")
-        .update({ onboarding_completed: true, intended_use: intendedUse })
-        .eq("user_id", user.id);
-
-      if (pErr) {
-        const { error: insErr } = await supabase
-          .from("profiles")
-          .upsert({ user_id: user.id, onboarding_completed: true, intended_use: intendedUse }, { onConflict: "user_id" });
-        if (insErr) {
-          setError("Failed to save progress. Please try again.");
-          setSaving(false);
-          return;
-        }
-      }
-
-      router.push("/today");
-    } catch {
-      setError("Connection error. Please try again.");
-      setSaving(false);
-    }
-  }
-
-  // ── Loading state ──────────────────────────────────────────────────────────
-
-  if (checking) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[var(--bg)]">
-        <div className="flex flex-col items-center gap-5">
-          <LifePulseLogo />
-          <p className="text-sm text-[var(--text-muted)]">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // ── Render ──────────────────────────────────────────────────────────────────
-
-  const isLastStep = step === 4;
-
-  return (
-    <div className="flex min-h-screen flex-col bg-[var(--bg)] lg:flex-row">
-      {/* Left panel */}
-      <aside className="relative flex flex-col justify-between border-b border-[var(--border)] px-6 py-8 lg:sticky lg:top-0 lg:h-screen lg:w-[340px] lg:shrink-0 lg:border-b-0 lg:border-r lg:px-10 lg:py-12">
-        {/* Subtle decorative gradient in corner */}
-        <div className="pointer-events-none absolute -left-40 -top-40 h-80 w-80 rounded-full opacity-[0.03]"
-          style={{ background: "radial-gradient(circle, var(--accent), transparent 70%)" }}
-        />
-
-        <div>
-          {/* Logo */}
-          <div className="mb-10">
-            <LifePulseLogo />
-          </div>
-
-          {/* Step content */}
-          <div className="mb-8">
-            <h1 className="mb-3 text-xl font-bold leading-tight text-[var(--text)] lg:text-2xl">
-              {STEP_LEFT[step].title}
-            </h1>
-            <p className="text-sm leading-relaxed text-[var(--text-secondary)]">{STEP_LEFT[step].subtitle}</p>
-          </div>
-
-          {/* Step indicator - desktop */}
-          <div className="hidden lg:block">
-            <StepIndicator steps={STEP_LABELS} current={step} />
-          </div>
-        </div>
-
-        {/* Privacy note - desktop */}
-        <p className="hidden text-xs leading-relaxed text-[var(--text-muted)] lg:block">
-          Your data stays tied to your account. You can change your setup later in Settings.
-        </p>
-      </aside>
-
-      {/* Right panel */}
-      <main
-        ref={contentRef}
-        className="relative flex flex-1 flex-col overflow-y-auto px-6 py-8 lg:px-12 lg:py-12"
-      >
-        {/* Mobile step indicator */}
-        <div className="mb-8 lg:hidden">
-          <div className="mb-3 flex items-center justify-between">
-            {STEP_LABELS.map((label, i) => (
-              <div key={label} className="flex flex-1 items-center">
-                <div
-                  className={cn(
-                    "flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-medium transition-all duration-300",
-                    i < step && "bg-[var(--accent-soft)] text-[var(--accent)]",
-                    i === step && "bg-[var(--accent)] text-[var(--bg)] ring-2 ring-[var(--accent)]/30",
-                    i > step && "bg-[var(--surface)] text-[var(--text-muted)] ring-1 ring-[var(--border)]",
-                  )}
-                >
-                  {i < step ? (
-                    <svg viewBox="0 0 12 12" fill="currentColor" className="h-2.5 w-2.5">
-                      <path d="M10.28 2.22a.75.75 0 010 1.06l-6 6a.75.75 0 01-1.06 0l-3-3a.75.75 0 011.06-1.06L3.75 7.69l5.47-5.47a.75.75 0 011.06 0z" />
-                    </svg>
-                  ) : (
-                    i + 1
-                  )}
-                </div>
-                {i < STEP_LABELS.length - 1 && (
-                  <div
-                    className={cn(
-                      "mx-1 h-px flex-1 transition-colors duration-300",
-                      i < step ? "bg-[var(--accent)]/40" : "bg-[var(--border)]",
-                    )}
-                  />
-                )}
-              </div>
-            ))}
-          </div>
-          <p className="text-center text-xs text-[var(--text-muted)]">{STEP_LABELS[step]}</p>
-        </div>
-
-        {/* Step content */}
-        <div className="flex-1">
-          {step === 0 && (
-            <div className="animate-fade-in flex flex-col gap-8">
-              {/* Intro section */}
-              <div className="max-w-2xl space-y-3">
-                <div className="relative overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] px-5 py-4 shadow-lg shadow-black/5 sm:px-6 sm:py-5">
-                  <div
-                    className="pointer-events-none absolute -right-20 -top-24 h-44 w-44 rounded-full opacity-[0.04]"
-                    style={{ background: "radial-gradient(circle, var(--accent), transparent 70%)" }}
-                  />
-                  <p className="relative z-10 mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
-                    The first session
-                  </p>
-                  <h2 className="relative z-10 text-xl font-semibold leading-tight tracking-tight text-[var(--text)] sm:text-2xl">
-                    Start with the loop. Expand later.
-                  </h2>
-                  <p className="relative z-10 mt-3 max-w-xl text-sm leading-relaxed text-[var(--text-secondary)]">
-                    Plan today. Complete one visible action. Reflect tonight. Review the week once a few days are logged.
-                  </p>
-                </div>
-                <p className="px-1 text-xs leading-relaxed text-[var(--text-muted)]">
-                  Everything is private and based on what you enter. This private beta starts with a directed first loop, not a full system to configure.
-                </p>
-              </div>
-
-              {/* Feature cards grid - spans full width */}
-              <div>
-                <FeatureTour />
-              </div>
-            </div>
-          )}
-
-          {step === 1 && (
-            <div className="animate-fade-in flex flex-col gap-8">
-              <div className="max-w-2xl space-y-3">
-                <div>
-                  <h2 className="text-lg font-semibold text-[var(--text)]">What are you using Life Pulse for?</h2>
-                  <p className="mt-1 text-sm leading-relaxed text-[var(--text-secondary)]">
-                    Choose the starting setup that best fits why you&apos;re here. The daily loop stays the same either way.
-                  </p>
-                </div>
-                <p className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-xs leading-relaxed text-[var(--text-muted)]">
-                  This only personalizes your starting experience. It does not lock your account into one mode or require every module today.
-                </p>
-              </div>
-
-              <IntendedUseCards selected={intendedUse} onSelect={(value) => { setIntendedUse(value); setError(null); }} />
-
-              {intendedUse && <ModuleRecommendationPreview intendedUse={intendedUse} />}
-
-              {error && (
-                <div className="rounded-lg border border-[var(--danger-soft)] bg-[var(--danger-soft)] px-4 py-3 text-sm text-[var(--danger)]" role="alert">
-                  {error}
-                </div>
-              )}
-            </div>
-          )}
-
-          {step === 2 && (
-            <div className="animate-fade-in flex flex-col gap-8">
-              <div className="max-w-2xl">
-                <p className="text-sm leading-relaxed text-[var(--text-secondary)]">
-                  These labels help organize what you log. Keep the defaults if you want to move faster; you can edit them later.
-                </p>
-              </div>
-
-              <div>
-                <RealmCards selectedRealms={selectedRealms} onToggle={toggleRealm} />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <p className="text-xs text-[var(--text-muted)]">
-                  {selectedRealms.size === 0
-                    ? "Select at least one life area to continue."
-                    : `${selectedRealms.size} of ${DEFAULT_REALMS.length} selected`}
-                </p>
-              </div>
-            </div>
-          )}
-
-          {step === 3 && (
-            <div className="animate-fade-in flex flex-col gap-8">
-              <div className="max-w-2xl">
-                <p className="mb-6 text-sm leading-relaxed text-[var(--text-secondary)]">
-                  Your first job is simple: set one priority, complete one visible action, then reflect tonight. Weekly Review gets useful after a few days of entries.
-                </p>
-              </div>
-
-              <div>
-                <DailyLoopGrid />
-              </div>
-            </div>
-          )}
-
-          {step === 4 && (
-            <div className="animate-fade-in flex flex-col gap-8">
-              {/* Completion header */}
-              <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-                <div className="max-w-lg">
-                  <p className="text-sm leading-relaxed text-[var(--text-secondary)]">
-                    You are ready to start Today. One priority is enough to begin; what you log today becomes context for your week.
-                  </p>
-                </div>
-
-                {/* Logo treatment - completion badge */}
-                <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-[var(--accent-ghost)] ring-1 ring-[var(--accent)]/10">
-                  <LifePulseLogo variant="mark" size="lg" />
-                </div>
-              </div>
-
-              {/* Summary cards */}
-              <div>
-                <FinalSummary />
-              </div>
-
-              {/* Error + CTA */}
-              <div className="flex flex-col gap-5">
-                {error && (
-                  <div
-                    className="rounded-lg border border-[var(--danger-soft)] bg-[var(--danger-soft)] px-4 py-3 text-sm text-[var(--danger)]"
-                    role="alert"
-                  >
-                    {error}
-                  </div>
-                )}
-
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <Button
-                      size="lg"
-                      className="w-full sm:w-auto shadow-md shadow-[var(--accent)]/15 hover:shadow-lg hover:shadow-[var(--accent)]/20 transition-all duration-200 text-base"
-                      onClick={handleComplete}
-                      disabled={saving}
-                    >
-                      {saving ? (
-                        <span className="flex items-center gap-2">
-                          <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                          Setting up...
-                        </span>
-                      ) : (
-                        "Start today's loop"
-                      )}
-                    </Button>
-                  </div>
-                  <p className="text-xs text-[var(--text-muted)]">
-                    This opens Today. Set one priority first.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Navigation buttons */}
-        {!isLastStep && (
-          <div className="mt-10 flex items-center justify-between border-t border-[var(--border)] pt-6">
-            <div>
-              {step > 0 && (
-                <Button variant="ghost" onClick={handleBack} disabled={saving}>
-                  Back
-                </Button>
-              )}
-            </div>
-            <Button onClick={handleNext} disabled={saving || (step === 1 && !intendedUse) || (step === 2 && selectedRealms.size === 0)}>
-              {step === 1 && !intendedUse ? "Choose setup" : step === 2 && selectedRealms.size === 0 ? "Select an area" : "Continue"}
-            </Button>
-          </div>
-        )}
-
-        {/* Privacy note - mobile */}
-        <p className="mt-8 text-center text-xs text-[var(--text-muted)] lg:hidden">
-          Your data stays tied to your account. You can change your setup later in Settings.
-        </p>
-      </main>
-    </div>
-  );
+function DraftCards({ title, items, muted }: { title: string; items: string[]; muted?: boolean }) {
+  return <div><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-cyan-200/65">{title}</p><div className="mt-2 grid gap-2">{items.map((item) => <div key={item} className={`break-words rounded-xl border px-3 py-2 text-xs leading-relaxed ${muted ? "border-[var(--border)] bg-black/12 text-[var(--text-muted)]" : "border-cyan-300/10 bg-black/15 text-[var(--text-secondary)]"}`}>{item}</div>)}</div></div>;
 }

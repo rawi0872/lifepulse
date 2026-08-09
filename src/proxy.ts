@@ -51,7 +51,14 @@ export async function proxy(request: NextRequest) {
     .eq("user_id", user.id)
     .maybeSingle();
 
-  const onboardingDone = profile?.onboarding_completed ?? false;
+  const { data: nextronOnboarding } = await supabase
+    .from("nextron_onboarding")
+    .select("status")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  const onboardingStatus = typeof nextronOnboarding?.status === "string" ? nextronOnboarding.status : null;
+  const onboardingDone = Boolean(profile?.onboarding_completed) || onboardingStatus === "completed" || onboardingStatus === "skipped";
 
   if (pathname === "/") {
     return NextResponse.redirect(
