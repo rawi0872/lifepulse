@@ -287,7 +287,7 @@ async function main() {
     await expect(page.locator('[data-nextron-signals="true"]')).toContainText("Model calls: 0", { timeout: 15000 });
     pass("NEXTRON Signals refresh completed");
 
-    await expect(page.locator('[data-nextron-actions="true"]')).toContainText("Task actions permission", { timeout: 10000 });
+    await expect(page.locator('[data-nextron-actions="true"]')).toContainText("Goals, Habits, Projects, and Tasks", { timeout: 10000 });
     await page.locator("#nextron-question").fill(`Create a task called ${createTitle} tomorrow`);
     await page.getByRole("button", { name: "Send to NEXTRON" }).click();
     const createProposal = page.locator('[data-nextron-action-proposal="true"]').filter({ hasText: createTitle }).first();
@@ -297,7 +297,7 @@ async function main() {
 
     await expect(createProposal.getByRole("button", { name: "Approve task" })).toBeEnabled({ timeout: 15000 });
     await createProposal.getByRole("button", { name: "Approve task" }).click();
-    await expect(createProposal).toContainText("Approved and completed. Canonical Task data was updated.", { timeout: 15000 });
+    await expect(createProposal).toContainText("Approved and completed. Life Pulse was updated and verified by the server.", { timeout: 15000 });
     const { data: createdTask } = await supabase.from("tasks").select("id, title, status, due_date").eq("user_id", userId).eq("title", createTitle).maybeSingle();
     expect(createdTask?.status).toBe("todo");
     expect(createdTask?.due_date).toBeTruthy();
@@ -309,7 +309,7 @@ async function main() {
     await expect(updateSeedProposal).toContainText("CREATE TASK", { timeout: 20000 });
     await expect(updateSeedProposal.getByRole("button", { name: "Approve task" })).toBeEnabled({ timeout: 15000 });
     await updateSeedProposal.getByRole("button", { name: "Approve task" }).click();
-    await expect(updateSeedProposal).toContainText("Approved and completed. Canonical Task data was updated.", { timeout: 15000 });
+    await expect(updateSeedProposal).toContainText("Approved and completed. Life Pulse was updated and verified by the server.", { timeout: 15000 });
     pass("Seeded Task update target through approved Task create");
 
     await page.locator("#nextron-question").fill(`Move task called ${updateTitle} to tomorrow`);
@@ -318,7 +318,7 @@ async function main() {
     await expect(updateProposal).toContainText("UPDATE TASK", { timeout: 20000 });
     await expect(updateProposal.getByRole("button", { name: "Approve task update" })).toBeEnabled({ timeout: 15000 });
     await updateProposal.getByRole("button", { name: "Approve task update" }).click();
-    await expect(updateProposal).toContainText("Approved and completed. Canonical Task data was updated.", { timeout: 15000 });
+    await expect(updateProposal).toContainText("Approved and completed. Life Pulse was updated and verified by the server.", { timeout: 15000 });
     const { data: updatedTask } = await supabase.from("tasks").select("title, due_date").eq("user_id", userId).eq("title", updateTitle).maybeSingle();
     expect(updatedTask?.due_date).toBeTruthy();
     pass("Approved Task update mutated canonical task row");
@@ -333,7 +333,7 @@ async function main() {
     pass("Action cancellation finalized proposal");
 
     await page.reload({ waitUntil: "networkidle" });
-    await expect(page.locator('[data-nextron-actions="true"]')).toContainText("Approved and completed. Canonical Task data was updated.", { timeout: 20000 });
+    await expect(page.locator('[data-nextron-actions="true"]')).toContainText("Approved and completed. Life Pulse was updated and verified by the server.", { timeout: 20000 });
     await expect(page.locator('[data-nextron-actions="true"]')).toContainText("Canceled. This proposal can no longer be approved.", { timeout: 10000 });
     pass("Action proposal statuses persisted across refresh");
 
