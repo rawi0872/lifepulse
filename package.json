@@ -37,6 +37,7 @@
     "test:nextron-live-context": "node scripts/nextron-live-context-test.mjs",
     "test:nextron-daily-brief": "node scripts/nextron-daily-brief-test.mjs",
     "test:nextron-signals": "node scripts/nextron-signals-test.mjs",
+    "test:nextron-actions": "node scripts/nextron-actions-test.mjs",
     "test:knowledge-hybrid": "node scripts/knowledge-hybrid-test.mjs"
   },
   "dependencies": {

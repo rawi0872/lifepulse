@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { invalidateConversationActionProposals } from "@/lib/nextron/actions";
 import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -48,6 +49,7 @@ export async function DELETE(_request: Request, context: { params: Promise<{ id:
     .eq("user_id", user.id)
     .is("deleted_at", null);
   if (error) return NextResponse.json({ error: "Conversation could not be deleted." }, { status: 503 });
+  await invalidateConversationActionProposals(supabase, id);
   await supabase.from("nextron_messages").delete().eq("conversation_id", id).eq("user_id", user.id);
   return NextResponse.json({ ok: true });
 }

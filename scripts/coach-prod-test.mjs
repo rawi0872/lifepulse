@@ -42,6 +42,8 @@ const requiredCoachText = [
   "NEXTRON Signals",
   "What changed or deserves attention",
   "Refresh signals",
+  "NEXTRON Actions",
+  "Approval framework",
   "Command channel",
   "Ask NEXTRON",
   "Main intelligence",
@@ -233,6 +235,31 @@ async function main() {
     await page.getByRole("button", { name: "Refresh signals" }).click();
     await expect(page.locator('[data-nextron-signals="true"]')).toContainText("Provider: deterministic", { timeout: 15000 });
     pass("NEXTRON Signals refresh completed");
+
+    await expect(page.locator('[data-nextron-actions="true"]')).toContainText("Execution is disabled in Prompt 7", { timeout: 10000 });
+    const beforeActionTasksResponse = await page.request.get(`${BASE}/tasks`);
+    expect(beforeActionTasksResponse.ok()).toBe(true);
+    await page.locator("#nextron-question").fill("Create a task called Prompt 7 production nonmutation check tomorrow");
+    await page.getByRole("button", { name: "Send to NEXTRON" }).click();
+    await expect(page.locator('[data-nextron-action-proposal="true"]').first()).toContainText("CREATE TASK", { timeout: 20000 });
+    await expect(page.locator('[data-nextron-action-proposal="true"]').first()).toContainText("Requires approval", { timeout: 10000 });
+    pass("Action proposal generated");
+
+    await page.getByRole("button", { name: "Approve task" }).first().click();
+    await expect(page.locator('[data-nextron-action-proposal="true"]').first()).toContainText("Approval recorded. Action execution is not enabled yet.", { timeout: 15000 });
+    pass("Action approval recorded without execution");
+
+    await page.locator("#nextron-question").fill("Create a task called Prompt 7 cancel check tomorrow");
+    await page.getByRole("button", { name: "Send to NEXTRON" }).click();
+    await expect(page.locator('[data-nextron-action-proposal="true"]').first()).toContainText("Prompt 7 cancel check", { timeout: 20000 });
+    await page.getByRole("button", { name: "Cancel" }).first().click();
+    await expect(page.locator('[data-nextron-action-proposal="true"]').first()).toContainText("Canceled. This proposal can no longer be approved.", { timeout: 15000 });
+    pass("Action cancellation finalized proposal");
+
+    await page.reload({ waitUntil: "networkidle" });
+    await expect(page.locator('[data-nextron-actions="true"]')).toContainText("Approval recorded. Action execution is not enabled yet.", { timeout: 20000 });
+    await expect(page.locator('[data-nextron-actions="true"]')).toContainText("Canceled. This proposal can no longer be approved.", { timeout: 10000 });
+    pass("Action proposal statuses persisted across refresh");
 
     if (bodyText.includes(financeCoachNudgeTitle)) {
       pass(`Finance Coach nudge visible: ${financeCoachNudgeTitle}`);

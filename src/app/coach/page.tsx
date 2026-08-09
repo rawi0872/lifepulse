@@ -76,9 +76,29 @@ interface NextronSignal {
 }
 interface NextronSignalMeta { localDate: string; observedAt: string; maxVisible: number; persisted: boolean; modelCalls: number; provider: string; knowledgeAutomaticScan: boolean; driveAutomaticScan: boolean; memoryAutomaticMonitoring: boolean }
 
+interface NextronActionPreviewField { label: string; before?: string | null; after: string }
+interface NextronActionPreview { heading: string; subheading: string; fields: NextronActionPreviewField[]; approvalLabel: string }
+interface NextronActionProposal {
+  id: string;
+  actionType: string;
+  title: string;
+  description: string;
+  parameters: Record<string, unknown>;
+  preview: NextronActionPreview;
+  riskLevel: "low" | "sensitive" | "external";
+  requiresApproval: true;
+  status: "pending" | "approved_execution_disabled" | "canceled" | "expired" | "invalidated";
+  createdAt: string;
+  expiresAt: string;
+  approvedAt: string | null;
+  canceledAt: string | null;
+  finalReason: string | null;
+}
+
 type IntelligenceCoreState = "idle" | "thinking" | "syncing" | "ready" | "error";
 type DailyBriefStatus = "idle" | "generating" | "ready" | "error";
 type SignalStatus = "idle" | "loading" | "ready" | "error";
+type ActionProposalStatus = "idle" | "loading" | "ready" | "saving" | "error";
 
 export default function CoachPage() {
   return (
@@ -124,6 +144,9 @@ function NextronContent() {
   const [signalMeta, setSignalMeta] = useState<NextronSignalMeta | null>(null);
   const [signalStatus, setSignalStatus] = useState<SignalStatus>("idle");
   const [signalError, setSignalError] = useState<string | null>(null);
+  const [actionProposals, setActionProposals] = useState<NextronActionProposal[]>([]);
+  const [actionStatus, setActionStatus] = useState<ActionProposalStatus>("idle");
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const openConversation = useCallback(async (id: string) => {
     setThreadStatus("loading");
@@ -179,6 +202,19 @@ function NextronContent() {
     setSignalStatus("ready");
   }, []);
 
+  const loadActionProposals = useCallback(async () => {
+    setActionStatus("loading");
+    setActionError(null);
+    const result = await fetch("/api/nextron/actions").then((res) => res.ok ? res.json() : null).catch(() => null) as { proposals?: unknown } | null;
+    if (!result || !Array.isArray(result.proposals)) {
+      setActionStatus("error");
+      setActionError("NEXTRON action proposals could not be loaded.");
+      return;
+    }
+    setActionProposals(result.proposals.filter(isNextronActionProposal).slice(0, 6));
+    setActionStatus("ready");
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -204,6 +240,9 @@ function NextronContent() {
       setSignalMeta(null);
       setSignalStatus("idle");
       setSignalError(null);
+      setActionProposals([]);
+      setActionStatus("idle");
+      setActionError(null);
       setThreadStatus("loading");
       setThreadError(null);
 
@@ -229,6 +268,9 @@ function NextronContent() {
           setSignalMeta(null);
           setSignalStatus("idle");
           setSignalError(null);
+          setActionProposals([]);
+          setActionStatus("idle");
+          setActionError(null);
           setConversations([]);
           setCurrentConversation(null);
           setMessages([]);
@@ -259,6 +301,8 @@ function NextronContent() {
         if (cancelled || seq !== requestSeq.current) return;
         await loadSignals();
         if (cancelled || seq !== requestSeq.current) return;
+        await loadActionProposals();
+        if (cancelled || seq !== requestSeq.current) return;
         await loadConversations();
       } catch {
         if (!cancelled && seq === requestSeq.current) setError("NEXTRON could not load the permitted context right now.");
@@ -277,7 +321,7 @@ function NextronContent() {
       askAbortController.current?.abort();
       dailyBriefAbortController.current?.abort();
     };
-  }, [loadConversations, loadLiveContext, loadSignals, router, supabase]);
+  }, [loadActionProposals, loadConversations, loadLiveContext, loadSignals, router, supabase]);
 
   useEffect(() => {
     if (!userId) return;
@@ -285,6 +329,7 @@ function NextronContent() {
       if (document.visibilityState === "visible") {
         void loadLiveContext().catch(() => undefined);
         void loadSignals().catch(() => undefined);
+        void loadActionProposals().catch(() => undefined);
       }
     }
     window.addEventListener("focus", refreshIfVisible);
@@ -293,7 +338,7 @@ function NextronContent() {
       window.removeEventListener("focus", refreshIfVisible);
       document.removeEventListener("visibilitychange", refreshIfVisible);
     };
-  }, [loadLiveContext, loadSignals, userId]);
+  }, [loadActionProposals, loadLiveContext, loadSignals, userId]);
 
   async function startNewConversation() {
     setThreadError(null);
@@ -442,9 +487,57 @@ function NextronContent() {
     }
   }
 
+  function looksLikeActionIntent(prompt: string): boolean {
+    return /\b(create|add|make|remind me|reminder|move|update|change)\b/i.test(prompt) && /\b(task|reminder|due|deadline)\b/i.test(prompt);
+  }
+
+  async function proposeNextronAction(prompt: string): Promise<boolean> {
+    if (!looksLikeActionIntent(prompt)) return false;
+    setActionStatus("saving");
+    setActionError(null);
+    const result = await fetch("/api/nextron/actions/propose", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt, conversationId: currentConversation?.id ?? null }),
+    }).then(async (res) => ({ ok: res.ok, status: res.status, body: await res.json().catch(() => null) as unknown })).catch(() => null);
+    if (!result || result.status === 404) {
+      setActionStatus("idle");
+      return false;
+    }
+    const candidate = typeof result.body === "object" && result.body !== null ? result.body as { proposal?: unknown; error?: unknown } : null;
+    if (!result.ok || !isNextronActionProposal(candidate?.proposal)) {
+      setActionStatus("error");
+      setActionError(typeof candidate?.error === "string" ? candidate.error : "NEXTRON could not prepare that action proposal.");
+      return true;
+    }
+    const proposal = candidate.proposal;
+    setActionProposals((current) => [proposal, ...current.filter((item) => item.id !== proposal.id)].slice(0, 6));
+    setActionStatus("ready");
+    setAskPrompt("");
+    setAskStatus("answered");
+    setAskError(null);
+    return true;
+  }
+
+  async function transitionActionProposal(id: string, transition: "approve" | "cancel") {
+    setActionStatus("saving");
+    setActionError(null);
+    const result = await fetch(`/api/nextron/actions/${id}/${transition}`, { method: "POST" }).then(async (res) => ({ ok: res.ok, body: await res.json().catch(() => null) as unknown })).catch(() => null);
+    const candidate = typeof result?.body === "object" && result.body !== null ? result.body as { proposal?: unknown; error?: unknown } : null;
+    if (!result?.ok || !isNextronActionProposal(candidate?.proposal)) {
+      setActionStatus("error");
+      setActionError(typeof candidate?.error === "string" ? candidate.error : "NEXTRON could not update that proposal.");
+      return;
+    }
+    const proposal = candidate.proposal;
+    setActionProposals((current) => [proposal, ...current.filter((item) => item.id !== proposal.id)].slice(0, 6));
+    setActionStatus("ready");
+  }
+
   async function askNextron(promptOverride?: string) {
     if (askStatus === "asking") return;
     const prompt = promptOverride ?? askPrompt;
+    if (await proposeNextronAction(prompt)) return;
     const parsed = parseNextronUserRequest(prompt);
     if (!parsed.ok) {
       setAskError(parsed.message);
@@ -638,6 +731,16 @@ function NextronContent() {
             onAsk={(prompt) => { setAskPrompt(prompt); void askNextron(prompt); }}
           />
 
+          <NextronActionProposalsView
+            proposals={actionProposals}
+            status={actionStatus}
+            error={actionError}
+            onRefresh={() => void loadActionProposals()}
+            onApprove={(id) => void transitionActionProposal(id, "approve")}
+            onCancel={(id) => void transitionActionProposal(id, "cancel")}
+            onChange={(prompt) => { setAskPrompt(prompt); }}
+          />
+
           <section aria-labelledby="ask-nextron" className={`nextron-surface nextron-scanline relative overflow-hidden rounded-[2rem] p-4 sm:p-5 ${askStatus === "asking" ? "border-cyan-200/35" : ""}`}>
             {askStatus === "asking" && <div className="pointer-events-none absolute inset-y-0 left-0 w-1/2 bg-[linear-gradient(90deg,transparent,rgba(103,232,249,0.10),transparent)] [animation:nextron-scan_1.7s_ease-in-out_infinite]" aria-hidden="true" />}
             <div className="mb-5 flex flex-col items-center gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -817,6 +920,32 @@ function isNextronSignalMeta(value: unknown): value is NextronSignalMeta {
     && typeof candidate.knowledgeAutomaticScan === "boolean"
     && typeof candidate.driveAutomaticScan === "boolean"
     && typeof candidate.memoryAutomaticMonitoring === "boolean";
+}
+
+function isNextronActionProposal(value: unknown): value is NextronActionProposal {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Partial<NextronActionProposal>;
+  return typeof candidate.id === "string"
+    && typeof candidate.actionType === "string"
+    && typeof candidate.title === "string"
+    && typeof candidate.description === "string"
+    && typeof candidate.parameters === "object" && candidate.parameters !== null
+    && isNextronActionPreview(candidate.preview)
+    && (candidate.riskLevel === "low" || candidate.riskLevel === "sensitive" || candidate.riskLevel === "external")
+    && candidate.requiresApproval === true
+    && ["pending", "approved_execution_disabled", "canceled", "expired", "invalidated"].includes(candidate.status ?? "")
+    && typeof candidate.createdAt === "string"
+    && typeof candidate.expiresAt === "string";
+}
+
+function isNextronActionPreview(value: unknown): value is NextronActionPreview {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Partial<NextronActionPreview>;
+  return typeof candidate.heading === "string"
+    && typeof candidate.subheading === "string"
+    && Array.isArray(candidate.fields)
+    && candidate.fields.every((field) => typeof field.label === "string" && typeof field.after === "string" && (field.before === undefined || field.before === null || typeof field.before === "string"))
+    && typeof candidate.approvalLabel === "string";
 }
 
 function isConversationSummary(value: unknown): value is ConversationSummary {
@@ -1105,6 +1234,53 @@ function SignalCard({ signal, onAsk }: { signal: NextronSignal; onAsk: (prompt: 
       <div className="mt-3 flex flex-wrap gap-2">
         <PanelButton onClick={() => onAsk(signal.bridgePrompt)}>Why does this matter?</PanelButton>
         <PanelButton onClick={() => onAsk(`What should I do about this signal: ${signal.title}?`)}>What should I do?</PanelButton>
+      </div>
+    </article>
+  );
+}
+
+function NextronActionProposalsView({ proposals, status, error, onRefresh, onApprove, onCancel, onChange }: { proposals: NextronActionProposal[]; status: ActionProposalStatus; error: string | null; onRefresh: () => void; onApprove: (id: string) => void; onCancel: (id: string) => void; onChange: (prompt: string) => void }) {
+  const loading = status === "loading";
+  return (
+    <section aria-labelledby="nextron-actions-heading" data-nextron-actions="true" className="nextron-surface relative overflow-hidden rounded-[2rem] p-4 sm:p-5">
+      <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-cyan-200/30 to-transparent" aria-hidden="true" />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-200/70">NEXTRON Actions</p>
+          <h2 id="nextron-actions-heading" className="mt-1 text-lg font-semibold tracking-[-0.03em] text-[var(--text)]">Approval framework</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[var(--text-muted)]">NEXTRON can prepare validated proposals. Execution is disabled in Prompt 7, so approval records intent without changing Life Pulse data.</p>
+        </div>
+        <button type="button" onClick={onRefresh} disabled={loading || status === "saving"} className="inline-flex min-h-10 shrink-0 items-center rounded-xl border border-cyan-300/20 bg-cyan-300/10 px-3 py-2 text-xs font-semibold text-cyan-50/85 transition-all hover:-translate-y-0.5 hover:border-cyan-200/35 disabled:translate-y-0 disabled:opacity-50">{loading ? "Loading..." : "Refresh proposals"}</button>
+      </div>
+      {error && <p className="mt-3 rounded-xl border border-[var(--warning)]/25 bg-[var(--warning-soft)] px-3 py-2 text-xs text-[var(--warning)]">{error}</p>}
+      <div className="mt-4 space-y-3">
+        {proposals.length === 0 ? <p className="rounded-2xl border border-cyan-300/10 bg-black/15 p-3 text-sm text-[var(--text-muted)]">No pending action proposals. Try: Create a task called Review launch notes tomorrow.</p> : proposals.map((proposal) => <ActionProposalCard key={proposal.id} proposal={proposal} busy={status === "saving"} onApprove={onApprove} onCancel={onCancel} onChange={onChange} />)}
+      </div>
+    </section>
+  );
+}
+
+function ActionProposalCard({ proposal, busy, onApprove, onCancel, onChange }: { proposal: NextronActionProposal; busy: boolean; onApprove: (id: string) => void; onCancel: (id: string) => void; onChange: (prompt: string) => void }) {
+  const pending = proposal.status === "pending";
+  const statusCopy = proposal.status === "approved_execution_disabled" ? "Approval recorded. Action execution is not enabled yet." : proposal.status === "canceled" ? "Canceled. This proposal can no longer be approved." : proposal.status === "expired" ? "Expired. Regenerate the proposal to approve it." : proposal.status === "invalidated" ? "Invalidated because its conversation or source context changed." : `Requires explicit approval. Expires ${formatTime(proposal.expiresAt)}.`;
+  return (
+    <article data-nextron-action-proposal="true" className="rounded-2xl border border-cyan-300/18 bg-[linear-gradient(180deg,rgba(8,18,32,0.76),rgba(4,9,18,0.84))] p-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-200/75">Operation ready · Requires approval</p>
+          <h3 className="mt-1 break-words text-base font-semibold text-[var(--text)]">{proposal.preview.heading}</h3>
+          <p className="mt-1 break-words text-sm text-[var(--text-secondary)]">{proposal.preview.subheading}</p>
+        </div>
+        <span className="w-fit rounded-full border border-cyan-300/20 bg-cyan-300/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-cyan-50/80">{proposal.riskLevel} risk</span>
+      </div>
+      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+        {proposal.preview.fields.map((field) => <div key={field.label} className="rounded-xl border border-cyan-300/10 bg-black/15 p-3"><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">{field.label}</p>{field.before && <p className="mt-1 text-xs text-[var(--text-muted)]">Before: {field.before}</p>}<p className="mt-1 break-words text-sm text-[var(--text)]">{field.after}</p></div>)}
+      </div>
+      <p className="mt-3 text-xs leading-relaxed text-[var(--text-muted)]">{statusCopy}</p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button type="button" disabled={!pending || busy} onClick={() => onApprove(proposal.id)} className="inline-flex min-h-11 items-center rounded-xl bg-cyan-300 px-4 py-2 text-sm font-semibold text-slate-950 transition-all hover:-translate-y-0.5 hover:bg-cyan-200 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-45">{proposal.preview.approvalLabel}</button>
+        <button type="button" disabled={!pending || busy} onClick={() => { onChange(`Change this action proposal: ${proposal.preview.subheading}`); }} className="inline-flex min-h-11 items-center rounded-xl border border-cyan-300/20 bg-cyan-300/10 px-4 py-2 text-sm font-semibold text-cyan-50/85 transition-all hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-45">Change</button>
+        <button type="button" disabled={!pending || busy} onClick={() => onCancel(proposal.id)} className="inline-flex min-h-11 items-center rounded-xl border border-[var(--danger)]/25 bg-[var(--danger-soft)] px-4 py-2 text-sm font-semibold text-[var(--danger)] transition-all hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-45">Cancel</button>
       </div>
     </article>
   );
