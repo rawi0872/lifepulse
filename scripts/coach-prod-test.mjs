@@ -303,8 +303,15 @@ async function main() {
     expect(createdTask?.due_date).toBeTruthy();
     pass("Approved Task create mutated canonical task row");
 
-    const { error: seedUpdateError } = await supabase.from("tasks").insert({ user_id: userId, title: updateTitle, priority: "medium", status: "todo", due_date: null });
-    if (seedUpdateError) throw new Error(`Failed to seed Task update QA record: ${seedUpdateError.message}`);
+    await page.locator("#nextron-question").fill(`Create a task called ${updateTitle} today`);
+    await page.getByRole("button", { name: "Send to NEXTRON" }).click();
+    const updateSeedProposal = page.locator('[data-nextron-action-proposal="true"]').filter({ hasText: updateTitle }).first();
+    await expect(updateSeedProposal).toContainText("CREATE TASK", { timeout: 20000 });
+    await expect(updateSeedProposal.getByRole("button", { name: "Approve task" })).toBeEnabled({ timeout: 15000 });
+    await updateSeedProposal.getByRole("button", { name: "Approve task" }).click();
+    await expect(updateSeedProposal).toContainText("Approved and completed. Canonical Task data was updated.", { timeout: 15000 });
+    pass("Seeded Task update target through approved Task create");
+
     await page.locator("#nextron-question").fill(`Move task called ${updateTitle} to tomorrow`);
     await page.getByRole("button", { name: "Send to NEXTRON" }).click();
     const updateProposal = page.locator('[data-nextron-action-proposal="true"]').filter({ hasText: updateTitle }).first();
