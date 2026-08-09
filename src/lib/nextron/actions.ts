@@ -135,7 +135,7 @@ export function parseNextronActionIntent(prompt: string): ActionParseResult {
   return { ok: false, reason: "NO_ACTION", message: "No action proposal detected." };
 }
 
-async function validateActionIntent(supabase: SupabaseClient, actionType: string, parameters: Record<string, unknown>): Promise<ValidationResult> {
+async function validateActionIntent(supabase: SupabaseClient, userId: string, actionType: string, parameters: Record<string, unknown>): Promise<ValidationResult> {
   if (!ACTION_TYPE_SET.has(actionType)) return { ok: false, reason: "UNSUPPORTED_ACTION", message: "Unsupported action type." };
   const allowedKeys = actionType === "life_pulse.task.update" ? ["taskTitle", "dueDate"] : ["title", "dueDate"];
   const extra = Object.keys(parameters).filter((key) => !allowedKeys.includes(key));
@@ -149,7 +149,8 @@ async function validateActionIntent(supabase: SupabaseClient, actionType: string
     const { data, error } = await supabase
       .from("tasks")
       .select("id, title, due_date, status")
-      .ilike("title", taskTitle)
+      .eq("user_id", userId)
+      .eq("title", taskTitle)
       .limit(2);
     if (error) return { ok: false, reason: "RESOURCE_NOT_FOUND", message: "NEXTRON could not verify that task right now." };
     if (!data || data.length === 0) return { ok: false, reason: "RESOURCE_NOT_FOUND", message: "I could not find an owned task with that exact title." };
@@ -183,8 +184,8 @@ async function validateActionIntent(supabase: SupabaseClient, actionType: string
   };
 }
 
-export async function createActionProposal(args: { supabase: SupabaseClient; conversationId: string | null; actionType: string; parameters: Record<string, unknown> }): Promise<{ ok: true; proposal: NextronActionProposal } | { ok: false; reason: string; message: string }> {
-  const validated = await validateActionIntent(args.supabase, args.actionType, args.parameters);
+export async function createActionProposal(args: { supabase: SupabaseClient; userId: string; conversationId: string | null; actionType: string; parameters: Record<string, unknown> }): Promise<{ ok: true; proposal: NextronActionProposal } | { ok: false; reason: string; message: string }> {
+  const validated = await validateActionIntent(args.supabase, args.userId, args.actionType, args.parameters);
   if (!validated.ok) return { ok: false, reason: validated.reason, message: validated.message };
   const expiresAt = new Date(Date.now() + NEXTRON_ACTION_EXPIRY_MINUTES * 60_000).toISOString();
   const { data, error } = await args.supabase.rpc("nextron_create_action_proposal", { p_conversation_id: args.conversationId, p_action_type: validated.actionType, p_validated_payload: validated.parameters, p_preview_payload: { title: validated.title, description: validated.description, preview: validated.preview }, p_risk_level: validated.riskLevel, p_expires_at: expiresAt });
