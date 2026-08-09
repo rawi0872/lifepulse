@@ -158,8 +158,8 @@ async function validateActionIntent(supabase: SupabaseClient, actionType: string
       return { ok: false, reason: "RESOURCE_NOT_FOUND", message: "NEXTRON could not verify that task right now.", diagnostic: { stage: "resolver_rpc", code: error.code ?? "unknown", messageClass: error.message?.includes("Could not find the function") ? "RPC_NOT_DISCOVERED" : error.message?.includes("AUTH_REQUIRED") ? "AUTH_REQUIRED" : "RPC_ERROR", titleLength: taskTitle.length, targetText: taskTitle } };
     }
     const matches = (data ?? []) as Array<{ id: string; title: string; due_date: string | null; status: string }>;
-    if (matches.length === 0) return { ok: false, reason: "RESOURCE_NOT_FOUND", message: "I could not find an owned task with that exact title." };
-    if (matches.length > 1) return { ok: false, reason: "AMBIGUOUS_RESOURCE", message: "More than one task matched that title. Rename or specify the exact task first." };
+    if (matches.length === 0) return { ok: false, reason: "RESOURCE_NOT_FOUND", message: "I could not find an owned task with that exact title.", diagnostic: { stage: "match_classification", matchCount: 0, targetText: taskTitle, titleLength: taskTitle.length } };
+    if (matches.length > 1) return { ok: false, reason: "AMBIGUOUS_RESOURCE", message: "More than one task matched that title. Rename or specify the exact task first.", diagnostic: { stage: "match_classification", matchCount: matches.length, targetText: taskTitle, titleLength: taskTitle.length } };
     const task = matches[0];
     if (!UUID.test(task.id) || (task.status !== "todo" && task.status !== "done")) return { ok: false, reason: "RESOURCE_NOT_FOUND", message: "NEXTRON could not verify that task right now." };
     return {
