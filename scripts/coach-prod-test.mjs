@@ -314,7 +314,7 @@ async function main() {
 
     await page.locator("#nextron-question").fill(`Move task called ${updateTitle} to tomorrow`);
     await page.getByRole("button", { name: "Send to NEXTRON" }).click();
-    const updateProposal = page.locator('[data-nextron-action-proposal="true"]').filter({ hasText: updateTitle }).first();
+    const updateProposal = page.locator('[data-nextron-action-proposal="true"]').filter({ hasText: updateTitle }).filter({ hasText: "UPDATE TASK" }).first();
     await expect(updateProposal).toContainText("UPDATE TASK", { timeout: 20000 });
     await expect(updateProposal.getByRole("button", { name: "Approve task update" })).toBeEnabled({ timeout: 15000 });
     await updateProposal.getByRole("button", { name: "Approve task update" }).click();
