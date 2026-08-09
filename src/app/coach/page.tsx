@@ -1229,7 +1229,7 @@ function DailyBriefView({ brief, meta, status, error, disabled, onGenerate, onRe
                 <div className="mt-2 flex flex-wrap gap-2">
                   {brief.sources.map((source) => <span key={source} className="rounded-full border border-cyan-300/20 bg-cyan-300/10 px-2.5 py-1 text-[10px] font-medium text-cyan-50/80">{source}</span>)}
                 </div>
-                {meta && <p className="mt-2 text-[10px] text-[var(--text-muted)]">Generation calls this load: {meta.modelCalls}. State: {meta.persisted ? "Saved" : "Session only"}.</p>}
+                {meta && <p className="mt-2 text-[10px] text-[var(--text-muted)]">Model calls this load: {meta.modelCalls}. State: {meta.persisted ? "Saved" : "Session only"}.</p>}
               </div>
               <div className="flex flex-wrap gap-2">
                 <PanelButton onClick={() => onAsk("Why is this the Daily Brief priority?")}>Ask why</PanelButton>
@@ -1274,7 +1274,7 @@ function NextronSignalsView({ signals, meta, status, error, onRefresh, onAsk }: 
           </div>
         )}
       </div>
-      {meta && <p className="mt-3 text-[10px] text-[var(--text-muted)]">Observed {formatTime(meta.observedAt)}. Max visible: {meta.maxVisible}. Generation calls: {meta.modelCalls}. State: {meta.persisted ? "Saved" : "Derived only"}.</p>}
+      {meta && <p className="mt-3 text-[10px] text-[var(--text-muted)]">Observed {formatTime(meta.observedAt)}. Max visible: {meta.maxVisible}. Model calls: {meta.modelCalls}. State: {meta.persisted ? "Saved" : "Derived only"}.</p>}
     </section>
   );
 }
