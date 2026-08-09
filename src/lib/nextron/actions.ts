@@ -150,12 +150,13 @@ async function validateActionIntent(supabase: SupabaseClient, userId: string, ac
       .from("tasks")
       .select("id, title, due_date, status")
       .eq("user_id", userId)
-      .eq("title", taskTitle)
-      .limit(2);
+      .order("created_at", { ascending: false })
+      .limit(100);
     if (error) return { ok: false, reason: "RESOURCE_NOT_FOUND", message: "NEXTRON could not verify that task right now." };
-    if (!data || data.length === 0) return { ok: false, reason: "RESOURCE_NOT_FOUND", message: "I could not find an owned task with that exact title." };
-    if (data.length > 1) return { ok: false, reason: "AMBIGUOUS_RESOURCE", message: "More than one task matched that title. Rename or specify the exact task first." };
-    const task = data[0] as { id: string; title: string; due_date: string | null; status: string };
+    const matches = ((data ?? []) as Array<{ id: string; title: string; due_date: string | null; status: string }>).filter((task) => task.title === taskTitle);
+    if (matches.length === 0) return { ok: false, reason: "RESOURCE_NOT_FOUND", message: "I could not find an owned task with that exact title." };
+    if (matches.length > 1) return { ok: false, reason: "AMBIGUOUS_RESOURCE", message: "More than one task matched that title. Rename or specify the exact task first." };
+    const task = matches[0];
     if (!UUID.test(task.id) || (task.status !== "todo" && task.status !== "done")) return { ok: false, reason: "RESOURCE_NOT_FOUND", message: "NEXTRON could not verify that task right now." };
     return {
       ok: true,
