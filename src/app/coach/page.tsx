@@ -171,10 +171,10 @@ function NextronContent() {
   useEffect(() => {
     if (bridgeInitialized.current) return;
     bridgeInitialized.current = true;
-    const prompt = readInitialNextronBridgePrompt();
-    if (!prompt) return;
 
     const timeoutId = window.setTimeout(() => {
+      const prompt = readInitialNextronBridgePrompt();
+      if (!prompt) return;
       startTransition(() => {
         setAskPrompt((current) => current.trim() ? current : prompt);
       });
