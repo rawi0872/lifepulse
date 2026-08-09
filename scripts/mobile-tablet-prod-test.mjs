@@ -152,14 +152,14 @@ async function verifyMobileNavigation(page) {
   await expect(bottomNav.getByRole("link", { name: /^Today$/ })).toBeVisible({ timeout: 15000 });
   await expect(bottomNav.getByRole("link", { name: /^Tasks$/ })).toBeVisible({ timeout: 15000 });
   await expect(bottomNav.getByRole("link", { name: /^Habits$/ })).toBeVisible({ timeout: 15000 });
-  await expect(bottomNav.getByRole("link", { name: /^Journal$/ })).toBeVisible({ timeout: 15000 });
+  await expect(bottomNav.getByRole("link", { name: /^NEXTRON$/ })).toBeVisible({ timeout: 15000 });
   pass("Phone bottom navigation is visible");
 
   await page.getByRole("button", { name: "More" }).click();
   await expect(page.getByRole("heading", { name: "More" })).toBeVisible({ timeout: 15000 });
   const moreText = await page.locator("body").innerText({ timeout: 15000 });
-  if (!/organize bigger work|Build later/i.test(moreText)) {
-    throw new Error("More menu did not show bigger-work route grouping copy.");
+  if (!/Direction|Review|Use NEXTRON when you need synthesis/i.test(moreText)) {
+    throw new Error("More menu did not show current product route grouping copy.");
   }
   await expect(page.getByRole("link", { name: /^Goals$/ })).toBeVisible({ timeout: 15000 });
   await expect(page.getByRole("link", { name: /^Results$/ })).toBeVisible({ timeout: 15000 });
