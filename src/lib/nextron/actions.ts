@@ -161,7 +161,7 @@ async function validateActionIntent(supabase: SupabaseClient, actionType: string
     if (matches.length === 0) return { ok: false, reason: "RESOURCE_NOT_FOUND", message: "I could not find an owned task with that exact title.", diagnostic: { stage: "match_classification", matchCount: 0, targetText: taskTitle, titleLength: taskTitle.length } };
     if (matches.length > 1) return { ok: false, reason: "AMBIGUOUS_RESOURCE", message: "More than one task matched that title. Rename or specify the exact task first.", diagnostic: { stage: "match_classification", matchCount: matches.length, targetText: taskTitle, titleLength: taskTitle.length } };
     const task = matches[0];
-    if (!UUID.test(task.id) || (task.status !== "todo" && task.status !== "done")) return { ok: false, reason: "RESOURCE_NOT_FOUND", message: "NEXTRON could not verify that task right now." };
+    if (!UUID.test(task.id) || (task.status !== "todo" && task.status !== "done")) return { ok: false, reason: "RESOURCE_NOT_FOUND", message: "NEXTRON could not verify that task right now.", diagnostic: { stage: "return_shape_validation", idType: typeof task.id, idLooksUuid: typeof task.id === "string" && UUID.test(task.id), status: task.status, statusAccepted: task.status === "todo" || task.status === "done", targetText: taskTitle } };
     return {
       ok: true,
       actionType: "life_pulse.task.update",
