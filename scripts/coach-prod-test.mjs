@@ -203,12 +203,11 @@ async function main() {
     .maybeSingle();
 
   async function cleanupSyntheticData() {
-    await supabase.from("tasks").delete().eq("user_id", userId).in("title", [createTitle, updateTitle]).catch(() => undefined);
-    if (originalPrefs) {
-      await supabase.from("nextron_context_preferences").upsert(originalPrefs, { onConflict: "user_id" }).catch(() => undefined);
-    } else {
-      await supabase.from("nextron_context_preferences").delete().eq("user_id", userId).catch(() => undefined);
-    }
+    try { await supabase.from("tasks").delete().eq("user_id", userId).in("title", [createTitle, updateTitle]); } catch {}
+    try {
+      if (originalPrefs) await supabase.from("nextron_context_preferences").upsert(originalPrefs, { onConflict: "user_id" });
+      else await supabase.from("nextron_context_preferences").delete().eq("user_id", userId);
+    } catch {}
   }
 
   await cleanupSyntheticData();
