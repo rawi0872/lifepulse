@@ -15,6 +15,7 @@ const files = {
   conversationDelete: resolve(root, "src/app/api/nextron/conversations/[id]/route.ts"),
   migration: resolve(root, "supabase/migrations/00029_nextron_action_proposals.sql"),
   taskMigration: resolve(root, "supabase/migrations/00030_nextron_task_actions.sql"),
+  taskResolverMigration: resolve(root, "supabase/migrations/00031_nextron_task_update_resolver.sql"),
   context: resolve(root, "src/lib/nextron/context.ts"),
   pkg: resolve(root, "package.json"),
 };
@@ -35,6 +36,7 @@ const coach = read(files.coach);
 const conversationDelete = read(files.conversationDelete);
 const migration = read(files.migration);
 const taskMigration = read(files.taskMigration);
+const taskResolverMigration = read(files.taskResolverMigration);
 const context = read(files.context);
 const pkg = JSON.parse(read(files.pkg));
 
@@ -63,6 +65,7 @@ assert(!renderedProposalUi.includes('validated_payload') && !renderedProposalUi.
 assert(migration.includes('revoke all privileges on table public.nextron_action_proposals from authenticated') && migration.includes('grant select on table public.nextron_action_proposals to authenticated'), "RLS/grants prevent direct client status mutation");
 assert(migration.includes('security definer') && migration.includes('nextron_approve_action_proposal') && migration.includes('nextron_cancel_action_proposal'), "Status transitions are server-owned RPCs");
 assert(taskMigration.includes('nextron_execute_task_action') && taskMigration.includes('security definer') && taskMigration.includes("status = 'completed'") && taskMigration.includes('insert into public.tasks') && taskMigration.includes('update public.tasks'), "Task create/update executors use a server-owned RPC and canonical Tasks table");
+assert(taskResolverMigration.includes('nextron_resolve_task_update_target') && taskResolverMigration.includes('t.user_id = v_user_id') && actions.includes('nextron_resolve_task_update_target'), "Task update proposal resolution is owner-scoped and server-owned");
 assert(taskMigration.includes("status = 'approved_execution_disabled'") && actions.includes('life_pulse.reminder.create'), "Reminder/project actions remain execution-disabled");
 assert(list.includes('listRecentActionProposals'), "Refresh/reopen loads true server proposal state");
 assert(!migration.includes('google') && !migration.includes('calendar.events') && !actions.includes('GOOGLE_CALENDAR_SCOPES'), "No Calendar write scope or external write path was added");
