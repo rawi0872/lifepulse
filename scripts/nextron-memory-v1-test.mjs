@@ -47,7 +47,7 @@ check(/PROJECT_AGENT/.test(memory) && /return false/.test(memory), "project prom
 check(/parseNextronMemoryCommand/.test(askRoute), "ask route handles memory intent deterministically");
 check(/rememberPreferenceMemory\(supabase, user\.id/.test(askRoute), "ask route derives user identity server-side for writes");
 check(!/body\.user_?id|userId\s*[:=]\s*body/.test(askRoute), "ask route does not accept user id authority from prompt body");
-check(/retrieveRelevantPreferenceMemories\(supabase, user\.id, parsed\.request\)/.test(askRoute), "ask route retrieves active relevant memories");
+check(/retrieveRelevantPreferenceMemories\(supabase, (user\.id|userId), (parsed\.request|parsedRequest)\)/.test(askRoute), "ask route retrieves active relevant memories");
 
 check(/auth\.supabase, auth\.userId/.test(memoryRoute), "memory API derives user identity server-side");
 check(!/service_role|SUPABASE_SERVICE_ROLE|createAdmin/i.test(memoryRoute), "memory API does not use service role");

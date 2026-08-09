@@ -36,7 +36,7 @@ assert(!conversationLib.includes("chain_of_thought") && !conversationLib.include
 assert(askRoute.includes("conversationId?: unknown") && askRoute.includes("clientMessageId?: unknown"), "Ask route must accept optional conversation fields.");
 assert(askRoute.includes("ensureConversation") && askRoute.includes("loadConversationMessages") && askRoute.includes("persistConversationTurn"), "Ask route must load and persist conversation turns.");
 assert(askRoute.includes("buildNextronEvidencePacket(supabase, userId, permissions)"), "Ask route must re-read current permitted evidence per ask.");
-assert(askRoute.includes("retrieveRelevantPreferenceMemories(supabase, userId, parsedRequest)"), "Memory retrieval must use the resolved request without making conversation Memory.");
+assert(/retrieveRelevantPreferenceMemories\(supabase, (userId|user\.id), parsedRequest\)/.test(askRoute), "Memory retrieval must use the resolved request without making conversation Memory.");
 assert(askRoute.includes("body.conversationId !== undefined") && askRoute.includes("status: 404"), "Malformed or unavailable conversation ids must not create a new thread.");
 assert(askRoute.includes("conversation: activeConversation, messages"), "Ask route must return updated conversation and messages.");
 assert(!askRoute.includes("files.list") && !askRoute.includes("callGoogleDriveRest"), "Conversation ask route must not add Drive-wide access.");

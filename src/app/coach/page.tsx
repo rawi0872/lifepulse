@@ -24,6 +24,7 @@ import {
   type NextronPermissionState,
 } from "@/lib/nextron/context";
 import type { NextronEvidencePacket } from "@/lib/nextron/evidence";
+import { isNextronRichResponse, type NextronRichBlock, type NextronRichListItem, type NextronRichMetric } from "@/lib/nextron/rich-response";
 
 const PREFERENCE_COLUMNS = "permission_version, allow_profile, allow_today, allow_tasks, allow_task_actions, allow_goal_actions, allow_habit_actions, allow_project_actions, allow_habits, allow_results, allow_goals, allow_projects, allow_knowledge, allow_drive, allow_calendar, allow_journal, allow_evening_shutdown, allow_weekly_review";
 
@@ -1566,6 +1567,7 @@ function calendarStatusLabel(status: string): string {
 function ConversationTurn({ message }: { message: ConversationMessage }) {
   const isAssistant = message.role === "assistant";
   const response = isAssistant && message.response ? message.response : null;
+  const richResponse = response && isNextronRichResponse(response.richResponse) ? response.richResponse : null;
   return (
     <article className={`relative overflow-hidden rounded-2xl border p-4 pl-5 ${isAssistant ? "border-cyan-300/18 bg-[linear-gradient(180deg,rgba(8,18,32,0.78),rgba(4,9,18,0.90))] shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_18px_44px_rgba(2,6,23,0.22)]" : "border-cyan-300/8 bg-black/12"}`}>
       <div className={`absolute inset-y-4 left-0 w-px ${isAssistant ? "bg-gradient-to-b from-cyan-200/20 via-cyan-200/70 to-transparent" : "bg-slate-400/18"}`} aria-hidden="true" />
@@ -1574,6 +1576,7 @@ function ConversationTurn({ message }: { message: ConversationMessage }) {
       {response ? (
         <div className="relative mt-2">
           <p className="break-words text-sm leading-relaxed text-[var(--text)]">{response.interpretation}</p>
+          {richResponse && <RichResponseView richResponse={richResponse} compact />}
           {response.sources && response.sources.length > 0 && (
             <ul className="mt-3 flex flex-wrap gap-2">
               {response.sources.map((source) => <li key={source} className="break-words rounded-full border border-cyan-300/25 bg-cyan-300/10 px-2.5 py-1 text-[10px] font-medium text-cyan-50/85 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">{source}</li>)}
@@ -1591,6 +1594,63 @@ function ConversationTurn({ message }: { message: ConversationMessage }) {
       ) : <p className="relative mt-2 break-words text-sm leading-relaxed text-[var(--text-secondary)]">{message.content}</p>}
     </article>
   );
+}
+
+function RichResponseView({ richResponse, compact = false }: { richResponse: NonNullable<NextronCoachResponse["richResponse"]>; compact?: boolean }) {
+  return (
+    <div data-nextron-rich-response="true" className={`${compact ? "mt-3" : ""} space-y-3`}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-cyan-200/70">Generated UI</p>
+        <span className="rounded-full border border-cyan-300/15 bg-cyan-300/8 px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.1em] text-cyan-100/65">0 model calls</span>
+      </div>
+      <div className={`grid gap-3 ${compact ? "" : "lg:grid-cols-2"}`}>
+        {richResponse.blocks.map((block, index) => <RichBlockView key={`${block.type}-${index}`} block={block} compact={compact} />)}
+      </div>
+    </div>
+  );
+}
+
+function RichBlockView({ block, compact }: { block: NextronRichBlock; compact: boolean }) {
+  if (block.type === "metric_strip") {
+    return (
+      <div className="rounded-2xl border border-cyan-300/14 bg-black/15 p-3">
+        <p className="text-xs font-semibold text-[var(--text)]">{block.title}</p>
+        <div className={`mt-3 grid gap-2 ${compact ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-3"}`}>
+          {block.metrics.map((metricValue) => <RichMetricView key={`${metricValue.label}-${metricValue.value}`} metric={metricValue} />)}
+        </div>
+      </div>
+    );
+  }
+
+  if (block.type === "empty_state") {
+    return (
+      <div className="rounded-2xl border border-cyan-300/14 bg-black/15 p-3">
+        <p className="text-xs font-semibold text-[var(--text)]">{block.title}</p>
+        <p className="mt-2 text-xs leading-relaxed text-[var(--text-secondary)]">{block.message}</p>
+        {block.href && block.actionLabel && <PanelLink href={block.href}>{block.actionLabel}</PanelLink>}
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-2xl border border-cyan-300/14 bg-black/15 p-3">
+      <p className="text-xs font-semibold text-[var(--text)]">{block.title}</p>
+      <ul className="mt-3 space-y-2">
+        {block.items.map((entry, index) => <RichListItemView key={`${entry.source}-${entry.title}-${index}`} item={entry} />)}
+      </ul>
+    </div>
+  );
+}
+
+function RichMetricView({ metric }: { metric: NextronRichMetric }) {
+  const toneClass = metric.tone === "attention" ? "border-[var(--warning)]/30 bg-[var(--warning-soft)]" : metric.tone === "positive" ? "border-emerald-300/25 bg-emerald-400/10" : "border-cyan-300/10 bg-cyan-950/12";
+  return <div className={`rounded-xl border px-2.5 py-2 ${toneClass}`}><p className="text-[10px] text-[var(--text-muted)]">{metric.label}</p><p className="mt-1 text-lg font-semibold tabular-nums text-[var(--text)]">{metric.value}</p>{metric.detail && <p className="text-[10px] text-[var(--text-muted)]">{metric.detail}</p>}</div>;
+}
+
+function RichListItemView({ item }: { item: NextronRichListItem }) {
+  const markerClass = item.tone === "attention" ? "bg-[var(--warning)]" : item.tone === "positive" ? "bg-emerald-300" : "bg-cyan-300/65";
+  const content = <><span className={`mt-1 h-2 w-2 shrink-0 rounded-full ${markerClass}`} aria-hidden="true" /><span className="min-w-0"><span className="block break-words text-xs font-medium text-[var(--text)]">{item.title}</span>{item.detail && <span className="mt-0.5 block break-words text-[10px] leading-relaxed text-[var(--text-muted)]">{item.detail}</span>}<span className="mt-0.5 block text-[9px] uppercase tracking-[0.1em] text-cyan-100/45">{formatDomainLabel(item.source)}</span></span></>;
+  return <li>{item.href ? <Link href={item.href} className="flex gap-2 rounded-xl border border-transparent p-2 transition-colors hover:border-cyan-300/16 hover:bg-cyan-300/8">{content}</Link> : <div className="flex gap-2 p-2">{content}</div>}</li>;
 }
 
 function PermissionGroup({
@@ -1639,12 +1699,14 @@ function PermissionGroup({
 
 function ResponseView({ response }: { response: NextronCoachResponse }) {
   const showNextAction = response.nextAction.href !== "/knowledge" || !response.ruleId.includes("knowledge");
+  const richResponse = isNextronRichResponse(response.richResponse) ? response.richResponse : null;
   return (
     <div className="space-y-4">
       <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
         <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">NEXTRON answer</p>
         <p className="mt-2 break-words text-sm leading-relaxed text-[var(--text)]">{response.interpretation}</p>
       </div>
+      {richResponse && <RichResponseView richResponse={richResponse} />}
       {response.sources && response.sources.length > 0 && (
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">Sources</p>

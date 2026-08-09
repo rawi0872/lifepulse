@@ -31,7 +31,7 @@ interface Habit {
   frequency: string;
   days_of_week: number[] | null;
   times_per_week: number | null;
-  realm_id: string;
+  realm_id: string | null;
   created_at: string;
   realms: Realm | null;
 }
@@ -195,7 +195,7 @@ export default function HabitsPage() {
     setEditingId(h.id);
     setConfirmingDeleteId(null);
     setTitle(h.title);
-    setRealmId(h.realm_id);
+    setRealmId(h.realm_id ?? "");
     setFrequency(h.frequency);
     setDaysOfWeek(h.days_of_week ?? []);
     setTpw(h.times_per_week ?? 3);

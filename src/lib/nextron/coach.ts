@@ -1,4 +1,5 @@
 import type { NextronEvidencePacket } from "@/lib/nextron/evidence";
+import type { NextronRichResponse } from "@/lib/nextron/rich-response";
 
 export type NextronEvidenceCategory = keyof Pick<NextronEvidencePacket, "today" | "tasks" | "habits" | "results" | "journal" | "eveningShutdown" | "weeklyReview" | "goals" | "projects" | "knowledge" | "calendar" | "profile" | "memory">;
 
@@ -22,6 +23,7 @@ export interface NextronCoachResponse {
   supportingEvidence: string[];
   sources?: string[];
   source?: "ai" | "deterministic";
+  richResponse?: NextronRichResponse;
 }
 
 export const NEXTRON_REQUEST_MAX_LENGTH = 500;
@@ -115,6 +117,10 @@ function classifyPrompt(normalizedPrompt: string): Pick<NextronUserRequest, "int
   const projectFocusTerms = ["blocking", "blocked", "stuck", "next step", "do next", "should i do next", "next action", "why is"];
   if (includesAny(normalizedPrompt, projectTerms) && includesAny(normalizedPrompt, projectFocusTerms)) return { intent: "PROJECT_AGENT", handlingStatus: "handled", confidence: "high" };
 
+  const personalDataViewTerms = ["show me my", "show my", "list my", "summarize my", "how are my", "tell me about my", "tell me about the", "current life pulse"];
+  const personalDataDomains = ["task", "tasks", "todo", "to do", "habit", "habits", "goal", "goals", "project", "projects", "result", "results", "metric", "metrics", "life pulse"];
+  if (includesAny(normalizedPrompt, personalDataViewTerms) && includesAny(normalizedPrompt, personalDataDomains)) return { intent: "GENERAL_SUPPORTED", handlingStatus: "handled", confidence: "medium" };
+
   const knowledgeTerms = ["my notes", "my note", "knowledge", "what did i write", "what did i note", "what does my", "notes say", "note say", "note says", "pasted note", "did i decide", "did we decide", "in my notes", "in my note", "what do my notes", "my launch document", "my document", "that document", "the document", "saved note", "saved document"];
   if (includesAny(normalizedPrompt, knowledgeTerms)) return { intent: "KNOWLEDGE_QUERY", handlingStatus: "handled", confidence: "high" };
   const asksStoredPhrase = includesAny(normalizedPrompt, ["verification phrase", "phrase in", "phrase from", "phrase was", "what was the phrase", "what is the phrase"]);
@@ -126,6 +132,7 @@ function classifyPrompt(normalizedPrompt: string): Pick<NextronUserRequest, "int
   if (includesAny(normalizedPrompt, ["focus", "do today", "matters most", "right now", "priority"])) return { intent: "TODAY_FOCUS", handlingStatus: "handled", confidence: "high" };
   if (includesAny(normalizedPrompt, ["next step", "do next", "should i do next", "next action"])) return { intent: "NEXT_ACTION", handlingStatus: "handled", confidence: "high" };
   if (includesAny(normalizedPrompt, ["attention", "falling behind", "behind on", "needs attention"])) return { intent: "ATTENTION", handlingStatus: "handled", confidence: "high" };
+  if (includesAny(normalizedPrompt, ["why are you telling me this", "why this", "evidence", "sources"])) return { intent: "GENERAL_SUPPORTED", handlingStatus: "handled", confidence: "medium" };
   if (includesAny(normalizedPrompt, ["this week", "week gone", "doing this week", "weekly progress"])) return { intent: "WEEK_PROGRESS", handlingStatus: "handled", confidence: "high" };
   if (includesAny(normalizedPrompt, ["making progress", "going well", "progress", "good"])) return { intent: "PROGRESS", handlingStatus: "handled", confidence: "medium" };
   if (includesAny(normalizedPrompt, ["neglect", "not keeping up", "haven t", "have not", "missing"])) return { intent: "NEGLECT", handlingStatus: "handled", confidence: "high" };

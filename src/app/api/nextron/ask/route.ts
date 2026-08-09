@@ -4,6 +4,7 @@ import { calendarReadResponse, runNextronCalendarReadOnly } from "@/lib/nextron/
 import { buildConversationContext, ensureConversation, loadConversationMessages, persistConversationTurn, resolvePromptWithConversation } from "@/lib/nextron/conversation";
 import { normalizeNextronPreferences, type NextronPreferenceRow } from "@/lib/nextron/context";
 import { buildNextronEvidencePacket } from "@/lib/nextron/evidence";
+import { buildNextronRichResponse } from "@/lib/nextron/rich-response";
 import {
   forgetPreferenceMemory,
   listActivePreferenceMemories,
@@ -63,7 +64,7 @@ export async function POST(request: Request) {
 
     const memoryCommand = parseNextronMemoryCommand(originalRequest.rawPrompt, originalRequest.normalizedPrompt);
     if (memoryCommand.kind === "remember") {
-      const result = await rememberPreferenceMemory(supabase, userId, memoryCommand.content);
+      const result = await rememberPreferenceMemory(supabase, user.id, memoryCommand.content);
       if (!result.ok) return NextResponse.json({ response: memoryIntentResponse(result.reason), source: "deterministic" }, { status: 400 });
       const response = memoryIntentResponse(`Got it. I'll remember that ${result.memory.content.replace(/^You\s+/i, "you ")}.`);
       await persistConversationTurn({ supabase, userId, conversationId: activeConversation.id, clientMessageId, userPrompt: originalRequest.rawPrompt, assistantResponse: response, intent: originalRequest.intent }).catch(() => undefined);
@@ -72,7 +73,7 @@ export async function POST(request: Request) {
     }
 
     if (memoryCommand.kind === "forget") {
-      const result = await forgetPreferenceMemory(supabase, userId, memoryCommand.content);
+      const result = await forgetPreferenceMemory(supabase, user.id, memoryCommand.content);
       if (!result.ok) return NextResponse.json({ response: memoryIntentResponse(result.reason), source: "deterministic" }, { status: 404 });
       const response = memoryIntentResponse("I've forgotten that preference.");
       await persistConversationTurn({ supabase, userId, conversationId: activeConversation.id, clientMessageId, userPrompt: originalRequest.rawPrompt, assistantResponse: response, intent: originalRequest.intent }).catch(() => undefined);
@@ -81,7 +82,7 @@ export async function POST(request: Request) {
     }
 
     if (memoryCommand.kind === "view") {
-      const memories = await listActivePreferenceMemories(supabase, userId, 20);
+      const memories = await listActivePreferenceMemories(supabase, user.id, 20);
       const response = memoryViewResponse(memories);
       await persistConversationTurn({ supabase, userId, conversationId: activeConversation.id, clientMessageId, userPrompt: originalRequest.rawPrompt, assistantResponse: response, intent: originalRequest.intent }).catch(() => undefined);
       const messages = await loadConversationMessages(supabase, userId, activeConversation.id) ?? [];
@@ -100,17 +101,19 @@ export async function POST(request: Request) {
 
     const { permissions } = normalizeNextronPreferences(data as NextronPreferenceRow | null);
     const evidence = await buildNextronEvidencePacket(supabase, userId, permissions);
-    const relevantMemories = await retrieveRelevantPreferenceMemories(supabase, userId, parsedRequest);
+    const relevantMemories = await retrieveRelevantPreferenceMemories(supabase, user.id, parsedRequest);
     evidence.memory = relevantMemories.length > 0
       ? { status: "available", data: { preferences: memoryFacts(relevantMemories).map((memory) => memory.content) } }
       : evidence.memory;
     const fallback = () => ({ ...buildInteractiveNextronResponse(evidence, parsedRequest), source: "deterministic" as const });
 
     async function respond(response: NextronCoachResponse, source: "ai" | "deterministic", fallbackReason?: string | null) {
-      await persistConversationTurn({ supabase, userId, conversationId: activeConversation.id, clientMessageId, userPrompt: originalRequest.rawPrompt, assistantResponse: response, intent: parsedRequest.intent });
+      const richResponse = buildNextronRichResponse(response, evidence, parsedRequest);
+      const responseWithRichUi: NextronCoachResponse = richResponse ? { ...response, richResponse } : response;
+      await persistConversationTurn({ supabase, userId, conversationId: activeConversation.id, clientMessageId, userPrompt: originalRequest.rawPrompt, assistantResponse: responseWithRichUi, intent: parsedRequest.intent });
       const messages = await loadConversationMessages(supabase, userId, activeConversation.id) ?? [];
       return NextResponse.json(
-        { response, source, conversation: activeConversation, messages },
+        { response: responseWithRichUi, source, conversation: activeConversation, messages },
         fallbackReason ? { headers: { "X-Nextron-Fallback-Reason": fallbackReason } } : undefined,
       );
     }

@@ -178,8 +178,8 @@ export default function InsightsPage() {
         setWeekHabitLogs(thisWeek.length);
 
         if (realmsRes.data && xpRes.data && habitsRes.data && tasksRes.data) {
-          const habitRealm: Record<string, string> = {};
-          habitsRes.data.forEach((h: { id: string; realm_id: string }) => { habitRealm[h.id] = h.realm_id; });
+          const habitRealm: Record<string, string | null> = {};
+          habitsRes.data.forEach((h: { id: string; realm_id: string | null }) => { habitRealm[h.id] = h.realm_id; });
 
           const taskRealm: Record<string, string> = {};
           tasksRes.data.forEach((t: { id: string; realm_id: string }) => { taskRealm[t.id] = t.realm_id; });
