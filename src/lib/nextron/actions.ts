@@ -43,7 +43,7 @@ type ActionParseResult =
 
 type ValidationResult =
   | { ok: true; actionType: NextronActionType; parameters: Record<string, unknown>; preview: NextronActionPreview; riskLevel: NextronActionRisk; title: string; description: string }
-  | { ok: false; reason: "UNSUPPORTED_ACTION" | "MALFORMED_PARAMETERS" | "AMBIGUOUS_RESOURCE" | "RESOURCE_NOT_FOUND"; message: string; diagnostic?: Record<string, unknown> };
+  | { ok: false; reason: "UNSUPPORTED_ACTION" | "MALFORMED_PARAMETERS" | "AMBIGUOUS_RESOURCE" | "RESOURCE_NOT_FOUND"; message: string };
 
 interface ProposalRow {
   id: string;
@@ -63,7 +63,6 @@ interface ProposalRow {
 
 const ACTION_TYPE_SET = new Set<string>(NEXTRON_ACTION_TYPES);
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function cleanText(value: unknown, max: number): string | null {
   if (typeof value !== "string") return null;
@@ -147,21 +146,12 @@ async function validateActionIntent(supabase: SupabaseClient, actionType: string
     const taskTitle = cleanText(parameters.taskTitle, 120);
     if (!taskTitle) return { ok: false, reason: "MALFORMED_PARAMETERS", message: "Task update proposals require deterministic resource resolution." };
     const { data, error } = await supabase.rpc("nextron_resolve_task_update_target", { p_title: taskTitle });
-    if (error) {
-      console.warn("NEXTRON_TASK_UPDATE_RESOLUTION_FAILED", {
-        actionType,
-        stage: "resolver_rpc",
-        code: error.code ?? "unknown",
-        messageClass: error.message?.includes("Could not find the function") ? "RPC_NOT_DISCOVERED" : error.message?.includes("AUTH_REQUIRED") ? "AUTH_REQUIRED" : "RPC_ERROR",
-        hasTaskTitle: taskTitle.length > 0,
-      });
-      return { ok: false, reason: "RESOURCE_NOT_FOUND", message: "NEXTRON could not verify that task right now.", diagnostic: { stage: "resolver_rpc", code: error.code ?? "unknown", messageClass: error.message?.includes("Could not find the function") ? "RPC_NOT_DISCOVERED" : error.message?.includes("AUTH_REQUIRED") ? "AUTH_REQUIRED" : "RPC_ERROR", titleLength: taskTitle.length, targetText: taskTitle } };
-    }
+    if (error) return { ok: false, reason: "RESOURCE_NOT_FOUND", message: "NEXTRON could not verify that task right now." };
     const matches = (data ?? []) as Array<{ id: string; title: string; due_date: string | null; status: string }>;
-    if (matches.length === 0) return { ok: false, reason: "RESOURCE_NOT_FOUND", message: "I could not find an owned task with that exact title.", diagnostic: { stage: "match_classification", matchCount: 0, targetText: taskTitle, titleLength: taskTitle.length } };
-    if (matches.length > 1) return { ok: false, reason: "AMBIGUOUS_RESOURCE", message: "More than one task matched that title. Rename or specify the exact task first.", diagnostic: { stage: "match_classification", matchCount: matches.length, targetText: taskTitle, titleLength: taskTitle.length } };
+    if (matches.length === 0) return { ok: false, reason: "RESOURCE_NOT_FOUND", message: "I could not find an owned task with that exact title." };
+    if (matches.length > 1) return { ok: false, reason: "AMBIGUOUS_RESOURCE", message: "More than one task matched that title. Rename or specify the exact task first." };
     const task = matches[0];
-    if (!UUID.test(task.id) || (task.status !== "todo" && task.status !== "done")) return { ok: false, reason: "RESOURCE_NOT_FOUND", message: "NEXTRON could not verify that task right now.", diagnostic: { stage: "return_shape_validation", idType: typeof task.id, idLooksUuid: typeof task.id === "string" && UUID.test(task.id), status: task.status, statusAccepted: task.status === "todo" || task.status === "done", targetText: taskTitle } };
+    if (typeof task.id !== "string" || !task.id || (task.status !== "todo" && task.status !== "done")) return { ok: false, reason: "RESOURCE_NOT_FOUND", message: "NEXTRON could not verify that task right now." };
     return {
       ok: true,
       actionType: "life_pulse.task.update",
@@ -189,9 +179,9 @@ async function validateActionIntent(supabase: SupabaseClient, actionType: string
   };
 }
 
-export async function createActionProposal(args: { supabase: SupabaseClient; conversationId: string | null; actionType: string; parameters: Record<string, unknown> }): Promise<{ ok: true; proposal: NextronActionProposal } | { ok: false; reason: string; message: string; diagnostic?: Record<string, unknown> }> {
+export async function createActionProposal(args: { supabase: SupabaseClient; conversationId: string | null; actionType: string; parameters: Record<string, unknown> }): Promise<{ ok: true; proposal: NextronActionProposal } | { ok: false; reason: string; message: string }> {
   const validated = await validateActionIntent(args.supabase, args.actionType, args.parameters);
-  if (!validated.ok) return { ok: false, reason: validated.reason, message: validated.message, diagnostic: validated.diagnostic };
+  if (!validated.ok) return { ok: false, reason: validated.reason, message: validated.message };
   const expiresAt = new Date(Date.now() + NEXTRON_ACTION_EXPIRY_MINUTES * 60_000).toISOString();
   const { data, error } = await args.supabase.rpc("nextron_create_action_proposal", { p_conversation_id: args.conversationId, p_action_type: validated.actionType, p_validated_payload: validated.parameters, p_preview_payload: { title: validated.title, description: validated.description, preview: validated.preview }, p_risk_level: validated.riskLevel, p_expires_at: expiresAt });
   if (error || !data) return { ok: false, reason: "PERMISSION_DENIED", message: "NEXTRON could not create an owner-scoped proposal." };

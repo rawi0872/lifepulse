@@ -27,6 +27,6 @@ export async function POST(request: Request) {
   const parsed = parseNextronActionIntent(body.prompt);
   if (!parsed.ok) return NextResponse.json({ error: parsed.message, reason: parsed.reason }, { status: parsed.reason === "NO_ACTION" ? 404 : 400 });
   const result = await createActionProposal({ supabase, conversationId: validId(body.conversationId), actionType: parsed.actionType, parameters: parsed.parameters });
-  if (!result.ok) return NextResponse.json({ error: result.message, reason: result.reason, diagnostic: result.diagnostic ?? null }, { status: 400 });
+  if (!result.ok) return NextResponse.json({ error: result.message, reason: result.reason }, { status: 400 });
   return NextResponse.json({ proposal: result.proposal });
 }
