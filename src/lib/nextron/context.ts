@@ -2,6 +2,7 @@ export type NextronContextDomain =
   | "profile"
   | "today"
   | "tasks"
+  | "taskActions"
   | "habits"
   | "results"
   | "goals"
@@ -30,6 +31,7 @@ export type NextronPermissionColumn =
   | "allow_profile"
   | "allow_today"
   | "allow_tasks"
+  | "allow_task_actions"
   | "allow_habits"
   | "allow_results"
   | "allow_goals"
@@ -46,6 +48,7 @@ export interface NextronPreferenceRow {
   allow_profile: boolean | null;
   allow_today: boolean | null;
   allow_tasks: boolean | null;
+  allow_task_actions?: boolean | null;
   allow_habits: boolean | null;
   allow_results: boolean | null;
   allow_goals: boolean | null;
@@ -64,6 +67,7 @@ export interface NextronPreferenceUpsert {
   allow_profile: boolean;
   allow_today: boolean;
   allow_tasks: boolean;
+  allow_task_actions: boolean;
   allow_habits: boolean;
   allow_results: boolean;
   allow_goals: boolean;
@@ -81,12 +85,13 @@ export interface NormalizedNextronPreferences {
   warning: string | null;
 }
 
-export const NEXTRON_PERMISSION_VERSION = 4;
+export const NEXTRON_PERMISSION_VERSION = 5;
 
 const NEXTRON_DEFAULT_PERMISSION_LEVELS: NextronPermissionState = {
   profile: "allowed",
   today: "allowed",
   tasks: "allowed",
+  taskActions: "denied",
   habits: "allowed",
   results: "allowed",
   goals: "allowed",
@@ -122,6 +127,14 @@ export const NEXTRON_CONTEXT_PERMISSIONS: readonly NextronContextPermission[] = 
     label: "Tasks",
     description: "Uses bounded open-task counts. Titles stay hidden unless this is allowed.",
     level: NEXTRON_DEFAULT_PERMISSION_LEVELS.tasks,
+    textHeavy: false,
+  },
+  {
+    domain: "taskActions",
+    dbColumn: "allow_task_actions",
+    label: "Task actions",
+    description: "Allows explicitly approved NEXTRON Task create/update mutations. Each action still requires a separate approval click.",
+    level: NEXTRON_DEFAULT_PERMISSION_LEVELS.taskActions,
     textHeavy: false,
   },
   {
@@ -235,7 +248,7 @@ export function normalizeNextronPreferences(row: NextronPreferenceRow | null | u
   const defaults = getDefaultNextronPermissions();
   if (!row) return { permissions: defaults, warning: null };
 
-  if (row.permission_version !== NEXTRON_PERMISSION_VERSION && row.permission_version !== 3 && row.permission_version !== 2 && row.permission_version !== 1) {
+  if (row.permission_version !== NEXTRON_PERMISSION_VERSION && row.permission_version !== 4 && row.permission_version !== 3 && row.permission_version !== 2 && row.permission_version !== 1) {
     return {
       permissions: defaults,
       warning: "Saved NEXTRON context permissions use an unsupported version, so safe defaults are active.",
@@ -268,6 +281,7 @@ export function buildNextronPreferenceUpsert(userId: string, permissions: Nextro
     allow_profile: permissions.profile === "allowed",
     allow_today: permissions.today === "allowed",
     allow_tasks: permissions.tasks === "allowed",
+    allow_task_actions: permissions.taskActions === "allowed",
     allow_habits: permissions.habits === "allowed",
     allow_results: permissions.results === "allowed",
     allow_goals: permissions.goals === "allowed",

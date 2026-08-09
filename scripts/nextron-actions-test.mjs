@@ -14,6 +14,8 @@ const files = {
   ask: resolve(root, "src/app/api/nextron/ask/route.ts"),
   conversationDelete: resolve(root, "src/app/api/nextron/conversations/[id]/route.ts"),
   migration: resolve(root, "supabase/migrations/00029_nextron_action_proposals.sql"),
+  taskMigration: resolve(root, "supabase/migrations/00030_nextron_task_actions.sql"),
+  context: resolve(root, "src/lib/nextron/context.ts"),
   pkg: resolve(root, "package.json"),
 };
 
@@ -32,6 +34,8 @@ const list = read(files.list);
 const coach = read(files.coach);
 const conversationDelete = read(files.conversationDelete);
 const migration = read(files.migration);
+const taskMigration = read(files.taskMigration);
+const context = read(files.context);
 const pkg = JSON.parse(read(files.pkg));
 
 assert(pkg.scripts["test:nextron-actions"] === "node scripts/nextron-actions-test.mjs", "Action test script is registered");
@@ -45,19 +49,21 @@ assert(coach.includes('Requires approval') && coach.includes('onApprove'), "G ex
 assert(migration.includes("where id = p_proposal_id and user_id = v_user_id and status = 'pending'"), "H canceled proposal cannot later approve because only pending transitions are allowed");
 assert(migration.includes("expires_at <= now()") && migration.includes("'expired'"), "I expired proposal cannot approve into executable state");
 assert(approve.includes('POST') && !approve.includes('validated_payload') && !approve.includes('actionType'), "J approval endpoint cannot mutate payload/action type");
-assert(actions.includes('NEXTRON_ACTION_EXECUTION_ENABLED = false') && actions.includes('EXECUTION_DISABLED'), "K proposal approval cannot execute in Prompt 7");
+assert(actions.includes('NEXTRON_TASK_ACTION_EXECUTION_ENABLED = true') && taskMigration.includes("v_row.action_type not in ('life_pulse.task.create', 'life_pulse.task.update')"), "K only Task create/update action execution is enabled");
 assert(actions.includes('export function executeNextronAction(): never'), "L direct execution attempt fails closed");
-assert(migration.includes("status in ('pending', 'approved_execution_disabled', 'canceled', 'expired', 'invalidated')"), "M duplicate approval is terminal-state safe");
-assert(actions.includes('Task update proposals require deterministic resource resolution'), "N stale/resource revalidation strategy is prepared for update actions");
+assert(migration.includes("status in ('pending', 'approved_execution_disabled', 'canceled', 'expired', 'invalidated')") && taskMigration.includes("status in ('pending', 'approved_execution_disabled', 'completed', 'canceled', 'expired', 'invalidated')"), "M duplicate approval is terminal-state safe");
+assert(actions.includes('beforeDueDate') && taskMigration.includes('TASK_PRECONDITION_FAILED'), "N stale/resource revalidation is enforced for update actions");
 assert(actions.includes('AMBIGUOUS_RESOURCE') && actions.includes('I need the exact task'), "O ambiguous resource updates ask for clarification");
 assert(actions.includes('skip approval') && actions.includes('blanket or remembered approval'), "P prompt injection cannot bypass explicit approval");
 assert(actions.includes('Previous user message') === false && actions.includes('always') && actions.includes('already approved all future'), "Q conversation history or blanket approval cannot grant approval");
-assert(actions.includes('NEXTRON_ACTION_EXECUTION_ENABLED = false') && !actions.includes('allow_tasks'), "R read permissions do not grant write capability");
+assert(context.includes('allow_task_actions') && context.includes('taskActions: "denied"') && taskMigration.includes('allow_task_actions boolean not null default false'), "R read permissions do not grant write capability");
 assert(conversationDelete.includes('invalidateConversationActionProposals'), "S deleting conversation invalidates pending proposals");
 const renderedProposalUi = coach.slice(coach.indexOf("function ActionProposalCard"));
 assert(!renderedProposalUi.includes('validated_payload') && !renderedProposalUi.includes('conversation_id') && !renderedProposalUi.includes('action_type'), "T raw internal IDs/payload internals are not rendered in proposal UI");
 assert(migration.includes('revoke all privileges on table public.nextron_action_proposals from authenticated') && migration.includes('grant select on table public.nextron_action_proposals to authenticated'), "RLS/grants prevent direct client status mutation");
 assert(migration.includes('security definer') && migration.includes('nextron_approve_action_proposal') && migration.includes('nextron_cancel_action_proposal'), "Status transitions are server-owned RPCs");
+assert(taskMigration.includes('nextron_execute_task_action') && taskMigration.includes('security definer') && taskMigration.includes("status = 'completed'") && taskMigration.includes('insert into public.tasks') && taskMigration.includes('update public.tasks'), "Task create/update executors use a server-owned RPC and canonical Tasks table");
+assert(taskMigration.includes("status = 'approved_execution_disabled'") && actions.includes('life_pulse.reminder.create'), "Reminder/project actions remain execution-disabled");
 assert(list.includes('listRecentActionProposals'), "Refresh/reopen loads true server proposal state");
 assert(!migration.includes('google') && !migration.includes('calendar.events') && !actions.includes('GOOGLE_CALENDAR_SCOPES'), "No Calendar write scope or external write path was added");
 

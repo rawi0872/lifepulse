@@ -25,7 +25,7 @@ import {
 } from "@/lib/nextron/context";
 import type { NextronEvidencePacket } from "@/lib/nextron/evidence";
 
-const PREFERENCE_COLUMNS = "permission_version, allow_profile, allow_today, allow_tasks, allow_habits, allow_results, allow_goals, allow_projects, allow_knowledge, allow_drive, allow_calendar, allow_journal, allow_evening_shutdown, allow_weekly_review";
+const PREFERENCE_COLUMNS = "permission_version, allow_profile, allow_today, allow_tasks, allow_task_actions, allow_habits, allow_results, allow_goals, allow_projects, allow_knowledge, allow_drive, allow_calendar, allow_journal, allow_evening_shutdown, allow_weekly_review";
 
 interface ConversationSummary { id: string; title: string; created_at: string; updated_at: string }
 interface ConversationMessage { id: string; conversation_id: string; role: "user" | "assistant"; content: string; response: NextronCoachResponse | null; metadata: Record<string, unknown>; created_at: string }
@@ -87,12 +87,14 @@ interface NextronActionProposal {
   preview: NextronActionPreview;
   riskLevel: "low" | "sensitive" | "external";
   requiresApproval: true;
-  status: "pending" | "approved_execution_disabled" | "canceled" | "expired" | "invalidated";
+  status: "pending" | "approved_execution_disabled" | "completed" | "canceled" | "expired" | "invalidated";
   createdAt: string;
   expiresAt: string;
   approvedAt: string | null;
   canceledAt: string | null;
+  executedAt: string | null;
   finalReason: string | null;
+  executionResult: Record<string, unknown> | null;
 }
 
 type IntelligenceCoreState = "idle" | "thinking" | "syncing" | "ready" | "error";
@@ -531,6 +533,10 @@ function NextronContent() {
     }
     const proposal = candidate.proposal;
     setActionProposals((current) => [proposal, ...current.filter((item) => item.id !== proposal.id)].slice(0, 6));
+    if (proposal.status === "completed") {
+      void loadLiveContext().catch(() => undefined);
+      void loadSignals().catch(() => undefined);
+    }
     setActionStatus("ready");
   }
 
@@ -933,9 +939,11 @@ function isNextronActionProposal(value: unknown): value is NextronActionProposal
     && isNextronActionPreview(candidate.preview)
     && (candidate.riskLevel === "low" || candidate.riskLevel === "sensitive" || candidate.riskLevel === "external")
     && candidate.requiresApproval === true
-    && ["pending", "approved_execution_disabled", "canceled", "expired", "invalidated"].includes(candidate.status ?? "")
+    && ["pending", "approved_execution_disabled", "completed", "canceled", "expired", "invalidated"].includes(candidate.status ?? "")
     && typeof candidate.createdAt === "string"
-    && typeof candidate.expiresAt === "string";
+    && typeof candidate.expiresAt === "string"
+    && (candidate.executedAt === undefined || candidate.executedAt === null || typeof candidate.executedAt === "string")
+    && (candidate.executionResult === undefined || candidate.executionResult === null || typeof candidate.executionResult === "object");
 }
 
 function isNextronActionPreview(value: unknown): value is NextronActionPreview {
@@ -1248,7 +1256,7 @@ function NextronActionProposalsView({ proposals, status, error, onRefresh, onApp
         <div className="min-w-0">
           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-200/70">NEXTRON Actions</p>
           <h2 id="nextron-actions-heading" className="mt-1 text-lg font-semibold tracking-[-0.03em] text-[var(--text)]">Approval framework</h2>
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[var(--text-muted)]">NEXTRON can prepare validated proposals. Execution is disabled in Prompt 7, so approval records intent without changing Life Pulse data.</p>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[var(--text-muted)]">NEXTRON can execute Task create/update proposals only after Task actions permission is saved and you click approval on each proposal. Other action namespaces remain disabled.</p>
         </div>
         <button type="button" onClick={onRefresh} disabled={loading || status === "saving"} className="inline-flex min-h-10 shrink-0 items-center rounded-xl border border-cyan-300/20 bg-cyan-300/10 px-3 py-2 text-xs font-semibold text-cyan-50/85 transition-all hover:-translate-y-0.5 hover:border-cyan-200/35 disabled:translate-y-0 disabled:opacity-50">{loading ? "Loading..." : "Refresh proposals"}</button>
       </div>
@@ -1262,7 +1270,7 @@ function NextronActionProposalsView({ proposals, status, error, onRefresh, onApp
 
 function ActionProposalCard({ proposal, busy, onApprove, onCancel, onChange }: { proposal: NextronActionProposal; busy: boolean; onApprove: (id: string) => void; onCancel: (id: string) => void; onChange: (prompt: string) => void }) {
   const pending = proposal.status === "pending";
-  const statusCopy = proposal.status === "approved_execution_disabled" ? "Approval recorded. Action execution is not enabled yet." : proposal.status === "canceled" ? "Canceled. This proposal can no longer be approved." : proposal.status === "expired" ? "Expired. Regenerate the proposal to approve it." : proposal.status === "invalidated" ? "Invalidated because its conversation or source context changed." : `Requires explicit approval. Expires ${formatTime(proposal.expiresAt)}.`;
+  const statusCopy = proposal.status === "completed" ? "Approved and completed. Canonical Task data was updated." : proposal.status === "approved_execution_disabled" ? "Approval recorded. Execution is not enabled for this action type." : proposal.status === "canceled" ? "Canceled. This proposal can no longer be approved." : proposal.status === "expired" ? "Expired. Regenerate the proposal to approve it." : proposal.status === "invalidated" ? "Invalidated because its conversation or source context changed." : `Requires explicit approval. Expires ${formatTime(proposal.expiresAt)}.`;
   return (
     <article data-nextron-action-proposal="true" className="rounded-2xl border border-cyan-300/18 bg-[linear-gradient(180deg,rgba(8,18,32,0.76),rgba(4,9,18,0.84))] p-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">

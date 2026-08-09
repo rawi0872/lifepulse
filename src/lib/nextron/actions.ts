@@ -3,7 +3,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export const NEXTRON_ACTION_EXPIRY_MINUTES = 15;
-export const NEXTRON_ACTION_EXECUTION_ENABLED = false;
+export const NEXTRON_TASK_ACTION_EXECUTION_ENABLED = true;
 
 export const NEXTRON_ACTION_TYPES = [
   "life_pulse.task.create",
@@ -13,7 +13,7 @@ export const NEXTRON_ACTION_TYPES = [
 ] as const;
 
 export type NextronActionType = typeof NEXTRON_ACTION_TYPES[number];
-export type NextronActionStatus = "pending" | "approved_execution_disabled" | "canceled" | "expired" | "invalidated";
+export type NextronActionStatus = "pending" | "approved_execution_disabled" | "completed" | "canceled" | "expired" | "invalidated";
 export type NextronActionRisk = "low" | "sensitive" | "external";
 
 export interface NextronActionPreviewField { label: string; before?: string | null; after: string }
@@ -32,7 +32,9 @@ export interface NextronActionProposal {
   expiresAt: string;
   approvedAt: string | null;
   canceledAt: string | null;
+  executedAt: string | null;
   finalReason: string | null;
+  executionResult: Record<string, unknown> | null;
 }
 
 type ActionParseResult =
@@ -41,7 +43,7 @@ type ActionParseResult =
 
 type ValidationResult =
   | { ok: true; actionType: NextronActionType; parameters: Record<string, unknown>; preview: NextronActionPreview; riskLevel: NextronActionRisk; title: string; description: string }
-  | { ok: false; reason: "UNSUPPORTED_ACTION" | "MALFORMED_PARAMETERS" | "AMBIGUOUS_RESOURCE"; message: string };
+  | { ok: false; reason: "UNSUPPORTED_ACTION" | "MALFORMED_PARAMETERS" | "AMBIGUOUS_RESOURCE" | "RESOURCE_NOT_FOUND"; message: string };
 
 interface ProposalRow {
   id: string;
@@ -54,11 +56,14 @@ interface ProposalRow {
   expires_at: string;
   approved_at: string | null;
   canceled_at: string | null;
+  executed_at: string | null;
   final_reason: string | null;
+  execution_result: Record<string, unknown> | null;
 }
 
 const ACTION_TYPE_SET = new Set<string>(NEXTRON_ACTION_TYPES);
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function cleanText(value: unknown, max: number): string | null {
   if (typeof value !== "string") return null;
@@ -93,6 +98,15 @@ function stripActionPrefix(prompt: string): string {
     .trim();
 }
 
+function stripUpdateTaskTitle(prompt: string): string {
+  return prompt
+    .replace(/^(please\s+)?(move|update|change)\s+(the\s+)?task\s+(called|named)?\s*/i, "")
+    .replace(/\s+(to|for|on)\s+(today|tomorrow|friday|20\d{2}-\d{2}-\d{2})\b.*$/i, "")
+    .replace(/\s+(due|deadline)\s+(today|tomorrow|friday|on\s+20\d{2}-\d{2}-\d{2})\b.*$/i, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export function parseNextronActionIntent(prompt: string): ActionParseResult {
   const trimmed = prompt.trim();
   const normalized = trimmed.toLowerCase();
@@ -114,37 +128,63 @@ export function parseNextronActionIntent(prompt: string): ActionParseResult {
   if (/\b(move|update|change)\b/.test(normalized) && /\b(task|due|deadline)\b/.test(normalized)) {
     const dueDate = parseNaturalDate(trimmed);
     if (!dueDate) return { ok: false, reason: "MALFORMED_PARAMETERS", message: "Tell me the new date before I can prepare a task update proposal." };
-    return { ok: false, reason: "AMBIGUOUS_RESOURCE", message: "I need the exact task to change before I can prepare an update proposal." };
+    const taskTitle = cleanText(stripUpdateTaskTitle(trimmed), 120);
+    if (!taskTitle) return { ok: false, reason: "AMBIGUOUS_RESOURCE", message: "I need the exact task to change before I can prepare an update proposal." };
+    return { ok: true, actionType: "life_pulse.task.update", parameters: { taskTitle, dueDate } };
   }
   return { ok: false, reason: "NO_ACTION", message: "No action proposal detected." };
 }
 
-function validateActionIntent(actionType: string, parameters: Record<string, unknown>): ValidationResult {
+async function validateActionIntent(supabase: SupabaseClient, actionType: string, parameters: Record<string, unknown>): Promise<ValidationResult> {
   if (!ACTION_TYPE_SET.has(actionType)) return { ok: false, reason: "UNSUPPORTED_ACTION", message: "Unsupported action type." };
-  const extra = Object.keys(parameters).filter((key) => !["title", "dueDate"].includes(key));
+  const allowedKeys = actionType === "life_pulse.task.update" ? ["taskTitle", "dueDate"] : ["title", "dueDate"];
+  const extra = Object.keys(parameters).filter((key) => !allowedKeys.includes(key));
   if (extra.length > 0) return { ok: false, reason: "MALFORMED_PARAMETERS", message: "Action parameters contained unsupported fields." };
-  const title = cleanText(parameters.title, 120);
-  if (!title) return { ok: false, reason: "MALFORMED_PARAMETERS", message: "A title is required." };
   const dueDate = parameters.dueDate === null || parameters.dueDate === undefined ? null : typeof parameters.dueDate === "string" && ISO_DATE.test(parameters.dueDate) ? parameters.dueDate : undefined;
   if (dueDate === undefined) return { ok: false, reason: "MALFORMED_PARAMETERS", message: "Due date must be YYYY-MM-DD when supplied." };
   if (actionType === "life_pulse.project.update") return { ok: false, reason: "UNSUPPORTED_ACTION", message: "Project update proposals are reserved for Prompt 8." };
-  if (actionType === "life_pulse.task.update") return { ok: false, reason: "AMBIGUOUS_RESOURCE", message: "Task update proposals require deterministic resource resolution." };
+  if (actionType === "life_pulse.task.update") {
+    const taskTitle = cleanText(parameters.taskTitle, 120);
+    if (!taskTitle) return { ok: false, reason: "MALFORMED_PARAMETERS", message: "Task update proposals require deterministic resource resolution." };
+    const { data, error } = await supabase
+      .from("tasks")
+      .select("id, title, due_date, status")
+      .ilike("title", taskTitle)
+      .limit(2);
+    if (error) return { ok: false, reason: "RESOURCE_NOT_FOUND", message: "NEXTRON could not verify that task right now." };
+    if (!data || data.length === 0) return { ok: false, reason: "RESOURCE_NOT_FOUND", message: "I could not find an owned task with that exact title." };
+    if (data.length > 1) return { ok: false, reason: "AMBIGUOUS_RESOURCE", message: "More than one task matched that title. Rename or specify the exact task first." };
+    const task = data[0] as { id: string; title: string; due_date: string | null; status: string };
+    if (!UUID.test(task.id) || (task.status !== "todo" && task.status !== "done")) return { ok: false, reason: "RESOURCE_NOT_FOUND", message: "NEXTRON could not verify that task right now." };
+    return {
+      ok: true,
+      actionType: "life_pulse.task.update",
+      parameters: { taskId: task.id, beforeTitle: task.title, beforeDueDate: task.due_date, beforeStatus: task.status, dueDate },
+      riskLevel: "low",
+      title: `Update task: ${task.title}`,
+      description: "NEXTRON can update this task only after explicit approval and server-side revalidation.",
+      preview: { heading: "UPDATE TASK", subheading: task.title, fields: [{ label: "Due", before: task.due_date ?? "No due date", after: dueDate ?? "No due date" }], approvalLabel: "Approve task update" },
+    };
+  }
+
+  const title = cleanText(parameters.title, 120);
+  if (!title) return { ok: false, reason: "MALFORMED_PARAMETERS", message: "A title is required." };
 
   const label = actionType === "life_pulse.reminder.create" ? "CREATE REMINDER" : "CREATE TASK";
   const noun = actionType === "life_pulse.reminder.create" ? "reminder" : "task";
   return {
     ok: true,
     actionType: actionType as NextronActionType,
-    parameters: { title, dueDate },
     riskLevel: "low",
     title: `Create ${noun}: ${title}`,
-    description: `NEXTRON can prepare this ${noun}, but execution is disabled until Prompt 8.`,
+    description: actionType === "life_pulse.task.create" ? "NEXTRON can create this Task only after explicit approval." : `NEXTRON can prepare this ${noun}, but execution is not enabled for this action type.`,
     preview: { heading: label, subheading: title, fields: [{ label: "Title", after: title }, { label: "Due", after: dueDate ?? "No due date" }], approvalLabel: actionType === "life_pulse.reminder.create" ? "Approve reminder" : "Approve task" },
+    parameters: actionType === "life_pulse.task.create" ? { title, dueDate, priority: "medium" } : { title, dueDate },
   };
 }
 
 export async function createActionProposal(args: { supabase: SupabaseClient; conversationId: string | null; actionType: string; parameters: Record<string, unknown> }): Promise<{ ok: true; proposal: NextronActionProposal } | { ok: false; reason: string; message: string }> {
-  const validated = validateActionIntent(args.actionType, args.parameters);
+  const validated = await validateActionIntent(args.supabase, args.actionType, args.parameters);
   if (!validated.ok) return { ok: false, reason: validated.reason, message: validated.message };
   const expiresAt = new Date(Date.now() + NEXTRON_ACTION_EXPIRY_MINUTES * 60_000).toISOString();
   const { data, error } = await args.supabase.rpc("nextron_create_action_proposal", { p_conversation_id: args.conversationId, p_action_type: validated.actionType, p_validated_payload: validated.parameters, p_preview_payload: { title: validated.title, description: validated.description, preview: validated.preview }, p_risk_level: validated.riskLevel, p_expires_at: expiresAt });
@@ -155,7 +195,7 @@ export async function createActionProposal(args: { supabase: SupabaseClient; con
 export async function listRecentActionProposals(supabase: SupabaseClient): Promise<NextronActionProposal[]> {
   const { data, error } = await supabase
     .from("nextron_action_proposals")
-    .select("id, action_type, validated_payload, preview_payload, risk_level, status, created_at, expires_at, approved_at, canceled_at, final_reason")
+    .select("id, action_type, validated_payload, preview_payload, risk_level, status, created_at, expires_at, approved_at, canceled_at, executed_at, final_reason, execution_result")
     .order("created_at", { ascending: false })
     .limit(6);
   if (error) return [];
@@ -163,8 +203,12 @@ export async function listRecentActionProposals(supabase: SupabaseClient): Promi
 }
 
 export async function approveActionProposal(supabase: SupabaseClient, proposalId: string): Promise<{ ok: true; proposal: NextronActionProposal } | { ok: false; reason: string; message: string }> {
-  const { data, error } = await supabase.rpc("nextron_approve_action_proposal", { p_proposal_id: proposalId });
-  if (error || !data) return { ok: false, reason: "PROPOSAL_NOT_FOUND", message: "This proposal is unavailable or not yours." };
+  const { data, error } = await supabase.rpc("nextron_execute_task_action", { p_proposal_id: proposalId });
+  if (error || !data) {
+    const reason = error?.message?.includes("TASK_ACTIONS_NOT_ALLOWED") ? "TASK_ACTIONS_NOT_ALLOWED" : error?.message?.includes("TASK_PRECONDITION_FAILED") ? "TASK_PRECONDITION_FAILED" : "PROPOSAL_NOT_FOUND";
+    const message = reason === "TASK_ACTIONS_NOT_ALLOWED" ? "Turn on Task actions permission before approving Task mutations." : reason === "TASK_PRECONDITION_FAILED" ? "That task changed after the proposal was prepared. Create a fresh proposal." : "This proposal is unavailable or not yours.";
+    return { ok: false, reason, message };
+  }
   return { ok: true, proposal: rowToProposal(data as ProposalRow) };
 }
 
@@ -201,7 +245,9 @@ function rowToProposal(row: ProposalRow): NextronActionProposal {
     expiresAt: row.expires_at,
     approvedAt: row.approved_at,
     canceledAt: row.canceled_at,
+    executedAt: row.executed_at,
     finalReason: row.final_reason,
+    executionResult: row.execution_result,
   };
 }
 

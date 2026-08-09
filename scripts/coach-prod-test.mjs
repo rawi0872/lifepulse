@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 
-// Focused production QA for the read-only Coach ecosystem polish.
-// This intentionally avoids recommendation action clicks, form submission, CRUD, and database writes.
+// Focused production QA for the Coach ecosystem.
+// Prompt 8 intentionally performs synthetic NEXTRON Task actions, verifies canonical writes, and cleans them up.
 
 import { chromium, expect } from "@playwright/test";
+import { createClient } from "@supabase/supabase-js";
 import { existsSync, readFileSync } from "fs";
 import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
@@ -31,6 +32,8 @@ const BASE = env.LIFE_PULSE_PROD_BASE_URL || "https://lifepulse-sand.vercel.app"
 const HEADLESS = env.LIFE_PULSE_TEST_HEADLESS !== "false";
 const EMAIL = env.LIFE_PULSE_TEST_EMAIL;
 const PASSWORD = env.LIFE_PULSE_TEST_PASSWORD;
+const SUPABASE_URL = env.NEXT_PUBLIC_SUPABASE_URL || env.SUPABASE_URL;
+const SUPABASE_ANON_KEY = env.NEXT_PUBLIC_SUPABASE_ANON_KEY || env.SUPABASE_ANON_KEY;
 const ERROR_SCREENSHOT_PATH = "screenshot-coach-prod-error.png";
 
 const requiredCoachText = [
@@ -116,6 +119,8 @@ function requireConfig() {
   const missing = [];
   if (!EMAIL) missing.push("LIFE_PULSE_TEST_EMAIL");
   if (!PASSWORD) missing.push("LIFE_PULSE_TEST_PASSWORD");
+  if (!SUPABASE_URL) missing.push("NEXT_PUBLIC_SUPABASE_URL");
+  if (!SUPABASE_ANON_KEY) missing.push("NEXT_PUBLIC_SUPABASE_ANON_KEY");
 
   if (missing.length > 0) {
     console.error("");
@@ -128,6 +133,13 @@ function requireConfig() {
     console.error("");
     process.exit(2);
   }
+}
+
+async function createQaSupabaseClient() {
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
+  const { data, error } = await supabase.auth.signInWithPassword({ email: EMAIL, password: PASSWORD });
+  if (error || !data.user) throw new Error(`Supabase QA sign-in failed: ${error?.message ?? "missing user"}`);
+  return { supabase, userId: data.user.id };
 }
 
 function pass(label) {
@@ -176,8 +188,47 @@ async function main() {
   console.log("=== Life Pulse Coach Production QA ===");
   console.log(`Base URL: ${BASE}`);
   console.log(`Test account: ${EMAIL}`);
-  console.log("Read-only check: this script does not click Coach recommendation actions or write data.");
+  console.log("Focused write check: synthetic NEXTRON Task actions are created and cleaned up.");
   console.log("");
+
+  const runId = `prompt8-${Date.now()}`;
+  const createTitle = `Prompt 8 QA create ${runId}`;
+  const updateTitle = `Prompt 8 QA update ${runId}`;
+  const { supabase, userId } = await createQaSupabaseClient();
+  const { data: originalPrefs } = await supabase
+    .from("nextron_context_preferences")
+    .select("*")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  async function cleanupSyntheticData() {
+    await supabase.from("tasks").delete().eq("user_id", userId).in("title", [createTitle, updateTitle]).catch(() => undefined);
+    if (originalPrefs) {
+      await supabase.from("nextron_context_preferences").upsert(originalPrefs, { onConflict: "user_id" }).catch(() => undefined);
+    } else {
+      await supabase.from("nextron_context_preferences").delete().eq("user_id", userId).catch(() => undefined);
+    }
+  }
+
+  await cleanupSyntheticData();
+  await supabase.from("nextron_context_preferences").upsert({
+    user_id: userId,
+    permission_version: 5,
+    allow_profile: true,
+    allow_today: true,
+    allow_tasks: true,
+    allow_task_actions: true,
+    allow_habits: true,
+    allow_results: true,
+    allow_goals: true,
+    allow_projects: true,
+    allow_knowledge: false,
+    allow_drive: false,
+    allow_calendar: false,
+    allow_journal: false,
+    allow_evening_shutdown: false,
+    allow_weekly_review: false,
+  }, { onConflict: "user_id" });
 
   const browser = await chromium.launch({ headless: HEADLESS });
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
@@ -236,18 +287,30 @@ async function main() {
     await expect(page.locator('[data-nextron-signals="true"]')).toContainText("Provider: deterministic", { timeout: 15000 });
     pass("NEXTRON Signals refresh completed");
 
-    await expect(page.locator('[data-nextron-actions="true"]')).toContainText("Execution is disabled in Prompt 7", { timeout: 10000 });
-    const beforeActionTasksResponse = await page.request.get(`${BASE}/tasks`);
-    expect(beforeActionTasksResponse.ok()).toBe(true);
-    await page.locator("#nextron-question").fill("Create a task called Prompt 7 production nonmutation check tomorrow");
+    await expect(page.locator('[data-nextron-actions="true"]')).toContainText("Task actions permission", { timeout: 10000 });
+    await page.locator("#nextron-question").fill(`Create a task called ${createTitle} tomorrow`);
     await page.getByRole("button", { name: "Send to NEXTRON" }).click();
     await expect(page.locator('[data-nextron-action-proposal="true"]').first()).toContainText("CREATE TASK", { timeout: 20000 });
     await expect(page.locator('[data-nextron-action-proposal="true"]').first()).toContainText("Requires approval", { timeout: 10000 });
-    pass("Action proposal generated");
+    pass("Task create action proposal generated");
 
     await page.getByRole("button", { name: "Approve task" }).first().click();
-    await expect(page.locator('[data-nextron-action-proposal="true"]').first()).toContainText("Approval recorded. Action execution is not enabled yet.", { timeout: 15000 });
-    pass("Action approval recorded without execution");
+    await expect(page.locator('[data-nextron-action-proposal="true"]').first()).toContainText("Approved and completed. Canonical Task data was updated.", { timeout: 15000 });
+    const { data: createdTask } = await supabase.from("tasks").select("id, title, status, due_date").eq("user_id", userId).eq("title", createTitle).maybeSingle();
+    expect(createdTask?.status).toBe("todo");
+    expect(createdTask?.due_date).toBeTruthy();
+    pass("Approved Task create mutated canonical task row");
+
+    const { error: seedUpdateError } = await supabase.from("tasks").insert({ user_id: userId, title: updateTitle, priority: "medium", status: "todo", due_date: null });
+    if (seedUpdateError) throw new Error(`Failed to seed Task update QA record: ${seedUpdateError.message}`);
+    await page.locator("#nextron-question").fill(`Move task called ${updateTitle} to tomorrow`);
+    await page.getByRole("button", { name: "Send to NEXTRON" }).click();
+    await expect(page.locator('[data-nextron-action-proposal="true"]').first()).toContainText("UPDATE TASK", { timeout: 20000 });
+    await page.getByRole("button", { name: "Approve task update" }).first().click();
+    await expect(page.locator('[data-nextron-action-proposal="true"]').first()).toContainText("Approved and completed. Canonical Task data was updated.", { timeout: 15000 });
+    const { data: updatedTask } = await supabase.from("tasks").select("title, due_date").eq("user_id", userId).eq("title", updateTitle).maybeSingle();
+    expect(updatedTask?.due_date).toBeTruthy();
+    pass("Approved Task update mutated canonical task row");
 
     await page.locator("#nextron-question").fill("Create a task called Prompt 7 cancel check tomorrow");
     await page.getByRole("button", { name: "Send to NEXTRON" }).click();
@@ -257,7 +320,7 @@ async function main() {
     pass("Action cancellation finalized proposal");
 
     await page.reload({ waitUntil: "networkidle" });
-    await expect(page.locator('[data-nextron-actions="true"]')).toContainText("Approval recorded. Action execution is not enabled yet.", { timeout: 20000 });
+    await expect(page.locator('[data-nextron-actions="true"]')).toContainText("Approved and completed. Canonical Task data was updated.", { timeout: 20000 });
     await expect(page.locator('[data-nextron-actions="true"]')).toContainText("Canceled. This proposal can no longer be approved.", { timeout: 10000 });
     pass("Action proposal statuses persisted across refresh");
 
@@ -298,11 +361,13 @@ async function main() {
     console.log("Coach production QA passed.");
     console.log("");
   } catch (error) {
+    await cleanupSyntheticData();
     await failWithDiagnostics(page, error);
     await browser.close();
     process.exit(1);
   }
 
+  await cleanupSyntheticData();
   await browser.close();
 }
 
