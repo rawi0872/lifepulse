@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { startTransition, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DashboardNav } from "@/components/DashboardNav";
@@ -134,6 +134,7 @@ function NextronContent() {
   const askAbortController = useRef<AbortController | null>(null);
   const dailyBriefAbortController = useRef<AbortController | null>(null);
   const dailyBriefSessionCache = useRef<Map<string, { brief: DailyBrief; meta: DailyBriefMeta }>>(new Map());
+  const bridgeInitialized = useRef(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [savedPermissions, setSavedPermissions] = useState<NextronPermissionState>(() => getDefaultNextronPermissions());
   const [draftPermissions, setDraftPermissions] = useState<NextronPermissionState>(() => getDefaultNextronPermissions());
@@ -166,6 +167,20 @@ function NextronContent() {
   const [actionProposals, setActionProposals] = useState<NextronActionProposal[]>([]);
   const [actionStatus, setActionStatus] = useState<ActionProposalStatus>("idle");
   const [actionError, setActionError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (bridgeInitialized.current) return;
+    bridgeInitialized.current = true;
+    const prompt = readInitialNextronBridgePrompt();
+    if (!prompt) return;
+
+    const timeoutId = window.setTimeout(() => {
+      startTransition(() => {
+        setAskPrompt((current) => current.trim() ? current : prompt);
+      });
+    }, 0);
+    return () => window.clearTimeout(timeoutId);
+  }, []);
 
   const openConversation = useCallback(async (id: string) => {
     setThreadStatus("loading");
