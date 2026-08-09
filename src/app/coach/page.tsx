@@ -700,7 +700,8 @@ function NextronContent() {
         <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0 lg:max-w-3xl">
             <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-200/80">Personal Intelligence</p>
-            <h1 className="break-words text-3xl font-bold tracking-[-0.04em] text-[var(--text)] sm:text-5xl">NEXTRON Command Center</h1>
+            <h1 className="break-words text-3xl font-bold tracking-[-0.04em] text-[var(--text)] sm:text-5xl">NEXTRON</h1>
+            <p className="mt-1 text-xs font-semibold uppercase tracking-[0.18em] text-cyan-100/65">Command Center</p>
             <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[var(--text-secondary)] sm:text-base">
               Ask from the center. NEXTRON synthesizes the Life Pulse context you permit, explains what matters, and prepares Task actions only when you explicitly approve them.
             </p>
