@@ -239,7 +239,7 @@ export function getCoachInsights(data: CoachData): CoachInsight[] {
     results.push(
       mk(
         "Log today\u2019s nutrition",
-        "Add a simple nutrition or water entry if you want today reflected in Coach and Weekly Review.",
+        "Add a simple nutrition or water entry if you want today reflected in Life Pulse and Weekly Review.",
         "body",
         "medium",
         "Log Nutrition",

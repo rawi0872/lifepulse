@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-// Focused production QA for the Coach ecosystem.
+// Focused production QA for the NEXTRON ecosystem.
 // Prompt 8 intentionally performs synthetic NEXTRON Task actions, verifies canonical writes, and cleans them up.
 
 import { chromium, expect } from "@playwright/test";
@@ -35,9 +35,9 @@ const EMAIL = env.LIFE_PULSE_TEST_EMAIL;
 const PASSWORD = env.LIFE_PULSE_TEST_PASSWORD;
 const SUPABASE_URL = env.NEXT_PUBLIC_SUPABASE_URL || env.SUPABASE_URL;
 const SUPABASE_ANON_KEY = env.NEXT_PUBLIC_SUPABASE_ANON_KEY || env.SUPABASE_ANON_KEY;
-const ERROR_SCREENSHOT_PATH = "screenshot-coach-prod-error.png";
+const ERROR_SCREENSHOT_PATH = "screenshot-nextron-prod-error.png";
 
-const requiredCoachText = [
+const requiredNextronText = [
   "Personal Intelligence",
   "NEXTRON",
   "NEXTRON Daily Brief",
@@ -84,7 +84,7 @@ const forbiddenFinancePhrases = [
   "save more",
 ];
 
-const forbiddenCoachMemoryPhrases = [
+const forbiddenNextronMemoryPhrases = [
   "vector",
   "document upload",
   "file parsing",
@@ -102,15 +102,15 @@ const forbiddenCoachMemoryPhrases = [
   "automatic AI summary",
 ];
 
-const financeCoachNudgeTitle = "Review this week's money activity";
-const financeCoachSafeText = [
+const financeNextronNudgeTitle = "Review this week's money activity";
+const financeNextronSafeText = [
   "logged finance transactions this week",
   "Weekly Review can help you reflect on the pattern",
   "Open Weekly Review",
 ];
 
-const memoryCoachNudgeTitle = "Capture one lesson from this week";
-const memoryCoachSafeText = [
+const memoryNextronNudgeTitle = "Capture one lesson from this week";
+const memoryNextronSafeText = [
   "You have reflection activity this week",
   "Save one useful lesson or idea in Knowledge so it does not get lost",
   "Open Knowledge",
@@ -125,7 +125,7 @@ function requireConfig() {
 
   if (missing.length > 0) {
     console.error("");
-    console.error("Focused Coach production QA requires the smoke-test account credentials.");
+    console.error("Focused NEXTRON production QA requires the smoke-test account credentials.");
     console.error("Missing env vars:");
     for (const item of missing) console.error(`  - ${item}`);
     console.error("");
@@ -157,13 +157,13 @@ async function failWithDiagnostics(page, error) {
   await page.screenshot({ path: ERROR_SCREENSHOT_PATH, fullPage: true }).catch(() => undefined);
 
   console.error("");
-  console.error("Coach production QA failed.");
+  console.error("NEXTRON production QA failed.");
   console.error(`Current URL: ${currentUrl}`);
   console.error(`Page title: ${title}`);
   console.error(`Screenshot: ${ERROR_SCREENSHOT_PATH}`);
   console.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
   console.error("");
-  console.error("If this failure is for newly added Coach text, production may not have deployed the latest commit yet.");
+  console.error("If this failure is for newly added NEXTRON text, production may not have deployed the latest commit yet.");
   console.error("");
 }
 
@@ -186,7 +186,7 @@ async function main() {
   requireConfig();
 
   console.log("");
-  console.log("=== Life Pulse Coach Production QA ===");
+  console.log("=== Life Pulse NEXTRON Production QA ===");
   console.log(`Base URL: ${BASE}`);
   console.log(`Test account: ${EMAIL}`);
   console.log("Focused write check: synthetic NEXTRON Task actions are created and cleaned up.");
@@ -242,13 +242,13 @@ async function main() {
     await page.waitForTimeout(5000);
     pass("Submitted smoke-test account login");
 
-    await page.goto(`${BASE}/coach`, { waitUntil: "domcontentloaded", timeout: 30000 });
-    await page.waitForURL(/\/coach/, { timeout: 30000 });
-    await assertAuthenticatedRoute(page, "Coach");
+    await page.goto(`${BASE}/nextron`, { waitUntil: "domcontentloaded", timeout: 30000 });
+    await page.waitForURL(/\/nextron/, { timeout: 30000 });
+    await assertAuthenticatedRoute(page, "NEXTRON");
     await expect(page.getByRole("heading", { name: "NEXTRON", exact: true })).toBeVisible({ timeout: 20000 });
-    pass("Coach page loaded");
+    pass("NEXTRON page loaded");
 
-    for (const text of requiredCoachText) {
+    for (const text of requiredNextronText) {
       await expectBodyText(page, text);
     }
 
@@ -258,7 +258,7 @@ async function main() {
 
     const bodyText = await page.locator("body").innerText({ timeout: 10000 });
     if (bodyText.includes("Application error") || bodyText.includes("Failed to load")) {
-      throw new Error("Coach page loaded with an error state.");
+      throw new Error("NEXTRON page loaded with an error state.");
     }
 
     const lowerBodyText = bodyText.toLowerCase();
@@ -267,9 +267,9 @@ async function main() {
       pass(`Forbidden finance phrase absent: ${phrase}`);
     }
 
-    for (const phrase of forbiddenCoachMemoryPhrases) {
+    for (const phrase of forbiddenNextronMemoryPhrases) {
       expect(lowerBodyText).not.toContain(phrase.toLowerCase());
-      pass(`Forbidden Coach memory phrase absent: ${phrase}`);
+      pass(`Forbidden NEXTRON memory phrase absent: ${phrase}`);
     }
 
     await expect(page.locator('[data-nextron-signals="true"]')).toBeVisible({ timeout: 20000 });
@@ -284,7 +284,7 @@ async function main() {
       pass("NEXTRON Signals empty state is visible");
     }
     await page.getByRole("button", { name: "Refresh signals" }).click();
-    await expect(page.locator('[data-nextron-signals="true"]')).toContainText("Provider: deterministic", { timeout: 15000 });
+    await expect(page.locator('[data-nextron-signals="true"]')).toContainText("Model calls: 0", { timeout: 15000 });
     pass("NEXTRON Signals refresh completed");
 
     await expect(page.locator('[data-nextron-actions="true"]')).toContainText("Task actions permission", { timeout: 10000 });
@@ -337,24 +337,24 @@ async function main() {
     await expect(page.locator('[data-nextron-actions="true"]')).toContainText("Canceled. This proposal can no longer be approved.", { timeout: 10000 });
     pass("Action proposal statuses persisted across refresh");
 
-    if (bodyText.includes(financeCoachNudgeTitle)) {
-      pass(`Finance Coach nudge visible: ${financeCoachNudgeTitle}`);
-      for (const text of financeCoachSafeText) {
+    if (bodyText.includes(financeNextronNudgeTitle)) {
+      pass(`Finance NEXTRON nudge visible: ${financeNextronNudgeTitle}`);
+      for (const text of financeNextronSafeText) {
         expect(bodyText).toContain(text);
-        pass(`Finance Coach safe copy present: ${text}`);
+        pass(`Finance NEXTRON safe copy present: ${text}`);
       }
     } else {
-      info("Finance Coach nudge is data/day dependent and not visible for this account state.");
+      info("Finance NEXTRON nudge is data/day dependent and not visible for this account state.");
     }
 
-    if (bodyText.includes(memoryCoachNudgeTitle)) {
-      pass(`Coach memory nudge visible: ${memoryCoachNudgeTitle}`);
-      for (const text of memoryCoachSafeText) {
+    if (bodyText.includes(memoryNextronNudgeTitle)) {
+      pass(`NEXTRON memory nudge visible: ${memoryNextronNudgeTitle}`);
+      for (const text of memoryNextronSafeText) {
         expect(bodyText).toContain(text);
-        pass(`Coach memory safe copy present: ${text}`);
+        pass(`NEXTRON memory safe copy present: ${text}`);
       }
     } else {
-      info("Coach memory nudge is data-dependent and not visible for this account/week state.");
+      info("NEXTRON memory nudge is data-dependent and not visible for this account/week state.");
     }
 
     await page.getByRole("button", { name: "Generate brief" }).click();
@@ -371,7 +371,7 @@ async function main() {
     pass("Daily Brief refresh completed");
 
     console.log("");
-    console.log("Coach production QA passed.");
+    console.log("NEXTRON production QA passed.");
     console.log("");
   } catch (error) {
     await cleanupSyntheticData();

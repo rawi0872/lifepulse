@@ -48,38 +48,43 @@ const icons = {
 
 const navGroups: NavGroup[] = [
   {
-    label: "Core",
+    label: "Execute",
     items: [
       { label: "Today", href: "/today", icon: icons.today },
       { label: "Tasks", href: "/tasks", icon: icons.tasks },
       { label: "Habits", href: "/habits", icon: icons.habits },
-      { label: "Journal", href: "/journal", icon: icons.journal },
     ],
   },
   {
-    label: "Organize bigger work",
+    label: "Direction",
     items: [
       { label: "Goals", href: "/goals", icon: icons.goals },
       { label: "Projects", href: "/projects", icon: icons.projects },
     ],
   },
   {
-    label: "Optional context",
-    items: [
-      { label: "Body", href: "/body", icon: icons.body },
-      { label: "Mind", href: "/mind", icon: icons.mind },
-      { label: "Finance", href: "/finance", icon: icons.finance },
-      { label: "Passions", href: "/passions", icon: icons.passions },
-      { label: "Knowledge", href: "/knowledge", icon: icons.knowledge },
-    ],
-  },
-  {
-    label: "Review after logging",
+    label: "Review",
     items: [
       { label: "Results", href: "/results", icon: icons.results },
       { label: "Weekly Review", href: "/weekly-review", icon: icons.review },
       { label: "Insights", href: "/insights", icon: icons.insights },
-      { label: "NEXTRON", href: "/coach", icon: icons.coach, badge: "Beta" },
+      { label: "Journal", href: "/journal", icon: icons.journal },
+    ],
+  },
+  {
+    label: "Knowledge",
+    items: [
+      { label: "Knowledge", href: "/knowledge", icon: icons.knowledge },
+      { label: "Body", href: "/body", icon: icons.body },
+      { label: "Mind", href: "/mind", icon: icons.mind },
+      { label: "Finance", href: "/finance", icon: icons.finance },
+      { label: "Passions", href: "/passions", icon: icons.passions },
+    ],
+  },
+  {
+    label: "Intelligence",
+    items: [
+      { label: "NEXTRON", href: "/nextron", icon: icons.coach },
     ],
   },
   {
@@ -96,7 +101,12 @@ const navGroups: NavGroup[] = [
   },
 ];
 
-const mobilePrimaryItems = navGroups[0].items;
+const mobilePrimaryItems = [
+  navGroups[0].items[0],
+  navGroups[0].items[1],
+  navGroups[0].items[2],
+  navGroups[4].items[0],
+].filter(Boolean) as NavItem[];
 
 const mobileMoreGroups = navGroups.slice(1);
 
@@ -210,7 +220,7 @@ export function DashboardNav({ children }: { children: React.ReactNode }) {
             <div className="mb-3 flex items-center justify-between">
               <div>
                 <h2 className="text-base font-semibold tracking-[-0.02em] text-[var(--text)]">More</h2>
-                <p className="mt-0.5 text-xs text-[var(--text-muted)]">Start with Today. Use these routes to organize bigger work, review later, or add optional context.</p>
+                <p className="mt-0.5 text-xs text-[var(--text-muted)]">Start with Today. Use NEXTRON when you need synthesis across the system.</p>
               </div>
               <button
                 onClick={() => setMoreOpen(false)}
@@ -240,7 +250,7 @@ export function DashboardNav({ children }: { children: React.ReactNode }) {
             </div>
 
             <div className="mt-4 border-t border-[var(--border)] pt-4">
-              <p className="mb-2 text-[10px] font-medium uppercase tracking-[0.12em] text-[var(--text-muted)]">Private beta</p>
+              <p className="mb-2 text-[10px] font-medium uppercase tracking-[0.12em] text-[var(--text-muted)]">Life Pulse</p>
               <FeedbackButton variant="cta" label="Send feedback" description="Report a bug or confusing moment" />
             </div>
           </div>

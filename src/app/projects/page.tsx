@@ -196,6 +196,17 @@ export default function ProjectsPage() {
     };
   }
 
+  function discussProjectWithNextron(project: Project) {
+    try {
+      sessionStorage.setItem("lifepulse:nextron-bridge", JSON.stringify({
+        subject: "project",
+        prompt: `Discuss the project "${project.title}" using current Projects, Tasks, and Goals context. Do not write to Projects.`,
+        createdAt: Date.now(),
+      }));
+    } catch {}
+    router.push("/nextron?subject=project");
+  }
+
   function resetForm() {
     setTitle("");
     setDescription("");
@@ -429,6 +440,9 @@ export default function ProjectsPage() {
             </div>
           </div>
           <div className="flex gap-2 sm:shrink-0">
+            <Button variant="ghost" onClick={() => router.push("/nextron?subject=project")}>
+              Ask NEXTRON
+            </Button>
             <Button variant="secondary" onClick={() => { resetForm(); setConfirmingDeleteId(null); setShowForm(true); }}>
               Create manually
             </Button>
@@ -521,6 +535,11 @@ export default function ProjectsPage() {
                         <div key={project.id} className="min-w-0 space-y-2">
                           <ProjectGoalContext goals={linkedProjectGoals} />
                           <ProjectTaskContext context={taskContext} />
+                          <div className="flex justify-end">
+                            <button type="button" onClick={() => discussProjectWithNextron(project)} className="inline-flex min-h-9 items-center rounded-lg border border-[var(--accent)]/20 bg-[var(--surface-soft)] px-3 py-1.5 text-xs font-semibold text-[var(--accent)] transition-colors hover:border-[var(--accent)]/35 hover:text-[var(--accent-strong)]">
+                              Discuss with NEXTRON
+                            </button>
+                          </div>
                           <ProjectCard
                             project={project}
                             isPrimary={isPrimary}

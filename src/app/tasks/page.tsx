@@ -630,6 +630,15 @@ export default function TasksPage() {
           </Button>
         </div>
 
+        <div className="mb-4 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2.5">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs text-[var(--text-muted)]">Tasks are canonical here. NEXTRON can discuss them and prepare approved Task actions.</p>
+            <Link href="/nextron?subject=tasks" className="inline-flex min-h-10 shrink-0 items-center justify-center rounded-lg border border-[var(--accent)]/20 px-3 py-2 text-xs font-semibold text-[var(--accent)] transition-colors hover:border-[var(--accent)]/35 hover:text-[var(--accent-strong)]">
+              Ask NEXTRON about my tasks
+            </Link>
+          </div>
+        </div>
+
         <Card className="mb-4 border-[var(--border-strong)]">
           <div className="flex flex-col gap-3 p-4">
             <label htmlFor="quick-task-title" className="text-xs font-medium text-[var(--text-muted)]">Quick capture</label>

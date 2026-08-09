@@ -51,7 +51,7 @@ const routes = [
   { path: "/knowledge", label: "Knowledge", text: ["Knowledge"] },
   { path: "/weekly-review", label: "Weekly Review", text: ["Weekly Review"] },
   { path: "/insights", label: "Insights", text: ["Insights"] },
-  { path: "/coach", label: "Coach", text: ["Coach"] },
+  { path: "/nextron", label: "NEXTRON", text: ["NEXTRON", "Ask NEXTRON"] },
   { path: "/body", label: "Body", text: ["Body"] },
   { path: "/mind", label: "Mind", text: ["Mind Pulse", "Mind Habits", "Log Today's Mind Data"] },
   { path: "/finance", label: "Finance", text: ["Finance"] },

@@ -360,9 +360,14 @@ function KnowledgeContent() {
   return (
     <div className="animate-fade-in px-4 py-6 md:p-6">
       <div className="mx-auto max-w-5xl min-w-0">
-        <div className="mb-6 min-w-0">
-          <h1 className="text-2xl font-bold text-[var(--text)]">Knowledge</h1>
-          <p className="text-pretty text-sm text-[var(--text-muted)]">Your information system for ideas, resources, lessons, and notes.</p>
+        <div className="mb-6 flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold text-[var(--text)]">Knowledge</h1>
+            <p className="text-pretty text-sm text-[var(--text-muted)]">Canonical storage for ideas, resources, lessons, and notes.</p>
+          </div>
+          <Link href="/nextron?subject=knowledge" className="inline-flex min-h-10 shrink-0 items-center justify-center rounded-xl border border-[var(--accent)]/20 bg-[var(--surface-soft)] px-3 py-2 text-xs font-semibold text-[var(--accent)] transition-colors hover:border-[var(--accent)]/35 hover:text-[var(--accent-strong)]">
+            Ask NEXTRON about Knowledge
+          </Link>
         </div>
 
         <div className="mb-6 flex gap-1 overflow-x-auto rounded-xl bg-[var(--surface-soft)] p-1">

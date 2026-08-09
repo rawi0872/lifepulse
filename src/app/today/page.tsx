@@ -694,6 +694,12 @@ function TodayContent() {
 
       <TodaysPulseHeader totalXp={totalXp} todayXp={todayXp} subtitle={copy.subtitle} />
 
+      <div className="mb-5 flex justify-end">
+        <Link href="/nextron?subject=today" className="inline-flex min-h-10 items-center rounded-xl border border-[var(--accent)]/20 bg-[var(--surface-soft)] px-3 py-2 text-xs font-semibold text-[var(--accent)] transition-colors hover:border-[var(--accent)]/35 hover:text-[var(--accent-strong)]">
+          Ask NEXTRON about today
+        </Link>
+      </div>
+
       {error && (
         <div className="mb-6 rounded-lg border border-[var(--danger)]/30 bg-[var(--danger)]/10 px-4 py-3 text-sm text-[var(--danger)]">
           {error}

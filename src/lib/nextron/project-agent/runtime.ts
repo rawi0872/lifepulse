@@ -93,7 +93,7 @@ Return exactly these five plain text lines with no markdown and no JSON:
 facts: tasks|optional factual observation; projects|optional factual observation; habits|optional factual observation; goals|optional factual observation; results|optional factual observation; today|optional factual observation; memory|optional confirmed preference context
 interpretation: one modest evidence-supported cross-domain sentence
 nextActionLabel: one short manual action label
-nextActionRoute: /today or /tasks or /habits or /results or /goals or /projects or /coach
+nextActionRoute: /today or /tasks or /habits or /results or /goals or /projects or /nextron
 nextActionRationale: one sentence explaining why this manual route helps`;
 }
 
@@ -113,7 +113,7 @@ Return exactly these six plain text lines with no markdown and no JSON:
 facts: knowledge|one note-derived observation; knowledge|optional second note-derived observation
 interpretation: one modest evidence-supported sentence
 nextActionLabel: one short manual action label
-nextActionRoute: /knowledge or /coach
+nextActionRoute: /knowledge or /nextron
 nextActionRationale: one sentence explaining why this manual route helps
 sources: exact source title from retrieval; optional exact second source title from retrieval`;
 }

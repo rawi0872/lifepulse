@@ -49,6 +49,11 @@ const cspProd = `
 `;
 
 const nextConfig: NextConfig = {
+  async redirects() {
+    return [
+      { source: "/coach", destination: "/nextron", permanent: false },
+    ];
+  },
   async rewrites() {
     return [
       { source: "/favicon.ico", destination: "/icon.svg" },

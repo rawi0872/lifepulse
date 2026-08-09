@@ -145,7 +145,7 @@ export function isNextronProviderEligibleRequest(request: NextronUserRequest): b
 export function parseNextronUserRequest(prompt: unknown): NextronPromptValidation {
   if (typeof prompt !== "string") return { ok: false, reason: "invalid_type", message: "Ask NEXTRON with a text question." };
   const trimmed = prompt.trim();
-  if (!trimmed) return { ok: false, reason: "empty", message: "Ask NEXTRON a practical coaching question first." };
+  if (!trimmed) return { ok: false, reason: "empty", message: "Ask NEXTRON a practical Life Pulse question first." };
   if (trimmed.length > NEXTRON_REQUEST_MAX_LENGTH) return { ok: false, reason: "too_long", message: `Keep requests under ${NEXTRON_REQUEST_MAX_LENGTH} characters.` };
   const normalizedPrompt = normalizePrompt(trimmed);
   const classification = classifyPrompt(normalizedPrompt);
@@ -198,7 +198,7 @@ function noEvidenceResponse(intent: NextronCoachingIntent): NextronCoachResponse
     `interactive_${intent.toLowerCase()}_limited_evidence`,
     "calm",
     [fact("today", "Permitted evidence is limited for this request right now.")],
-    "NEXTRON cannot make a stronger coaching call without more permitted Life Pulse evidence.",
+    "NEXTRON cannot make a stronger recommendation without more permitted Life Pulse evidence.",
     "Open Today",
     "/today",
     "Use Today to log one real priority or completion, then ask again.",
@@ -209,12 +209,12 @@ function boundaryResponse(request: NextronUserRequest): NextronCoachResponse {
   if (request.intent === "MENTAL_HEALTH_CRISIS") {
     return response("interactive_crisis_boundary", "high", [fact("today", "This request may involve immediate safety or self-harm risk.")], "NEXTRON is not a crisis or therapy service and cannot handle immediate-danger situations.", "Open Today", "/today", "If you may be in immediate danger, contact local emergency services or a trusted person now.");
   }
-  const label = request.intent === "AUTONOMOUS_ACTION" ? "NEXTRON cannot take actions for you." : "This request needs expertise outside Life Pulse coaching.";
-  return response("interactive_boundary", "calm", [fact("today", label)], "This private-beta coach can answer practical Life Pulse coaching questions from permitted evidence, but it will not provide medical, legal, financial, or autonomous-action handling.", "Open Today", "/today", "Ask about focus, next action, attention, progress, planning, review, patterns, or friction instead.");
+  const label = request.intent === "AUTONOMOUS_ACTION" ? "NEXTRON cannot take autonomous actions for you." : "This request needs expertise outside Life Pulse.";
+  return response("interactive_boundary", "calm", [fact("today", label)], "NEXTRON can answer practical Life Pulse questions from permitted evidence, but it will not provide medical, legal, financial, or autonomous-action handling.", "Open Today", "/today", "Ask about focus, next action, attention, progress, planning, review, patterns, or friction instead.");
 }
 
 function unsupportedResponse(): NextronCoachResponse {
-  return response("interactive_unsupported", "calm", [fact("today", "The request is not a supported deterministic coaching question yet.")], "NEXTRON can currently answer practical questions about focus, next action, attention, progress, planning, review, patterns, and friction from permitted Life Pulse evidence.", "Open Today", "/today", "Try asking: What should I focus on today? What needs my attention? Or what should I do next?");
+  return response("interactive_unsupported", "calm", [fact("today", "The request is not a supported deterministic Life Pulse question yet.")], "NEXTRON can currently answer practical questions about focus, next action, attention, progress, planning, review, patterns, and friction from permitted Life Pulse evidence.", "Open Today", "/today", "Try asking: What should I focus on today? What needs my attention? Or what should I do next?");
 }
 
 function reflectionRequestResponse(packet: NextronEvidencePacket, request: NextronUserRequest): NextronCoachResponse | null {
@@ -224,13 +224,13 @@ function reflectionRequestResponse(packet: NextronEvidencePacket, request: Nextr
   if (!wantsJournal && !wantsEvening && !wantsWeekly) return null;
 
   if (wantsJournal && packet.journal.status === "permission_denied") {
-    return response("interactive_journal_permission_denied", "calm", [fact("journal", "Journal text is not loaded by the current saved permissions.")], "NEXTRON cannot inspect or summarize Journal content unless that context is explicitly allowed.", "Review context permissions", "/coach", "If you want Journal text included, enable it in Context permissions and save first.");
+    return response("interactive_journal_permission_denied", "calm", [fact("journal", "Journal text is not loaded by the current saved permissions.")], "NEXTRON cannot inspect or summarize Journal content unless that context is explicitly allowed.", "Review context permissions", "/nextron", "If you want Journal text included, enable it in Context permissions and save first.");
   }
   if (wantsEvening && packet.eveningShutdown.status === "permission_denied") {
-    return response("interactive_evening_permission_denied", "calm", [fact("eveningShutdown", "Evening Shutdown reflection is not loaded by the current saved permissions.")], "NEXTRON cannot inspect that reflection unless the saved permission allows it.", "Review context permissions", "/coach", "Enable Evening Shutdown reflection only if you want it included, then save permissions.");
+    return response("interactive_evening_permission_denied", "calm", [fact("eveningShutdown", "Evening Shutdown reflection is not loaded by the current saved permissions.")], "NEXTRON cannot inspect that reflection unless the saved permission allows it.", "Review context permissions", "/nextron", "Enable Evening Shutdown reflection only if you want it included, then save permissions.");
   }
   if (wantsWeekly && packet.weeklyReview.status === "permission_denied") {
-    return response("interactive_weekly_permission_denied", "calm", [fact("weeklyReview", "Weekly Review reflection is not loaded by the current saved permissions.")], "NEXTRON cannot inspect that reflection unless the saved permission allows it.", "Review context permissions", "/coach", "Enable Weekly Review reflection only if you want it included, then save permissions.");
+    return response("interactive_weekly_permission_denied", "calm", [fact("weeklyReview", "Weekly Review reflection is not loaded by the current saved permissions.")], "NEXTRON cannot inspect that reflection unless the saved permission allows it.", "Review context permissions", "/nextron", "Enable Weekly Review reflection only if you want it included, then save permissions.");
   }
 
   const facts = [
@@ -258,10 +258,10 @@ export function buildInteractiveNextronResponse(packet: NextronEvidencePacket, r
       return facts.length > 0 ? response("interactive_today_focus", "medium", facts.slice(0, 3), "The clearest focus is the visible item with the most immediate date or loop impact.", fallback.nextAction.label, fallback.nextAction.href, fallback.nextAction.rationale) : noEvidenceResponse(request.intent);
     case "PROJECT_AGENT": {
       if (packet.projects.status === "permission_denied") {
-        return response("interactive_project_agent_projects_denied", "calm", [fact("projects", "Project context is not loaded by the current saved permissions.")], "NEXTRON cannot inspect project blockers unless Projects context is allowed.", "Review context permissions", "/coach", "Enable Projects context if you want project-specific coaching.");
+        return response("interactive_project_agent_projects_denied", "calm", [fact("projects", "Project context is not loaded by the current saved permissions.")], "NEXTRON cannot inspect project blockers unless Projects context is allowed.", "Review context permissions", "/nextron", "Enable Projects context if you want project-specific analysis.");
       }
       if (packet.tasks.status === "permission_denied") {
-        return response("interactive_project_agent_tasks_denied", "calm", [fact("tasks", "Task context is not loaded by the current saved permissions.")], "NEXTRON cannot inspect project blockers unless Tasks context is allowed.", "Review context permissions", "/coach", "Enable Tasks context if you want blocker analysis.");
+        return response("interactive_project_agent_tasks_denied", "calm", [fact("tasks", "Task context is not loaded by the current saved permissions.")], "NEXTRON cannot inspect project blockers unless Tasks context is allowed.", "Review context permissions", "/nextron", "Enable Tasks context if you want blocker analysis.");
       }
       return packet.projects.data
         ? response("interactive_project_agent_fallback", "medium", [fact("projects", `${plural(packet.projects.data.activeCount, "active project")} visible.`)], "Use the Projects surface to inspect linked open tasks and choose the next manual step.", "Open Projects", "/projects", "Review the project and its tasks directly; NEXTRON will not create or edit anything.")
@@ -273,7 +273,7 @@ export function buildInteractiveNextronResponse(packet: NextronEvidencePacket, r
         : noEvidenceResponse(request.intent);
     case "KNOWLEDGE_QUERY":
       return packet.knowledge.status === "permission_denied"
-        ? response("interactive_knowledge_permission_denied", "calm", [fact("knowledge", "Knowledge notes are not loaded by the current saved permissions.")], "NEXTRON cannot inspect Knowledge notes unless that context is explicitly allowed.", "Review context permissions", "/coach", "Enable Knowledge notes only if you want NEXTRON to search your saved notes, then save permissions.")
+        ? response("interactive_knowledge_permission_denied", "calm", [fact("knowledge", "Knowledge notes are not loaded by the current saved permissions.")], "NEXTRON cannot inspect Knowledge notes unless that context is explicitly allowed.", "Review context permissions", "/nextron", "Enable Knowledge notes only if you want NEXTRON to search your saved notes, then save permissions.")
         : response("interactive_knowledge_fallback", "calm", [fact("knowledge", "No relevant Knowledge note evidence was found in the bounded check.")], "NEXTRON will not invent a note match or cite a source it did not retrieve.", "Open Knowledge", "/knowledge", "Use Knowledge to inspect or add the note manually.");
     case "NEXT_ACTION":
     case "GENERAL_SUPPORTED":

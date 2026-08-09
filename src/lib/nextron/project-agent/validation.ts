@@ -1,7 +1,7 @@
 import type { NextronCoachResponse } from "@/lib/nextron/coach";
 import { PROJECT_AGENT_MAX_OUTPUT_CHARS, type ProjectAgentFallbackReason, type ProjectAgentParsedOutput } from "@/lib/nextron/project-agent/schemas";
 
-const ALLOWED_AGENT_ROUTES = new Set(["/projects", "/tasks", "/goals", "/habits", "/results", "/today", "/coach", "/knowledge"]);
+const ALLOWED_AGENT_ROUTES = new Set(["/projects", "/tasks", "/goals", "/habits", "/results", "/today", "/coach", "/nextron", "/knowledge"]);
 const PROJECT_AGENT_CATEGORIES = new Set(["projects", "tasks", "goals"]);
 const CROSS_DOMAIN_AGENT_CATEGORIES = new Set(["today", "tasks", "habits", "results", "goals", "projects", "memory"]);
 const KNOWLEDGE_AGENT_CATEGORIES = new Set(["knowledge"]);
@@ -107,7 +107,7 @@ export function validateCrossDomainAgentOutput(parsed: ProjectAgentParsedOutput 
 export function validateKnowledgeAgentOutput(parsed: ProjectAgentParsedOutput | null, evidence: unknown): ProjectAgentValidationResult {
   const result = validateAgentOutput(parsed, evidence, KNOWLEDGE_AGENT_CATEGORIES, "knowledge_notes_agent");
   if (!result.ok) return result;
-  if (result.response.nextAction.href !== "/knowledge" && result.response.nextAction.href !== "/coach") return { ok: false, reason: "ROUTE_INVALID" };
+  if (result.response.nextAction.href !== "/knowledge" && result.response.nextAction.href !== "/nextron" && result.response.nextAction.href !== "/coach") return { ok: false, reason: "ROUTE_INVALID" };
   const sources = parsed?.sources ?? [];
   if (sources.length < 1 || sources.length > 3) return { ok: false, reason: "STRUCTURE_INVALID" };
   const allowedSources = collectKnowledgeSources(evidence);

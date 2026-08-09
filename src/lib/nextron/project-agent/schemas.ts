@@ -45,7 +45,7 @@ export interface ProjectAgentFact {
 export interface ProjectAgentParsedOutput {
   facts: ProjectAgentFact[];
   interpretation: string;
-  nextAction: { label: string; href: "/projects" | "/tasks" | "/goals" | "/habits" | "/results" | "/today" | "/coach" | "/knowledge"; rationale: string };
+  nextAction: { label: string; href: "/projects" | "/tasks" | "/goals" | "/habits" | "/results" | "/today" | "/coach" | "/nextron" | "/knowledge"; rationale: string };
   sources?: string[];
 }
 

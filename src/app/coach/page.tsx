@@ -102,6 +102,23 @@ type DailyBriefStatus = "idle" | "generating" | "ready" | "error";
 type SignalStatus = "idle" | "loading" | "ready" | "error";
 type ActionProposalStatus = "idle" | "loading" | "ready" | "saving" | "error";
 
+function readInitialNextronBridgePrompt(): string {
+  if (typeof window === "undefined") return "";
+  const subject = new URLSearchParams(window.location.search).get("subject");
+  if (!subject) return "";
+
+  try {
+    const stored = sessionStorage.getItem("lifepulse:nextron-bridge");
+    if (stored) {
+      const bridge = JSON.parse(stored) as { subject?: string; prompt?: string; createdAt?: number };
+      sessionStorage.removeItem("lifepulse:nextron-bridge");
+      if (bridge.subject === subject && typeof bridge.prompt === "string" && Date.now() - Number(bridge.createdAt ?? 0) < 5 * 60_000) return bridge.prompt.slice(0, NEXTRON_REQUEST_MAX_LENGTH);
+    }
+  } catch {}
+
+  return getNextronBridgePrompt(subject);
+}
+
 export default function CoachPage() {
   return (
     <DashboardNav>
@@ -129,7 +146,7 @@ function NextronContent() {
   const [permissionWarning, setPermissionWarning] = useState<string | null>(null);
   const [permissionsAvailable, setPermissionsAvailable] = useState(true);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
-  const [askPrompt, setAskPrompt] = useState("");
+  const [askPrompt, setAskPrompt] = useState(readInitialNextronBridgePrompt);
   const [askResponse, setAskResponse] = useState<NextronCoachResponse | null>(null);
   const [askStatus, setAskStatus] = useState<"idle" | "asking" | "answered" | "unsupported" | "error">("idle");
   const [askError, setAskError] = useState<string | null>(null);
@@ -665,7 +682,7 @@ function NextronContent() {
             <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-200/80">Personal Intelligence</p>
             <h1 className="break-words text-3xl font-bold tracking-[-0.04em] text-[var(--text)] sm:text-4xl">NEXTRON</h1>
             <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[var(--text-muted)]">
-              A permissioned intelligence layer for Life Pulse: coaching, projects, Knowledge, Calendar, Memory, and selected Drive sources, grounded in context you explicitly allow.
+              A permissioned intelligence layer for Life Pulse: Today, Tasks, Projects, Knowledge, Calendar, Memory, and selected Drive sources, grounded in context you explicitly allow.
             </p>
           </div>
           <div className="grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-4 lg:w-[34rem]">
@@ -828,7 +845,7 @@ function NextronContent() {
             <span className="ml-2 text-xs font-normal text-[var(--text-muted)]">Saved permissions remain the authority.</span>
           </summary>
           <div className="mt-4">
-            <p id="nextron-context" className="mb-3 text-xs leading-relaxed text-[var(--text-muted)]">Saved permissions control what evidence enters NEXTRON. Change checkboxes locally, then save to refresh the Command Center.</p>
+            <p id="nextron-context" className="mb-3 text-xs leading-relaxed text-[var(--text-muted)]">Saved permissions control what evidence enters NEXTRON. Task actions are separate from Task read access and still require approval every time.</p>
             {permissionWarning && <p className="mb-3 rounded-xl border border-[var(--warning)]/30 bg-[var(--warning-soft)] px-3 py-2 text-xs leading-relaxed text-[var(--warning)]">{permissionWarning}</p>}
             <PermissionGroup title="Operational context" permissions={operationalPermissions} draftPermissions={draftPermissions} savedPermissions={savedPermissions} onChange={setPermission} />
             <PermissionGroup title="Private text context" permissions={privateTextPermissions} draftPermissions={draftPermissions} savedPermissions={savedPermissions} onChange={setPermission} />
@@ -845,7 +862,7 @@ function NextronContent() {
         <Card variant="subtle" className="p-4"><h2 className="text-sm font-semibold text-[var(--text)]">Not available to NEXTRON</h2><ul className="mt-3 space-y-2 text-xs text-[var(--text-secondary)]">{NEXTRON_UNAVAILABLE_CONTEXT.map((item) => <li key={item} className="break-words">{item}</li>)}{packet && Object.entries(packet.permissionSummary).filter(([, status]) => status === "permission_denied").map(([domain]) => <li key={domain} className="break-words">{formatDomainLabel(domain)} is not loaded by current permission.</li>)}</ul></Card>
       </section>
 
-      <p className="relative mt-5 text-center text-[10px] leading-relaxed text-[var(--text-muted)]">NEXTRON is permissioned, bounded, and user-controlled. It does not mutate Life Pulse data or external services in this phase.</p>
+      <p className="relative mt-5 text-center text-[10px] leading-relaxed text-[var(--text-muted)]">NEXTRON is permissioned, bounded, and user-controlled. It can update canonical Tasks only through explicit approved proposals; external connectors remain read-only.</p>
     </div>
   );
 }
@@ -858,6 +875,15 @@ function parseAskResponseBody(value: unknown): { response: NextronCoachResponse;
   const conversation = isConversationSummary(candidate.conversation) ? candidate.conversation : undefined;
   const messages = Array.isArray(candidate.messages) ? candidate.messages.filter(isConversationMessage) : undefined;
   return { response: candidate.response, source: candidate.source, conversation, messages };
+}
+
+function getNextronBridgePrompt(subject: string): string {
+  if (subject === "today") return "Help me understand today using current Life Pulse context. Keep Today focused on execution and use NEXTRON for synthesis.";
+  if (subject === "tasks") return "Review my current Tasks using permitted Life Pulse context. Help me choose what deserves attention next.";
+  if (subject === "project") return "Discuss my active project using current Projects, Tasks, and Goals context. Do not write to Projects.";
+  if (subject === "knowledge") return "Search my permitted Knowledge for what is relevant right now, and cite only retrieved Life Pulse sources.";
+  if (subject === "weekly-review") return "Discuss this Weekly Review using current permitted weekly evidence. Help me decide what deserves attention next week.";
+  return "";
 }
 
 function parseDailyBriefResponseBody(value: unknown): { brief: DailyBrief; meta: DailyBriefMeta } | null {
@@ -1167,7 +1193,7 @@ function DailyBriefView({ brief, meta, status, error, disabled, onGenerate, onRe
                 <div className="mt-2 flex flex-wrap gap-2">
                   {brief.sources.map((source) => <span key={source} className="rounded-full border border-cyan-300/20 bg-cyan-300/10 px-2.5 py-1 text-[10px] font-medium text-cyan-50/80">{source}</span>)}
                 </div>
-                {meta && <p className="mt-2 text-[10px] text-[var(--text-muted)]">Provider: {meta.provider}. Model calls this load: {meta.modelCalls}. Persistence: {meta.persisted ? "durable" : "session only"}.</p>}
+                {meta && <p className="mt-2 text-[10px] text-[var(--text-muted)]">Model calls this load: {meta.modelCalls}. State: {meta.persisted ? "Saved" : "Session only"}.</p>}
               </div>
               <div className="flex flex-wrap gap-2">
                 <PanelButton onClick={() => onAsk("Why is this the Daily Brief priority?")}>Ask why</PanelButton>
@@ -1212,7 +1238,7 @@ function NextronSignalsView({ signals, meta, status, error, onRefresh, onAsk }: 
           </div>
         )}
       </div>
-      {meta && <p className="mt-3 text-[10px] text-[var(--text-muted)]">Observed {formatTime(meta.observedAt)}. Max visible: {meta.maxVisible}. Provider: {meta.provider}. Model calls: {meta.modelCalls}. Persistence: {meta.persisted ? "durable" : "derived only"}.</p>}
+      {meta && <p className="mt-3 text-[10px] text-[var(--text-muted)]">Observed {formatTime(meta.observedAt)}. Max visible: {meta.maxVisible}. Model calls: {meta.modelCalls}. State: {meta.persisted ? "Saved" : "Derived only"}.</p>}
     </section>
   );
 }
@@ -1289,6 +1315,7 @@ function ActionProposalCard({ proposal, busy, onApprove, onCancel, onChange }: {
         <button type="button" disabled={!pending || busy} onClick={() => onApprove(proposal.id)} className="inline-flex min-h-11 items-center rounded-xl bg-cyan-300 px-4 py-2 text-sm font-semibold text-slate-950 transition-all hover:-translate-y-0.5 hover:bg-cyan-200 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-45">{proposal.preview.approvalLabel}</button>
         <button type="button" disabled={!pending || busy} onClick={() => { onChange(`Change this action proposal: ${proposal.preview.subheading}`); }} className="inline-flex min-h-11 items-center rounded-xl border border-cyan-300/20 bg-cyan-300/10 px-4 py-2 text-sm font-semibold text-cyan-50/85 transition-all hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-45">Change</button>
         <button type="button" disabled={!pending || busy} onClick={() => onCancel(proposal.id)} className="inline-flex min-h-11 items-center rounded-xl border border-[var(--danger)]/25 bg-[var(--danger-soft)] px-4 py-2 text-sm font-semibold text-[var(--danger)] transition-all hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-45">Cancel</button>
+        {proposal.status === "completed" && proposal.actionType.startsWith("life_pulse.task.") && <Link href="/tasks" className="inline-flex min-h-11 items-center rounded-xl border border-cyan-300/20 bg-black/15 px-4 py-2 text-sm font-semibold text-cyan-50/85 transition-all hover:-translate-y-0.5 hover:border-cyan-200/35">Open Tasks</Link>}
       </div>
     </article>
   );
@@ -1363,7 +1390,7 @@ function SignalRow({ label, value, detail, tone }: { label: string; value: strin
 function TodayPanel({ panels, onAsk }: { panels: LiveContextPanels | null; onAsk: (prompt: string) => void }) {
   const today = panels?.today;
   if (!today) return <p className="text-sm text-[var(--text-muted)]">Today context is loading.</p>;
-  if (today.status === "permission_denied") return <LockedState label="Today permission is off." href="/coach" />;
+  if (today.status === "permission_denied") return <LockedState label="Today permission is off." href="/nextron" />;
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-3 gap-2">
@@ -1410,7 +1437,7 @@ function CalendarPanel({ panels, onAsk }: { panels: LiveContextPanels | null; on
 function ProjectsPanel({ panels, onAsk }: { panels: LiveContextPanels | null; onAsk: (prompt: string) => void }) {
   const projects = panels?.projects;
   if (!projects) return <p className="text-sm text-[var(--text-muted)]">Project context is loading.</p>;
-  if (projects.status === "permission_denied") return <LockedState label="Projects permission is off." href="/coach" />;
+  if (projects.status === "permission_denied") return <LockedState label="Projects permission is off." href="/nextron" />;
   return (
     <div className="space-y-3">
       <div className="flex items-baseline justify-between gap-3 rounded-xl border border-cyan-300/10 bg-black/15 px-3 py-2">

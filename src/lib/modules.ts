@@ -162,9 +162,9 @@ export const MODULE_REGISTRY: readonly LifePulseModule[] = [
     key: "coach",
     label: "NEXTRON",
     category: "ai",
-    status: "preview",
-    href: "/coach",
-    description: "Private-beta Life Pulse AI Coach foundation with permission-controlled context and deterministic fallback.",
+    status: "available",
+    href: "/nextron",
+    description: "Permissioned personal intelligence for Life Pulse context, synthesis, conversation, and approved Task assistance.",
   },
   {
     key: "weeklyReview",
