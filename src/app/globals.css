@@ -6,14 +6,14 @@
 }
 
 :root {
-  --bg: #0b0d10;
-  --bg-elevated: #101317;
-  --surface: #15191e;
-  --surface-soft: #111418;
-  --surface-raised: #1b2026;
-  --surface-active: #202731;
-  --border: rgba(148,163,184,0.12);
-  --border-strong: rgba(148,163,184,0.22);
+  --bg: #070a0f;
+  --bg-elevated: #0d1118;
+  --surface: #121821;
+  --surface-soft: #0f141c;
+  --surface-raised: #19212b;
+  --surface-active: #202a36;
+  --border: rgba(148,163,184,0.13);
+  --border-strong: rgba(148,163,184,0.25);
   --text: #f4f7fb;
   --text-secondary: #a8b0bb;
   --text-muted: #6f7884;
@@ -25,8 +25,16 @@
   --success-soft: rgba(127,179,148,0.14);
   --warning: #d2a85f;
   --warning-soft: rgba(210,168,95,0.14);
+  --attention: #67d4e8;
+  --attention-soft: rgba(103,212,232,0.13);
   --danger: #e06f6f;
   --danger-soft: rgba(224,111,111,0.14);
+  --critical: #f08b8b;
+  --critical-soft: rgba(240,139,139,0.14);
+  --glow: rgba(103,232,249,0.16);
+  --focus-ring: rgba(155,195,230,0.72);
+  --radius-surface: 1.5rem;
+  --ease-premium: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 html {
@@ -80,8 +88,13 @@ img, svg, video, canvas, audio, iframe, embed, object {
 }
 
 *:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
+}
+
+@keyframes command-pulse {
+  0%, 100% { opacity: 0.26; transform: scaleX(0.92); }
+  50% { opacity: 0.58; transform: scaleX(1); }
 }
 
 @keyframes fade-in {
@@ -125,9 +138,27 @@ img, svg, video, canvas, audio, iframe, embed, object {
   position: relative;
   isolation: isolate;
   background:
-    radial-gradient(circle at 50% 0%, rgba(34, 211, 238, 0.13), transparent 32rem),
+    radial-gradient(circle at 50% 0%, rgba(34, 211, 238, 0.15), transparent 32rem),
     radial-gradient(circle at 12% 24%, rgba(59, 130, 246, 0.10), transparent 28rem),
-    linear-gradient(180deg, rgba(2, 6, 23, 0.96), rgba(8, 13, 23, 0.98));
+    radial-gradient(circle at 92% 18%, rgba(122,162,199,0.08), transparent 22rem),
+    linear-gradient(180deg, rgba(3, 7, 14, 0.96), rgba(7, 10, 15, 0.99));
+}
+
+@utility command-shell {
+  position: relative;
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 74% 0%, rgba(103,232,249,0.075), transparent 30rem),
+    radial-gradient(circle at 0% 38%, rgba(122,162,199,0.055), transparent 24rem),
+    linear-gradient(180deg, rgba(7,10,15,1), rgba(8,11,16,1));
+}
+
+@utility command-shell-grid {
+  background-image:
+    linear-gradient(rgba(155,195,230,0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(155,195,230,0.03) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(circle at 58% 14%, black, transparent 72%);
 }
 
 @utility nextron-shell-grid {
@@ -144,6 +175,14 @@ img, svg, video, canvas, audio, iframe, embed, object {
     linear-gradient(180deg, rgba(8, 18, 32, 0.86), rgba(5, 10, 20, 0.92)),
     radial-gradient(circle at 12% 0%, rgba(103, 232, 249, 0.08), transparent 18rem);
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.045), 0 18px 48px rgba(2, 6, 23, 0.28);
+}
+
+@utility premium-surface {
+  border: 1px solid rgba(148,163,184,0.13);
+  background:
+    linear-gradient(180deg, rgba(244,247,251,0.026), rgba(244,247,251,0.008)),
+    var(--surface);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.035), 0 18px 44px rgba(0,0,0,0.18);
 }
 
 @utility nextron-precision-edge {
@@ -167,6 +206,10 @@ img, svg, video, canvas, audio, iframe, embed, object {
 
 @utility nextron-core-ready {
   animation: nextron-arrive 1.2s ease-out 1;
+}
+
+@utility command-pulse {
+  animation: command-pulse 5.5s var(--ease-premium) infinite;
 }
 
 @utility nextron-orbit-slow {

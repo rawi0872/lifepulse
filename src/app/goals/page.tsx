@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { DashboardNav } from "@/components/DashboardNav";
 import { useToast } from "@/hooks/use-toast";
@@ -558,6 +559,18 @@ function GoalsContent() {
           milestoneCount={milestoneDoneCount}
           upcomingCount={upcomingDates}
         />
+
+        <div className="premium-surface mb-5 rounded-2xl p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-100/65">NEXTRON context</p>
+              <p className="mt-1 text-sm text-[var(--text-secondary)]">Discuss direction, linked work, and next visible actions without changing Goals.</p>
+            </div>
+            <Link href="/nextron?subject=goals" className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl border border-cyan-300/20 bg-cyan-300/10 px-4 py-2 text-sm font-semibold text-cyan-50/85 transition-all hover:-translate-y-0.5 hover:border-cyan-200/35">
+              Ask NEXTRON about goals
+            </Link>
+          </div>
+        </div>
 
         {!showForm && (
           <div className="mb-6">

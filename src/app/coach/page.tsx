@@ -685,23 +685,39 @@ function NextronContent() {
     { label: "Memory", value: livePanels?.systems.memory.count ?? 0, detail: "confirmed" },
   ] : [];
   const quickPrompts = ["What should I focus on today?", "What needs my attention?", "What's slipping?", "What should I do next?"];
+  const nowItems = [
+    signals.length > 0 ? `${signals.length} current signal${signals.length === 1 ? "" : "s"}` : "No manufactured urgency",
+    dailyBrief ? "Brief prepared" : dailyBriefStatus === "generating" ? "Brief generating" : "Brief available on request",
+    packet ? `${availableSystems} context systems ready` : "Context loading",
+  ];
 
   return (
     <div className="nextron-shell relative mx-auto max-w-[92rem] overflow-x-hidden px-3 py-4 animate-fade-in sm:px-5 sm:py-7 xl:px-6">
       <div className="nextron-shell-grid pointer-events-none absolute inset-0 opacity-70" aria-hidden="true" />
       <div className="pointer-events-none absolute inset-x-4 top-4 h-96 rounded-[3rem] bg-[radial-gradient(circle_at_50%_10%,rgba(56,189,248,0.20),rgba(15,23,42,0)_62%)]" aria-hidden="true" />
-      <header className="nextron-surface relative mb-4 min-w-0 overflow-hidden rounded-[2rem] p-4 sm:mb-5 sm:p-5">
+      <header className="nextron-surface relative mb-4 min-w-0 overflow-hidden rounded-[2rem] p-4 sm:mb-5 sm:p-5 lg:p-6">
         <div className="nextron-precision-edge pointer-events-none absolute inset-x-6 top-0 h-px" aria-hidden="true" />
         <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-          <div className="min-w-0">
+          <div className="min-w-0 lg:max-w-3xl">
             <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-200/80">Personal Intelligence</p>
-            <h1 className="break-words text-3xl font-bold tracking-[-0.04em] text-[var(--text)] sm:text-4xl">NEXTRON</h1>
-            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[var(--text-muted)]">
-              A permissioned intelligence layer for Life Pulse: Today, Tasks, Projects, Knowledge, Calendar, Memory, and selected Drive sources, grounded in context you explicitly allow.
+            <h1 className="break-words text-3xl font-bold tracking-[-0.04em] text-[var(--text)] sm:text-5xl">NEXTRON Command Center</h1>
+            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[var(--text-secondary)] sm:text-base">
+              Ask from the center. NEXTRON synthesizes the Life Pulse context you permit, explains what matters, and prepares Task actions only when you explicitly approve them.
             </p>
+            <div className="mt-4 grid gap-2 sm:grid-cols-3">
+              {nowItems.map((item) => (
+                <div key={item} className="rounded-2xl border border-cyan-300/12 bg-black/18 px-3 py-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-cyan-100/55">Right now</p>
+                  <p className="mt-1 text-xs font-medium text-[var(--text)]">{item}</p>
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-4 lg:w-[34rem]">
-            {contextStats.map((stat) => <ContextStat key={stat.label} {...stat} />)}
+          <div className="flex flex-col gap-3 lg:w-[34rem] lg:items-end">
+            <IntelligenceCore status={coreState} systems={activeSystems} activeSources={activeSourceNames} />
+            <div className="grid w-full min-w-0 grid-cols-2 gap-2 sm:grid-cols-4">
+              {contextStats.map((stat) => <ContextStat key={stat.label} {...stat} />)}
+            </div>
           </div>
         </div>
       </header>
@@ -749,45 +765,17 @@ function NextronContent() {
         </aside>
 
         <main className="order-1 min-w-0 space-y-4 lg:order-1 xl:order-2">
-          <DailyBriefView
-            brief={dailyBrief}
-            meta={dailyBriefMeta}
-            status={dailyBriefStatus}
-            error={dailyBriefError}
-            disabled={loading || !packet}
-            onGenerate={() => void generateDailyBriefAction(false)}
-            onRefresh={() => void generateDailyBriefAction(true)}
-            onAsk={(prompt) => { setAskPrompt(prompt); void askNextron(prompt); }}
-          />
-
-          <NextronSignalsView
-            signals={signals}
-            meta={signalMeta}
-            status={signalStatus}
-            error={signalError}
-            onRefresh={() => void loadSignals()}
-            onAsk={(prompt) => { setAskPrompt(prompt); void askNextron(prompt); }}
-          />
-
-          <NextronActionProposalsView
-            proposals={actionProposals}
-            status={actionStatus}
-            error={actionError}
-            onRefresh={() => void loadActionProposals()}
-            onApprove={(id) => void transitionActionProposal(id, "approve")}
-            onCancel={(id) => void transitionActionProposal(id, "cancel")}
-            onChange={(prompt) => { setAskPrompt(prompt); }}
-          />
-
           <section aria-labelledby="ask-nextron" className={`nextron-surface nextron-scanline relative overflow-hidden rounded-[2rem] p-4 sm:p-5 ${askStatus === "asking" ? "border-cyan-200/35" : ""}`}>
             {askStatus === "asking" && <div className="pointer-events-none absolute inset-y-0 left-0 w-1/2 bg-[linear-gradient(90deg,transparent,rgba(103,232,249,0.10),transparent)] [animation:nextron-scan_1.7s_ease-in-out_infinite]" aria-hidden="true" />}
             <div className="mb-5 flex flex-col items-center gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0 flex-1">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-200/70">Command channel</p>
                 <h2 id="ask-nextron" className="mt-1 text-xl font-semibold tracking-[-0.03em] text-[var(--text)]">Ask NEXTRON</h2>
-                <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[var(--text-muted)]">Ask about your Life Pulse context, saved Knowledge, projects, Calendar, or next focus. NEXTRON only uses context currently permitted.</p>
+                <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[var(--text-muted)]">Use this as the command line for Life Pulse. Ask for synthesis, tradeoffs, next focus, or a Task proposal that still requires explicit approval.</p>
               </div>
-              <IntelligenceCore status={coreState} systems={activeSystems} activeSources={activeSourceNames} />
+              <span className={`rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] ${askStatus === "asking" ? "border-cyan-200/35 bg-cyan-300/14 text-cyan-50" : "border-cyan-300/18 bg-cyan-300/8 text-cyan-100/75"}`}>
+                {askStatus === "asking" ? "Analyzing permitted evidence" : "Ready for command"}
+              </span>
             </div>
 
             <form className="space-y-3" onSubmit={(event) => { event.preventDefault(); void askNextron(); }}>
@@ -831,6 +819,36 @@ function NextronContent() {
               </div>
             )}
           </section>
+
+          <DailyBriefView
+            brief={dailyBrief}
+            meta={dailyBriefMeta}
+            status={dailyBriefStatus}
+            error={dailyBriefError}
+            disabled={loading || !packet}
+            onGenerate={() => void generateDailyBriefAction(false)}
+            onRefresh={() => void generateDailyBriefAction(true)}
+            onAsk={(prompt) => { setAskPrompt(prompt); void askNextron(prompt); }}
+          />
+
+          <NextronSignalsView
+            signals={signals}
+            meta={signalMeta}
+            status={signalStatus}
+            error={signalError}
+            onRefresh={() => void loadSignals()}
+            onAsk={(prompt) => { setAskPrompt(prompt); void askNextron(prompt); }}
+          />
+
+          <NextronActionProposalsView
+            proposals={actionProposals}
+            status={actionStatus}
+            error={actionError}
+            onRefresh={() => void loadActionProposals()}
+            onApprove={(id) => void transitionActionProposal(id, "approve")}
+            onCancel={(id) => void transitionActionProposal(id, "cancel")}
+            onChange={(prompt) => { setAskPrompt(prompt); }}
+          />
         </main>
 
         <aside className="order-4 space-y-4 lg:order-3 xl:sticky xl:top-4 xl:self-start">
@@ -895,6 +913,8 @@ function parseAskResponseBody(value: unknown): { response: NextronCoachResponse;
 function getNextronBridgePrompt(subject: string): string {
   if (subject === "today") return "Help me understand today using current Life Pulse context. Keep Today focused on execution and use NEXTRON for synthesis.";
   if (subject === "tasks") return "Review my current Tasks using permitted Life Pulse context. Help me choose what deserves attention next.";
+  if (subject === "habits") return "Review my current Habits using permitted Life Pulse context. Help me understand what rhythm needs attention without changing habits.";
+  if (subject === "goals") return "Review my current Goals using permitted Life Pulse context. Help me connect direction to next visible actions without changing goals.";
   if (subject === "project") return "Discuss my active project using current Projects, Tasks, and Goals context. Do not write to Projects.";
   if (subject === "knowledge") return "Search my permitted Knowledge for what is relevant right now, and cite only retrieved Life Pulse sources.";
   if (subject === "weekly-review") return "Discuss this Weekly Review using current permitted weekly evidence. Help me decide what deserves attention next week.";
@@ -1145,7 +1165,7 @@ function DailyBriefView({ brief, meta, status, error, disabled, onGenerate, onRe
         <div className="min-w-0">
           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-200/70">NEXTRON Daily Brief</p>
           <h2 id="daily-brief-heading" className="mt-1 text-xl font-semibold tracking-[-0.03em] text-[var(--text)]">What to know and protect today</h2>
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[var(--text-muted)]">A concise synthesis of current permitted Life Pulse evidence. It is generated only when requested and can be refreshed after your day changes.</p>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[var(--text-muted)]">A concise executive brief from current permitted evidence. Generated only when requested, refreshed only when you ask.</p>
         </div>
         <div className="flex shrink-0 flex-wrap gap-2">
           <button type="button" onClick={brief ? onRefresh : onGenerate} disabled={disabled || generating} className="inline-flex min-h-11 items-center rounded-xl bg-cyan-300 px-4 py-2 text-sm font-semibold text-slate-950 shadow-lg shadow-cyan-950/30 transition-all hover:-translate-y-0.5 hover:bg-cyan-200 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-45">
@@ -1158,7 +1178,7 @@ function DailyBriefView({ brief, meta, status, error, disabled, onGenerate, onRe
         {!brief && status !== "generating" && (
           <div className="rounded-2xl border border-cyan-300/12 bg-black/15 p-4">
             <p className="text-sm font-semibold text-[var(--text)]">NEXTRON can prepare today’s brief.</p>
-            <p className="mt-2 text-sm leading-relaxed text-[var(--text-muted)]">It will gather current permitted evidence, make at most one Groq call, and fall back to deterministic synthesis if the provider is unavailable.</p>
+            <p className="mt-2 text-sm leading-relaxed text-[var(--text-muted)]">It will gather current permitted evidence, use the bounded Daily Brief path, and fall back to deterministic synthesis if generation is unavailable.</p>
             {error && <p className="mt-2 text-xs text-[var(--warning)]">{error}</p>}
           </div>
         )}
@@ -1208,7 +1228,7 @@ function DailyBriefView({ brief, meta, status, error, disabled, onGenerate, onRe
                 <div className="mt-2 flex flex-wrap gap-2">
                   {brief.sources.map((source) => <span key={source} className="rounded-full border border-cyan-300/20 bg-cyan-300/10 px-2.5 py-1 text-[10px] font-medium text-cyan-50/80">{source}</span>)}
                 </div>
-                {meta && <p className="mt-2 text-[10px] text-[var(--text-muted)]">Model calls this load: {meta.modelCalls}. State: {meta.persisted ? "Saved" : "Session only"}.</p>}
+                {meta && <p className="mt-2 text-[10px] text-[var(--text-muted)]">Generation calls this load: {meta.modelCalls}. State: {meta.persisted ? "Saved" : "Session only"}.</p>}
               </div>
               <div className="flex flex-wrap gap-2">
                 <PanelButton onClick={() => onAsk("Why is this the Daily Brief priority?")}>Ask why</PanelButton>
@@ -1236,7 +1256,7 @@ function NextronSignalsView({ signals, meta, status, error, onRefresh, onAsk }: 
         <div className="min-w-0">
           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-200/70">NEXTRON Signals</p>
           <h2 id="nextron-signals-heading" className="mt-1 text-lg font-semibold tracking-[-0.03em] text-[var(--text)]">What changed or deserves attention</h2>
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[var(--text-muted)]">Deterministic observations from current permitted evidence. No notifications, no writes, no background monitoring.</p>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[var(--text-muted)]">Current attention items from permitted evidence. Deterministic, bounded, and quiet when nothing meaningful changed.</p>
         </div>
         <button type="button" onClick={onRefresh} disabled={loading} className="inline-flex min-h-10 shrink-0 items-center rounded-xl border border-cyan-300/20 bg-cyan-300/10 px-3 py-2 text-xs font-semibold text-cyan-50/85 transition-all hover:-translate-y-0.5 hover:border-cyan-200/35 disabled:translate-y-0 disabled:opacity-50">
           {loading ? "Refreshing..." : "Refresh signals"}
@@ -1253,7 +1273,7 @@ function NextronSignalsView({ signals, meta, status, error, onRefresh, onAsk }: 
           </div>
         )}
       </div>
-      {meta && <p className="mt-3 text-[10px] text-[var(--text-muted)]">Observed {formatTime(meta.observedAt)}. Max visible: {meta.maxVisible}. Model calls: {meta.modelCalls}. State: {meta.persisted ? "Saved" : "Derived only"}.</p>}
+      {meta && <p className="mt-3 text-[10px] text-[var(--text-muted)]">Observed {formatTime(meta.observedAt)}. Max visible: {meta.maxVisible}. Generation calls: {meta.modelCalls}. State: {meta.persisted ? "Saved" : "Derived only"}.</p>}
     </section>
   );
 }
