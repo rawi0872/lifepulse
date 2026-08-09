@@ -290,12 +290,14 @@ async function main() {
     await expect(page.locator('[data-nextron-actions="true"]')).toContainText("Task actions permission", { timeout: 10000 });
     await page.locator("#nextron-question").fill(`Create a task called ${createTitle} tomorrow`);
     await page.getByRole("button", { name: "Send to NEXTRON" }).click();
-    await expect(page.locator('[data-nextron-action-proposal="true"]').first()).toContainText("CREATE TASK", { timeout: 20000 });
-    await expect(page.locator('[data-nextron-action-proposal="true"]').first()).toContainText("Requires approval", { timeout: 10000 });
+    const createProposal = page.locator('[data-nextron-action-proposal="true"]').filter({ hasText: createTitle }).first();
+    await expect(createProposal).toContainText("CREATE TASK", { timeout: 20000 });
+    await expect(createProposal).toContainText("Requires approval", { timeout: 10000 });
     pass("Task create action proposal generated");
 
-    await page.getByRole("button", { name: "Approve task" }).first().click();
-    await expect(page.locator('[data-nextron-action-proposal="true"]').first()).toContainText("Approved and completed. Canonical Task data was updated.", { timeout: 15000 });
+    await expect(createProposal.getByRole("button", { name: "Approve task" })).toBeEnabled({ timeout: 15000 });
+    await createProposal.getByRole("button", { name: "Approve task" }).click();
+    await expect(createProposal).toContainText("Approved and completed. Canonical Task data was updated.", { timeout: 15000 });
     const { data: createdTask } = await supabase.from("tasks").select("id, title, status, due_date").eq("user_id", userId).eq("title", createTitle).maybeSingle();
     expect(createdTask?.status).toBe("todo");
     expect(createdTask?.due_date).toBeTruthy();
@@ -305,18 +307,22 @@ async function main() {
     if (seedUpdateError) throw new Error(`Failed to seed Task update QA record: ${seedUpdateError.message}`);
     await page.locator("#nextron-question").fill(`Move task called ${updateTitle} to tomorrow`);
     await page.getByRole("button", { name: "Send to NEXTRON" }).click();
-    await expect(page.locator('[data-nextron-action-proposal="true"]').first()).toContainText("UPDATE TASK", { timeout: 20000 });
-    await page.getByRole("button", { name: "Approve task update" }).first().click();
-    await expect(page.locator('[data-nextron-action-proposal="true"]').first()).toContainText("Approved and completed. Canonical Task data was updated.", { timeout: 15000 });
+    const updateProposal = page.locator('[data-nextron-action-proposal="true"]').filter({ hasText: updateTitle }).first();
+    await expect(updateProposal).toContainText("UPDATE TASK", { timeout: 20000 });
+    await expect(updateProposal.getByRole("button", { name: "Approve task update" })).toBeEnabled({ timeout: 15000 });
+    await updateProposal.getByRole("button", { name: "Approve task update" }).click();
+    await expect(updateProposal).toContainText("Approved and completed. Canonical Task data was updated.", { timeout: 15000 });
     const { data: updatedTask } = await supabase.from("tasks").select("title, due_date").eq("user_id", userId).eq("title", updateTitle).maybeSingle();
     expect(updatedTask?.due_date).toBeTruthy();
     pass("Approved Task update mutated canonical task row");
 
     await page.locator("#nextron-question").fill("Create a task called Prompt 7 cancel check tomorrow");
     await page.getByRole("button", { name: "Send to NEXTRON" }).click();
-    await expect(page.locator('[data-nextron-action-proposal="true"]').first()).toContainText("Prompt 7 cancel check", { timeout: 20000 });
-    await page.getByRole("button", { name: "Cancel" }).first().click();
-    await expect(page.locator('[data-nextron-action-proposal="true"]').first()).toContainText("Canceled. This proposal can no longer be approved.", { timeout: 15000 });
+    const cancelProposal = page.locator('[data-nextron-action-proposal="true"]').filter({ hasText: "Prompt 7 cancel check" }).first();
+    await expect(cancelProposal).toContainText("Prompt 7 cancel check", { timeout: 20000 });
+    await expect(cancelProposal.getByRole("button", { name: "Cancel" })).toBeEnabled({ timeout: 15000 });
+    await cancelProposal.getByRole("button", { name: "Cancel" }).click();
+    await expect(cancelProposal).toContainText("Canceled. This proposal can no longer be approved.", { timeout: 15000 });
     pass("Action cancellation finalized proposal");
 
     await page.reload({ waitUntil: "networkidle" });
