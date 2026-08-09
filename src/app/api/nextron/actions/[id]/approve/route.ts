@@ -15,6 +15,6 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Sign in to approve this proposal." }, { status: 401 });
   const result = await approveActionProposal(supabase, id);
-  if (!result.ok) return NextResponse.json({ error: result.message, reason: result.reason }, { status: result.reason === "TASK_ACTIONS_NOT_ALLOWED" || result.reason === "TASK_PRECONDITION_FAILED" ? 409 : 404 });
+  if (!result.ok) return NextResponse.json({ error: result.message, reason: result.reason }, { status: result.reason.includes("ACTION") || result.reason.includes("TASK") ? 409 : 404 });
   return NextResponse.json({ proposal: result.proposal, taskExecutionEnabled: result.proposal.status === "completed" });
 }

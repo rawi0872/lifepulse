@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { normalizeLifeSetupDraft, type LifeSetupDraft } from "@/lib/nextron/onboarding";
 
 export const NEXTRON_ACTION_EXPIRY_MINUTES = 15;
 export const NEXTRON_TASK_ACTION_EXECUTION_ENABLED = true;
@@ -8,12 +9,18 @@ export const NEXTRON_TASK_ACTION_EXECUTION_ENABLED = true;
 export const NEXTRON_ACTION_TYPES = [
   "life_pulse.task.create",
   "life_pulse.task.update",
+  "life_pulse.goal.create",
+  "life_pulse.goal.update",
+  "life_pulse.habit.create",
+  "life_pulse.habit.update",
+  "life_pulse.project.create",
   "life_pulse.project.update",
+  "life_pulse.action_plan.execute",
   "life_pulse.reminder.create",
 ] as const;
 
 export type NextronActionType = typeof NEXTRON_ACTION_TYPES[number];
-export type NextronActionStatus = "pending" | "approved_execution_disabled" | "completed" | "canceled" | "expired" | "invalidated";
+export type NextronActionStatus = "pending" | "approved_execution_disabled" | "completed" | "partially_failed" | "failed" | "stale" | "canceled" | "expired" | "invalidated";
 export type NextronActionRisk = "low" | "sensitive" | "external";
 
 export interface NextronActionPreviewField { label: string; before?: string | null; after: string }
@@ -36,6 +43,10 @@ export interface NextronActionProposal {
   finalReason: string | null;
   executionResult: Record<string, unknown> | null;
 }
+
+export type NextronActionPermissionDomain = "taskActions" | "goalActions" | "habitActions" | "projectActions";
+
+interface PlanAction { actionType: NextronActionType; payload: Record<string, unknown>; summary: string; reason: string }
 
 type ActionParseResult =
   | { ok: true; actionType: NextronActionType; parameters: Record<string, unknown> }
@@ -63,6 +74,7 @@ interface ProposalRow {
 
 const ACTION_TYPE_SET = new Set<string>(NEXTRON_ACTION_TYPES);
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+const MAX_PLAN_ACTIONS = 20;
 
 function cleanText(value: unknown, max: number): string | null {
   if (typeof value !== "string") return null;
@@ -91,8 +103,16 @@ function parseNaturalDate(text: string): string | null {
 
 function stripActionPrefix(prompt: string): string {
   return prompt
-    .replace(/^(please\s+)?(create|add|make)\s+(a\s+)?(new\s+)?(task|reminder)\s+(called|named|to|for)?\s*/i, "")
+    .replace(/^(please\s+)?(create|add|make)\s+(a\s+)?(new\s+)?(task|reminder|goal|habit|project)\s+(called|named|to|for)?\s*/i, "")
     .replace(/\b(today|tomorrow|friday|on\s+20\d{2}-\d{2}-\d{2})\b/ig, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function stripDomainPrefix(prompt: string, domain: "goal" | "habit" | "project"): string {
+  return prompt
+    .replace(new RegExp(`^(please\\s+)?(create|add|make)\\s+(a\\s+)?(new\\s+)?${domain}\\s+(called|named|to|for)?\\s*`, "i"), "")
+    .replace(/\b(as my highest priority|highest priority|high priority|low priority|medium priority|three times per week|3 times per week|daily|weekly)\b/ig, "")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -114,6 +134,13 @@ export function parseNextronActionIntent(prompt: string): ActionParseResult {
   }
   if (/\b(shell|sql|http|webhook|file|browser|execute code)\b/i.test(trimmed)) return { ok: false, reason: "UNSUPPORTED_ACTION", message: "That action type is not in NEXTRON's server-owned allowlist." };
 
+  if (/\b(schedule|calendar|event)\b/.test(normalized) && /\b(create|add|move|change|update)\b/.test(normalized)) {
+    return { ok: false, reason: "UNSUPPORTED_ACTION", message: "Calendar changes are not enabled. NEXTRON can still help prepare Life Pulse Goals, Habits, Projects, and Tasks for approval." };
+  }
+  if (/\b(delete|remove permanently|wipe|erase)\b/.test(normalized)) {
+    return { ok: false, reason: "UNSUPPORTED_ACTION", message: "Destructive delete actions are not enabled for NEXTRON." };
+  }
+
   if (/\b(create|add|make)\b/.test(normalized) && /\btask\b/.test(normalized)) {
     const title = cleanText(stripActionPrefix(trimmed), 120);
     if (!title) return { ok: false, reason: "MALFORMED_PARAMETERS", message: "Tell me the task title before I can prepare a proposal." };
@@ -124,6 +151,22 @@ export function parseNextronActionIntent(prompt: string): ActionParseResult {
     if (!title) return { ok: false, reason: "MALFORMED_PARAMETERS", message: "Tell me what the reminder should say before I can prepare a proposal." };
     return { ok: true, actionType: "life_pulse.reminder.create", parameters: { title, dueDate: parseNaturalDate(trimmed) } };
   }
+  if (/\b(create|add|make)\b/.test(normalized) && /\bgoal\b/.test(normalized)) {
+    const title = cleanText(stripDomainPrefix(trimmed, "goal"), 140);
+    if (!title) return { ok: false, reason: "MALFORMED_PARAMETERS", message: "Tell me the goal title before I can prepare a proposal." };
+    return { ok: true, actionType: "life_pulse.goal.create", parameters: { title, priority: normalized.includes("highest") || normalized.includes("high priority") ? "high" : "medium" } };
+  }
+  if (/\b(create|add|make)\b/.test(normalized) && /\bhabit\b/.test(normalized)) {
+    const title = cleanText(stripDomainPrefix(trimmed, "habit"), 140);
+    if (!title) return { ok: false, reason: "MALFORMED_PARAMETERS", message: "Tell me the habit title before I can prepare a proposal." };
+    const three = /\b(three|3)\s+times\s+per\s+week\b/.test(normalized);
+    return { ok: true, actionType: "life_pulse.habit.create", parameters: { title, frequency: three ? "times_per_week" : normalized.includes("weekly") ? "weekly" : "daily", timesPerWeek: three ? 3 : null } };
+  }
+  if (/\b(create|add|make)\b/.test(normalized) && /\bproject\b/.test(normalized)) {
+    const title = cleanText(stripDomainPrefix(trimmed, "project"), 140);
+    if (!title) return { ok: false, reason: "MALFORMED_PARAMETERS", message: "Tell me the project title before I can prepare a proposal." };
+    return { ok: true, actionType: "life_pulse.project.create", parameters: { title } };
+  }
   if (/\b(move|update|change)\b/.test(normalized) && /\b(task|due|deadline)\b/.test(normalized)) {
     const dueDate = parseNaturalDate(trimmed);
     if (!dueDate) return { ok: false, reason: "MALFORMED_PARAMETERS", message: "Tell me the new date before I can prepare a task update proposal." };
@@ -131,18 +174,58 @@ export function parseNextronActionIntent(prompt: string): ActionParseResult {
     if (!taskTitle) return { ok: false, reason: "AMBIGUOUS_RESOURCE", message: "I need the exact task to change before I can prepare an update proposal." };
     return { ok: true, actionType: "life_pulse.task.update", parameters: { taskTitle, dueDate } };
   }
+  if (/\b(update|change|make)\b/.test(normalized) && /\b(goal\b|priority)/.test(normalized)) {
+    const title = cleanText(trimmed.replace(/^(please\s+)?(update|change|make)\s+(the\s+)?goal\s+(called|named)?\s*/i, "").replace(/\s+(to|as)\s+(my\s+)?(highest|high|medium|low).*$/i, ""), 140);
+    const priority = normalized.includes("highest") || normalized.includes("high") ? "high" : normalized.includes("low") ? "low" : "medium";
+    if (!title) return { ok: false, reason: "AMBIGUOUS_RESOURCE", message: "I need the exact goal to change before I can prepare an update proposal." };
+    return { ok: true, actionType: "life_pulse.goal.update", parameters: { goalTitle: title, priority } };
+  }
+  if (/\b(update|change|make)\b/.test(normalized) && /\bhabit\b/.test(normalized)) {
+    const title = cleanText(trimmed.replace(/^(please\s+)?(update|change|make)\s+(the\s+)?habit\s+(called|named)?\s*/i, "").replace(/\s+to\s+.*$/i, ""), 140);
+    const three = /\b(three|3)\s+times\s+per\s+week\b/.test(normalized);
+    if (!title || !three) return { ok: false, reason: "AMBIGUOUS_RESOURCE", message: "Tell me the exact habit and new frequency before I can prepare an update proposal." };
+    return { ok: true, actionType: "life_pulse.habit.update", parameters: { habitTitle: title, frequency: "times_per_week", timesPerWeek: 3 } };
+  }
+  if (/\b(update|change|pause|complete)\b/.test(normalized) && /\bproject\b/.test(normalized)) {
+    const title = cleanText(trimmed.replace(/^(please\s+)?(update|change|pause|complete)\s+(the\s+)?project\s+(called|named)?\s*/i, "").replace(/\s+to\s+.*$/i, ""), 140);
+    const status = normalized.includes("pause") ? "paused" : normalized.includes("complete") ? "completed" : "active";
+    if (!title) return { ok: false, reason: "AMBIGUOUS_RESOURCE", message: "I need the exact project to change before I can prepare an update proposal." };
+    return { ok: true, actionType: "life_pulse.project.update", parameters: { projectTitle: title, status } };
+  }
   return { ok: false, reason: "NO_ACTION", message: "No action proposal detected." };
+}
+
+function rejectExtra(parameters: Record<string, unknown>, allowedKeys: string[]): ValidationResult | null {
+  const extra = Object.keys(parameters).filter((key) => !allowedKeys.includes(key));
+  return extra.length > 0 ? { ok: false, reason: "MALFORMED_PARAMETERS", message: "Action parameters contained unsupported fields." } : null;
+}
+
+function nullableDate(value: unknown): string | null | undefined {
+  if (value === null || value === undefined || value === "") return null;
+  return typeof value === "string" && ISO_DATE.test(value) ? value : undefined;
+}
+
+function priority(value: unknown): "low" | "medium" | "high" | null {
+  return value === "low" || value === "medium" || value === "high" ? value : null;
+}
+
+function frequency(value: unknown): "daily" | "weekdays" | "weekends" | "weekly" | "times_per_week" | null {
+  return value === "daily" || value === "weekdays" || value === "weekends" || value === "weekly" || value === "times_per_week" ? value : null;
+}
+
+async function resolveOne<T extends Record<string, unknown>>(supabase: SupabaseClient, table: "goals" | "habits" | "projects", title: string, select: string): Promise<T[] | null> {
+  const { data, error } = await supabase.from(table).select(select).eq("title", title).order("created_at", { ascending: false }).limit(2);
+  if (error) return null;
+  return (data ?? []) as unknown as T[];
 }
 
 async function validateActionIntent(supabase: SupabaseClient, actionType: string, parameters: Record<string, unknown>): Promise<ValidationResult> {
   if (!ACTION_TYPE_SET.has(actionType)) return { ok: false, reason: "UNSUPPORTED_ACTION", message: "Unsupported action type." };
-  const allowedKeys = actionType === "life_pulse.task.update" ? ["taskTitle", "dueDate"] : ["title", "dueDate"];
-  const extra = Object.keys(parameters).filter((key) => !allowedKeys.includes(key));
-  if (extra.length > 0) return { ok: false, reason: "MALFORMED_PARAMETERS", message: "Action parameters contained unsupported fields." };
-  const dueDate = parameters.dueDate === null || parameters.dueDate === undefined ? null : typeof parameters.dueDate === "string" && ISO_DATE.test(parameters.dueDate) ? parameters.dueDate : undefined;
-  if (dueDate === undefined) return { ok: false, reason: "MALFORMED_PARAMETERS", message: "Due date must be YYYY-MM-DD when supplied." };
-  if (actionType === "life_pulse.project.update") return { ok: false, reason: "UNSUPPORTED_ACTION", message: "Project update proposals are reserved for Prompt 8." };
   if (actionType === "life_pulse.task.update") {
+    const extra = rejectExtra(parameters, ["taskTitle", "dueDate"]);
+    if (extra) return extra;
+    const dueDate = nullableDate(parameters.dueDate);
+    if (dueDate === undefined) return { ok: false, reason: "MALFORMED_PARAMETERS", message: "Due date must be YYYY-MM-DD when supplied." };
     const taskTitle = cleanText(parameters.taskTitle, 120);
     if (!taskTitle) return { ok: false, reason: "MALFORMED_PARAMETERS", message: "Task update proposals require deterministic resource resolution." };
     const { data, error } = await supabase.rpc("nextron_resolve_task_update_target", { p_title: taskTitle });
@@ -163,19 +246,82 @@ async function validateActionIntent(supabase: SupabaseClient, actionType: string
     };
   }
 
+  if (actionType === "life_pulse.goal.update") {
+    const extra = rejectExtra(parameters, ["goalTitle", "priority", "targetDate"]);
+    if (extra) return extra;
+    const goalTitle = cleanText(parameters.goalTitle, 140);
+    const nextPriority = priority(parameters.priority);
+    const targetDate = nullableDate(parameters.targetDate);
+    if (!goalTitle || !nextPriority || targetDate === undefined) return { ok: false, reason: "MALFORMED_PARAMETERS", message: "Goal update proposals require an exact goal and legal fields." };
+    const matches = await resolveOne<{ id: string; title: string; status: string; priority: string; target_date: string | null }>(supabase, "goals", goalTitle, "id, title, status, priority, target_date");
+    if (!matches) return { ok: false, reason: "RESOURCE_NOT_FOUND", message: "NEXTRON could not verify that goal right now." };
+    if (matches.length === 0) return { ok: false, reason: "RESOURCE_NOT_FOUND", message: "I could not find an owned goal with that exact title." };
+    if (matches.length > 1) return { ok: false, reason: "AMBIGUOUS_RESOURCE", message: "More than one goal matched that title. Rename or specify the exact goal first." };
+    const goal = matches[0];
+    return { ok: true, actionType, parameters: { goalId: goal.id, beforeTitle: goal.title, beforeStatus: goal.status, beforePriority: goal.priority, beforeTargetDate: goal.target_date, priority: nextPriority, targetDate }, riskLevel: "low", title: `Update goal: ${goal.title}`, description: "NEXTRON can update this Goal only after explicit approval and server-side revalidation.", preview: { heading: "UPDATE GOAL", subheading: goal.title, fields: [{ label: "Priority", before: goal.priority, after: nextPriority }, { label: "Target", before: goal.target_date ?? "No target date", after: targetDate ?? "No target date" }], approvalLabel: "Approve goal update" } };
+  }
+
+  if (actionType === "life_pulse.habit.update") {
+    const extra = rejectExtra(parameters, ["habitTitle", "frequency", "timesPerWeek"]);
+    if (extra) return extra;
+    const habitTitle = cleanText(parameters.habitTitle, 140);
+    const nextFrequency = frequency(parameters.frequency);
+    const timesPerWeek = parameters.timesPerWeek === null || parameters.timesPerWeek === undefined ? null : Number(parameters.timesPerWeek);
+    const invalidTimes = nextFrequency === "times_per_week" && (timesPerWeek === null || !Number.isInteger(timesPerWeek) || timesPerWeek < 1 || timesPerWeek > 7);
+    if (!habitTitle || !nextFrequency || invalidTimes) return { ok: false, reason: "MALFORMED_PARAMETERS", message: "Habit update proposals require an exact habit and legal frequency." };
+    const matches = await resolveOne<{ id: string; title: string; frequency: string; times_per_week: number | null }>(supabase, "habits", habitTitle, "id, title, frequency, times_per_week");
+    if (!matches) return { ok: false, reason: "RESOURCE_NOT_FOUND", message: "NEXTRON could not verify that habit right now." };
+    if (matches.length === 0) return { ok: false, reason: "RESOURCE_NOT_FOUND", message: "I could not find an owned habit with that exact title." };
+    if (matches.length > 1) return { ok: false, reason: "AMBIGUOUS_RESOURCE", message: "More than one habit matched that title. Rename or specify the exact habit first." };
+    const habit = matches[0];
+    return { ok: true, actionType, parameters: { habitId: habit.id, beforeTitle: habit.title, beforeFrequency: habit.frequency, beforeTimesPerWeek: habit.times_per_week, frequency: nextFrequency, timesPerWeek }, riskLevel: "low", title: `Update habit: ${habit.title}`, description: "NEXTRON can update this Habit only after explicit approval and server-side revalidation.", preview: { heading: "UPDATE HABIT", subheading: habit.title, fields: [{ label: "Frequency", before: habit.frequency === "times_per_week" ? `${habit.times_per_week ?? "?"} times/week` : habit.frequency, after: nextFrequency === "times_per_week" ? `${timesPerWeek} times/week` : nextFrequency }], approvalLabel: "Approve habit update" } };
+  }
+
+  if (actionType === "life_pulse.project.update") {
+    const extra = rejectExtra(parameters, ["projectTitle", "status", "deadline"]);
+    if (extra) return extra;
+    const projectTitle = cleanText(parameters.projectTitle, 140);
+    const status = parameters.status === "active" || parameters.status === "paused" || parameters.status === "completed" ? parameters.status : null;
+    const deadline = nullableDate(parameters.deadline);
+    if (!projectTitle || !status || deadline === undefined) return { ok: false, reason: "MALFORMED_PARAMETERS", message: "Project update proposals require an exact project and legal fields." };
+    const matches = await resolveOne<{ id: string; title: string; status: string; deadline: string | null }>(supabase, "projects", projectTitle, "id, title, status, deadline");
+    if (!matches) return { ok: false, reason: "RESOURCE_NOT_FOUND", message: "NEXTRON could not verify that project right now." };
+    if (matches.length === 0) return { ok: false, reason: "RESOURCE_NOT_FOUND", message: "I could not find an owned project with that exact title." };
+    if (matches.length > 1) return { ok: false, reason: "AMBIGUOUS_RESOURCE", message: "More than one project matched that title. Rename or specify the exact project first." };
+    const project = matches[0];
+    return { ok: true, actionType, parameters: { projectId: project.id, beforeTitle: project.title, beforeStatus: project.status, beforeDeadline: project.deadline, status, deadline }, riskLevel: "low", title: `Update project: ${project.title}`, description: "NEXTRON can update this Project only after explicit approval and server-side revalidation.", preview: { heading: "UPDATE PROJECT", subheading: project.title, fields: [{ label: "Status", before: project.status, after: status }, { label: "Deadline", before: project.deadline ?? "No deadline", after: deadline ?? "No deadline" }], approvalLabel: "Approve project update" } };
+  }
+
+  const allowed = actionType === "life_pulse.task.create" ? ["title", "dueDate", "priority"] : actionType === "life_pulse.goal.create" ? ["title", "description", "why", "priority", "targetDate"] : actionType === "life_pulse.habit.create" ? ["title", "description", "frequency", "timesPerWeek"] : actionType === "life_pulse.project.create" ? ["title", "description", "deadline"] : ["title", "dueDate"];
+  const extra = rejectExtra(parameters, allowed);
+  if (extra) return extra;
+  const dueDate = nullableDate(parameters.dueDate);
+  if (dueDate === undefined) return { ok: false, reason: "MALFORMED_PARAMETERS", message: "Due date must be YYYY-MM-DD when supplied." };
   const title = cleanText(parameters.title, 120);
   if (!title) return { ok: false, reason: "MALFORMED_PARAMETERS", message: "A title is required." };
 
-  const label = actionType === "life_pulse.reminder.create" ? "CREATE REMINDER" : "CREATE TASK";
-  const noun = actionType === "life_pulse.reminder.create" ? "reminder" : "task";
+  const noun = actionType.includes("goal") ? "goal" : actionType.includes("habit") ? "habit" : actionType.includes("project") ? "project" : actionType === "life_pulse.reminder.create" ? "reminder" : "task";
+  const label = `CREATE ${noun.toUpperCase()}`;
+  const targetDate = nullableDate(parameters.targetDate);
+  const deadline = nullableDate(parameters.deadline);
+  if (targetDate === undefined || deadline === undefined) return { ok: false, reason: "MALFORMED_PARAMETERS", message: "Date fields must be YYYY-MM-DD when supplied." };
+  const nextPriority = priority(parameters.priority) ?? "medium";
+  const nextFrequency = frequency(parameters.frequency) ?? "daily";
+  const timesPerWeek = parameters.timesPerWeek === null || parameters.timesPerWeek === undefined ? null : Number(parameters.timesPerWeek);
+  const invalidCreateTimes = actionType === "life_pulse.habit.create" && nextFrequency === "times_per_week" && (timesPerWeek === null || !Number.isInteger(timesPerWeek) || timesPerWeek < 1 || timesPerWeek > 7);
+  if (invalidCreateTimes) return { ok: false, reason: "MALFORMED_PARAMETERS", message: "Times per week must be between 1 and 7." };
+  const description = cleanText(parameters.description, 500);
+  const why = cleanText(parameters.why, 300);
+  const payload = actionType === "life_pulse.task.create" ? { title, dueDate, priority: nextPriority } : actionType === "life_pulse.goal.create" ? { title, description, why, priority: nextPriority, targetDate } : actionType === "life_pulse.habit.create" ? { title, description, frequency: nextFrequency, timesPerWeek } : actionType === "life_pulse.project.create" ? { title, description, deadline } : { title, dueDate };
+  const fields = actionType === "life_pulse.habit.create" ? [{ label: "Title", after: title }, { label: "Frequency", after: nextFrequency === "times_per_week" ? `${timesPerWeek} times/week` : nextFrequency }] : actionType === "life_pulse.goal.create" ? [{ label: "Title", after: title }, { label: "Priority", after: nextPriority }, { label: "Target", after: targetDate ?? "No target date" }] : actionType === "life_pulse.project.create" ? [{ label: "Title", after: title }, { label: "Deadline", after: deadline ?? "No deadline" }] : [{ label: "Title", after: title }, { label: "Due", after: dueDate ?? "No due date" }];
   return {
     ok: true,
     actionType: actionType as NextronActionType,
     riskLevel: "low",
     title: `Create ${noun}: ${title}`,
-    description: actionType === "life_pulse.task.create" ? "NEXTRON can create this Task only after explicit approval." : `NEXTRON can prepare this ${noun}, but execution is not enabled for this action type.`,
-    preview: { heading: label, subheading: title, fields: [{ label: "Title", after: title }, { label: "Due", after: dueDate ?? "No due date" }], approvalLabel: actionType === "life_pulse.reminder.create" ? "Approve reminder" : "Approve task" },
-    parameters: actionType === "life_pulse.task.create" ? { title, dueDate, priority: "medium" } : { title, dueDate },
+    description: actionType === "life_pulse.reminder.create" ? "NEXTRON can prepare this reminder, but reminder execution is not enabled." : `NEXTRON can create this ${noun} only after write permission and explicit approval.`,
+    preview: { heading: label, subheading: title, fields, approvalLabel: actionType === "life_pulse.reminder.create" ? "Approve reminder" : `Approve ${noun}` },
+    parameters: payload,
   };
 }
 
@@ -185,6 +331,68 @@ export async function createActionProposal(args: { supabase: SupabaseClient; con
   const expiresAt = new Date(Date.now() + NEXTRON_ACTION_EXPIRY_MINUTES * 60_000).toISOString();
   const { data, error } = await args.supabase.rpc("nextron_create_action_proposal", { p_conversation_id: args.conversationId, p_action_type: validated.actionType, p_validated_payload: validated.parameters, p_preview_payload: { title: validated.title, description: validated.description, preview: validated.preview }, p_risk_level: validated.riskLevel, p_expires_at: expiresAt });
   if (error || !data) return { ok: false, reason: "PERMISSION_DENIED", message: "NEXTRON could not create an owner-scoped proposal." };
+  return { ok: true, proposal: rowToProposal(data as ProposalRow) };
+}
+
+function draftHash(draft: LifeSetupDraft): string {
+  let hash = 0;
+  const input = JSON.stringify(draft);
+  for (let i = 0; i < input.length; i += 1) hash = ((hash << 5) - hash + input.charCodeAt(i)) | 0;
+  return `draft-${Math.abs(hash)}`;
+}
+
+function planPreview(actions: PlanAction[], source: "onboarding" | "conversation"): NextronActionPreview {
+  const counts = actions.reduce<Record<string, number>>((acc, action) => {
+    const domain = action.actionType.split(".")[1] ?? "change";
+    acc[domain] = (acc[domain] ?? 0) + 1;
+    return acc;
+  }, {});
+  const fields = Object.entries(counts).map(([domain, count]) => ({ label: domain[0].toUpperCase() + domain.slice(1), after: `${count} ${count === 1 ? "change" : "changes"}` }));
+  return {
+    heading: source === "onboarding" ? "BUILD LIFE PULSE" : "ACTION PLAN",
+    subheading: source === "onboarding" ? "Create the approved setup from your saved Life Setup Draft" : "Apply approved Life Pulse changes",
+    fields,
+    approvalLabel: `Approve ${actions.length} ${actions.length === 1 ? "change" : "changes"}`,
+  };
+}
+
+function setupDraftToActions(draft: LifeSetupDraft): PlanAction[] {
+  const actions: PlanAction[] = [];
+  for (const goal of draft.goals.slice(0, 4)) {
+    actions.push({ actionType: "life_pulse.goal.create", payload: { title: goal.title, why: goal.why, priority: goal.priority, targetDate: null }, summary: `Create goal: ${goal.title}`, reason: goal.why });
+  }
+  for (const project of draft.projects.slice(0, 3)) {
+    actions.push({ actionType: "life_pulse.project.create", payload: { title: project.title, description: project.desiredOutcome, deadline: null }, summary: `Create project: ${project.title}`, reason: project.desiredOutcome });
+  }
+  for (const habit of draft.starterHabits.slice(0, 4)) {
+    const match = habit.frequency.match(/(\d+)/);
+    const times = match ? Number(match[1]) : null;
+    actions.push({ actionType: "life_pulse.habit.create", payload: { title: habit.title, description: habit.why, frequency: times ? "times_per_week" : habit.frequency.toLowerCase().includes("week") ? "weekly" : "daily", timesPerWeek: times }, summary: `Create habit: ${habit.title}`, reason: habit.why });
+  }
+  for (const task of draft.initialTasks.slice(0, 6)) {
+    actions.push({ actionType: "life_pulse.task.create", payload: { title: task.title, dueDate: null, priority: "medium" }, summary: `Create task: ${task.title}`, reason: task.why });
+  }
+  return actions.slice(0, MAX_PLAN_ACTIONS);
+}
+
+export async function createOnboardingSetupActionPlan(args: { supabase: SupabaseClient; onboardingState: { setup_draft: unknown; updated_at: string; status: string } }): Promise<{ ok: true; proposal: NextronActionProposal } | { ok: false; reason: string; message: string }> {
+  const draft = normalizeLifeSetupDraft(args.onboardingState.setup_draft);
+  if (!draft) return { ok: false, reason: "DRAFT_NOT_READY", message: "Review the Life Setup Draft before building an action plan." };
+  const actions = setupDraftToActions(draft);
+  if (actions.length === 0) return { ok: false, reason: "EMPTY_PLAN", message: "The saved draft did not contain any supported setup changes." };
+  const sourceHash = `${draftHash(draft)}-${Date.parse(args.onboardingState.updated_at) || 0}`;
+  const parameters = { planKind: "setup", sourceKind: "onboarding", sourceHash, idempotencyKey: `onboarding:${sourceHash}`, actions };
+  const preview = planPreview(actions, "onboarding");
+  const expiresAt = new Date(Date.now() + NEXTRON_ACTION_EXPIRY_MINUTES * 60_000).toISOString();
+  const { data, error } = await args.supabase.rpc("nextron_create_action_proposal", {
+    p_conversation_id: null,
+    p_action_type: "life_pulse.action_plan.execute",
+    p_validated_payload: parameters,
+    p_preview_payload: { title: "Build my Life Pulse", description: "NEXTRON will create only the approved Goals, Habits, Projects, and Tasks in this preview.", preview },
+    p_risk_level: "low",
+    p_expires_at: expiresAt,
+  });
+  if (error || !data) return { ok: false, reason: "PLAN_UNAVAILABLE", message: "NEXTRON could not prepare the setup action plan." };
   return { ok: true, proposal: rowToProposal(data as ProposalRow) };
 }
 
@@ -199,13 +407,15 @@ export async function listRecentActionProposals(supabase: SupabaseClient): Promi
 }
 
 export async function approveActionProposal(supabase: SupabaseClient, proposalId: string): Promise<{ ok: true; proposal: NextronActionProposal } | { ok: false; reason: string; message: string }> {
-  const { data, error } = await supabase.rpc("nextron_execute_task_action", { p_proposal_id: proposalId });
+  const { data, error } = await supabase.rpc("nextron_execute_action", { p_proposal_id: proposalId });
   if (error || !data) {
-    const reason = error?.message?.includes("TASK_ACTIONS_NOT_ALLOWED") ? "TASK_ACTIONS_NOT_ALLOWED" : error?.message?.includes("TASK_PRECONDITION_FAILED") ? "TASK_PRECONDITION_FAILED" : "PROPOSAL_NOT_FOUND";
-    const message = reason === "TASK_ACTIONS_NOT_ALLOWED" ? "Turn on Task actions permission before approving Task mutations." : reason === "TASK_PRECONDITION_FAILED" ? "That task changed after the proposal was prepared. Create a fresh proposal." : "This proposal is unavailable or not yours.";
+    const reason = error?.message?.includes("PRECONDITION") ? "ACTION_PRECONDITION_FAILED" : "PROPOSAL_NOT_FOUND";
+    const message = reason === "ACTION_PRECONDITION_FAILED" ? "That item changed after the proposal was prepared. Create a fresh proposal." : "This proposal is unavailable or not yours.";
     return { ok: false, reason, message };
   }
-  return { ok: true, proposal: rowToProposal(data as ProposalRow) };
+  const proposal = rowToProposal(data as ProposalRow);
+  if (proposal.status === "failed" && proposal.finalReason === "PLAN_FAILED") return { ok: false, reason: "ACTION_PERMISSION_OR_EXECUTION_FAILED", message: "NEXTRON could not apply this plan. Check write permissions and regenerate if needed." };
+  return { ok: true, proposal };
 }
 
 export async function cancelActionProposal(supabase: SupabaseClient, proposalId: string): Promise<{ ok: true; proposal: NextronActionProposal } | { ok: false; reason: string; message: string }> {

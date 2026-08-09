@@ -49,6 +49,18 @@ interface OnboardingState {
 
 interface OnboardingResponse { state: OnboardingState; messages: OnboardingMessage[] }
 
+interface ActionProposalPreviewField { label: string; before?: string | null; after: string }
+interface ActionProposalPreview { heading: string; subheading: string; fields: ActionProposalPreviewField[]; approvalLabel: string }
+interface ActionProposal {
+  id: string;
+  actionType: string;
+  title: string;
+  description: string;
+  preview: ActionProposalPreview;
+  status: "pending" | "approved_execution_disabled" | "completed" | "partially_failed" | "failed" | "stale" | "canceled" | "expired" | "invalidated";
+  executionResult: Record<string, unknown> | null;
+}
+
 const EMPTY_UNDERSTANDING: Understanding = {
   currentSituation: [],
   priorities: [],
@@ -73,6 +85,21 @@ function isOnboardingResponse(value: unknown): value is OnboardingResponse {
   return typeof candidate.state === "object" && candidate.state !== null && Array.isArray(candidate.messages);
 }
 
+function isActionProposal(value: unknown): value is ActionProposal {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Partial<ActionProposal>;
+  return typeof candidate.id === "string"
+    && typeof candidate.actionType === "string"
+    && typeof candidate.title === "string"
+    && typeof candidate.description === "string"
+    && typeof candidate.preview === "object" && candidate.preview !== null
+    && typeof candidate.preview.heading === "string"
+    && typeof candidate.preview.subheading === "string"
+    && Array.isArray(candidate.preview.fields)
+    && ["pending", "approved_execution_disabled", "completed", "partially_failed", "failed", "stale", "canceled", "expired", "invalidated"].includes(candidate.status ?? "")
+    && (candidate.executionResult === null || typeof candidate.executionResult === "object" || candidate.executionResult === undefined);
+}
+
 function sectionCount(understanding: Understanding): number {
   return Object.values(understanding).reduce((count, items) => count + items.length, 0);
 }
@@ -85,6 +112,8 @@ export default function OnboardingPage() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [transitioning, setTransitioning] = useState<"skip" | "complete" | "resume" | null>(null);
+  const [proposal, setProposal] = useState<ActionProposal | null>(null);
+  const [proposalStatus, setProposalStatus] = useState<"idle" | "building" | "granting" | "approving" | "cancelling" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -146,6 +175,50 @@ export default function OnboardingPage() {
     setState(result.body.state);
     setMessages(result.body.messages);
     if (action === "skip" || action === "complete") router.push("/today");
+  }
+
+  async function buildSetupPlan() {
+    setProposalStatus("building");
+    setError(null);
+    const result = await fetch("/api/nextron/onboarding", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "build_plan" }) }).then(async (res) => ({ ok: res.ok, body: await res.json().catch(() => null) as unknown })).catch(() => null);
+    const body = typeof result?.body === "object" && result.body !== null ? result.body as { proposal?: unknown; error?: unknown } : null;
+    if (!result?.ok || !isActionProposal(body?.proposal)) {
+      setProposalStatus("error");
+      setError(typeof body?.error === "string" ? body.error : "NEXTRON could not prepare the setup action plan.");
+      return;
+    }
+    setProposal(body.proposal);
+    setProposalStatus("idle");
+  }
+
+  async function grantSetupPermissions() {
+    setProposalStatus("granting");
+    const ok = await fetch("/api/nextron/action-permissions", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ grant: ["goalActions", "habitActions", "projectActions", "taskActions"] }) }).then((res) => res.ok).catch(() => false);
+    setProposalStatus(ok ? "idle" : "error");
+    if (!ok) setError("NEXTRON action permissions could not be saved.");
+  }
+
+  async function approveSetupPlan() {
+    if (!proposal) return;
+    setProposalStatus("approving");
+    const result = await fetch(`/api/nextron/actions/${proposal.id}/approve`, { method: "POST" }).then(async (res) => ({ ok: res.ok, body: await res.json().catch(() => null) as unknown })).catch(() => null);
+    const body = typeof result?.body === "object" && result.body !== null ? result.body as { proposal?: unknown; error?: unknown } : null;
+    if (!result?.ok || !isActionProposal(body?.proposal)) {
+      setProposalStatus("error");
+      setError(typeof body?.error === "string" ? body.error : "NEXTRON could not apply the setup plan.");
+      return;
+    }
+    setProposal(body.proposal);
+    setProposalStatus("idle");
+  }
+
+  async function cancelSetupPlan() {
+    if (!proposal) return;
+    setProposalStatus("cancelling");
+    const result = await fetch(`/api/nextron/actions/${proposal.id}/cancel`, { method: "POST" }).then(async (res) => ({ ok: res.ok, body: await res.json().catch(() => null) as unknown })).catch(() => null);
+    const body = typeof result?.body === "object" && result.body !== null ? result.body as { proposal?: unknown; error?: unknown } : null;
+    if (result?.ok && isActionProposal(body?.proposal)) setProposal(body.proposal);
+    setProposalStatus(result?.ok ? "idle" : "error");
   }
 
   if (loading) {
@@ -223,7 +296,7 @@ export default function OnboardingPage() {
 
         <aside className="space-y-4 xl:sticky xl:top-5 xl:self-start">
           <UnderstandingPanel understanding={understanding} />
-          {draft ? <DraftPanel draft={draft} onComplete={() => void transition("complete")} busy={transitioning === "complete"} /> : <DraftWaitingPanel />}
+          {draft ? <DraftPanel draft={draft} proposal={proposal} proposalStatus={proposalStatus} onComplete={() => void transition("complete")} onBuildPlan={() => void buildSetupPlan()} onGrantPermissions={() => void grantSetupPermissions()} onApprovePlan={() => void approveSetupPlan()} onCancelPlan={() => void cancelSetupPlan()} busy={transitioning === "complete"} /> : <DraftWaitingPanel />}
         </aside>
       </div>
     </main>
@@ -268,7 +341,29 @@ function DraftWaitingPanel() {
   return <section className="nextron-surface rounded-[1.5rem] p-4"><p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-200/60">Life Setup Draft</p><h2 className="mt-1 text-sm font-semibold text-[var(--text)]">Not ready yet</h2><p className="mt-3 text-xs leading-relaxed text-[var(--text-muted)]">NEXTRON will propose a compact setup once it understands your outcomes, near-term priorities, and real constraints. Unknown nonessential details will be left out instead of forcing questions.</p></section>;
 }
 
-function DraftPanel({ draft, onComplete, busy }: { draft: LifeSetupDraft; onComplete: () => void; busy: boolean }) {
+function DraftPanel({
+  draft,
+  proposal,
+  proposalStatus,
+  onComplete,
+  onBuildPlan,
+  onGrantPermissions,
+  onApprovePlan,
+  onCancelPlan,
+  busy,
+}: {
+  draft: LifeSetupDraft;
+  proposal: ActionProposal | null;
+  proposalStatus: "idle" | "building" | "granting" | "approving" | "cancelling" | "error";
+  onComplete: () => void;
+  onBuildPlan: () => void;
+  onGrantPermissions: () => void;
+  onApprovePlan: () => void;
+  onCancelPlan: () => void;
+  busy: boolean;
+}) {
+  const pending = proposal?.status === "pending";
+  const completed = proposal?.status === "completed" || proposal?.status === "partially_failed";
   return (
     <section className="nextron-surface rounded-[1.5rem] p-4" data-nextron-onboarding-draft="true">
       <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-200/60">Life Setup Draft</p>
@@ -284,9 +379,29 @@ function DraftPanel({ draft, onComplete, busy }: { draft: LifeSetupDraft; onComp
         {draft.importantDates.length > 0 && <DraftCards title="Important dates / constraints" items={draft.importantDates.map((date) => `${date.label} — ${date.timing}. ${date.why}`)} />}
         <DraftCards title="Deliberately left out" items={draft.deliberatelyLeftOut.map((item) => `${item.item} — ${item.reason}`)} muted />
       </div>
-      <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-        <button type="button" onClick={onComplete} disabled={busy} className="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl bg-cyan-300 px-4 py-2 text-sm font-semibold text-slate-950 transition-all hover:-translate-y-0.5 hover:bg-cyan-200 disabled:translate-y-0 disabled:opacity-50">{busy ? "Marking ready..." : "Looks right - setup ready"}</button>
-      </div>
+      {!proposal && <div className="mt-4 flex flex-col gap-2">
+        <button type="button" onClick={onComplete} disabled={busy} className="inline-flex min-h-11 items-center justify-center rounded-xl border border-cyan-300/20 bg-cyan-300/10 px-4 py-2 text-sm font-semibold text-cyan-50/85 transition-all hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-50">{busy ? "Marking ready..." : "Looks right - setup ready"}</button>
+        <button type="button" onClick={onBuildPlan} disabled={proposalStatus === "building"} className="inline-flex min-h-11 items-center justify-center rounded-xl bg-cyan-300 px-4 py-2 text-sm font-semibold text-slate-950 transition-all hover:-translate-y-0.5 hover:bg-cyan-200 disabled:translate-y-0 disabled:opacity-50">{proposalStatus === "building" ? "Preparing preview..." : "Build my Life Pulse"}</button>
+      </div>}
+      {proposal && <div className="mt-5 rounded-2xl border border-cyan-300/18 bg-black/18 p-4">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-200/70">Action Plan Preview</p>
+        <h3 className="mt-1 text-base font-semibold text-[var(--text)]">{proposal.preview.heading}</h3>
+        <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">{proposal.description}</p>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          {proposal.preview.fields.map((field) => <div key={field.label} className="rounded-xl border border-cyan-300/10 bg-cyan-300/8 px-3 py-2"><p className="text-[10px] uppercase tracking-[0.12em] text-[var(--text-muted)]">{field.label}</p><p className="mt-1 text-sm font-semibold text-[var(--text)]">{field.after}</p></div>)}
+        </div>
+        {!completed && <div className="mt-4 rounded-xl border border-cyan-300/12 bg-black/15 p-3">
+          <p className="text-xs font-semibold text-[var(--text)]">Permission review</p>
+          <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">To build this setup, NEXTRON needs permission to make approved changes to Goals, Habits, Projects, and Tasks. This does not allow autonomous changes; the preview still requires approval.</p>
+          <button type="button" onClick={onGrantPermissions} disabled={proposalStatus === "granting"} className="mt-3 inline-flex min-h-10 items-center rounded-xl border border-cyan-300/20 bg-cyan-300/10 px-3 py-2 text-xs font-semibold text-cyan-50/85 transition-all hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-50">{proposalStatus === "granting" ? "Saving permissions..." : "Grant approved-write permissions"}</button>
+        </div>}
+        <p className="mt-3 text-xs text-[var(--text-muted)]">Status: {proposal.status.replace(/_/g, " ")}</p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button type="button" onClick={onApprovePlan} disabled={!pending || proposalStatus === "approving"} className="inline-flex min-h-11 items-center rounded-xl bg-cyan-300 px-4 py-2 text-sm font-semibold text-slate-950 transition-all hover:-translate-y-0.5 hover:bg-cyan-200 disabled:translate-y-0 disabled:opacity-50">{proposalStatus === "approving" ? "Applying..." : proposal.preview.approvalLabel}</button>
+          <button type="button" onClick={onCancelPlan} disabled={!pending || proposalStatus === "cancelling"} className="inline-flex min-h-11 items-center rounded-xl border border-[var(--danger)]/25 bg-[var(--danger-soft)] px-4 py-2 text-sm font-semibold text-[var(--danger)] transition-all hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-50">Cancel</button>
+        </div>
+        {completed && <div className="mt-4 rounded-xl border border-[var(--success)]/25 bg-[var(--success-soft)] px-3 py-2 text-xs leading-relaxed text-[var(--success)]">Your Life Pulse is ready. Enter the app to review the created structure and ask NEXTRON what to do today.</div>}
+      </div>}
     </section>
   );
 }

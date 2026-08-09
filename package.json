@@ -39,6 +39,7 @@
     "test:nextron-signals": "node scripts/nextron-signals-test.mjs",
     "test:nextron-actions": "node scripts/nextron-actions-test.mjs",
     "test:nextron-onboarding": "node scripts/nextron-onboarding-test.mjs",
+    "test:nextron-action-plans": "node scripts/nextron-action-plans-test.mjs",
     "test:nextron-product-cohesion": "node scripts/nextron-product-cohesion-test.mjs",
     "test:knowledge-hybrid": "node scripts/knowledge-hybrid-test.mjs"
   },

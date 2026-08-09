@@ -25,7 +25,7 @@ import {
 } from "@/lib/nextron/context";
 import type { NextronEvidencePacket } from "@/lib/nextron/evidence";
 
-const PREFERENCE_COLUMNS = "permission_version, allow_profile, allow_today, allow_tasks, allow_task_actions, allow_habits, allow_results, allow_goals, allow_projects, allow_knowledge, allow_drive, allow_calendar, allow_journal, allow_evening_shutdown, allow_weekly_review";
+const PREFERENCE_COLUMNS = "permission_version, allow_profile, allow_today, allow_tasks, allow_task_actions, allow_goal_actions, allow_habit_actions, allow_project_actions, allow_habits, allow_results, allow_goals, allow_projects, allow_knowledge, allow_drive, allow_calendar, allow_journal, allow_evening_shutdown, allow_weekly_review";
 
 interface ConversationSummary { id: string; title: string; created_at: string; updated_at: string }
 interface ConversationMessage { id: string; conversation_id: string; role: "user" | "assistant"; content: string; response: NextronCoachResponse | null; metadata: Record<string, unknown>; created_at: string }
@@ -87,7 +87,7 @@ interface NextronActionProposal {
   preview: NextronActionPreview;
   riskLevel: "low" | "sensitive" | "external";
   requiresApproval: true;
-  status: "pending" | "approved_execution_disabled" | "completed" | "canceled" | "expired" | "invalidated";
+  status: "pending" | "approved_execution_disabled" | "completed" | "partially_failed" | "failed" | "stale" | "canceled" | "expired" | "invalidated";
   createdAt: string;
   expiresAt: string;
   approvedAt: string | null;
@@ -522,7 +522,7 @@ function NextronContent() {
   }
 
   function looksLikeActionIntent(prompt: string): boolean {
-    return /\b(create|add|make|remind me|reminder|move|update|change)\b/i.test(prompt) && /\b(task|reminder|due|deadline)\b/i.test(prompt);
+    return /\b(create|add|make|remind me|reminder|move|update|change|pause|complete)\b/i.test(prompt) && /\b(task|reminder|due|deadline|goal|habit|project|calendar|delete)\b/i.test(prompt);
   }
 
   async function proposeNextronAction(prompt: string): Promise<boolean> {
@@ -1001,7 +1001,7 @@ function isNextronActionProposal(value: unknown): value is NextronActionProposal
     && isNextronActionPreview(candidate.preview)
     && (candidate.riskLevel === "low" || candidate.riskLevel === "sensitive" || candidate.riskLevel === "external")
     && candidate.requiresApproval === true
-    && ["pending", "approved_execution_disabled", "completed", "canceled", "expired", "invalidated"].includes(candidate.status ?? "")
+    && ["pending", "approved_execution_disabled", "completed", "partially_failed", "failed", "stale", "canceled", "expired", "invalidated"].includes(candidate.status ?? "")
     && typeof candidate.createdAt === "string"
     && typeof candidate.expiresAt === "string"
     && (candidate.executedAt === undefined || candidate.executedAt === null || typeof candidate.executedAt === "string")
@@ -1318,13 +1318,13 @@ function NextronActionProposalsView({ proposals, status, error, onRefresh, onApp
         <div className="min-w-0">
           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-200/70">NEXTRON Actions</p>
           <h2 id="nextron-actions-heading" className="mt-1 text-lg font-semibold tracking-[-0.03em] text-[var(--text)]">Approval framework</h2>
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[var(--text-muted)]">NEXTRON can execute Task create/update proposals only after Task actions permission is saved and you click approval on each proposal. Other action namespaces remain disabled.</p>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[var(--text-muted)]">NEXTRON can prepare approved Goals, Habits, Projects, and Tasks. Write permission and exact proposal approval are separate; neither allows autonomous changes.</p>
         </div>
         <button type="button" onClick={onRefresh} disabled={loading || status === "saving"} className="inline-flex min-h-10 shrink-0 items-center rounded-xl border border-cyan-300/20 bg-cyan-300/10 px-3 py-2 text-xs font-semibold text-cyan-50/85 transition-all hover:-translate-y-0.5 hover:border-cyan-200/35 disabled:translate-y-0 disabled:opacity-50">{loading ? "Loading..." : "Refresh proposals"}</button>
       </div>
       {error && <p className="mt-3 rounded-xl border border-[var(--warning)]/25 bg-[var(--warning-soft)] px-3 py-2 text-xs text-[var(--warning)]">{error}</p>}
       <div className="mt-4 space-y-3">
-        {proposals.length === 0 ? <p className="rounded-2xl border border-cyan-300/10 bg-black/15 p-3 text-sm text-[var(--text-muted)]">No pending action proposals. Try: Create a task called Review launch notes tomorrow.</p> : proposals.map((proposal) => <ActionProposalCard key={proposal.id} proposal={proposal} busy={status === "saving"} onApprove={onApprove} onCancel={onCancel} onChange={onChange} />)}
+        {proposals.length === 0 ? <p className="rounded-2xl border border-cyan-300/10 bg-black/15 p-3 text-sm text-[var(--text-muted)]">No pending action proposals. Try: Create a habit for reading before bed.</p> : proposals.map((proposal) => <ActionProposalCard key={proposal.id} proposal={proposal} busy={status === "saving"} onApprove={onApprove} onCancel={onCancel} onChange={onChange} />)}
       </div>
     </section>
   );
@@ -1332,7 +1332,7 @@ function NextronActionProposalsView({ proposals, status, error, onRefresh, onApp
 
 function ActionProposalCard({ proposal, busy, onApprove, onCancel, onChange }: { proposal: NextronActionProposal; busy: boolean; onApprove: (id: string) => void; onCancel: (id: string) => void; onChange: (prompt: string) => void }) {
   const pending = proposal.status === "pending";
-  const statusCopy = proposal.status === "completed" ? "Approved and completed. Canonical Task data was updated." : proposal.status === "approved_execution_disabled" ? "Approval recorded. Execution is not enabled for this action type." : proposal.status === "canceled" ? "Canceled. This proposal can no longer be approved." : proposal.status === "expired" ? "Expired. Regenerate the proposal to approve it." : proposal.status === "invalidated" ? "Invalidated because its conversation or source context changed." : `Requires explicit approval. Expires ${formatTime(proposal.expiresAt)}.`;
+  const statusCopy = proposal.status === "completed" ? "Approved and completed. Life Pulse was updated and verified by the server." : proposal.status === "partially_failed" ? "Most changes completed, but at least one needs attention. Successful changes will not be repeated." : proposal.status === "failed" ? "No changes were applied. Check permissions or regenerate the proposal." : proposal.status === "stale" ? "This changed since NEXTRON prepared the preview. Regenerate it before applying." : proposal.status === "approved_execution_disabled" ? "Approval recorded. Execution is not enabled for this action type." : proposal.status === "canceled" ? "Canceled. This proposal can no longer be approved." : proposal.status === "expired" ? "Expired. Regenerate the proposal to approve it." : proposal.status === "invalidated" ? "Invalidated because its conversation or source context changed." : `Requires explicit approval. Expires ${formatTime(proposal.expiresAt)}.`;
   return (
     <article data-nextron-action-proposal="true" className="rounded-2xl border border-cyan-300/18 bg-[linear-gradient(180deg,rgba(8,18,32,0.76),rgba(4,9,18,0.84))] p-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -1351,7 +1351,7 @@ function ActionProposalCard({ proposal, busy, onApprove, onCancel, onChange }: {
         <button type="button" disabled={!pending || busy} onClick={() => onApprove(proposal.id)} className="inline-flex min-h-11 items-center rounded-xl bg-cyan-300 px-4 py-2 text-sm font-semibold text-slate-950 transition-all hover:-translate-y-0.5 hover:bg-cyan-200 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-45">{proposal.preview.approvalLabel}</button>
         <button type="button" disabled={!pending || busy} onClick={() => { onChange(`Change this action proposal: ${proposal.preview.subheading}`); }} className="inline-flex min-h-11 items-center rounded-xl border border-cyan-300/20 bg-cyan-300/10 px-4 py-2 text-sm font-semibold text-cyan-50/85 transition-all hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-45">Change</button>
         <button type="button" disabled={!pending || busy} onClick={() => onCancel(proposal.id)} className="inline-flex min-h-11 items-center rounded-xl border border-[var(--danger)]/25 bg-[var(--danger-soft)] px-4 py-2 text-sm font-semibold text-[var(--danger)] transition-all hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-45">Cancel</button>
-        {proposal.status === "completed" && proposal.actionType.startsWith("life_pulse.task.") && <Link href="/tasks" className="inline-flex min-h-11 items-center rounded-xl border border-cyan-300/20 bg-black/15 px-4 py-2 text-sm font-semibold text-cyan-50/85 transition-all hover:-translate-y-0.5 hover:border-cyan-200/35">Open Tasks</Link>}
+        {proposal.status === "completed" && <Link href="/nextron" className="inline-flex min-h-11 items-center rounded-xl border border-cyan-300/20 bg-black/15 px-4 py-2 text-sm font-semibold text-cyan-50/85 transition-all hover:-translate-y-0.5 hover:border-cyan-200/35">Review in NEXTRON</Link>}
       </div>
     </article>
   );

@@ -3,6 +3,9 @@ export type NextronContextDomain =
   | "today"
   | "tasks"
   | "taskActions"
+  | "goalActions"
+  | "habitActions"
+  | "projectActions"
   | "habits"
   | "results"
   | "goals"
@@ -32,6 +35,9 @@ export type NextronPermissionColumn =
   | "allow_today"
   | "allow_tasks"
   | "allow_task_actions"
+  | "allow_goal_actions"
+  | "allow_habit_actions"
+  | "allow_project_actions"
   | "allow_habits"
   | "allow_results"
   | "allow_goals"
@@ -49,6 +55,9 @@ export interface NextronPreferenceRow {
   allow_today: boolean | null;
   allow_tasks: boolean | null;
   allow_task_actions?: boolean | null;
+  allow_goal_actions?: boolean | null;
+  allow_habit_actions?: boolean | null;
+  allow_project_actions?: boolean | null;
   allow_habits: boolean | null;
   allow_results: boolean | null;
   allow_goals: boolean | null;
@@ -68,6 +77,9 @@ export interface NextronPreferenceUpsert {
   allow_today: boolean;
   allow_tasks: boolean;
   allow_task_actions: boolean;
+  allow_goal_actions: boolean;
+  allow_habit_actions: boolean;
+  allow_project_actions: boolean;
   allow_habits: boolean;
   allow_results: boolean;
   allow_goals: boolean;
@@ -85,13 +97,16 @@ export interface NormalizedNextronPreferences {
   warning: string | null;
 }
 
-export const NEXTRON_PERMISSION_VERSION = 5;
+export const NEXTRON_PERMISSION_VERSION = 6;
 
 const NEXTRON_DEFAULT_PERMISSION_LEVELS: NextronPermissionState = {
   profile: "allowed",
   today: "allowed",
   tasks: "allowed",
   taskActions: "denied",
+  goalActions: "denied",
+  habitActions: "denied",
+  projectActions: "denied",
   habits: "allowed",
   results: "allowed",
   goals: "allowed",
@@ -135,6 +150,30 @@ export const NEXTRON_CONTEXT_PERMISSIONS: readonly NextronContextPermission[] = 
     label: "Task actions",
     description: "Allows explicitly approved NEXTRON Task create/update mutations. Each action still requires a separate approval click.",
     level: NEXTRON_DEFAULT_PERMISSION_LEVELS.taskActions,
+    textHeavy: false,
+  },
+  {
+    domain: "goalActions",
+    dbColumn: "allow_goal_actions",
+    label: "Goal actions",
+    description: "Allows explicitly approved NEXTRON Goal create/update mutations. Permission is not approval.",
+    level: NEXTRON_DEFAULT_PERMISSION_LEVELS.goalActions,
+    textHeavy: false,
+  },
+  {
+    domain: "habitActions",
+    dbColumn: "allow_habit_actions",
+    label: "Habit actions",
+    description: "Allows explicitly approved NEXTRON Habit create/update mutations. Permission is not approval.",
+    level: NEXTRON_DEFAULT_PERMISSION_LEVELS.habitActions,
+    textHeavy: false,
+  },
+  {
+    domain: "projectActions",
+    dbColumn: "allow_project_actions",
+    label: "Project actions",
+    description: "Allows explicitly approved NEXTRON Project create/update mutations. Permission is not approval.",
+    level: NEXTRON_DEFAULT_PERMISSION_LEVELS.projectActions,
     textHeavy: false,
   },
   {
@@ -248,7 +287,7 @@ export function normalizeNextronPreferences(row: NextronPreferenceRow | null | u
   const defaults = getDefaultNextronPermissions();
   if (!row) return { permissions: defaults, warning: null };
 
-  if (row.permission_version !== NEXTRON_PERMISSION_VERSION && row.permission_version !== 4 && row.permission_version !== 3 && row.permission_version !== 2 && row.permission_version !== 1) {
+  if (row.permission_version !== NEXTRON_PERMISSION_VERSION && row.permission_version !== 5 && row.permission_version !== 4 && row.permission_version !== 3 && row.permission_version !== 2 && row.permission_version !== 1) {
     return {
       permissions: defaults,
       warning: "Saved NEXTRON context permissions use an unsupported version, so safe defaults are active.",
@@ -282,6 +321,9 @@ export function buildNextronPreferenceUpsert(userId: string, permissions: Nextro
     allow_today: permissions.today === "allowed",
     allow_tasks: permissions.tasks === "allowed",
     allow_task_actions: permissions.taskActions === "allowed",
+    allow_goal_actions: permissions.goalActions === "allowed",
+    allow_habit_actions: permissions.habitActions === "allowed",
+    allow_project_actions: permissions.projectActions === "allowed",
     allow_habits: permissions.habits === "allowed",
     allow_results: permissions.results === "allowed",
     allow_goals: permissions.goals === "allowed",

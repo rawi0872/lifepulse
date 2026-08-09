@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createOnboardingSetupActionPlan } from "@/lib/nextron/actions";
 import { buildConversationTitle, ensureConversation, loadConversationMessages, sanitizeConversationContent } from "@/lib/nextron/conversation";
 import {
   ensureOnboardingState,
@@ -68,7 +69,7 @@ export async function GET() {
 
 export async function PATCH(request: Request) {
   const body = await readJson<StateBody>(request);
-  if (!body || (body.action !== "skip" && body.action !== "complete" && body.action !== "resume")) return NextResponse.json({ error: "Invalid onboarding transition." }, { status: 400 });
+  if (!body || (body.action !== "skip" && body.action !== "complete" && body.action !== "resume" && body.action !== "build_plan")) return NextResponse.json({ error: "Invalid onboarding transition." }, { status: 400 });
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Sign in to update NEXTRON onboarding." }, { status: 401 });
@@ -94,6 +95,14 @@ export async function PATCH(request: Request) {
       ? await supabase.from("profiles").update({ onboarding_completed: true }).eq("user_id", user.id)
       : await supabase.from("profiles").insert({ user_id: user.id, onboarding_completed: true });
     if (profileWrite.error) return NextResponse.json({ error: "NEXTRON onboarding completed, but profile state could not be saved." }, { status: 503 });
+  }
+
+  if (body.action === "build_plan") {
+    const result = await createOnboardingSetupActionPlan({ supabase, onboardingState: state });
+    if (!result.ok) return NextResponse.json({ error: result.message, reason: result.reason }, { status: 409 });
+    const response = await loadStateResponse(supabase, user.id);
+    if (!response) return NextResponse.json({ error: "NEXTRON onboarding could not be refreshed." }, { status: 503 });
+    return NextResponse.json({ ...response, proposal: result.proposal });
   }
 
   const response = await loadStateResponse(supabase, user.id);
