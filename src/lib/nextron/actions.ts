@@ -147,7 +147,16 @@ async function validateActionIntent(supabase: SupabaseClient, actionType: string
     const taskTitle = cleanText(parameters.taskTitle, 120);
     if (!taskTitle) return { ok: false, reason: "MALFORMED_PARAMETERS", message: "Task update proposals require deterministic resource resolution." };
     const { data, error } = await supabase.rpc("nextron_resolve_task_update_target", { p_title: taskTitle });
-    if (error) return { ok: false, reason: "RESOURCE_NOT_FOUND", message: "NEXTRON could not verify that task right now." };
+    if (error) {
+      console.warn("NEXTRON_TASK_UPDATE_RESOLUTION_FAILED", {
+        actionType,
+        stage: "resolver_rpc",
+        code: error.code ?? "unknown",
+        messageClass: error.message?.includes("Could not find the function") ? "RPC_NOT_DISCOVERED" : error.message?.includes("AUTH_REQUIRED") ? "AUTH_REQUIRED" : "RPC_ERROR",
+        hasTaskTitle: taskTitle.length > 0,
+      });
+      return { ok: false, reason: "RESOURCE_NOT_FOUND", message: "NEXTRON could not verify that task right now." };
+    }
     const matches = (data ?? []) as Array<{ id: string; title: string; due_date: string | null; status: string }>;
     if (matches.length === 0) return { ok: false, reason: "RESOURCE_NOT_FOUND", message: "I could not find an owned task with that exact title." };
     if (matches.length > 1) return { ok: false, reason: "AMBIGUOUS_RESOURCE", message: "More than one task matched that title. Rename or specify the exact task first." };
