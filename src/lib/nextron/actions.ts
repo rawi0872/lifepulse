@@ -43,7 +43,7 @@ type ActionParseResult =
 
 type ValidationResult =
   | { ok: true; actionType: NextronActionType; parameters: Record<string, unknown>; preview: NextronActionPreview; riskLevel: NextronActionRisk; title: string; description: string }
-  | { ok: false; reason: "UNSUPPORTED_ACTION" | "MALFORMED_PARAMETERS" | "AMBIGUOUS_RESOURCE" | "RESOURCE_NOT_FOUND"; message: string };
+  | { ok: false; reason: "UNSUPPORTED_ACTION" | "MALFORMED_PARAMETERS" | "AMBIGUOUS_RESOURCE" | "RESOURCE_NOT_FOUND"; message: string; diagnostic?: Record<string, unknown> };
 
 interface ProposalRow {
   id: string;
@@ -155,7 +155,7 @@ async function validateActionIntent(supabase: SupabaseClient, actionType: string
         messageClass: error.message?.includes("Could not find the function") ? "RPC_NOT_DISCOVERED" : error.message?.includes("AUTH_REQUIRED") ? "AUTH_REQUIRED" : "RPC_ERROR",
         hasTaskTitle: taskTitle.length > 0,
       });
-      return { ok: false, reason: "RESOURCE_NOT_FOUND", message: "NEXTRON could not verify that task right now." };
+      return { ok: false, reason: "RESOURCE_NOT_FOUND", message: "NEXTRON could not verify that task right now.", diagnostic: { stage: "resolver_rpc", code: error.code ?? "unknown", messageClass: error.message?.includes("Could not find the function") ? "RPC_NOT_DISCOVERED" : error.message?.includes("AUTH_REQUIRED") ? "AUTH_REQUIRED" : "RPC_ERROR", titleLength: taskTitle.length, targetText: taskTitle } };
     }
     const matches = (data ?? []) as Array<{ id: string; title: string; due_date: string | null; status: string }>;
     if (matches.length === 0) return { ok: false, reason: "RESOURCE_NOT_FOUND", message: "I could not find an owned task with that exact title." };
@@ -189,9 +189,9 @@ async function validateActionIntent(supabase: SupabaseClient, actionType: string
   };
 }
 
-export async function createActionProposal(args: { supabase: SupabaseClient; conversationId: string | null; actionType: string; parameters: Record<string, unknown> }): Promise<{ ok: true; proposal: NextronActionProposal } | { ok: false; reason: string; message: string }> {
+export async function createActionProposal(args: { supabase: SupabaseClient; conversationId: string | null; actionType: string; parameters: Record<string, unknown> }): Promise<{ ok: true; proposal: NextronActionProposal } | { ok: false; reason: string; message: string; diagnostic?: Record<string, unknown> }> {
   const validated = await validateActionIntent(args.supabase, args.actionType, args.parameters);
-  if (!validated.ok) return { ok: false, reason: validated.reason, message: validated.message };
+  if (!validated.ok) return { ok: false, reason: validated.reason, message: validated.message, diagnostic: validated.diagnostic };
   const expiresAt = new Date(Date.now() + NEXTRON_ACTION_EXPIRY_MINUTES * 60_000).toISOString();
   const { data, error } = await args.supabase.rpc("nextron_create_action_proposal", { p_conversation_id: args.conversationId, p_action_type: validated.actionType, p_validated_payload: validated.parameters, p_preview_payload: { title: validated.title, description: validated.description, preview: validated.preview }, p_risk_level: validated.riskLevel, p_expires_at: expiresAt });
   if (error || !data) return { ok: false, reason: "PERMISSION_DENIED", message: "NEXTRON could not create an owner-scoped proposal." };
