@@ -25,8 +25,9 @@ function loadEnv(filepath) {
   return vars;
 }
 
-const fileEnv = loadEnv(resolve(__dirname, "..", ".env.test.local"));
-const env = { ...fileEnv, ...process.env };
+const appEnv = loadEnv(resolve(__dirname, "..", ".env.local"));
+const testEnv = loadEnv(resolve(__dirname, "..", ".env.test.local"));
+const env = { ...appEnv, ...testEnv, ...process.env };
 
 const BASE = env.LIFE_PULSE_PROD_BASE_URL || "https://lifepulse-sand.vercel.app";
 const HEADLESS = env.LIFE_PULSE_TEST_HEADLESS !== "false";
