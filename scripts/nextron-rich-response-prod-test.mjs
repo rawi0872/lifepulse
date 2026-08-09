@@ -146,6 +146,7 @@ async function main() {
     await page.goto(`${BASE}/nextron`, { waitUntil: "domcontentloaded", timeout: 30000 });
     await assertAuthenticatedRoute(page, "NEXTRON");
     await expect(page.getByRole("heading", { name: "NEXTRON", exact: true })).toBeVisible({ timeout: 20000 });
+    await waitForNextronReady(page);
     pass("NEXTRON loaded");
 
     await ask(page, "What should I do today?");
