@@ -4,6 +4,7 @@ import { parseWeeklyReviewReflection, removeWeeklyReviewBlock } from "@/lib/week
 import { getTodayDateString, getWeekStartDate } from "@/lib/utils";
 import { groupTasksByDate, isValidLocalDateString, timestampToLocalDateString } from "@/lib/tasks";
 import { getWeeklyProgress, isHabitDueOnDate, normalizeCompletedDates } from "@/lib/streaks";
+import { buildLifeMapGraph, summarizeLifeMapForNextron } from "@/lib/life-map";
 import type { NextronContextDomain, NextronPermissionState } from "@/lib/nextron/context";
 import { isNextronContextAllowed } from "@/lib/nextron/context";
 
@@ -114,6 +115,7 @@ export interface NextronEvidencePacket {
   weeklyReview: NextronPacketSection<{ existsThisWeek: boolean; nextWeekFocus: string | null }>;
   goals: NextronPacketSection<{ activeCount: number; sampleNames: string[] }>;
   projects: NextronPacketSection<{ activeCount: number; activeWithoutOpenTaskCount: number; sampleNames: string[] }>;
+  relationships: NextronPacketSection<ReturnType<typeof summarizeLifeMapForNextron>>;
   knowledge: NextronPacketSection<{ noteSearchAvailable: boolean }>;
   calendar: NextronPacketSection<{ connected: boolean; readOnly: true }>;
   memory: NextronPacketSection<{ preferences: string[] }>;
@@ -189,6 +191,7 @@ export async function buildNextronEvidencePacket(
   let weeklyReview: NextronEvidencePacket["weeklyReview"] = denied("Weekly Review reflection is not loaded unless allowed.");
   let goals: NextronEvidencePacket["goals"] = denied();
   let projects: NextronEvidencePacket["projects"] = denied();
+  let relationships: NextronEvidencePacket["relationships"] = denied("Life Map relationships require Goals, Projects, Tasks, and Habits context.");
   const knowledge: NextronEvidencePacket["knowledge"] = isNextronContextAllowed(permissions, "knowledge")
     ? available({ noteSearchAvailable: true }, "Knowledge notes are searched only on explicit Knowledge questions.")
     : denied("Knowledge notes are not loaded unless allowed.");
@@ -198,8 +201,12 @@ export async function buildNextronEvidencePacket(
   const memory: NextronEvidencePacket["memory"] = missing("No relevant confirmed preference memory was loaded for this request.");
 
   const wantsOperational = isNextronContextAllowed(permissions, "today") || isNextronContextAllowed(permissions, "tasks") || isNextronContextAllowed(permissions, "habits");
+  const canLoadRelationships = isNextronContextAllowed(permissions, "goals")
+    && isNextronContextAllowed(permissions, "projects")
+    && isNextronContextAllowed(permissions, "tasks")
+    && isNextronContextAllowed(permissions, "habits");
 
-  const [profileResult, operationalResult, resultsResult, goalsResult, projectsResult, journalResult] = await Promise.allSettled([
+  const [profileResult, operationalResult, resultsResult, goalsResult, projectsResult, relationshipsResult, journalResult] = await Promise.allSettled([
     isNextronContextAllowed(permissions, "profile")
       ? supabase.from("profiles").select("intended_use").eq("user_id", userId).maybeSingle()
       : Promise.resolve(null),
@@ -253,6 +260,9 @@ export async function buildNextronEvidencePacket(
           supabase.from("projects").select("id, title, status").eq("user_id", userId).eq("status", "active").limit(20),
           supabase.from("tasks").select("id, project_id, status").eq("user_id", userId).eq("status", "todo").not("project_id", "is", null).limit(100),
         ])
+      : Promise.resolve(null),
+    canLoadRelationships
+      ? buildLifeMapGraph(supabase, userId)
       : Promise.resolve(null),
     isNextronContextAllowed(permissions, "journal") || isNextronContextAllowed(permissions, "eveningShutdown") || isNextronContextAllowed(permissions, "weeklyReview")
       ? supabase
@@ -395,6 +405,15 @@ export async function buildNextronEvidencePacket(
     }
   }
 
+  if (relationshipsResult.status === "fulfilled" && relationshipsResult.value) {
+    relationships = available(summarizeLifeMapForNextron(relationshipsResult.value), "Uses explicit goal links and project task assignments only.");
+  } else if (relationshipsResult.status === "rejected") {
+    relationships = errorSection("Life Map relationship summary failed to load.");
+    warnings.push("relationships_load_failed");
+  } else if (!canLoadRelationships) {
+    relationships = denied("Life Map relationships require Goals, Projects, Tasks, and Habits context.");
+  }
+
   if (journalResult.status === "fulfilled" && journalResult.value) {
     if (journalResult.value.error) {
       const message = "Reflection evidence could not be loaded.";
@@ -444,6 +463,7 @@ export async function buildNextronEvidencePacket(
     memory,
     goals,
     projects,
+    relationships,
     warnings: Array.from(new Set(warnings)).slice(0, 4),
   };
 }

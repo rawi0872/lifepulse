@@ -48,6 +48,7 @@ const requiredNavText = [
   "NEXTRON",
   "Weekly Review",
   "Goals",
+  "Life Map",
   "Projects",
   "Tasks",
   "Habits",

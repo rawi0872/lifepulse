@@ -11,6 +11,8 @@ export const NEXTRON_ACTION_TYPES = [
   "life_pulse.task.update",
   "life_pulse.goal.create",
   "life_pulse.goal.update",
+  "life_pulse.goal.link",
+  "life_pulse.goal.unlink",
   "life_pulse.habit.create",
   "life_pulse.habit.update",
   "life_pulse.project.create",
@@ -126,6 +128,24 @@ function stripUpdateTaskTitle(prompt: string): string {
     .trim();
 }
 
+function parseRelationshipIntent(trimmed: string, normalized: string): ActionParseResult | null {
+  const linkMatch = trimmed.match(/^(?:please\s+)?(?:connect|link|attach)\s+(.+?)\s+(?:to|with)\s+(.+?)\.?$/i);
+  if (linkMatch && /\b(connect|link|attach)\b/.test(normalized)) {
+    const linkedTitle = cleanText(linkMatch[1], 140);
+    const goalTitle = cleanText(linkMatch[2].replace(/^my\s+/i, "").replace(/\s+goal$/i, ""), 140);
+    if (!linkedTitle || !goalTitle) return { ok: false, reason: "MALFORMED_PARAMETERS", message: "Tell me the exact goal and item to connect." };
+    return { ok: true, actionType: "life_pulse.goal.link", parameters: { goalTitle, linkedTitle } };
+  }
+  const unlinkMatch = trimmed.match(/^(?:please\s+)?(?:remove|disconnect|unlink|detach)\s+(.+?)\s+from\s+(.+?)\.?$/i);
+  if (unlinkMatch && /\b(remove|disconnect|unlink|detach)\b/.test(normalized)) {
+    const linkedTitle = cleanText(unlinkMatch[1], 140);
+    const goalTitle = cleanText(unlinkMatch[2].replace(/^my\s+/i, "").replace(/\s+goal$/i, ""), 140);
+    if (!linkedTitle || !goalTitle) return { ok: false, reason: "MALFORMED_PARAMETERS", message: "Tell me the exact goal and item to disconnect." };
+    return { ok: true, actionType: "life_pulse.goal.unlink", parameters: { goalTitle, linkedTitle } };
+  }
+  return null;
+}
+
 export function parseNextronActionIntent(prompt: string): ActionParseResult {
   const trimmed = prompt.trim();
   const normalized = trimmed.toLowerCase();
@@ -140,6 +160,9 @@ export function parseNextronActionIntent(prompt: string): ActionParseResult {
   if (/\b(delete|remove permanently|wipe|erase)\b/.test(normalized)) {
     return { ok: false, reason: "UNSUPPORTED_ACTION", message: "Destructive delete actions are not enabled for NEXTRON." };
   }
+
+  const relationshipIntent = parseRelationshipIntent(trimmed, normalized);
+  if (relationshipIntent) return relationshipIntent;
 
   if (/\b(create|add|make)\b/.test(normalized) && /\btask\b/.test(normalized)) {
     const title = cleanText(stripActionPrefix(trimmed), 120);
@@ -168,8 +191,15 @@ export function parseNextronActionIntent(prompt: string): ActionParseResult {
     return { ok: true, actionType: "life_pulse.project.create", parameters: { title } };
   }
   if (/\b(move|update|change)\b/.test(normalized) && /\b(task|due|deadline)\b/.test(normalized)) {
+    const projectMatch = trimmed.match(/^(?:please\s+)?(?:move|update|change)\s+(?:the\s+)?task\s+(.+?)\s+(?:into|to|under)\s+(?:the\s+)?project\s+(.+?)\.?$/i);
+    if (projectMatch) {
+      const taskTitle = cleanText(projectMatch[1].replace(/^(called|named)\s+/i, ""), 120);
+      const projectTitle = cleanText(projectMatch[2], 140);
+      if (!taskTitle || !projectTitle) return { ok: false, reason: "AMBIGUOUS_RESOURCE", message: "I need the exact task and project before I can prepare the move." };
+      return { ok: true, actionType: "life_pulse.task.update", parameters: { taskTitle, projectTitle } };
+    }
     const dueDate = parseNaturalDate(trimmed);
-    if (!dueDate) return { ok: false, reason: "MALFORMED_PARAMETERS", message: "Tell me the new date before I can prepare a task update proposal." };
+    if (!dueDate) return { ok: false, reason: "MALFORMED_PARAMETERS", message: "Tell me the new date or project before I can prepare a task update proposal." };
     const taskTitle = cleanText(stripUpdateTaskTitle(trimmed), 120);
     if (!taskTitle) return { ok: false, reason: "AMBIGUOUS_RESOURCE", message: "I need the exact task to change before I can prepare an update proposal." };
     return { ok: true, actionType: "life_pulse.task.update", parameters: { taskTitle, dueDate } };
@@ -219,13 +249,32 @@ async function resolveOne<T extends Record<string, unknown>>(supabase: SupabaseC
   return (data ?? []) as unknown as T[];
 }
 
+type LinkableType = "project" | "task" | "habit";
+interface LinkableMatch { linkedType: LinkableType; linkedId: string; title: string; status: string | null }
+
+async function resolveLinkable(supabase: SupabaseClient, title: string): Promise<LinkableMatch[] | null> {
+  const [projectsRes, tasksRes, habitsRes] = await Promise.all([
+    supabase.from("projects").select("id, title, status").eq("title", title).order("created_at", { ascending: false }).limit(2),
+    supabase.from("tasks").select("id, title, status").eq("title", title).order("created_at", { ascending: false }).limit(2),
+    supabase.from("habits").select("id, title, frequency").eq("title", title).order("created_at", { ascending: false }).limit(2),
+  ]);
+  if (projectsRes.error || tasksRes.error || habitsRes.error) return null;
+  return [
+    ...((projectsRes.data ?? []) as Array<{ id: string; title: string; status: string | null }>).map((row) => ({ linkedType: "project" as const, linkedId: row.id, title: row.title, status: row.status })),
+    ...((tasksRes.data ?? []) as Array<{ id: string; title: string; status: string | null }>).map((row) => ({ linkedType: "task" as const, linkedId: row.id, title: row.title, status: row.status })),
+    ...((habitsRes.data ?? []) as Array<{ id: string; title: string; frequency: string | null }>).map((row) => ({ linkedType: "habit" as const, linkedId: row.id, title: row.title, status: row.frequency })),
+  ];
+}
+
 async function validateActionIntent(supabase: SupabaseClient, actionType: string, parameters: Record<string, unknown>): Promise<ValidationResult> {
   if (!ACTION_TYPE_SET.has(actionType)) return { ok: false, reason: "UNSUPPORTED_ACTION", message: "Unsupported action type." };
   if (actionType === "life_pulse.task.update") {
-    const extra = rejectExtra(parameters, ["taskTitle", "dueDate"]);
+    const extra = rejectExtra(parameters, ["taskTitle", "dueDate", "projectTitle"]);
     if (extra) return extra;
     const dueDate = nullableDate(parameters.dueDate);
     if (dueDate === undefined) return { ok: false, reason: "MALFORMED_PARAMETERS", message: "Due date must be YYYY-MM-DD when supplied." };
+    const projectTitle = cleanText(parameters.projectTitle, 140);
+    if (dueDate === null && !projectTitle) return { ok: false, reason: "MALFORMED_PARAMETERS", message: "Task update proposals require a new date or project." };
     const taskTitle = cleanText(parameters.taskTitle, 120);
     if (!taskTitle) return { ok: false, reason: "MALFORMED_PARAMETERS", message: "Task update proposals require deterministic resource resolution." };
     const { data, error } = await supabase.rpc("nextron_resolve_task_update_target", { p_title: taskTitle });
@@ -235,6 +284,22 @@ async function validateActionIntent(supabase: SupabaseClient, actionType: string
     if (matches.length > 1) return { ok: false, reason: "AMBIGUOUS_RESOURCE", message: "More than one task matched that title. Rename or specify the exact task first." };
     const task = matches[0];
     if (typeof task.id !== "string" || !task.id || (task.status !== "todo" && task.status !== "done")) return { ok: false, reason: "RESOURCE_NOT_FOUND", message: "NEXTRON could not verify that task right now." };
+    if (projectTitle) {
+      const projectMatches = await resolveOne<{ id: string; title: string; status: string }>(supabase, "projects", projectTitle, "id, title, status");
+      if (!projectMatches) return { ok: false, reason: "RESOURCE_NOT_FOUND", message: "NEXTRON could not verify that project right now." };
+      if (projectMatches.length === 0) return { ok: false, reason: "RESOURCE_NOT_FOUND", message: "I could not find an owned project with that exact title." };
+      if (projectMatches.length > 1) return { ok: false, reason: "AMBIGUOUS_RESOURCE", message: "More than one project matched that title. Rename or specify the exact project first." };
+      const project = projectMatches[0];
+      return {
+        ok: true,
+        actionType: "life_pulse.task.update",
+        parameters: { taskId: task.id, beforeTitle: task.title, beforeDueDate: task.due_date, beforeStatus: task.status, projectId: project.id, projectTitle: project.title, projectStatus: project.status },
+        riskLevel: "low",
+        title: `Move task: ${task.title}`,
+        description: "NEXTRON can assign this Task to the selected Project only after explicit approval and server-side revalidation.",
+        preview: { heading: "MOVE TASK", subheading: task.title, fields: [{ label: "Project", before: "No project change yet", after: project.title }], approvalLabel: "Approve task move" },
+      };
+    }
     return {
       ok: true,
       actionType: "life_pulse.task.update",
@@ -243,6 +308,34 @@ async function validateActionIntent(supabase: SupabaseClient, actionType: string
       title: `Update task: ${task.title}`,
       description: "NEXTRON can update this task only after explicit approval and server-side revalidation.",
       preview: { heading: "UPDATE TASK", subheading: task.title, fields: [{ label: "Due", before: task.due_date ?? "No due date", after: dueDate ?? "No due date" }], approvalLabel: "Approve task update" },
+    };
+  }
+
+  if (actionType === "life_pulse.goal.link" || actionType === "life_pulse.goal.unlink") {
+    const extra = rejectExtra(parameters, ["goalTitle", "linkedTitle"]);
+    if (extra) return extra;
+    const goalTitle = cleanText(parameters.goalTitle, 140);
+    const linkedTitle = cleanText(parameters.linkedTitle, 140);
+    if (!goalTitle || !linkedTitle) return { ok: false, reason: "MALFORMED_PARAMETERS", message: "Relationship proposals require exact goal and item titles." };
+    const goalMatches = await resolveOne<{ id: string; title: string; status: string }>(supabase, "goals", goalTitle, "id, title, status");
+    if (!goalMatches) return { ok: false, reason: "RESOURCE_NOT_FOUND", message: "NEXTRON could not verify that goal right now." };
+    if (goalMatches.length === 0) return { ok: false, reason: "RESOURCE_NOT_FOUND", message: "I could not find an owned goal with that exact title." };
+    if (goalMatches.length > 1) return { ok: false, reason: "AMBIGUOUS_RESOURCE", message: "More than one goal matched that title. Rename or specify the exact goal first." };
+    const matches = await resolveLinkable(supabase, linkedTitle);
+    if (!matches) return { ok: false, reason: "RESOURCE_NOT_FOUND", message: "NEXTRON could not verify that linked item right now." };
+    if (matches.length === 0) return { ok: false, reason: "RESOURCE_NOT_FOUND", message: "I could not find an owned Project, Task, or Habit with that exact title." };
+    if (matches.length > 1) return { ok: false, reason: "AMBIGUOUS_RESOURCE", message: "More than one Project, Task, or Habit matched that title. Specify the exact item first." };
+    const goal = goalMatches[0];
+    const linked = matches[0];
+    const isLink = actionType === "life_pulse.goal.link";
+    return {
+      ok: true,
+      actionType,
+      parameters: { goalId: goal.id, goalTitle: goal.title, goalStatus: goal.status, linkedType: linked.linkedType, linkedId: linked.linkedId, linkedTitle: linked.title, linkedStatus: linked.status },
+      riskLevel: "low",
+      title: `${isLink ? "Connect" : "Disconnect"}: ${linked.title} ${isLink ? "to" : "from"} ${goal.title}`,
+      description: `NEXTRON can ${isLink ? "create" : "remove"} this explicit Goal relationship only after write permission and approval. It will not delete any Goal, Project, Task, or Habit.`,
+      preview: { heading: isLink ? "CONNECT TO GOAL" : "DISCONNECT FROM GOAL", subheading: goal.title, fields: [{ label: "Goal", after: goal.title }, { label: linked.linkedType[0].toUpperCase() + linked.linkedType.slice(1), after: linked.title }], approvalLabel: isLink ? "Approve connection" : "Approve disconnect" },
     };
   }
 

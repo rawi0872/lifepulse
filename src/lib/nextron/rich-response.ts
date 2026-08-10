@@ -39,7 +39,7 @@ export interface NextronRichResponse {
 const MAX_BLOCKS = 4;
 const MAX_ITEMS = 5;
 const MAX_METRICS = 6;
-const SAFE_HREFS = new Set(["/today", "/tasks", "/habits", "/results", "/journal", "/weekly-review", "/goals", "/projects", "/insights", "/nextron"]);
+const SAFE_HREFS = new Set(["/today", "/tasks", "/habits", "/results", "/journal", "/weekly-review", "/goals", "/life-map", "/projects", "/insights", "/nextron"]);
 const CATEGORIES: NextronEvidenceCategory[] = ["today", "tasks", "habits", "results", "journal", "eveningShutdown", "weeklyReview", "goals", "projects", "knowledge", "calendar", "profile", "memory"];
 
 function clean(value: string | null | undefined, max = 120): string | null {
@@ -66,7 +66,7 @@ function pushBlock(blocks: NextronRichBlock[], block: NextronRichBlock | null) {
   if (block && blocks.length < MAX_BLOCKS) blocks.push(block);
 }
 
-type RichViewIntent = "today" | "tasks" | "habits" | "goals" | "projects" | "results" | "attention" | "why" | "summary";
+type RichViewIntent = "today" | "tasks" | "habits" | "goals" | "projects" | "results" | "life_map" | "attention" | "why" | "summary";
 
 function selectRichViewIntent(request: NextronUserRequest): RichViewIntent | null {
   if (request.handlingStatus !== "handled") return null;
@@ -74,6 +74,7 @@ function selectRichViewIntent(request: NextronUserRequest): RichViewIntent | nul
   if (/\b(why|evidence|source|sources|telling me this)\b/.test(prompt)) return "why";
   if (/\b(open tasks?|tasks?|todo|to do)\b/.test(prompt)) return "tasks";
   if (/\b(habits?|routine|routines)\b/.test(prompt)) return "habits";
+  if (/\b(life map|map|graph|relationships?|connected|links?)\b/.test(prompt)) return "life_map";
   if (/\b(goals?)\b/.test(prompt)) return "goals";
   if (/\b(projects?)\b/.test(prompt)) return "projects";
   if (/\b(results?|metrics?|measurements?)\b/.test(prompt)) return "results";
@@ -94,6 +95,7 @@ export function buildNextronRichResponse(response: NextronCoachResponse, packet:
   const results = packet.results.data;
   const projects = packet.projects.data;
   const goals = packet.goals.data;
+  const relationships = packet.relationships.data;
 
   const wantsOverview = viewIntent === "today" || viewIntent === "summary" || viewIntent === "attention";
   const metrics = [
@@ -103,8 +105,9 @@ export function buildNextronRichResponse(response: NextronCoachResponse, packet:
     habits ? metric("Habits", `${habits.completedTodayCount}/${habits.dueTodayCount}`, "completed today", habits.completedTodayCount < habits.dueTodayCount ? "attention" : "positive") : null,
     results ? metric("Results", results.recentEntryCount, "entries this week", results.recentEntryCount > 0 ? "positive" : "neutral") : null,
     projects ? metric("Projects", projects.activeCount, "active", "neutral") : null,
+    relationships ? metric("Links", relationships.explicitLinks, "explicit only", relationships.explicitLinks > 0 ? "positive" : "neutral") : null,
   ].filter((entry): entry is NextronRichMetric => Boolean(entry)).slice(0, MAX_METRICS);
-  pushBlock(blocks, wantsOverview && metrics.length > 0 ? { type: "metric_strip", title: "Grounded Snapshot", metrics } : null);
+  pushBlock(blocks, (wantsOverview || viewIntent === "life_map") && metrics.length > 0 ? { type: "metric_strip", title: viewIntent === "life_map" ? "Life Map Snapshot" : "Grounded Snapshot", metrics } : null);
 
   const priorityItems = [
     ...(tasks?.overdueCount ? [item(`${tasks.overdueCount} overdue open task${tasks.overdueCount === 1 ? "" : "s"}`, "tasks", "Review before adding new work.", "/tasks", "attention")] : []),
@@ -112,8 +115,9 @@ export function buildNextronRichResponse(response: NextronCoachResponse, packet:
     ...(habits && habits.dueTodayCount > habits.completedTodayCount ? [item(`${habits.dueTodayCount - habits.completedTodayCount} due habit${habits.dueTodayCount - habits.completedTodayCount === 1 ? "" : "s"} incomplete`, "habits", "Only mark complete if it actually happened.", "/habits", "attention")] : []),
     ...(results && results.activeMetricCount > 0 && results.recentEntryCount === 0 ? [item("Results metrics have no recent entries", "results", "Add real measurements only if available.", "/results", "neutral")] : []),
     ...(projects?.activeWithoutOpenTaskCount ? [item(`${projects.activeWithoutOpenTaskCount} active project${projects.activeWithoutOpenTaskCount === 1 ? "" : "s"} without an open task`, "projects", "Inspect manually before deciding it is blocked.", "/projects", "neutral")] : []),
+    ...(relationships?.unlinkedActiveGoals ? [item(`${relationships.unlinkedActiveGoals} active goal${relationships.unlinkedActiveGoals === 1 ? "" : "s"} without explicit support`, "goals", "Open Life Map before creating any new connection.", "/life-map", "attention")] : []),
   ].filter((entry): entry is NextronRichListItem => Boolean(entry)).slice(0, MAX_ITEMS);
-  pushBlock(blocks, (viewIntent === "today" || viewIntent === "attention" || viewIntent === "summary") && priorityItems.length > 0 ? { type: "priority_list", title: "What Deserves Attention", items: priorityItems } : null);
+  pushBlock(blocks, (viewIntent === "today" || viewIntent === "attention" || viewIntent === "summary" || viewIntent === "life_map") && priorityItems.length > 0 ? { type: "priority_list", title: "What Deserves Attention", items: priorityItems } : null);
 
   const taskItems = (tasks?.nextOpenTitles ?? []).map((title) => item(title, "tasks", "Next open task from permitted evidence.", "/tasks"));
   const projectItems = (projects?.sampleNames ?? []).map((title) => item(title, "projects", "Active project visible to NEXTRON.", "/projects"));

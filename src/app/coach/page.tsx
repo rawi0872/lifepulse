@@ -540,7 +540,7 @@ function NextronContent() {
   }
 
   function looksLikeActionIntent(prompt: string): boolean {
-    return /\b(create|add|make|remind me|reminder|move|update|change|pause|complete)\b/i.test(prompt) && /\b(task|reminder|due|deadline|goal|habit|project|calendar|delete)\b/i.test(prompt);
+    return /\b(create|add|make|remind me|reminder|move|update|change|pause|complete|connect|link|attach|disconnect|unlink|detach|remove)\b/i.test(prompt) && /\b(task|reminder|due|deadline|goal|habit|project|calendar|delete|from|to|with)\b/i.test(prompt);
   }
 
   async function proposeNextronAction(prompt: string): Promise<boolean> {
@@ -916,7 +916,7 @@ function NextronContent() {
         <Card variant="subtle" className="p-4"><h2 className="text-sm font-semibold text-[var(--text)]">Not available to NEXTRON</h2><ul className="mt-3 space-y-2 text-xs text-[var(--text-secondary)]">{NEXTRON_UNAVAILABLE_CONTEXT.map((item) => <li key={item} className="break-words">{item}</li>)}{packet && Object.entries(packet.permissionSummary).filter(([, status]) => status === "permission_denied").map(([domain]) => <li key={domain} className="break-words">{formatDomainLabel(domain)} is not loaded by current permission.</li>)}</ul></Card>
       </section>
 
-      <p className="relative mt-5 text-center text-[10px] leading-relaxed text-[var(--text-muted)]">NEXTRON is permissioned, bounded, and user-controlled. It can update canonical Tasks only through explicit approved proposals; external connectors remain read-only.</p>
+      <p className="relative mt-5 text-center text-[10px] leading-relaxed text-[var(--text-muted)]">NEXTRON is permissioned, bounded, and user-controlled. It can prepare canonical Life Pulse changes and explicit relationship proposals only through approval; external connectors remain read-only.</p>
     </div>
   );
 }
@@ -1450,7 +1450,7 @@ function NextronActionProposalsView({ proposals, status, error, onRefresh, onApp
       </div>
       {error && <p className="mt-3 rounded-xl border border-[var(--warning)]/25 bg-[var(--warning-soft)] px-3 py-2 text-xs text-[var(--warning)]">{error}</p>}
       <div className="mt-4 space-y-3">
-        {proposals.length === 0 ? <p className="rounded-2xl border border-cyan-300/10 bg-black/15 p-3 text-sm text-[var(--text-muted)]">No pending action proposals. Try: Create a habit for reading before bed.</p> : proposals.map((proposal) => <ActionProposalCard key={proposal.id} proposal={proposal} busy={status === "saving"} onApprove={onApprove} onCancel={onCancel} onChange={onChange} />)}
+        {proposals.length === 0 ? <p className="rounded-2xl border border-cyan-300/10 bg-black/15 p-3 text-sm text-[var(--text-muted)]">No pending action proposals. Try: Create a habit for reading before bed, or connect a project to an exact goal.</p> : proposals.map((proposal) => <ActionProposalCard key={proposal.id} proposal={proposal} busy={status === "saving"} onApprove={onApprove} onCancel={onCancel} onChange={onChange} />)}
       </div>
     </section>
   );

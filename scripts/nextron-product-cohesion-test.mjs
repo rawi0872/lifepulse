@@ -12,6 +12,7 @@ const paths = {
   today: "src/app/today/page.tsx",
   tasks: "src/app/tasks/page.tsx",
   projects: "src/app/projects/page.tsx",
+  lifeMap: "src/app/life-map/page.tsx",
   knowledge: "src/app/knowledge/page.tsx",
   weeklyReview: "src/app/weekly-review/page.tsx",
   coachLib: "src/lib/nextron/coach.ts",
@@ -35,6 +36,7 @@ const coachPage = read(paths.coachPage);
 const today = read(paths.today);
 const tasks = read(paths.tasks);
 const projects = read(paths.projects);
+const lifeMap = read(paths.lifeMap);
 const knowledge = read(paths.knowledge);
 const weeklyReview = read(paths.weeklyReview);
 const coachLib = read(paths.coachLib);
@@ -44,6 +46,7 @@ const pkg = JSON.parse(read(paths.packageJson));
 assert(pkg.scripts["test:nextron-product-cohesion"] === "node scripts/nextron-product-cohesion-test.mjs", "Product cohesion test script is registered");
 assert(nextronPage.includes('import CoachPage from "@/app/coach/page"') && nextConfig.includes('source: "/coach"') && nextConfig.includes('destination: "/nextron"'), "Canonical /nextron route exists and /coach compatibility redirects");
 assert(nav.includes('label: "Intelligence"') && nav.includes('href: "/nextron"') && !nav.includes('href: "/coach", icon: icons.coach'), "Primary navigation exposes NEXTRON at /nextron");
+assert(nav.includes('label: "Life Map"') && nav.includes('href: "/life-map"') && lifeMap.includes('fetch("/api/life-map"'), "Primary navigation exposes zero-model Life Map at /life-map");
 assert(!nav.includes('badge: "Beta"') && !nav.includes('Review after logging') && !nav.includes('Organize bigger work'), "Navigation removes stale NEXTRON beta and legacy group labels");
 assert(modules.includes('href: "/nextron"') && modules.includes('personal intelligence') && !modules.includes('AI Coach foundation'), "Module registry describes NEXTRON as Life Pulse intelligence");
 assert(today.includes('/nextron?subject=today') && tasks.includes('/nextron?subject=tasks') && knowledge.includes('/nextron?subject=knowledge') && weeklyReview.includes('/nextron?subject=weekly-review'), "High-value module bridges point to safe NEXTRON subjects");
