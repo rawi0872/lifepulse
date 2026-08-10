@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { buildNextronAttentionSummary } from "@/lib/nextron/attention";
 import { normalizeNextronPreferences, type NextronPreferenceRow } from "@/lib/nextron/context";
 import { buildNextronEvidencePacket } from "@/lib/nextron/evidence";
-import { buildNextronSignalEvidence, deriveNextronSignals, NEXTRON_SIGNAL_LIMITS } from "@/lib/nextron/signals";
+import { buildNextronSignalEvidence, deriveNextronSignals } from "@/lib/nextron/signals";
 import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -12,7 +12,7 @@ const PREFERENCE_COLUMNS = "permission_version, allow_profile, allow_today, allo
 export async function GET() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Sign in to load NEXTRON signals." }, { status: 401 });
+  if (!user) return NextResponse.json({ error: "Sign in to load NEXTRON attention." }, { status: 401 });
 
   try {
     const { data } = await supabase
@@ -26,22 +26,8 @@ export async function GET() {
     const signals = deriveNextronSignals(evidence);
     const attention = buildNextronAttentionSummary({ signals, localDate: evidence.localDate, observedAt: evidence.observedAt });
 
-    return NextResponse.json({
-      signals,
-      attention,
-      meta: {
-        localDate: evidence.localDate,
-        observedAt: evidence.observedAt,
-        maxVisible: NEXTRON_SIGNAL_LIMITS.maxVisible,
-        persisted: false,
-        modelCalls: 0,
-        provider: "deterministic",
-        knowledgeAutomaticScan: false,
-        driveAutomaticScan: false,
-        memoryAutomaticMonitoring: false,
-      },
-    });
+    return NextResponse.json({ attention });
   } catch {
-    return NextResponse.json({ error: "NEXTRON signals are unavailable right now." }, { status: 503 });
+    return NextResponse.json({ error: "NEXTRON attention is unavailable right now." }, { status: 503 });
   }
 }

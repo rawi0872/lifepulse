@@ -9,7 +9,7 @@ import type { NextronEvidencePacket } from "@/lib/nextron/evidence";
 import { getTodayDateString, getWeekStartDate } from "@/lib/utils";
 import { isHabitDueOnDate } from "@/lib/streaks";
 
-export type NextronSignalType = "deadline_overdue" | "project_stall" | "habit_interruption" | "review_gap" | "calendar_pressure" | "free_block" | "open_loop_cluster";
+export type NextronSignalType = "deadline_overdue" | "project_stall" | "habit_interruption" | "review_gap" | "calendar_pressure" | "free_block" | "open_loop_cluster" | "today_clear" | "habit_target_met";
 export type NextronSignalSeverity = "info" | "attention" | "important";
 export type NextronSignalSource = "Today" | "Tasks" | "Habits" | "Projects" | "Calendar" | "Weekly Review";
 
@@ -303,6 +303,19 @@ function detectCalendarSignals(evidence: SignalEvidence): NextronSignal[] {
   return signals;
 }
 
+function detectPositiveSignals(evidence: SignalEvidence): NextronSignal[] {
+  const signals: NextronSignal[] = [];
+  const tasks = evidence.packet.tasks.data;
+  const habits = evidence.packet.habits.data;
+  if (isNextronContextAllowed(evidence.permissions, "tasks") && tasks && tasks.dueTodayCount > 0 && tasks.dueTodayCount === tasks.completedTodayCount && tasks.overdueCount === 0) {
+    signals.push(signal({ id: "positive:today-clear", type: "today_clear", severity: "info", title: "Today’s due tasks are clear", summary: "Everything currently due today in Tasks is completed.", evidence: [`${tasks.completedTodayCount} due task${tasks.completedTodayCount === 1 ? "" : "s"} completed today.`, "No overdue task remains in the current bounded task check."], sourceTypes: ["Tasks", "Today"], route: "/today", bridgePrompt: "What should I protect now that today's due tasks are clear?" }, evidence));
+  }
+  if (isNextronContextAllowed(evidence.permissions, "habits") && habits?.weeklyTargetCount && habits.weeklyCompletedCount >= habits.weeklyTargetCount) {
+    signals.push(signal({ id: "positive:habit-target", type: "habit_target_met", severity: "info", title: "Weekly habit target is met", summary: "Your due habit target for the current week is already covered.", evidence: [`${habits.weeklyCompletedCount} habit completion${habits.weeklyCompletedCount === 1 ? "" : "s"} logged against ${habits.weeklyTargetCount} due completion${habits.weeklyTargetCount === 1 ? "" : "s"}.`], sourceTypes: ["Habits"], route: "/habits", bridgePrompt: "What should I keep simple now that my weekly habit target is met?" }, evidence));
+  }
+  return signals;
+}
+
 function formatTimeIso(value: string): string {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? "time unavailable" : new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit" }).format(date);
@@ -319,6 +332,7 @@ export function deriveNextronSignals(evidence: SignalEvidence): NextronSignal[] 
     ...detectHabitSignals(evidence),
     ...detectReviewSignal(evidence),
     ...detectCalendarSignals(evidence),
+    ...detectPositiveSignals(evidence),
   ];
   const deduped = new Map<string, NextronSignal>();
   for (const candidate of candidates) {

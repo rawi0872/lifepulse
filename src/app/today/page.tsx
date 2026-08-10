@@ -51,6 +51,29 @@ interface Priority {
 }
 
 type TodayTimePeriod = "morning" | "day" | "evening";
+type AttentionSeverity = "info" | "attention" | "important";
+
+interface NextronAttentionItem {
+  id: string;
+  domain: string;
+  severity: AttentionSeverity;
+  title: string;
+  explanation: string;
+  evidence: string[];
+  route: string;
+  bridgePrompt: string;
+}
+
+interface NextronAttentionSummary {
+  version: "nextron-attention-v1";
+  status: "active" | "calm" | "partial";
+  localDate: string;
+  primary: NextronAttentionItem | null;
+  secondary: NextronAttentionItem[];
+  calmMessage: string;
+  currentFocus: { title: string; detail: string; route: string; bridgePrompt: string } | null;
+  meta: { modelCalls: 0; provider: "deterministic"; persisted: false; source: "signals" };
+}
 
 let priorityIdCounter = 0;
 
@@ -135,6 +158,8 @@ function TodayContent() {
   const [quickCapture, setQuickCapture] = useState("");
   const [quickType, setQuickType] = useState<"task" | "habit" | "project">("task");
   const [quickSaving, setQuickSaving] = useState(false);
+  const [attention, setAttention] = useState<NextronAttentionSummary | null>(null);
+  const [attentionStatus, setAttentionStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
 
   const [financeNet, setFinanceNet] = useState<number | null>(null);
   const [financeHasTx, setFinanceHasTx] = useState(false);
@@ -197,6 +222,23 @@ function TodayContent() {
     : "View";
 
   const suggestedTaskGoalContext = suggestedTask ? taskExecutionContextById[suggestedTask.id]?.goalContext : undefined;
+
+  async function loadNextronAttention() {
+    setAttentionStatus("loading");
+    const result = await fetch("/api/nextron/attention").then((res) => res.ok ? res.json() : null).catch(() => null) as { attention?: unknown } | null;
+    if (!result || !isNextronAttentionSummary(result.attention)) {
+      setAttentionStatus("error");
+      return;
+    }
+    setAttention(result.attention);
+    setAttentionStatus("ready");
+  }
+
+  useEffect(() => {
+    if (!todayUserId) return;
+    const timeoutId = window.setTimeout(() => void loadNextronAttention(), 0);
+    return () => window.clearTimeout(timeoutId);
+  }, [todayUserId]);
 
   function savePriorities(items: Priority[]) {
     const nextItems = items.slice(0, 3);
@@ -706,6 +748,8 @@ function TodayContent() {
         </div>
       )}
 
+      <TodayNextronAttention attention={attention} status={attentionStatus} onRefresh={() => void loadNextronAttention()} />
+
       {todayModel && (
         <MorningPlan
           model={todayModel}
@@ -1055,6 +1099,69 @@ function TodayContextLink({
       <span className={`min-w-0 shrink text-right text-[10px] leading-snug ${statusClassName}`}>{status} &rarr;</span>
     </Link>
   );
+}
+
+function isNextronAttentionSummary(value: unknown): value is NextronAttentionSummary {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Partial<NextronAttentionSummary>;
+  return candidate.version === "nextron-attention-v1"
+    && (candidate.status === "active" || candidate.status === "calm" || candidate.status === "partial")
+    && typeof candidate.localDate === "string"
+    && (candidate.primary === null || isNextronAttentionItem(candidate.primary))
+    && Array.isArray(candidate.secondary)
+    && candidate.secondary.every(isNextronAttentionItem)
+    && typeof candidate.calmMessage === "string"
+    && candidate.meta?.modelCalls === 0
+    && candidate.meta.provider === "deterministic";
+}
+
+function isNextronAttentionItem(value: unknown): value is NextronAttentionItem {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Partial<NextronAttentionItem>;
+  return typeof candidate.id === "string"
+    && typeof candidate.domain === "string"
+    && (candidate.severity === "info" || candidate.severity === "attention" || candidate.severity === "important")
+    && typeof candidate.title === "string"
+    && typeof candidate.explanation === "string"
+    && Array.isArray(candidate.evidence)
+    && candidate.evidence.every((item) => typeof item === "string")
+    && typeof candidate.route === "string"
+    && ["/today", "/tasks", "/habits", "/projects", "/weekly-review", "/settings"].includes(candidate.route)
+    && typeof candidate.bridgePrompt === "string";
+}
+
+function TodayNextronAttention({ attention, status, onRefresh }: { attention: NextronAttentionSummary | null; status: "idle" | "loading" | "ready" | "error"; onRefresh: () => void }) {
+  const primary = attention?.primary ?? null;
+  const secondary = attention?.secondary.slice(0, 2) ?? [];
+  return (
+    <section aria-labelledby="today-nextron-attention" data-today-nextron-attention="true" className="mb-6 rounded-2xl border border-[var(--accent)]/15 bg-[linear-gradient(135deg,rgba(56,189,248,0.10),rgba(15,23,42,0.18))] p-4 shadow-xl shadow-black/10">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--accent)]">NEXTRON Noticed</p>
+          <h2 id="today-nextron-attention" className="mt-1 text-lg font-semibold tracking-[-0.03em] text-[var(--text)]">What deserves attention today</h2>
+          <p className="mt-1 text-sm leading-relaxed text-[var(--text-secondary)]">Deterministic attention from the same NEXTRON Signals engine. Model calls: {attention?.meta.modelCalls ?? 0}.</p>
+        </div>
+        <button type="button" onClick={onRefresh} disabled={status === "loading"} className="inline-flex min-h-10 items-center rounded-xl border border-[var(--accent)]/20 bg-[var(--surface-soft)] px-3 py-2 text-xs font-semibold text-[var(--accent)] transition-colors hover:border-[var(--accent)]/35 disabled:opacity-50">{status === "loading" ? "Checking..." : "Refresh"}</button>
+      </div>
+      <div className="mt-3 space-y-2">
+        {status === "loading" && !attention && <p className="rounded-xl border border-white/[0.08] bg-black/15 p-3 text-sm text-[var(--text-muted)]">Checking current attention...</p>}
+        {status === "error" && <p className="rounded-xl border border-[var(--warning)]/25 bg-[var(--warning-soft)] p-3 text-sm text-[var(--warning)]">NEXTRON attention is unavailable right now. Today still works normally.</p>}
+        {attention && !primary && <p className="rounded-xl border border-white/[0.08] bg-black/15 p-3 text-sm text-[var(--text-secondary)]">{attention.calmMessage}{attention.currentFocus ? ` Next meaningful item: ${attention.currentFocus.title}.` : ""}</p>}
+        {primary && <TodayAttentionItem item={primary} primary />}
+        {secondary.length > 0 && <div className="grid gap-2 sm:grid-cols-2">{secondary.map((item) => <TodayAttentionItem key={item.id} item={item} />)}</div>}
+      </div>
+    </section>
+  );
+}
+
+function TodayAttentionItem({ item, primary = false }: { item: NextronAttentionItem; primary?: boolean }) {
+  const tone = item.severity === "important" ? "border-[var(--warning)]/30 bg-[var(--warning-soft)]" : "border-white/[0.08] bg-black/15";
+  function bridgeAttentionPrompt() {
+    try {
+      sessionStorage.setItem("lifepulse:nextron-bridge", JSON.stringify({ subject: "today", prompt: item.bridgePrompt, createdAt: Date.now() }));
+    } catch {}
+  }
+  return <article className={`rounded-xl border p-3 ${tone}`}><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">{item.domain} · {item.severity}</p><h3 className={`${primary ? "text-base" : "text-sm"} mt-1 break-words font-semibold text-[var(--text)]`}>{item.title}</h3><p className="mt-1 break-words text-sm leading-relaxed text-[var(--text-secondary)]">{item.explanation}</p><details className="mt-2"><summary className="cursor-pointer text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">Why</summary><ul className="mt-1 space-y-1">{item.evidence.slice(0, 3).map((fact, index) => <li key={`${item.id}-${index}`} className="break-words text-xs text-[var(--text-secondary)]">{fact}</li>)}</ul></details><div className="mt-2 flex flex-wrap gap-2"><Link href={item.route} className="inline-flex min-h-9 items-center rounded-lg border border-[var(--accent)]/20 bg-[var(--surface-soft)] px-2.5 py-1 text-xs font-semibold text-[var(--accent)]">Open source</Link><Link href="/nextron?subject=today" onClick={bridgeAttentionPrompt} className="inline-flex min-h-9 items-center rounded-lg border border-white/[0.08] bg-black/15 px-2.5 py-1 text-xs font-semibold text-[var(--text-secondary)]">Ask NEXTRON</Link></div></article>;
 }
 
 function TodayReviewHandoff({ rows }: { rows: ReviewHandoffRow[] }) {

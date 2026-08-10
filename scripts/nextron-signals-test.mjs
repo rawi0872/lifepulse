@@ -42,6 +42,7 @@ assert(signals.includes('habit.frequency === "times_per_week" || habit.frequency
 assert(signals.includes('reviewExpectedDay: 5') && signals.includes('existsThisWeek'), "G Weekly Review gap waits for appropriate review window and disappears when completed");
 assert(signals.includes('calendarPressureEventCount: 4') && signals.includes('dueWork >= 2'), "H Calendar pressure requires commitments plus due work");
 assert(signals.includes('freeBlockMinutes: 90') && signals.includes('gapMinutes >= NEXTRON_SIGNAL_LIMITS.freeBlockMinutes'), "I/J useful 90-minute free blocks are detected and short gaps are ignored");
+assert(signals.includes('today_clear') && signals.includes('habit_target_met') && signals.includes('weeklyCompletedCount >= habits.weeklyTargetCount'), "Positive progress signals use canonical current task and habit data");
 assert(signals.includes('maxVisible: 5') && signals.includes('.slice(0, NEXTRON_SIGNAL_LIMITS.maxVisible)'), "K visible signals are capped at five after ranking");
 assert(signals.includes('deduped = new Map') && signals.includes('severityRank(candidate.severity)'), "L duplicate underlying issues are deterministically deduplicated/ranked");
 assert(signals.includes('isNextronContextAllowed(evidence.permissions, "calendar")') && signals.includes('isNextronContextAllowed(evidence.permissions, "projects")'), "M permission-off sources do not create source-derived signals");
@@ -52,6 +53,7 @@ assert(coach.includes('No meaningful signals right now') && coach.includes('not 
 assert(!signals.includes('GROQ_API_KEY') && !signals.includes('OPENAI_API_KEY'), "Model providers are not used for signal detection");
 assert(!signals.includes('knowledge_items') && !signals.includes('google_drive_imports') && !signals.includes('nextron_memories'), "Knowledge, Drive, and Memory are not automatically scanned");
 assert(coach.includes('data-nextron-signals="true"') && coach.includes('data-nextron-signal="true"'), "Signal UI exposes stable QA landmarks");
+assert(coach.includes('data-nextron-attention="true"') && coach.includes('NEXTRON Noticed'), "Signals feed the proactive NEXTRON Attention presentation");
 assert(coach.includes('Why does this matter?') && coach.includes('What should I do?'), "Signal conversation bridge is present without actions");
 assert(coach.includes('loadSignals') && coach.includes('visibilitychange') && coach.includes('loadLiveContext'), "Signals refresh on entry/focus/current context refresh pattern without polling");
 
