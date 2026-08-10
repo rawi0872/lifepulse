@@ -91,7 +91,7 @@ async function main() {
       await page.setViewportSize(viewport);
       await page.goto(`${BASE}/life-map`, { waitUntil: "networkidle", timeout: 30000 });
       await expect(page.getByRole("heading", { name: /Your explicit operating graph/i })).toBeVisible({ timeout: 20000 });
-      await expect(page.getByText("Zero model calls")).toBeVisible({ timeout: 15000 });
+      await expect(page.getByText("No background AI")).toBeVisible({ timeout: 15000 });
       const body = page.locator("body");
       await expect(body).toContainText(/Connected Paths|No map yet/i, { timeout: 15000 });
       await expect(body).toContainText(/Goal|No map yet|No explicit support connected yet|Focus Mode/i, { timeout: 15000 });

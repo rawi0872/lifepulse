@@ -120,7 +120,7 @@ export default function LifeMapPage() {
               <p className="mt-3 text-sm leading-relaxed text-[var(--text-muted)]">This map only uses relationships you created: goal links and project task assignments. No AI, embeddings, or inferred connections are used to render it.</p>
             </div>
             <div className="flex flex-wrap gap-2 text-[10px] text-[var(--text-muted)]">
-              <span className="rounded-full border border-cyan-200/20 bg-cyan-300/10 px-3 py-1.5 text-cyan-50/80">Zero model calls</span>
+              <span className="rounded-full border border-cyan-200/20 bg-cyan-300/10 px-3 py-1.5 text-cyan-50/80">No background AI</span>
               <span className="rounded-full border border-white/[0.08] bg-[var(--surface-soft)] px-3 py-1.5">Explicit links only</span>
               <Link href="/goals" className="rounded-full border border-[var(--accent)]/25 px-3 py-1.5 font-semibold text-[var(--accent)] hover:border-[var(--accent)]/40">Manage links</Link>
             </div>

@@ -18,6 +18,7 @@
     "test:prod:nextron-rich-responses": "node scripts/nextron-rich-response-prod-test.mjs",
     "test:prod:nextron-attention": "node scripts/nextron-attention-prod-test.mjs",
     "test:prod:life-map": "node scripts/life-map-prod-test.mjs",
+    "test:prod:prompt7-disposable": "node scripts/prompt7-disposable-prod-verifier.mjs",
     "test:prod:knowledge": "node scripts/knowledge-prod-test.mjs",
     "test:prod:journal": "node scripts/journal-prod-test.mjs",
     "test:prod:projects": "node scripts/projects-prod-test.mjs",
@@ -46,6 +47,7 @@
     "test:nextron-action-plans": "node scripts/nextron-action-plans-test.mjs",
     "test:nextron-rich-responses": "node scripts/nextron-rich-responses-test.mjs",
     "test:life-map": "node scripts/life-map-test.mjs",
+    "test:prompt7-final-gate": "node scripts/prompt7-final-gate-test.mjs",
     "test:nextron-product-cohesion": "node scripts/nextron-product-cohesion-test.mjs",
     "test:knowledge-hybrid": "node scripts/knowledge-hybrid-test.mjs"
   },

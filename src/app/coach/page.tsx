@@ -1726,7 +1726,7 @@ function RichResponseView({ richResponse, compact = false }: { richResponse: Non
     <div data-nextron-rich-response="true" className={`${compact ? "mt-3" : ""} space-y-3`}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-cyan-200/70">Generated UI</p>
-        <span className="rounded-full border border-cyan-300/15 bg-cyan-300/8 px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.1em] text-cyan-100/65">0 model calls</span>
+        <span className="rounded-full border border-cyan-300/15 bg-cyan-300/8 px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.1em] text-cyan-100/65">Grounded view</span>
       </div>
       <div className={`grid gap-3 ${compact ? "" : "lg:grid-cols-2"}`}>
         {richResponse.blocks.map((block, index) => <RichBlockView key={`${block.type}-${index}`} block={block} compact={compact} />)}
