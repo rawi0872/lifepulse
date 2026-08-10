@@ -84,6 +84,11 @@ async function waitForNextronReady(page) {
   await expect(page.locator("body")).not.toContainText("Loading conversations", { timeout: 60000 });
 }
 
+async function startFreshConversation(page) {
+  await page.getByRole("button", { name: "New conversation" }).click({ timeout: 20000 });
+  await expect(page.getByRole("heading", { name: "New conversation" })).toBeVisible({ timeout: 20000 });
+}
+
 async function ask(page, prompt) {
   await page.locator("#nextron-question").fill(prompt);
   const sendButton = page.getByRole("button", { name: /Send to NEXTRON|Analyzing/i });
@@ -147,12 +152,13 @@ async function main() {
     await assertAuthenticatedRoute(page, "NEXTRON");
     await expect(page.getByRole("heading", { name: "NEXTRON", exact: true })).toBeVisible({ timeout: 20000 });
     await waitForNextronReady(page);
+    await startFreshConversation(page);
     pass("NEXTRON loaded");
 
     await ask(page, "What should I do today?");
     await expect(page.locator('[data-nextron-rich-response="true"]').last()).toBeVisible({ timeout: 20000 });
     await expect(page.locator("body")).toContainText("Generated UI", { timeout: 20000 });
-    await expect(page.locator("body")).toContainText("0 model calls", { timeout: 20000 });
+    await expect(page.locator("body")).toContainText("Grounded view", { timeout: 20000 });
     richConversationTitle = await page.locator("#nextron-answer").innerText({ timeout: 10000 });
     pass("Today rich response rendered");
     await assertNoOverflow(page, "desktop rich response");
