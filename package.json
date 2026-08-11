@@ -47,6 +47,7 @@
     "test:nextron-onboarding": "node scripts/nextron-onboarding-test.mjs",
     "test:nextron-action-plans": "node scripts/nextron-action-plans-test.mjs",
     "test:nextron-rich-responses": "node scripts/nextron-rich-responses-test.mjs",
+    "test:nextron-human-functionality": "node scripts/nextron-human-functionality-test.mjs",
     "test:life-map": "node scripts/life-map-test.mjs",
     "test:prompt7-final-gate": "node scripts/prompt7-final-gate-test.mjs",
     "test:alpha1-release-gate": "node scripts/alpha1-release-gate-test.mjs",

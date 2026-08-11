@@ -115,6 +115,9 @@ type IntelligenceCoreState = "idle" | "thinking" | "syncing" | "ready" | "error"
 type DailyBriefStatus = "idle" | "generating" | "ready" | "error";
 type SignalStatus = "idle" | "loading" | "ready" | "error";
 type ActionProposalStatus = "idle" | "loading" | "ready" | "saving" | "error";
+type AskFailureCode = "validation" | "context" | "auth" | "network" | "timeout" | "api" | "render" | "busy";
+
+const NEXTRON_ASK_CLIENT_TIMEOUT_MS = 35_000;
 
 function readInitialNextronBridgePrompt(): string {
   if (typeof window === "undefined") return "";
@@ -146,6 +149,9 @@ function NextronContent() {
   const [supabase] = useState(() => createClient());
   const requestSeq = useRef(0);
   const askAbortController = useRef<AbortController | null>(null);
+  const askSectionRef = useRef<HTMLElement | null>(null);
+  const answerSectionRef = useRef<HTMLElement | null>(null);
+  const composerRef = useRef<HTMLTextAreaElement | null>(null);
   const dailyBriefAbortController = useRef<AbortController | null>(null);
   const dailyBriefSessionCache = useRef<Map<string, { brief: DailyBrief; meta: DailyBriefMeta }>>(new Map());
   const bridgeInitialized = useRef(false);
@@ -165,6 +171,9 @@ function NextronContent() {
   const [askResponse, setAskResponse] = useState<NextronCoachResponse | null>(null);
   const [askStatus, setAskStatus] = useState<"idle" | "asking" | "answered" | "unsupported" | "error">("idle");
   const [askError, setAskError] = useState<string | null>(null);
+  const [askFailureCode, setAskFailureCode] = useState<AskFailureCode | null>(null);
+  const [pendingUserPrompt, setPendingUserPrompt] = useState<string | null>(null);
+  const [failedPrompt, setFailedPrompt] = useState<string | null>(null);
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [currentConversation, setCurrentConversation] = useState<ConversationSummary | null>(null);
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
@@ -282,6 +291,9 @@ function NextronContent() {
       setAskResponse(null);
       setAskStatus("idle");
       setAskError(null);
+      setAskFailureCode(null);
+      setPendingUserPrompt(null);
+      setFailedPrompt(null);
       setDailyBrief(null);
       setDailyBriefMeta(null);
       setDailyBriefStatus("idle");
@@ -311,6 +323,9 @@ function NextronContent() {
           setAskResponse(null);
           setAskStatus("idle");
           setAskError(null);
+          setAskFailureCode(null);
+          setPendingUserPrompt(null);
+          setFailedPrompt(null);
           setDailyBrief(null);
           setDailyBriefMeta(null);
           setDailyBriefStatus("idle");
@@ -399,6 +414,10 @@ function NextronContent() {
     setAskResponse(null);
     setAskPrompt("");
     setAskStatus("idle");
+    setAskError(null);
+    setAskFailureCode(null);
+    setPendingUserPrompt(null);
+    setFailedPrompt(null);
     setThreadStatus("idle");
   }
 
@@ -417,6 +436,8 @@ function NextronContent() {
       setCurrentConversation(null);
       setMessages([]);
       setAskResponse(null);
+      setPendingUserPrompt(null);
+      setFailedPrompt(null);
     }
     setThreadStatus("idle");
   }
@@ -447,6 +468,9 @@ function NextronContent() {
       setAskResponse(null);
       setAskStatus("idle");
       setAskError(null);
+      setAskFailureCode(null);
+      setPendingUserPrompt(null);
+      setFailedPrompt(null);
       setSaveStatus("error");
       router.replace("/login");
       return;
@@ -568,6 +592,9 @@ function NextronContent() {
     setAskPrompt("");
     setAskStatus("answered");
     setAskError(null);
+    setAskFailureCode(null);
+    setPendingUserPrompt(null);
+    setFailedPrompt(null);
     return true;
   }
 
@@ -591,24 +618,38 @@ function NextronContent() {
   }
 
   async function askNextron(promptOverride?: string) {
-    if (askStatus === "asking") return;
+    if (askStatus === "asking") {
+      setAskError("NEXTRON is already answering. Wait for this response, then ask again.");
+      setAskFailureCode("busy");
+      return;
+    }
     const prompt = promptOverride ?? askPrompt;
     if (await proposeNextronAction(prompt)) return;
     const parsed = parseNextronUserRequest(prompt);
     if (!parsed.ok) {
       setAskError(parsed.message);
+      setAskFailureCode("validation");
       setAskStatus("error");
+      setPendingUserPrompt(null);
+      setFailedPrompt(prompt.trim() || null);
       return;
     }
     if (!packet || !userId) {
       setAskError("NEXTRON needs permitted context before answering. Try again after the current context loads.");
+      setAskFailureCode("context");
       setAskStatus("error");
+      setPendingUserPrompt(parsed.request.rawPrompt);
+      setFailedPrompt(parsed.request.rawPrompt);
       return;
     }
 
     const seq = ++requestSeq.current;
     setAskStatus("asking");
     setAskError(null);
+    setAskFailureCode(null);
+    setPendingUserPrompt(parsed.request.rawPrompt);
+    setFailedPrompt(null);
+    window.setTimeout(() => answerSectionRef.current?.scrollIntoView({ block: "start", behavior: "smooth" }), 0);
 
     const { data: { user } } = await supabase.auth.getUser();
     if (seq !== requestSeq.current) return;
@@ -622,6 +663,9 @@ function NextronContent() {
       setResponse(null);
       setAskResponse(null);
       setAskStatus("error");
+      setAskError("Sign in again to ask NEXTRON.");
+      setAskFailureCode("auth");
+      setFailedPrompt(parsed.request.rawPrompt);
       router.replace("/login");
       return;
     }
@@ -629,6 +673,7 @@ function NextronContent() {
     const controller = new AbortController();
     askAbortController.current?.abort();
     askAbortController.current = controller;
+    const timeoutId = window.setTimeout(() => controller.abort(), NEXTRON_ASK_CLIENT_TIMEOUT_MS);
 
     try {
       const response = await fetch("/api/nextron/ask", {
@@ -642,6 +687,8 @@ function NextronContent() {
       if (response.status === 401) {
         setAskStatus("error");
         setAskError("Sign in again to ask NEXTRON.");
+        setAskFailureCode("auth");
+        setFailedPrompt(parsed.request.rawPrompt);
         router.replace("/login");
         return;
       }
@@ -650,12 +697,18 @@ function NextronContent() {
       const parsedBody = parseAskResponseBody(body);
       if (!response.ok || !parsedBody) {
         setAskStatus("error");
-        setAskError("NEXTRON could not answer that request right now. Try again in a moment.");
+        const candidate = typeof body === "object" && body !== null ? body as { error?: unknown } : null;
+        setAskError(typeof candidate?.error === "string" ? candidate.error : "NEXTRON could not answer that request right now. Try again in a moment.");
+        setAskFailureCode(!response.ok ? "api" : "render");
+        setFailedPrompt(parsed.request.rawPrompt);
         return;
       }
 
       const nextResponse = parsedBody.response;
       setAskResponse(nextResponse);
+      setPendingUserPrompt(null);
+      setFailedPrompt(null);
+      setAskFailureCode(null);
       if (parsedBody.conversation) {
         setCurrentConversation(parsedBody.conversation);
         setConversations((current) => [parsedBody.conversation!, ...current.filter((item) => item.id !== parsedBody.conversation!.id)]);
@@ -666,14 +719,43 @@ function NextronContent() {
       void loadLiveContext().catch(() => undefined);
       void loadSignals().catch(() => undefined);
     } catch (askErrorValue) {
-      if (askErrorValue instanceof DOMException && askErrorValue.name === "AbortError") return;
+      if (askErrorValue instanceof DOMException && askErrorValue.name === "AbortError") {
+        if (seq === requestSeq.current) {
+          setAskStatus("error");
+          setAskError("NEXTRON received your message, but the response took too long. Try again when ready.");
+          setAskFailureCode("timeout");
+          setFailedPrompt(parsed.request.rawPrompt);
+        }
+        return;
+      }
       if (seq === requestSeq.current) {
         setAskStatus("error");
         setAskError("NEXTRON could not answer that request right now. Try again in a moment.");
+        setAskFailureCode("network");
+        setFailedPrompt(parsed.request.rawPrompt);
       }
     } finally {
+      window.clearTimeout(timeoutId);
       if (askAbortController.current === controller) askAbortController.current = null;
     }
+  }
+
+  function retryAsk() {
+    const prompt = failedPrompt ?? pendingUserPrompt;
+    if (!prompt) return;
+    setAskPrompt(prompt);
+    void askNextron(prompt);
+  }
+
+  function focusComposerWithPrompt(prompt: string) {
+    setAskPrompt(prompt);
+    setAskError("Review the prepared prompt, then press Send to NEXTRON.");
+    setAskFailureCode(null);
+    setAskStatus("idle");
+    window.setTimeout(() => {
+      askSectionRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+      composerRef.current?.focus();
+    }, 0);
   }
 
   const hasUnsavedChanges = !areNextronPermissionsEqual(savedPermissions, draftPermissions);
@@ -681,6 +763,13 @@ function NextronContent() {
   const privateTextPermissions = NEXTRON_CONTEXT_PERMISSIONS.filter((permission) => permission.textHeavy);
   const trimmedAskPrompt = askPrompt.trim();
   const askDisabled = loading || !packet || askStatus === "asking" || trimmedAskPrompt.length === 0 || trimmedAskPrompt.length > NEXTRON_REQUEST_MAX_LENGTH;
+  const askStatusCopy = askStatus === "asking"
+    ? `NEXTRON received your message and is checking permitted evidence.${askError ? ` ${askError}` : ""}`
+    : askStatus === "unsupported"
+      ? "NEXTRON answered with a private-beta boundary."
+      : askError ?? (loading || !packet
+        ? "NEXTRON is loading permitted context before it can answer."
+        : "Successful turns are saved to this private conversation, not to Memory unless you explicitly ask NEXTRON to remember something.");
   const liveResponse = askResponse ?? response;
   const activeSystems = packet
     ? [
@@ -702,48 +791,109 @@ function NextronContent() {
     { label: "Projects", value: packet.projects.data?.activeCount ?? 0, detail: "active" },
     { label: "Memory", value: livePanels?.systems.memory.count ?? 0, detail: "confirmed" },
   ] : [];
-  const quickPrompts = ["What should I focus on today?", "What needs my attention?", "What's slipping?", "What should I do next?"];
-  const nowItems = [
-    signals.length > 0 ? `${signals.length} current signal${signals.length === 1 ? "" : "s"}` : "No manufactured urgency",
-    dailyBrief ? "Brief prepared" : dailyBriefStatus === "generating" ? "Brief generating" : "Brief available on request",
-    packet ? `${availableSystems} context systems ready` : "Context loading",
-  ];
+  const quickPrompts = ["What should I focus on today?", "What needs my attention?", "What can you help me with?"];
+  const hasNoticedItems = Boolean(attention?.primary || (attention?.secondary.length ?? 0) > 0);
 
   return (
-    <div className="nextron-shell relative mx-auto max-w-[92rem] overflow-x-hidden px-3 py-4 animate-fade-in sm:px-5 sm:py-7 xl:px-6">
+    <div className="nextron-shell relative mx-auto max-w-6xl overflow-x-hidden px-3 py-4 animate-fade-in sm:px-5 sm:py-7 xl:px-6">
       <div className="nextron-shell-grid pointer-events-none absolute inset-0 opacity-70" aria-hidden="true" />
-      <div className="pointer-events-none absolute inset-x-4 top-4 h-96 rounded-[3rem] bg-[radial-gradient(circle_at_50%_10%,rgba(56,189,248,0.20),rgba(15,23,42,0)_62%)]" aria-hidden="true" />
-      <header className="nextron-surface relative mb-4 min-w-0 overflow-hidden rounded-[2rem] p-4 sm:mb-5 sm:p-5 lg:p-6">
+      <div className="pointer-events-none absolute inset-x-4 top-4 h-[28rem] rounded-[3rem] bg-[radial-gradient(circle_at_50%_10%,rgba(56,189,248,0.18),rgba(15,23,42,0)_66%)]" aria-hidden="true" />
+      <header className="relative mb-4 min-w-0 overflow-hidden rounded-[2rem] border border-cyan-300/12 bg-[linear-gradient(180deg,rgba(8,18,32,0.72),rgba(4,9,18,0.58))] p-4 shadow-[0_24px_80px_rgba(2,6,23,0.30)] sm:mb-5 sm:p-7 lg:p-8">
         <div className="nextron-precision-edge pointer-events-none absolute inset-x-6 top-0 h-px" aria-hidden="true" />
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-          <div className="min-w-0 lg:max-w-3xl">
-            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-200/80">Personal Intelligence</p>
-            <h1 className="break-words text-3xl font-bold tracking-[-0.04em] text-[var(--text)] sm:text-5xl">NEXTRON</h1>
-            <p className="mt-1 text-xs font-semibold uppercase tracking-[0.18em] text-cyan-100/65">Command Center</p>
-            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[var(--text-secondary)] sm:text-base">
-              Ask from the center. NEXTRON synthesizes the Life Pulse context you permit, explains what matters, and prepares Task actions only when you explicitly approve them.
-            </p>
-            <div className="mt-4 grid gap-2 sm:grid-cols-3">
-              {nowItems.map((item) => (
-                <div key={item} className="rounded-2xl border border-cyan-300/12 bg-black/18 px-3 py-2">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-cyan-100/55">Right now</p>
-                  <p className="mt-1 text-xs font-medium text-[var(--text)]">{item}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="flex flex-col gap-3 lg:w-[34rem] lg:items-end">
-            <IntelligenceCore status={coreState} systems={activeSystems} activeSources={activeSourceNames} />
-            <div className="grid w-full min-w-0 grid-cols-2 gap-2 sm:grid-cols-4">
-              {contextStats.map((stat) => <ContextStat key={stat.label} {...stat} />)}
-            </div>
-          </div>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-cyan-200/80">Personal Intelligence</p>
+        <h1 className="mt-2 break-words text-4xl font-bold tracking-[-0.055em] text-[var(--text)] sm:text-6xl">NEXTRON</h1>
+        <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[var(--text-secondary)] sm:mt-4 sm:text-lg">You are set up. Ask me anything about your Life Pulse, and I will use the context you permit to help you decide what matters next.</p>
+        <div className="mt-5 flex flex-wrap gap-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-cyan-100/70">
+          <span className="rounded-full border border-cyan-300/18 bg-cyan-300/8 px-3 py-1.5">{loading || !packet ? "Loading context" : `${availableSystems} systems ready`}</span>
+          {hasNoticedItems && <span className="rounded-full border border-[var(--warning)]/25 bg-[var(--warning-soft)] px-3 py-1.5 text-[var(--warning)]">Needs attention</span>}
+          {dailyBrief && <span className="rounded-full border border-cyan-300/18 bg-cyan-300/8 px-3 py-1.5">Brief prepared</span>}
         </div>
       </header>
 
-      <div className="relative grid gap-4 xl:grid-cols-[minmax(17rem,0.82fr)_minmax(0,1.62fr)_minmax(18rem,0.82fr)]">
-        <aside className="order-3 space-y-4 lg:order-2 xl:order-1 xl:sticky xl:top-4 xl:self-start">
-          <NextronPanel title="Conversations" eyebrow="Thread history">
+      <main className="relative space-y-4">
+        <section ref={askSectionRef} aria-labelledby="ask-nextron" className={`nextron-surface nextron-scanline relative overflow-hidden rounded-[2.25rem] p-4 shadow-[0_20px_70px_rgba(2,6,23,0.22)] sm:p-6 lg:p-7 ${askStatus === "asking" ? "border-cyan-200/35" : ""}`}>
+          {askStatus === "asking" && <div className="pointer-events-none absolute inset-y-0 left-0 w-1/2 bg-[linear-gradient(90deg,transparent,rgba(103,232,249,0.10),transparent)] [animation:nextron-scan_1.7s_ease-in-out_infinite]" aria-hidden="true" />}
+          <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-200/70">Talk to NEXTRON</p>
+              <h2 id="ask-nextron" className="mt-1 text-xl font-semibold tracking-[-0.04em] text-[var(--text)] sm:text-3xl">What should we work through?</h2>
+              <p className="mt-2 max-w-2xl text-xs leading-relaxed text-[var(--text-muted)] sm:text-sm">Ask in normal language. NEXTRON answers from your permitted Life Pulse context and keeps changes behind approval.</p>
+            </div>
+            <span className={`w-fit rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] ${askStatus === "asking" ? "border-cyan-200/35 bg-cyan-300/14 text-cyan-50" : "border-cyan-300/18 bg-cyan-300/8 text-cyan-100/75"}`}>
+              {askStatus === "asking" ? "Thinking" : "Ready"}
+            </span>
+          </div>
+
+          <form className="space-y-3" onSubmit={(event) => { event.preventDefault(); void askNextron(); }}>
+            <label htmlFor="nextron-question" className="sr-only">Ask NEXTRON</label>
+            <div className="rounded-[1.5rem] border border-cyan-300/22 bg-[linear-gradient(180deg,rgba(2,6,23,0.58),rgba(2,6,23,0.28))] p-2 shadow-inner shadow-cyan-950/20 transition-all duration-200 focus-within:border-cyan-200/60 focus-within:shadow-[0_0_0_1px_rgba(103,232,249,0.14),0_0_52px_rgba(8,145,178,0.16)]">
+              <textarea ref={composerRef} id="nextron-question" value={askPrompt} onChange={(event) => { setAskPrompt(event.target.value.slice(0, NEXTRON_REQUEST_MAX_LENGTH)); setAskError(null); setAskFailureCode(null); if (askStatus === "error") setAskStatus("idle"); }} onKeyDown={(event) => { if (event.nativeEvent.isComposing) return; if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); if (!askDisabled) void askNextron(); } }} maxLength={NEXTRON_REQUEST_MAX_LENGTH} rows={2} aria-describedby="nextron-question-help nextron-question-status" placeholder="Ask: What should I focus on today?" className="min-h-16 w-full resize-y rounded-xl border-0 bg-transparent px-3 py-3 text-base leading-relaxed text-[var(--text)] outline-none placeholder:text-[var(--text-muted)] sm:min-h-32 sm:text-lg" />
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-cyan-300/10 px-2 pt-2">
+                <p id="nextron-question-help" className="text-xs text-[var(--text-muted)]">{trimmedAskPrompt.length}/{NEXTRON_REQUEST_MAX_LENGTH}. Enter sends<span className="hidden sm:inline">; Shift+Enter adds a line</span>.</p>
+                <button type="submit" disabled={askDisabled} className="inline-flex min-h-11 items-center rounded-xl bg-cyan-300 px-4 py-2 text-sm font-semibold text-slate-950 shadow-lg shadow-cyan-950/30 transition-all hover:-translate-y-0.5 hover:bg-cyan-200 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-45">
+                  {askStatus === "asking" ? "Analyzing..." : "Send to NEXTRON"}
+                </button>
+              </div>
+            </div>
+            <p id="nextron-question-status" className="text-xs leading-relaxed text-[var(--text-muted)]" aria-live="polite">{askStatusCopy}</p>
+          </form>
+        </section>
+
+        <section ref={answerSectionRef} aria-labelledby="nextron-answer" className="nextron-surface relative overflow-hidden rounded-[2.25rem] p-4 sm:p-6 lg:p-7">
+          <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-cyan-200/25 to-transparent" aria-hidden="true" />
+          <div className="mb-4 flex min-w-0 flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-200/70">Conversation</p>
+              <h2 id="nextron-answer" className="mt-1 text-xl font-semibold text-[var(--text)]">{currentConversation ? currentConversation.title : "New conversation"}</h2>
+            </div>
+            {liveResponse && <span className="rounded-full border border-cyan-300/20 bg-cyan-300/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-cyan-100">{liveResponse.priority}</span>}
+          </div>
+          {loading && <p className="text-sm text-[var(--text-muted)]">Loading permitted context...</p>}
+          {!loading && error && <p className="text-sm text-[var(--warning)]">{error}</p>}
+          {!loading && !error && (
+            <div className="space-y-4">
+              {messages.length === 0 ? (
+                <div className="rounded-2xl border border-cyan-300/10 bg-cyan-950/10 p-4">
+                  <p className="text-sm font-semibold text-[var(--text)]">Start with one question.</p>
+                  <p className="mt-2 text-sm leading-relaxed text-[var(--text-muted)]">NEXTRON will use recent turns as context, while current Life Pulse data and saved permissions stay authoritative.</p>
+                </div>
+              ) : messages.map((message) => <ConversationTurn key={message.id} message={message} />)}
+              {pendingUserPrompt && <PendingConversationTurn role="user" content={pendingUserPrompt} />}
+              {askStatus === "asking" && <PendingConversationTurn role="assistant" content="NEXTRON received this and is checking permitted evidence..." pending />}
+              {askStatus === "error" && askError && <AskFailureNotice message={askError} code={askFailureCode} canRetry={Boolean(failedPrompt ?? pendingUserPrompt)} onRetry={retryAsk} />}
+              {messages.length === 0 && liveResponse && <ResponseView response={liveResponse} />}
+            </div>
+          )}
+        </section>
+
+        <section aria-label="Starting prompts" className="grid gap-2 sm:grid-cols-3">
+          {quickPrompts.map((prompt) => (
+            <button key={prompt} type="button" disabled={askStatus === "asking" || !packet} onClick={() => { setAskPrompt(prompt); void askNextron(prompt); }} className="min-h-12 rounded-2xl border border-cyan-200/12 bg-cyan-950/10 px-4 py-3 text-left text-sm font-medium text-[var(--text-secondary)] transition-colors hover:border-cyan-300/30 hover:bg-cyan-300/10 disabled:cursor-not-allowed disabled:opacity-50">
+              {prompt}
+            </button>
+          ))}
+        </section>
+
+        <CompactAttentionView attention={attention} status={signalStatus} error={signalError} onAsk={(prompt) => { setAskPrompt(prompt); void askNextron(prompt); }} />
+
+        <DailyBriefView
+          brief={dailyBrief}
+          meta={dailyBriefMeta}
+          status={dailyBriefStatus}
+          error={dailyBriefError}
+          disabled={loading || !packet}
+          onGenerate={() => void generateDailyBriefAction(false)}
+          onRefresh={() => void generateDailyBriefAction(true)}
+          onAsk={(prompt) => { setAskPrompt(prompt); void askNextron(prompt); }}
+        />
+
+        <details className="nextron-surface relative overflow-hidden rounded-[2rem] p-4 sm:p-5">
+          <summary className="cursor-pointer list-none text-base font-semibold text-[var(--text)] [&::-webkit-details-marker]:hidden">
+            More intelligence
+            <span className="ml-2 text-xs font-normal text-[var(--text-muted)]">History, live context, Signals, Actions, and permissions.</span>
+          </summary>
+          <div className="mt-5 grid gap-4 lg:grid-cols-2">
+            <NextronPanel title="Conversations" eyebrow="Thread history">
             <div className="space-y-3">
               <button type="button" onClick={() => void startNewConversation()} disabled={threadStatus === "saving"} className="min-h-11 w-full rounded-xl border border-cyan-300/25 bg-[linear-gradient(90deg,rgba(103,232,249,0.12),rgba(14,165,233,0.05))] px-3 py-2 text-left text-xs font-semibold text-cyan-100 transition-all duration-150 hover:-translate-y-0.5 hover:border-cyan-200/40 hover:bg-cyan-300/15 disabled:translate-y-0 disabled:opacity-50">New conversation</button>
               <p className="text-[10px] leading-relaxed text-[var(--text-muted)]">Conversations are saved privately to your Life Pulse account. Memory still requires explicit remember commands.</p>
@@ -762,161 +912,91 @@ function NextronContent() {
                 ))}
               </div>
             </div>
-          </NextronPanel>
+            </NextronPanel>
 
-          <NextronPanel title="Today" eyebrow="Live intelligence">
+            <NextronPanel title="Today" eyebrow="Live intelligence">
             {loading ? <p className="text-sm text-[var(--text-muted)]">Loading today...</p> : error ? <p className="text-sm text-[var(--warning)]">{error}</p> : <TodayPanel panels={livePanels} onAsk={(prompt) => { setAskPrompt(prompt); void askNextron(prompt); }} />}
-          </NextronPanel>
+            </NextronPanel>
 
-          <NextronPanel title="Calendar" eyebrow="Read-only schedule">
+            <NextronPanel title="Active Projects" eyebrow="Current work">
+              <ProjectsPanel panels={livePanels} onAsk={(prompt) => { setAskPrompt(prompt); void askNextron(prompt); }} />
+            </NextronPanel>
+
+            <NextronPanel title="Calendar" eyebrow="Read-only schedule">
             {loading ? <p className="text-sm text-[var(--text-muted)]">Checking Calendar...</p> : <CalendarPanel panels={livePanels} onAsk={(prompt) => { setAskPrompt(prompt); void askNextron(prompt); }} />}
-          </NextronPanel>
+            </NextronPanel>
 
-          <NextronPanel title="Questions" eyebrow="Quick intelligence">
-            <div className="grid gap-2">
-              {quickPrompts.map((prompt) => (
-                <button key={prompt} type="button" disabled={askStatus === "asking" || !packet} onClick={() => { setAskPrompt(prompt); void askNextron(prompt); }} className="min-h-11 rounded-xl border border-cyan-200/10 bg-cyan-950/10 px-3 py-2 text-left text-xs font-medium text-[var(--text-secondary)] transition-colors hover:border-cyan-300/30 hover:bg-cyan-300/10 disabled:cursor-not-allowed disabled:opacity-50">
-                  {prompt}
-                </button>
-              ))}
-            </div>
-          </NextronPanel>
-        </aside>
-
-        <main className="order-1 min-w-0 space-y-4 lg:order-1 xl:order-2">
-          <NextronAttentionView attention={attention} status={signalStatus} error={signalError} onRefresh={() => void loadSignals()} onAsk={(prompt) => { setAskPrompt(prompt); void askNextron(prompt); }} />
-
-          <section aria-labelledby="ask-nextron" className={`nextron-surface nextron-scanline relative overflow-hidden rounded-[2rem] p-4 sm:p-5 ${askStatus === "asking" ? "border-cyan-200/35" : ""}`}>
-            {askStatus === "asking" && <div className="pointer-events-none absolute inset-y-0 left-0 w-1/2 bg-[linear-gradient(90deg,transparent,rgba(103,232,249,0.10),transparent)] [animation:nextron-scan_1.7s_ease-in-out_infinite]" aria-hidden="true" />}
-            <div className="mb-5 flex flex-col items-center gap-4 sm:flex-row sm:items-start sm:justify-between">
-              <div className="min-w-0 flex-1">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-200/70">Command channel</p>
-                <h2 id="ask-nextron" className="mt-1 text-xl font-semibold tracking-[-0.03em] text-[var(--text)]">Ask NEXTRON</h2>
-                <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[var(--text-muted)]">Use this as the command line for Life Pulse. Ask for synthesis, tradeoffs, next focus, or a Task proposal that still requires explicit approval.</p>
+            <NextronPanel title="System status" eyebrow="Quiet telemetry">
+              <IntelligenceCore status={coreState} systems={activeSystems} activeSources={activeSourceNames} />
+              <div className="mt-3 grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-2">
+                {contextStats.map((stat) => <ContextStat key={stat.label} {...stat} />)}
               </div>
-              <span className={`rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] ${askStatus === "asking" ? "border-cyan-200/35 bg-cyan-300/14 text-cyan-50" : "border-cyan-300/18 bg-cyan-300/8 text-cyan-100/75"}`}>
-                {askStatus === "asking" ? "Analyzing permitted evidence" : "Ready for command"}
-              </span>
+            </NextronPanel>
+
+            <NextronPanel title="Context Sources" eyebrow={`${availableSystems} systems available`}>
+              <SourceContextPanel panels={livePanels} systems={activeSystems} />
+            </NextronPanel>
+
+            <div className="lg:col-span-2">
+              <NextronAttentionView attention={attention} status={signalStatus} error={signalError} onRefresh={() => void loadSignals()} onAsk={(prompt) => { setAskPrompt(prompt); void askNextron(prompt); }} />
             </div>
 
-            <form className="space-y-3" onSubmit={(event) => { event.preventDefault(); void askNextron(); }}>
-              <label htmlFor="nextron-question" className="sr-only">Ask NEXTRON</label>
-              <div className="rounded-2xl border border-cyan-300/18 bg-[linear-gradient(180deg,rgba(2,6,23,0.44),rgba(2,6,23,0.24))] p-2 shadow-inner shadow-cyan-950/20 transition-all duration-200 focus-within:border-cyan-200/55 focus-within:shadow-[0_0_0_1px_rgba(103,232,249,0.12),0_0_42px_rgba(8,145,178,0.12)]">
-                <textarea id="nextron-question" value={askPrompt} onChange={(event) => { setAskPrompt(event.target.value.slice(0, NEXTRON_REQUEST_MAX_LENGTH)); setAskError(null); if (askStatus === "error") setAskStatus("idle"); }} onKeyDown={(event) => { if (event.nativeEvent.isComposing) return; if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); if (!askDisabled) void askNextron(); } }} maxLength={NEXTRON_REQUEST_MAX_LENGTH} rows={3} aria-describedby="nextron-question-help nextron-question-status" placeholder="What should I focus on today?" className="min-h-28 w-full resize-y rounded-xl border-0 bg-transparent px-3 py-3 text-base leading-relaxed text-[var(--text)] outline-none placeholder:text-[var(--text-muted)]" />
-                <div className="flex flex-wrap items-center justify-between gap-2 border-t border-cyan-300/10 px-2 pt-2">
-                  <p id="nextron-question-help" className="text-xs text-[var(--text-muted)]">{trimmedAskPrompt.length}/{NEXTRON_REQUEST_MAX_LENGTH}. Enter asks; Shift+Enter adds a line.</p>
-                  <button type="submit" disabled={askDisabled} className="inline-flex min-h-11 items-center rounded-xl bg-cyan-300 px-4 py-2 text-sm font-semibold text-slate-950 shadow-lg shadow-cyan-950/30 transition-all hover:-translate-y-0.5 hover:bg-cyan-200 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-45">
-                    {askStatus === "asking" ? "Analyzing..." : "Send to NEXTRON"}
-                  </button>
-                </div>
-              </div>
-              <p id="nextron-question-status" className="text-xs leading-relaxed text-[var(--text-muted)]" aria-live="polite">{askStatus === "asking" ? "NEXTRON is checking permitted evidence." : askStatus === "unsupported" ? "NEXTRON answered with a private-beta boundary." : askError ?? "Successful turns are saved to this private conversation, not to Memory unless you explicitly ask NEXTRON to remember something."}</p>
-            </form>
-          </section>
+            <NextronSignalsView
+              signals={signals}
+              meta={signalMeta}
+              status={signalStatus}
+              error={signalError}
+              onRefresh={() => void loadSignals()}
+              onAsk={(prompt) => { setAskPrompt(prompt); void askNextron(prompt); }}
+            />
 
-          <section aria-labelledby="nextron-answer" className="nextron-surface relative overflow-hidden rounded-[2rem] p-4 sm:p-5">
-            <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-cyan-200/25 to-transparent" aria-hidden="true" />
-            <div className="mb-4 flex min-w-0 flex-wrap items-start justify-between gap-3">
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-200/70">Main intelligence</p>
-                <h2 id="nextron-answer" className="mt-1 text-lg font-semibold text-[var(--text)]">{currentConversation ? currentConversation.title : "New conversation"}</h2>
-              </div>
-              {liveResponse && <span className="rounded-full border border-cyan-300/20 bg-cyan-300/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-cyan-100">{liveResponse.priority}</span>}
-            </div>
-            {loading && <p className="text-sm text-[var(--text-muted)]">Loading permitted context...</p>}
-            {!loading && error && <p className="text-sm text-[var(--warning)]">{error}</p>}
-            {!loading && !error && (
-              <div className="space-y-4">
-                {messages.length === 0 ? (
-                  <div className="rounded-2xl border border-cyan-300/10 bg-cyan-950/10 p-4">
-                    <p className="text-sm font-semibold text-[var(--text)]">What are we working through?</p>
-                    <p className="mt-2 text-sm leading-relaxed text-[var(--text-muted)]">Start a private thread. NEXTRON will use recent turns as context, but current Life Pulse evidence and saved permissions stay authoritative.</p>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {["What should I focus on today?", "Why?", "What should I do after that?"].map((prompt) => <button key={prompt} type="button" onClick={() => { setAskPrompt(prompt); void askNextron(prompt); }} disabled={askStatus === "asking" || !packet} className="rounded-full border border-cyan-300/15 bg-cyan-300/10 px-3 py-1.5 text-xs text-cyan-50/80 disabled:opacity-50">{prompt}</button>)}
-                    </div>
+            <NextronActionProposalsView
+              proposals={actionProposals}
+              status={actionStatus}
+              error={actionError}
+              onRefresh={() => void loadActionProposals()}
+              onApprove={(id) => void transitionActionProposal(id, "approve")}
+              onCancel={(id) => void transitionActionProposal(id, "cancel")}
+              onChange={focusComposerWithPrompt}
+            />
+
+            <NextronPanel title="Boundaries" eyebrow="Safety state">
+              <ul className="space-y-2 text-xs leading-relaxed text-[var(--text-muted)]">
+                <li>No autonomous actions in this phase.</li>
+                <li>External connectors are read-only.</li>
+                <li>Drive uses selected imported files only.</li>
+                <li>No medical, legal, financial, or therapy guidance.</li>
+              </ul>
+            </NextronPanel>
+
+            <section aria-labelledby="nextron-context" className="lg:col-span-2">
+              <details className="rounded-[1.5rem] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
+                <summary className="cursor-pointer list-none text-sm font-semibold text-[var(--text)] [&::-webkit-details-marker]:hidden">
+                  Context permissions and access controls
+                  <span className="ml-2 text-xs font-normal text-[var(--text-muted)]">Saved permissions remain the authority.</span>
+                </summary>
+                <div className="mt-4">
+                  <p id="nextron-context" className="mb-3 text-xs leading-relaxed text-[var(--text-muted)]">Saved permissions control what evidence enters NEXTRON. Task actions are separate from Task read access and still require approval every time.</p>
+                  {permissionWarning && <p className="mb-3 rounded-xl border border-[var(--warning)]/30 bg-[var(--warning-soft)] px-3 py-2 text-xs leading-relaxed text-[var(--warning)]">{permissionWarning}</p>}
+                  <PermissionGroup title="Operational context" permissions={operationalPermissions} draftPermissions={draftPermissions} savedPermissions={savedPermissions} onChange={setPermission} />
+                  <PermissionGroup title="Private text context" permissions={privateTextPermissions} draftPermissions={draftPermissions} savedPermissions={savedPermissions} onChange={setPermission} />
+                  <div className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-3">
+                    <p className="text-xs leading-relaxed text-[var(--text-muted)]">{permissionLoading ? "Loading saved permissions..." : !permissionsAvailable ? "Saved permissions are currently unavailable, so safe defaults are active." : hasUnsavedChanges ? "You have unsaved local permission changes. Evidence will not broaden until saving succeeds." : saveStatus === "saved" ? "Context permissions saved and NEXTRON refreshed." : saveStatus === "error" ? "Context permissions were not saved. Try again when ready." : "Saved permissions are active."}</p>
+                    <button type="button" onClick={() => void savePermissions()} disabled={!permissionsAvailable || !hasUnsavedChanges || saveStatus === "saving" || !userId} className="mt-3 inline-flex min-h-11 items-center rounded-xl bg-cyan-300 px-3 py-2 text-sm font-semibold text-slate-950 transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-45">{saveStatus === "saving" ? "Saving permissions..." : "Save context permissions"}</button>
                   </div>
-                ) : messages.map((message) => <ConversationTurn key={message.id} message={message} />)}
-                {messages.length === 0 && liveResponse && <ResponseView response={liveResponse} />}
-              </div>
-            )}
-          </section>
+                </div>
+              </details>
+            </section>
 
-          <DailyBriefView
-            brief={dailyBrief}
-            meta={dailyBriefMeta}
-            status={dailyBriefStatus}
-            error={dailyBriefError}
-            disabled={loading || !packet}
-            onGenerate={() => void generateDailyBriefAction(false)}
-            onRefresh={() => void generateDailyBriefAction(true)}
-            onAsk={(prompt) => { setAskPrompt(prompt); void askNextron(prompt); }}
-          />
-
-          <NextronSignalsView
-            signals={signals}
-            meta={signalMeta}
-            status={signalStatus}
-            error={signalError}
-            onRefresh={() => void loadSignals()}
-            onAsk={(prompt) => { setAskPrompt(prompt); void askNextron(prompt); }}
-          />
-
-          <NextronActionProposalsView
-            proposals={actionProposals}
-            status={actionStatus}
-            error={actionError}
-            onRefresh={() => void loadActionProposals()}
-            onApprove={(id) => void transitionActionProposal(id, "approve")}
-            onCancel={(id) => void transitionActionProposal(id, "cancel")}
-            onChange={(prompt) => { setAskPrompt(prompt); }}
-          />
-        </main>
-
-        <aside className="order-4 space-y-4 lg:order-3 xl:sticky xl:top-4 xl:self-start">
-          <NextronPanel title="Active Projects" eyebrow="Current work">
-            <ProjectsPanel panels={livePanels} onAsk={(prompt) => { setAskPrompt(prompt); void askNextron(prompt); }} />
-          </NextronPanel>
-
-          <NextronPanel title="Context Sources" eyebrow={`${availableSystems} systems available`}>
-            <SourceContextPanel panels={livePanels} systems={activeSystems} />
-          </NextronPanel>
-
-          <NextronPanel title="Boundaries" eyebrow="Safety state">
-            <ul className="space-y-2 text-xs leading-relaxed text-[var(--text-muted)]">
-              <li>No autonomous actions in this phase.</li>
-              <li>External connectors are read-only.</li>
-              <li>Drive uses selected imported files only.</li>
-              <li>No medical, legal, financial, or therapy guidance.</li>
-            </ul>
-          </NextronPanel>
-        </aside>
-      </div>
-
-      <section aria-labelledby="nextron-context" className="relative mt-5">
-        <details className="rounded-[2rem] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
-          <summary className="cursor-pointer list-none text-sm font-semibold text-[var(--text)] [&::-webkit-details-marker]:hidden">
-            Context permissions and access controls
-            <span className="ml-2 text-xs font-normal text-[var(--text-muted)]">Saved permissions remain the authority.</span>
-          </summary>
-          <div className="mt-4">
-            <p id="nextron-context" className="mb-3 text-xs leading-relaxed text-[var(--text-muted)]">Saved permissions control what evidence enters NEXTRON. Task actions are separate from Task read access and still require approval every time.</p>
-            {permissionWarning && <p className="mb-3 rounded-xl border border-[var(--warning)]/30 bg-[var(--warning-soft)] px-3 py-2 text-xs leading-relaxed text-[var(--warning)]">{permissionWarning}</p>}
-            <PermissionGroup title="Operational context" permissions={operationalPermissions} draftPermissions={draftPermissions} savedPermissions={savedPermissions} onChange={setPermission} />
-            <PermissionGroup title="Private text context" permissions={privateTextPermissions} draftPermissions={draftPermissions} savedPermissions={savedPermissions} onChange={setPermission} />
-            <div className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-3">
-              <p className="text-xs leading-relaxed text-[var(--text-muted)]">{permissionLoading ? "Loading saved permissions..." : !permissionsAvailable ? "Saved permissions are currently unavailable, so safe defaults are active." : hasUnsavedChanges ? "You have unsaved local permission changes. Evidence will not broaden until saving succeeds." : saveStatus === "saved" ? "Context permissions saved and NEXTRON refreshed." : saveStatus === "error" ? "Context permissions were not saved. Try again when ready." : "Saved permissions are active."}</p>
-              <button type="button" onClick={() => void savePermissions()} disabled={!permissionsAvailable || !hasUnsavedChanges || saveStatus === "saving" || !userId} className="mt-3 inline-flex min-h-11 items-center rounded-xl bg-cyan-300 px-3 py-2 text-sm font-semibold text-slate-950 transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-45">{saveStatus === "saving" ? "Saving permissions..." : "Save context permissions"}</button>
-            </div>
+            <section aria-labelledby="nextron-access" className="grid gap-3 sm:grid-cols-2 lg:col-span-2">
+              <Card variant="subtle" className="p-4"><h2 id="nextron-access" className="text-sm font-semibold text-[var(--text)]">Currently available</h2><ul className="mt-3 space-y-2 text-xs text-[var(--text-secondary)]">{packet ? Object.entries(packet.permissionSummary).filter(([, status]) => status === "available").map(([domain]) => <li key={domain} className="break-words">{formatDomainLabel(domain)}</li>) : <li>Permitted context is loading.</li>}</ul></Card>
+              <Card variant="subtle" className="p-4"><h2 className="text-sm font-semibold text-[var(--text)]">Not available to NEXTRON</h2><ul className="mt-3 space-y-2 text-xs text-[var(--text-secondary)]">{NEXTRON_UNAVAILABLE_CONTEXT.map((item) => <li key={item} className="break-words">{item}</li>)}{packet && Object.entries(packet.permissionSummary).filter(([, status]) => status === "permission_denied").map(([domain]) => <li key={domain} className="break-words">{formatDomainLabel(domain)} is not loaded by current permission.</li>)}</ul></Card>
+            </section>
           </div>
         </details>
-      </section>
 
-      <section aria-labelledby="nextron-access" className="relative mt-5 grid gap-3 sm:grid-cols-2">
-        <Card variant="subtle" className="p-4"><h2 id="nextron-access" className="text-sm font-semibold text-[var(--text)]">Currently available</h2><ul className="mt-3 space-y-2 text-xs text-[var(--text-secondary)]">{packet ? Object.entries(packet.permissionSummary).filter(([, status]) => status === "available").map(([domain]) => <li key={domain} className="break-words">{formatDomainLabel(domain)}</li>) : <li>Permitted context is loading.</li>}</ul></Card>
-        <Card variant="subtle" className="p-4"><h2 className="text-sm font-semibold text-[var(--text)]">Not available to NEXTRON</h2><ul className="mt-3 space-y-2 text-xs text-[var(--text-secondary)]">{NEXTRON_UNAVAILABLE_CONTEXT.map((item) => <li key={item} className="break-words">{item}</li>)}{packet && Object.entries(packet.permissionSummary).filter(([, status]) => status === "permission_denied").map(([domain]) => <li key={domain} className="break-words">{formatDomainLabel(domain)} is not loaded by current permission.</li>)}</ul></Card>
-      </section>
-
-      <p className="relative mt-5 text-center text-[10px] leading-relaxed text-[var(--text-muted)]">NEXTRON is permissioned, bounded, and user-controlled. It can prepare canonical Life Pulse changes and explicit relationship proposals only through approval; external connectors remain read-only.</p>
+        <p className="relative text-center text-[10px] leading-relaxed text-[var(--text-muted)]">NEXTRON is permissioned, bounded, and user-controlled. It can prepare canonical Life Pulse changes and explicit relationship proposals only through approval; external connectors remain read-only.</p>
+      </main>
     </div>
   );
 }
@@ -1219,6 +1299,39 @@ function inferActiveSourceNames(response: NextronCoachResponse): string[] {
   return sources.slice(0, 3);
 }
 
+function CompactAttentionView({ attention, status, error, onAsk }: { attention: NextronAttentionSummary | null; status: SignalStatus; error: string | null; onAsk: (prompt: string) => void }) {
+  const items = [attention?.primary, ...(attention?.secondary ?? [])].filter((item): item is NextronAttentionItem => Boolean(item)).slice(0, 3);
+  if (items.length === 0 && status !== "error") return null;
+  return (
+    <section aria-labelledby="nextron-noticed-heading" data-nextron-attention="true" className="nextron-surface relative overflow-hidden rounded-[2rem] p-4 sm:p-5">
+      <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-cyan-200/30 to-transparent" aria-hidden="true" />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-200/70">NEXTRON Noticed</p>
+          <h2 id="nextron-noticed-heading" className="mt-1 text-lg font-semibold tracking-[-0.03em] text-[var(--text)]">What may deserve attention</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[var(--text-muted)]">Only meaningful current items surface here. Detailed signals remain under More intelligence.</p>
+        </div>
+      </div>
+      {status === "error" && <p className="mt-4 rounded-2xl border border-[var(--warning)]/25 bg-[var(--warning-soft)] p-3 text-sm text-[var(--warning)]">{error ?? "NEXTRON attention is partially unavailable right now."}</p>}
+      {items.length > 0 && (
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
+          {items.map((item) => (
+            <article key={item.id} className="rounded-2xl border border-cyan-300/14 bg-black/15 p-3">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-cyan-100/55">{formatDomainLabel(item.domain)} · {item.severity}</p>
+              <h3 className="mt-1 break-words text-sm font-semibold text-[var(--text)]">{item.title}</h3>
+              <p className="mt-1 break-words text-xs leading-relaxed text-[var(--text-secondary)]">{item.explanation}</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <PanelLink href={item.route}>Open</PanelLink>
+                <PanelButton onClick={() => onAsk(item.bridgePrompt)}>Ask NEXTRON</PanelButton>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
 function DailyBriefView({ brief, meta, status, error, disabled, onGenerate, onRefresh, onAsk }: { brief: DailyBrief | null; meta: DailyBriefMeta | null; status: DailyBriefStatus; error: string | null; disabled: boolean; onGenerate: () => void; onRefresh: () => void; onAsk: (prompt: string) => void }) {
   const generating = status === "generating";
   return (
@@ -1294,11 +1407,7 @@ function DailyBriefView({ brief, meta, status, error, disabled, onGenerate, onRe
                 </div>
                 {meta && <p className="mt-2 text-[10px] text-[var(--text-muted)]">Model calls this load: {meta.modelCalls}. State: {meta.persisted ? "Saved" : "Session only"}.</p>}
               </div>
-              <div className="flex flex-wrap gap-2">
-                <PanelButton onClick={() => onAsk("Why is this the Daily Brief priority?")}>Ask why</PanelButton>
-                <PanelButton onClick={() => onAsk("Plan around this Daily Brief without changing anything.")}>Plan around this</PanelButton>
-                <PanelButton onClick={() => onAsk("What can wait today?")}>What can wait?</PanelButton>
-              </div>
+              <PanelButton onClick={() => onAsk("Help me use this Daily Brief without changing anything.")}>Ask about this brief</PanelButton>
             </div>
           </div>
         )}
@@ -1485,7 +1594,7 @@ function ActionProposalCard({ proposal, busy, onApprove, onCancel, onChange }: {
 
 function NextronPanel({ eyebrow, title, children }: { eyebrow: string; title: string; children: ReactNode }) {
   return (
-    <section className="nextron-surface group relative overflow-hidden rounded-[1.5rem] p-4 transition-colors duration-200 hover:border-cyan-200/25">
+    <section className="nextron-surface relative overflow-hidden rounded-[1.5rem] p-4">
       <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-cyan-200/20 to-transparent opacity-70" aria-hidden="true" />
       <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-200/60">{eyebrow}</p>
       <h2 className="mt-1 text-sm font-semibold text-[var(--text)]">{title}</h2>
@@ -1658,7 +1767,7 @@ function SourceStatus({ label, status, detail }: { label: string; status: string
   const active = status === "available";
   const denied = status === "permission_denied";
   return (
-    <div className="flex items-center justify-between gap-3 rounded-xl border border-cyan-300/10 bg-black/15 px-3 py-2 transition-colors duration-200 hover:border-cyan-200/20">
+    <div className="flex items-center justify-between gap-3 rounded-xl border border-cyan-300/10 bg-black/15 px-3 py-2">
       <div className="min-w-0">
         <p className="truncate text-xs font-medium text-[var(--text)]">{label}</p>
         <p className="text-[10px] text-[var(--text-muted)]">{detail}</p>
@@ -1718,6 +1827,31 @@ function ConversationTurn({ message }: { message: ConversationMessage }) {
         </div>
       ) : <p className="relative mt-2 break-words text-sm leading-relaxed text-[var(--text-secondary)]">{message.content}</p>}
     </article>
+  );
+}
+
+function PendingConversationTurn({ role, content, pending = false }: { role: "user" | "assistant"; content: string; pending?: boolean }) {
+  const isAssistant = role === "assistant";
+  return (
+    <article data-nextron-pending-turn={pending ? "true" : undefined} className={`relative overflow-hidden rounded-2xl border p-4 pl-5 ${isAssistant ? "border-cyan-300/18 bg-[linear-gradient(180deg,rgba(8,18,32,0.78),rgba(4,9,18,0.90))]" : "border-cyan-300/8 bg-black/12"}`}>
+      <div className={`absolute inset-y-4 left-0 w-px ${isAssistant ? "bg-gradient-to-b from-cyan-200/20 via-cyan-200/70 to-transparent" : "bg-slate-400/18"}`} aria-hidden="true" />
+      <p className={`relative text-[10px] font-semibold uppercase tracking-[0.14em] ${isAssistant ? "text-cyan-200/75" : "text-[var(--text-muted)]"}`}>{isAssistant ? "NEXTRON" : "You"}</p>
+      <p className="relative mt-2 break-words text-sm leading-relaxed text-[var(--text-secondary)]">{content}</p>
+      {pending && <p className="relative mt-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-cyan-100/70" aria-live="polite">Sending...</p>}
+    </article>
+  );
+}
+
+function AskFailureNotice({ message, code, canRetry, onRetry }: { message: string; code: AskFailureCode | null; canRetry: boolean; onRetry: () => void }) {
+  return (
+    <div data-nextron-ask-error="true" className="rounded-2xl border border-[var(--warning)]/30 bg-[var(--warning-soft)] p-4">
+      <p className="text-sm font-semibold text-[var(--warning)]">NEXTRON did not finish that answer.</p>
+      <p className="mt-2 text-sm leading-relaxed text-[var(--text-secondary)]">{message}</p>
+      <div className="mt-3 flex flex-wrap items-center gap-3">
+        {canRetry && <button type="button" onClick={onRetry} className="inline-flex min-h-10 items-center rounded-xl border border-[var(--warning)]/35 bg-black/15 px-3 py-2 text-xs font-semibold text-[var(--warning)] transition-colors hover:bg-[var(--warning-soft)]">Try again</button>}
+        {code && <span className="text-[10px] uppercase tracking-[0.12em] text-[var(--text-muted)]">Status: {code}</span>}
+      </div>
+    </div>
   );
 }
 

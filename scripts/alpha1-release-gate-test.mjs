@@ -44,7 +44,7 @@ assert(verifier.includes("Non-Task stale update rejected without overwrite"), "V
 assert(verifier.includes("Project hard delete cleans polymorphic goal_links target rows"), "Verifier covers goal_links orphan cleanup trigger behavior");
 assert(verifier.includes("Setup phase: permission review shown") && verifier.includes("Grant permissions first") && verifier.includes("Setup phase: approval enabled after explicit permissions"), "Verifier follows setup permission-review flow before approval");
 assert(verifier.includes("POST-SETUP PATH") && verifier.includes("Post-setup destination is Today") && verifier.includes("onboarding_completed=true") && verifier.includes("onboarding status=completed"), "Verifier reports and verifies post-setup Today destination and completion state");
-assert(verifier.includes("#nextron-question") && verifier.includes("Command channel") && !verifier.includes('getByRole("heading", { name: "NEXTRON", exact: true })'), "Verifier uses stable NEXTRON command center landmarks instead of exact heading text");
+assert(verifier.includes("#nextron-question") && verifier.includes("Talk to NEXTRON") && verifier.includes("More intelligence") && verifier.includes("NEXTRON Alpha 1.1 human-first hierarchy"), "Verifier covers stable Alpha 1.1 NEXTRON human-first landmarks");
 assert(verifier.includes("/life-map") && verifier.includes("Life Map render made zero provider-route calls"), "Verifier covers populated Life Map and zero provider-route calls");
 assert(verifier.includes("390") && verifier.includes("320") && verifier.includes("1440"), "Verifier includes mobile and desktop first-run coverage");
 assert(guideLower.includes("tester size") && guide.includes("3-5 trusted people initially"), "Alpha 1 private testing guide defines tester size");

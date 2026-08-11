@@ -25,6 +25,10 @@ const PREFERENCE_COLUMNS = "permission_version, allow_profile, allow_today, allo
 
 type AskBody = { prompt?: unknown; conversationId?: unknown; clientMessageId?: unknown };
 
+function logAskFailure(code: string, details: Record<string, string | number | boolean | null> = {}) {
+  console.warn("nextron.ask.failure", { code, ...details });
+}
+
 async function readAskBody(request: Request): Promise<AskBody | null> {
   try {
     const body: unknown = await request.json();
@@ -37,35 +41,53 @@ async function readAskBody(request: Request): Promise<AskBody | null> {
 
 export async function POST(request: Request) {
   const body = await readAskBody(request);
-  if (!body) return NextResponse.json({ error: "Invalid NEXTRON request." }, { status: 400 });
+  if (!body) {
+    logAskFailure("REQUEST_BODY_INVALID");
+    return NextResponse.json({ error: "Invalid NEXTRON request.", code: "REQUEST_BODY_INVALID" }, { status: 400 });
+  }
 
   const originalParsed = parseNextronUserRequest(body.prompt);
-  if (!originalParsed.ok) return NextResponse.json({ error: originalParsed.message }, { status: 400 });
+  if (!originalParsed.ok) {
+    logAskFailure("PROMPT_INVALID", { reason: originalParsed.reason });
+    return NextResponse.json({ error: originalParsed.message, code: "PROMPT_INVALID" }, { status: 400 });
+  }
   const originalRequest = originalParsed.request;
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Sign in to ask NEXTRON." }, { status: 401 });
+  if (!user) {
+    logAskFailure("AUTH_REQUIRED");
+    return NextResponse.json({ error: "Sign in to ask NEXTRON.", code: "AUTH_REQUIRED" }, { status: 401 });
+  }
   const userId = user.id;
 
   try {
     const conversationId = typeof body.conversationId === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(body.conversationId) ? body.conversationId : null;
-    if (body.conversationId !== undefined && body.conversationId !== null && !conversationId) return NextResponse.json({ error: "NEXTRON conversation is unavailable." }, { status: 404 });
+    if (body.conversationId !== undefined && body.conversationId !== null && !conversationId) {
+      logAskFailure("CONVERSATION_ID_INVALID", { userId: userId.slice(0, 8) });
+      return NextResponse.json({ error: "NEXTRON conversation is unavailable.", code: "CONVERSATION_ID_INVALID" }, { status: 404 });
+    }
     const clientMessageId = typeof body.clientMessageId === "string" && /^[A-Za-z0-9_-]{8,80}$/.test(body.clientMessageId) ? body.clientMessageId : null;
     const conversation = await ensureConversation(supabase, userId, conversationId, originalRequest.rawPrompt);
-    if (!conversation) return NextResponse.json({ error: "NEXTRON conversation is unavailable." }, { status: 404 });
+    if (!conversation) {
+      logAskFailure("CONVERSATION_UNAVAILABLE", { userId: userId.slice(0, 8), existingConversation: Boolean(conversationId) });
+      return NextResponse.json({ error: "NEXTRON conversation is unavailable.", code: "CONVERSATION_UNAVAILABLE" }, { status: 404 });
+    }
     const activeConversation = conversation;
     const priorMessages = await loadConversationMessages(supabase, userId, activeConversation.id) ?? [];
     const conversationContext = buildConversationContext(priorMessages);
     const resolvedPrompt = resolvePromptWithConversation(originalRequest.rawPrompt, conversationContext);
     const parsed = parseNextronUserRequest(resolvedPrompt);
-    if (!parsed.ok) return NextResponse.json({ error: parsed.message }, { status: 400 });
+    if (!parsed.ok) {
+      logAskFailure("RESOLVED_PROMPT_INVALID", { userId: userId.slice(0, 8), reason: parsed.reason });
+      return NextResponse.json({ error: parsed.message, code: "RESOLVED_PROMPT_INVALID" }, { status: 400 });
+    }
     const parsedRequest = parsed.request;
 
     const memoryCommand = parseNextronMemoryCommand(originalRequest.rawPrompt, originalRequest.normalizedPrompt);
     if (memoryCommand.kind === "remember") {
       const result = await rememberPreferenceMemory(supabase, user.id, memoryCommand.content);
-      if (!result.ok) return NextResponse.json({ response: memoryIntentResponse(result.reason), source: "deterministic" }, { status: 400 });
+      if (!result.ok) return NextResponse.json({ response: memoryIntentResponse(result.reason), source: "deterministic", code: "MEMORY_REJECTED" }, { status: 400 });
       const response = memoryIntentResponse(`Got it. I'll remember that ${result.memory.content.replace(/^You\s+/i, "you ")}.`);
       await persistConversationTurn({ supabase, userId, conversationId: activeConversation.id, clientMessageId, userPrompt: originalRequest.rawPrompt, assistantResponse: response, intent: originalRequest.intent }).catch(() => undefined);
       const messages = await loadConversationMessages(supabase, userId, activeConversation.id) ?? [];
@@ -74,7 +96,7 @@ export async function POST(request: Request) {
 
     if (memoryCommand.kind === "forget") {
       const result = await forgetPreferenceMemory(supabase, user.id, memoryCommand.content);
-      if (!result.ok) return NextResponse.json({ response: memoryIntentResponse(result.reason), source: "deterministic" }, { status: 404 });
+      if (!result.ok) return NextResponse.json({ response: memoryIntentResponse(result.reason), source: "deterministic", code: "MEMORY_NOT_FOUND" }, { status: 404 });
       const response = memoryIntentResponse("I've forgotten that preference.");
       await persistConversationTurn({ supabase, userId, conversationId: activeConversation.id, clientMessageId, userPrompt: originalRequest.rawPrompt, assistantResponse: response, intent: originalRequest.intent }).catch(() => undefined);
       const messages = await loadConversationMessages(supabase, userId, activeConversation.id) ?? [];
@@ -90,7 +112,7 @@ export async function POST(request: Request) {
     }
 
     if (memoryCommand.kind === "rejected_implicit") {
-      return NextResponse.json({ response: memoryIntentResponse(memoryCommand.reason), source: "deterministic" }, { status: 400 });
+      return NextResponse.json({ response: memoryIntentResponse(memoryCommand.reason), source: "deterministic", code: "MEMORY_EXPLICIT_PERMISSION_REQUIRED" }, { status: 400 });
     }
 
     const { data } = await supabase
@@ -110,7 +132,13 @@ export async function POST(request: Request) {
     async function respond(response: NextronCoachResponse, source: "ai" | "deterministic", fallbackReason?: string | null) {
       const richResponse = buildNextronRichResponse(response, evidence, parsedRequest);
       const responseWithRichUi: NextronCoachResponse = richResponse ? { ...response, richResponse } : response;
-      await persistConversationTurn({ supabase, userId, conversationId: activeConversation.id, clientMessageId, userPrompt: originalRequest.rawPrompt, assistantResponse: responseWithRichUi, intent: parsedRequest.intent });
+      if (fallbackReason) logAskFailure("PROVIDER_FALLBACK", { userId: userId.slice(0, 8), reason: fallbackReason });
+      try {
+        await persistConversationTurn({ supabase, userId, conversationId: activeConversation.id, clientMessageId, userPrompt: originalRequest.rawPrompt, assistantResponse: responseWithRichUi, intent: parsedRequest.intent });
+      } catch (error) {
+        logAskFailure("PERSISTENCE_FAILED", { userId: userId.slice(0, 8), name: error instanceof Error ? error.name : "unknown" });
+        return NextResponse.json({ error: "NEXTRON prepared an answer but could not save this turn. Try again in a moment.", code: "PERSISTENCE_FAILED" }, { status: 503 });
+      }
       const messages = await loadConversationMessages(supabase, userId, activeConversation.id) ?? [];
       return NextResponse.json(
         { response: responseWithRichUi, source, conversation: activeConversation, messages },
@@ -151,7 +179,8 @@ export async function POST(request: Request) {
     );
 
     return respond(result.response, result.response.source ?? "deterministic", result.fallbackReason);
-  } catch {
-    return NextResponse.json({ error: "NEXTRON could not load permitted context right now." }, { status: 503 });
+  } catch (error) {
+    logAskFailure("ASK_UNEXPECTED_FAILURE", { name: error instanceof Error ? error.name : "unknown" });
+    return NextResponse.json({ error: "NEXTRON could not load permitted context right now.", code: "ASK_UNEXPECTED_FAILURE" }, { status: 503 });
   }
 }

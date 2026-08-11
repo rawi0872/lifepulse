@@ -59,6 +59,6 @@ assert(/Daily Brief hidden until you refresh it with the newly saved permissions
 
 assert(/Generate brief/.test(coachPage) && /Refresh brief/.test(coachPage), "UI exposes first-open generate and explicit refresh states");
 assert(/Updated \{formatTime\(brief\.generatedAt\)\}/.test(coachPage), "UI shows generated timestamp");
-assert(/Ask why/.test(coachPage) && /Plan around this/.test(coachPage) && /What can wait/.test(coachPage), "Conversation bridge prompts are available");
+assert(/Ask about this brief/.test(coachPage) && /Help me use this Daily Brief without changing anything/.test(coachPage), "Consolidated Daily Brief conversation bridge is available");
 
 console.log("NEXTRON Daily Brief v1 contract checks passed.");

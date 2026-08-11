@@ -235,6 +235,41 @@ async function assertNoOverflow(page, label) {
   assert(metrics.body <= max && metrics.doc <= max, `${label} has no horizontal overflow`);
 }
 
+async function assertNextronHumanHierarchy(page, label) {
+  await expect(page.getByRole("heading", { name: "NEXTRON" })).toBeVisible({ timeout: 30000 });
+  await expect(page.getByText("Talk to NEXTRON")).toBeVisible({ timeout: 30000 });
+  await expect(page.locator("#nextron-question")).toBeVisible({ timeout: 30000 });
+  await expect(page.getByRole("button", { name: "Send to NEXTRON" })).toBeVisible({ timeout: 30000 });
+  await expect(page.getByRole("button", { name: "What should I focus on today?" }).first()).toBeVisible({ timeout: 30000 });
+  await expect(page.getByRole("button", { name: "What needs my attention?" }).first()).toBeVisible({ timeout: 30000 });
+  await expect(page.getByRole("button", { name: "What can you help me with?" }).first()).toBeVisible({ timeout: 30000 });
+  await expect(page.locator("summary").filter({ hasText: "More intelligence" })).toBeVisible({ timeout: 30000 });
+  await expect(page.getByText("NEXTRON Signals")).toBeHidden({ timeout: 30000 });
+  await assertNoOverflow(page, label);
+}
+
+async function askNextronHumanPath(page, prompt) {
+  const previousAssistantCount = await page.locator("article", { hasText: "NEXTRON" }).count();
+  await page.locator("#nextron-question").fill(prompt);
+  await expect(page.getByRole("button", { name: "Send to NEXTRON" })).toBeEnabled({ timeout: 30000 });
+  await page.getByRole("button", { name: "Send to NEXTRON" }).click({ timeout: 30000 });
+  await expect(page.locator("article", { hasText: prompt })).toBeVisible({ timeout: 5000 });
+  const observedPending = await page.locator('[data-nextron-pending-turn="true"]').isVisible({ timeout: 2500 }).catch(() => false);
+  await expect.poll(async () => page.locator("article", { hasText: "NEXTRON" }).count(), { timeout: 90000 }).toBeGreaterThan(previousAssistantCount);
+  if (observedPending) pass("NEXTRON pending acknowledgement appeared before production response");
+  else pass("NEXTRON production response arrived before pending acknowledgement could be observed");
+}
+
+async function openMoreIntelligence(page) {
+  const summary = page.locator("summary").filter({ hasText: "More intelligence" });
+  await summary.click({ timeout: 30000 });
+  await expect(page.getByText("Conversations", { exact: true })).toBeVisible({ timeout: 30000 });
+  await expect(page.getByText("NEXTRON Signals")).toBeVisible({ timeout: 30000 });
+  await expect(page.getByText("NEXTRON Actions")).toBeVisible({ timeout: 30000 });
+  await expect(page.getByText("Context permissions and access controls")).toBeVisible({ timeout: 30000 });
+  await expect(page.getByText("Context Sources")).toBeVisible({ timeout: 30000 });
+}
+
 async function sendOnboarding(page, text) {
   await page.locator("#nextron-onboarding-composer").fill(text);
   await page.getByRole("button", { name: "Send to NEXTRON" }).click({ timeout: 30000 });
@@ -514,17 +549,30 @@ async function verifyLifeMapAndNextron(client, browserState) {
     await login(desktopPage);
     await desktopPage.goto(`${BASE}/nextron`, { waitUntil: "domcontentloaded", timeout: 30000 });
     await desktopPage.waitForURL(/\/nextron(?:\?|$)/, { timeout: 30000 });
-    await expect(desktopPage.locator("#nextron-question")).toBeVisible({ timeout: 30000 });
-    await expect(desktopPage.locator("body")).toContainText("Command channel", { timeout: 30000 });
+    await assertNextronHumanHierarchy(desktopPage, "desktop NEXTRON Alpha 1.1 hierarchy");
+    await askNextronHumanPath(desktopPage, "What can you help me with?");
+    await openMoreIntelligence(desktopPage);
+    pass("NEXTRON Alpha 1.1 human-first hierarchy and secondary systems verified");
     for (const prompt of ["What supports my certification goal?", "Which project is connected to my goal?", "Show me my projects.", "Show me my habits.", "What should I focus on?"]) {
       await desktopPage.locator("#nextron-question").fill(prompt);
       await desktopPage.getByRole("button", { name: "Send to NEXTRON" }).click({ timeout: 30000 });
-      await expect(desktopPage.locator("#nextron-question-status")).not.toContainText(/checking permitted evidence|Analyzing/i, { timeout: 60000 });
+      await expect(desktopPage.locator("#nextron-question-status")).not.toContainText(/checking permitted evidence|received your message|Analyzing/i, { timeout: 60000 });
     }
     await expect(desktopPage.locator('[data-nextron-rich-response="true"]').last()).toBeVisible({ timeout: 30000 });
     await desktopPage.reload({ waitUntil: "domcontentloaded" });
     await expect(desktopPage.locator('[data-nextron-rich-response="true"]').first()).toBeVisible({ timeout: 30000 });
     pass("NEXTRON cross-domain and rich UI production checks completed");
+
+    for (const width of [390, 320]) {
+      const mobile = await browser.newContext({ viewport: { width, height: width === 320 ? 780 : 844 } });
+      const mobilePage = await mobile.newPage();
+      await login(mobilePage);
+      await mobilePage.goto(`${BASE}/nextron`, { waitUntil: "domcontentloaded", timeout: 30000 });
+      await mobilePage.waitForURL(/\/nextron(?:\?|$)/, { timeout: 30000 });
+      await assertNextronHumanHierarchy(mobilePage, `${width}px NEXTRON Alpha 1.1 hierarchy`);
+      await mobile.close();
+    }
+    pass("NEXTRON Alpha 1.1 390px and 320px hierarchy checks completed");
 
     await desktopPage.goto(`${BASE}/today`, { waitUntil: "domcontentloaded", timeout: 30000 });
     await expect(desktopPage.locator("body")).toContainText(/Model calls: 0|No background AI/i, { timeout: 30000 });
