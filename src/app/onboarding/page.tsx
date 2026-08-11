@@ -405,7 +405,10 @@ function DraftPanel({
           <button type="button" onClick={onApprovePlan} disabled={!pending || !setupPermissionsGranted || proposalStatus === "approving"} className="inline-flex min-h-11 items-center rounded-xl bg-cyan-300 px-4 py-2 text-sm font-semibold text-slate-950 transition-all hover:-translate-y-0.5 hover:bg-cyan-200 disabled:translate-y-0 disabled:opacity-50">{proposalStatus === "approving" ? "Applying..." : setupPermissionsGranted ? proposal.preview.approvalLabel : "Grant permissions first"}</button>
           <button type="button" onClick={onCancelPlan} disabled={!pending || proposalStatus === "cancelling"} className="inline-flex min-h-11 items-center rounded-xl border border-[var(--danger)]/25 bg-[var(--danger-soft)] px-4 py-2 text-sm font-semibold text-[var(--danger)] transition-all hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-50">Cancel</button>
         </div>
-        {completed && <div className="mt-4 rounded-xl border border-[var(--success)]/25 bg-[var(--success-soft)] px-3 py-2 text-xs leading-relaxed text-[var(--success)]">Your Life Pulse is ready. Enter the app to review the created structure and ask NEXTRON what to do today.</div>}
+        {completed && <div className="mt-4 space-y-3 rounded-xl border border-[var(--success)]/25 bg-[var(--success-soft)] px-3 py-2 text-xs leading-relaxed text-[var(--success)]">
+          <p>Your Life Pulse is ready. Enter the app to review the created structure and ask NEXTRON what to do today.</p>
+          <button type="button" onClick={onComplete} disabled={busy} className="inline-flex min-h-10 items-center rounded-xl bg-[var(--success)] px-3 py-2 text-xs font-semibold text-white transition-all hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-50">{busy ? "Entering..." : "Enter Life Pulse"}</button>
+        </div>}
       </div>}
     </section>
   );

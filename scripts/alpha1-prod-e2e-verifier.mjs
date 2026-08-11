@@ -169,8 +169,20 @@ async function counts(admin, userId, tables = USER_TABLES) {
   return result;
 }
 
+async function onboardingCompletionState(admin, userId) {
+  const { data: profile, error: profileError } = await admin.from("profiles").select("onboarding_completed").eq("user_id", userId).maybeSingle();
+  if (profileError) throw new Error(`Post-setup profile state read failed: ${safeSupabaseError(profileError)}`);
+  const { data: onboarding, error: onboardingError } = await admin.from("nextron_onboarding").select("status").eq("user_id", userId).maybeSingle();
+  if (onboardingError) throw new Error(`Post-setup onboarding state read failed: ${safeSupabaseError(onboardingError)}`);
+  return { onboardingCompleted: profile?.onboarding_completed === true, onboardingStatus: typeof onboarding?.status === "string" ? onboarding.status : null };
+}
+
 function printCounts(label, values) {
   console.log(`  COUNTS ${label}: ${Object.entries(values).map(([key, value]) => `${key}=${value}`).join(" ")}`);
+}
+
+function pathname(page) {
+  return new URL(page.url()).pathname;
 }
 
 async function cleanup(admin, userId) {
@@ -300,9 +312,23 @@ async function browserFirstRun(admin, userId) {
     printCounts("after setup", afterSetup);
     assert(afterSetup.goals > 0 && afterSetup.projects > 0 && afterSetup.habits > 0 && afterSetup.tasks > 0, "Approved setup persisted Goals, Projects, Habits, and Tasks");
 
-    await page.getByRole("button", { name: "Looks right - setup ready" }).click({ timeout: 30000 }).catch(() => undefined);
+    await expect(page.getByRole("button", { name: "Enter Life Pulse" })).toBeVisible({ timeout: 30000 });
+    await page.getByRole("button", { name: "Enter Life Pulse" }).click({ timeout: 30000 });
+    await page.waitForURL(/\/today(?:\?|$)/, { timeout: 30000 });
+    console.log(`  POST-SETUP PATH ${pathname(page)}`);
+    assert(pathname(page) === "/today", "Post-setup destination is Today");
+    const completion = await onboardingCompletionState(admin, userId);
+    console.log(`  POST-SETUP STATE onboarding_completed=${completion.onboardingCompleted} onboarding_status=${completion.onboardingStatus ?? "null"}`);
+    assert(completion.onboardingCompleted === true, "Post-setup profile onboarding_completed=true");
+    assert(completion.onboardingStatus === "completed", "Post-setup onboarding status=completed");
+    await expect(page.getByRole("heading", { name: /Good / })).toBeVisible({ timeout: 30000 });
+    pass("Post-setup Today landmark is visible");
+
     await page.goto(`${BASE}/nextron`, { waitUntil: "domcontentloaded", timeout: 30000 });
-    await expect(page.getByRole("heading", { name: "NEXTRON", exact: true })).toBeVisible({ timeout: 30000 });
+    await page.waitForURL(/\/nextron(?:\?|$)/, { timeout: 30000 });
+    await expect(page.locator("#nextron-question")).toBeVisible({ timeout: 30000 });
+    await expect(page.locator("body")).toContainText("Command channel", { timeout: 30000 });
+    pass("Post-setup NEXTRON command center loaded");
     for (const route of ["today", "goals", "projects", "habits", "tasks", "life-map"]) {
       await page.goto(`${BASE}/${route}`, { waitUntil: "domcontentloaded", timeout: 30000 });
       if (page.url().includes("/onboarding")) throw new Error(`${route} redirected back to onboarding after setup`);
@@ -487,7 +513,9 @@ async function verifyLifeMapAndNextron(client, browserState) {
     const desktopPage = await desktop.newPage();
     await login(desktopPage);
     await desktopPage.goto(`${BASE}/nextron`, { waitUntil: "domcontentloaded", timeout: 30000 });
-    await expect(desktopPage.getByRole("heading", { name: "NEXTRON", exact: true })).toBeVisible({ timeout: 30000 });
+    await desktopPage.waitForURL(/\/nextron(?:\?|$)/, { timeout: 30000 });
+    await expect(desktopPage.locator("#nextron-question")).toBeVisible({ timeout: 30000 });
+    await expect(desktopPage.locator("body")).toContainText("Command channel", { timeout: 30000 });
     for (const prompt of ["What supports my certification goal?", "Which project is connected to my goal?", "Show me my projects.", "Show me my habits.", "What should I focus on?"]) {
       await desktopPage.locator("#nextron-question").fill(prompt);
       await desktopPage.getByRole("button", { name: "Send to NEXTRON" }).click({ timeout: 30000 });

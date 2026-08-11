@@ -60,6 +60,7 @@ assert(actions.includes("setupDraftToActions") && actions.includes("normalizeLif
 assert(onboardingRoute.includes("build_plan") && onboardingRoute.includes("createOnboardingSetupActionPlan"), "Onboarding exposes explicit build-plan transition");
 assert(onboardingPage.includes("Build my Life Pulse") && onboardingPage.includes("Permission review") && onboardingPage.includes("Grant approved-write permissions") && onboardingPage.includes("Approve"), "Onboarding UX separates plan preview, permission review, and approval");
 assert(onboardingPage.includes("setupPermissionsGranted") && onboardingPage.includes("Grant permissions first") && onboardingPage.includes("!setupPermissionsGranted"), "Onboarding setup approval is unavailable until explicit write permissions are granted");
+assert(onboardingPage.includes("Enter Life Pulse") && onboardingPage.includes('router.push("/today")'), "Completed setup has an explicit path into Today through canonical completion transition");
 assert(!actions.includes("createConfiguredNextronProvider") && !actions.includes("runNextronProvider"), "Action preview/execution code makes no model call");
 assert(!onboardingPage.includes("setInterval") && !coachPage.includes("setInterval"), "No polling added to action UX");
 
