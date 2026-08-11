@@ -48,6 +48,7 @@ assert(migration.includes("create unique index if not exists idx_nextron_action_
 assert(migration.includes("lower(title) = lower(v_title)") && migration.includes("'mutation', 'existing'"), "Create execution deduplicates obvious existing entities by title");
 
 assert(migration.includes("nextron_action_permission_allowed") && migration.includes("allow_goal_actions is true") && migration.includes("allow_habit_actions is true") && migration.includes("allow_project_actions is true"), "Permissions are rechecked at execution time");
+assert(migration.includes("v_actions := case when v_row.action_type = 'life_pulse.action_plan.execute'") && migration.includes("public.nextron_execute_single_domain_action(v_user_id") && migration.includes("return jsonb_build_object('ok', false, 'reason', 'PERMISSION_DENIED')"), "Direct action-plan approval cannot execute domain writes without server-side permissions");
 assert(migration.includes("and user_id = p_user_id") && migration.includes("title = p_payload ->> 'beforeTitle'"), "Updates enforce owner and expected-state stale checks");
 assert(migration.includes("alter column realm_id drop not null") && migration.includes("realm_id is null or public.realm_belongs_to_user(realm_id)"), "Habit actions can work for Prompt 2 users without weakening realm ownership checks");
 
@@ -58,6 +59,7 @@ assert(actions.includes("supabase.rpc(\"nextron_execute_action\"") && migration.
 assert(actions.includes("setupDraftToActions") && actions.includes("normalizeLifeSetupDraft") && actions.includes("createOnboardingSetupActionPlan"), "Onboarding draft converts deterministically from saved validated draft");
 assert(onboardingRoute.includes("build_plan") && onboardingRoute.includes("createOnboardingSetupActionPlan"), "Onboarding exposes explicit build-plan transition");
 assert(onboardingPage.includes("Build my Life Pulse") && onboardingPage.includes("Permission review") && onboardingPage.includes("Grant approved-write permissions") && onboardingPage.includes("Approve"), "Onboarding UX separates plan preview, permission review, and approval");
+assert(onboardingPage.includes("setupPermissionsGranted") && onboardingPage.includes("Grant permissions first") && onboardingPage.includes("!setupPermissionsGranted"), "Onboarding setup approval is unavailable until explicit write permissions are granted");
 assert(!actions.includes("createConfiguredNextronProvider") && !actions.includes("runNextronProvider"), "Action preview/execution code makes no model call");
 assert(!onboardingPage.includes("setInterval") && !coachPage.includes("setInterval"), "No polling added to action UX");
 

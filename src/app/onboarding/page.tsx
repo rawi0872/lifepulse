@@ -113,6 +113,7 @@ export default function OnboardingPage() {
   const [sending, setSending] = useState(false);
   const [transitioning, setTransitioning] = useState<"skip" | "complete" | "resume" | null>(null);
   const [proposal, setProposal] = useState<ActionProposal | null>(null);
+  const [setupPermissionsGranted, setSetupPermissionsGranted] = useState(false);
   const [proposalStatus, setProposalStatus] = useState<"idle" | "building" | "granting" | "approving" | "cancelling" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
@@ -188,12 +189,14 @@ export default function OnboardingPage() {
       return;
     }
     setProposal(body.proposal);
+    setSetupPermissionsGranted(false);
     setProposalStatus("idle");
   }
 
   async function grantSetupPermissions() {
     setProposalStatus("granting");
     const ok = await fetch("/api/nextron/action-permissions", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ grant: ["goalActions", "habitActions", "projectActions", "taskActions"] }) }).then((res) => res.ok).catch(() => false);
+    if (ok) setSetupPermissionsGranted(true);
     setProposalStatus(ok ? "idle" : "error");
     if (!ok) setError("NEXTRON action permissions could not be saved.");
   }
@@ -296,7 +299,7 @@ export default function OnboardingPage() {
 
         <aside className="space-y-4 xl:sticky xl:top-5 xl:self-start">
           <UnderstandingPanel understanding={understanding} />
-          {draft ? <DraftPanel draft={draft} proposal={proposal} proposalStatus={proposalStatus} onComplete={() => void transition("complete")} onBuildPlan={() => void buildSetupPlan()} onGrantPermissions={() => void grantSetupPermissions()} onApprovePlan={() => void approveSetupPlan()} onCancelPlan={() => void cancelSetupPlan()} busy={transitioning === "complete"} /> : <DraftWaitingPanel />}
+          {draft ? <DraftPanel draft={draft} proposal={proposal} proposalStatus={proposalStatus} setupPermissionsGranted={setupPermissionsGranted} onComplete={() => void transition("complete")} onBuildPlan={() => void buildSetupPlan()} onGrantPermissions={() => void grantSetupPermissions()} onApprovePlan={() => void approveSetupPlan()} onCancelPlan={() => void cancelSetupPlan()} busy={transitioning === "complete"} /> : <DraftWaitingPanel />}
         </aside>
       </div>
     </main>
@@ -345,6 +348,7 @@ function DraftPanel({
   draft,
   proposal,
   proposalStatus,
+  setupPermissionsGranted,
   onComplete,
   onBuildPlan,
   onGrantPermissions,
@@ -355,6 +359,7 @@ function DraftPanel({
   draft: LifeSetupDraft;
   proposal: ActionProposal | null;
   proposalStatus: "idle" | "building" | "granting" | "approving" | "cancelling" | "error";
+  setupPermissionsGranted: boolean;
   onComplete: () => void;
   onBuildPlan: () => void;
   onGrantPermissions: () => void;
@@ -397,7 +402,7 @@ function DraftPanel({
         </div>}
         <p className="mt-3 text-xs text-[var(--text-muted)]">Status: {proposal.status.replace(/_/g, " ")}</p>
         <div className="mt-3 flex flex-wrap gap-2">
-          <button type="button" onClick={onApprovePlan} disabled={!pending || proposalStatus === "approving"} className="inline-flex min-h-11 items-center rounded-xl bg-cyan-300 px-4 py-2 text-sm font-semibold text-slate-950 transition-all hover:-translate-y-0.5 hover:bg-cyan-200 disabled:translate-y-0 disabled:opacity-50">{proposalStatus === "approving" ? "Applying..." : proposal.preview.approvalLabel}</button>
+          <button type="button" onClick={onApprovePlan} disabled={!pending || !setupPermissionsGranted || proposalStatus === "approving"} className="inline-flex min-h-11 items-center rounded-xl bg-cyan-300 px-4 py-2 text-sm font-semibold text-slate-950 transition-all hover:-translate-y-0.5 hover:bg-cyan-200 disabled:translate-y-0 disabled:opacity-50">{proposalStatus === "approving" ? "Applying..." : setupPermissionsGranted ? proposal.preview.approvalLabel : "Grant permissions first"}</button>
           <button type="button" onClick={onCancelPlan} disabled={!pending || proposalStatus === "cancelling"} className="inline-flex min-h-11 items-center rounded-xl border border-[var(--danger)]/25 bg-[var(--danger-soft)] px-4 py-2 text-sm font-semibold text-[var(--danger)] transition-all hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-50">Cancel</button>
         </div>
         {completed && <div className="mt-4 rounded-xl border border-[var(--success)]/25 bg-[var(--success-soft)] px-3 py-2 text-xs leading-relaxed text-[var(--success)]">Your Life Pulse is ready. Enter the app to review the created structure and ask NEXTRON what to do today.</div>}
