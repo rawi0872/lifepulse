@@ -361,9 +361,8 @@ async function browserFirstRun(admin, userId) {
 
     await page.goto(`${BASE}/nextron`, { waitUntil: "domcontentloaded", timeout: 30000 });
     await page.waitForURL(/\/nextron(?:\?|$)/, { timeout: 30000 });
-    await expect(page.locator("#nextron-question")).toBeVisible({ timeout: 30000 });
-    await expect(page.locator("body")).toContainText("Command channel", { timeout: 30000 });
-    pass("Post-setup NEXTRON command center loaded");
+    await assertNextronHumanHierarchy(page, "post-setup NEXTRON Alpha 1.1 hierarchy");
+    pass("Post-setup NEXTRON human-first surface loaded");
     for (const route of ["today", "goals", "projects", "habits", "tasks", "life-map"]) {
       await page.goto(`${BASE}/${route}`, { waitUntil: "domcontentloaded", timeout: 30000 });
       if (page.url().includes("/onboarding")) throw new Error(`${route} redirected back to onboarding after setup`);

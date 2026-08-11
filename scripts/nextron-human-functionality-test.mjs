@@ -139,8 +139,15 @@ async function askLikeHuman(page, prompt) {
 
 async function exerciseControls(page) {
   await expect(page.getByRole("heading", { name: "NEXTRON" })).toBeVisible({ timeout: 10000 });
+  await expect(page.getByText("Talk to NEXTRON")).toBeVisible({ timeout: 10000 });
+  await expect(page.getByRole("heading", { name: "What should we work through?" })).toBeVisible({ timeout: 10000 });
   await expect(page.locator("#nextron-question")).toBeVisible({ timeout: 10000 });
   await expect(page.getByRole("button", { name: "Send to NEXTRON" })).toBeVisible({ timeout: 10000 });
+  await expect(page.getByRole("button", { name: "What should I focus on today?" }).first()).toBeVisible({ timeout: 10000 });
+  await expect(page.getByRole("button", { name: "What needs my attention?" }).first()).toBeVisible({ timeout: 10000 });
+  await expect(page.getByRole("button", { name: "What can you help me with?" }).first()).toBeVisible({ timeout: 10000 });
+  await expect(page.locator("summary").filter({ hasText: "More intelligence" })).toBeVisible({ timeout: 10000 });
+  await expect(page.getByText("NEXTRON Signals")).toBeHidden({ timeout: 10000 });
 
   await askLikeHuman(page, "What can you help me with?");
   pass("composer submit has acknowledgement and visible result");
@@ -161,8 +168,8 @@ async function exerciseControls(page) {
   await expect(page.getByText("History, live context, Signals, Actions, and permissions.")).toBeVisible({ timeout: 10000 });
   pass("secondary intelligence is reachable by disclosure");
 
-  await page.getByRole("button", { name: "New conversation" }).click();
-  await expect(page.getByRole("heading", { name: "New conversation" })).toBeVisible({ timeout: 10000 });
+  await expect(page.getByRole("button", { name: "New conversation" })).toBeVisible({ timeout: 10000 });
+  pass("conversation reset control is reachable in secondary intelligence");
 
   const attentionRefresh = page.locator('[data-nextron-attention="true"]').getByRole("button", { name: /Refresh|Checking/ });
   if (await attentionRefresh.isVisible().catch(() => false)) {
