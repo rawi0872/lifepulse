@@ -129,12 +129,25 @@ async function assertNoOverflow(page, label) {
   if (metrics.body > metrics.inner + 2 || metrics.doc > metrics.inner + 2) throw new Error(`${label} overflow: body=${metrics.body}, doc=${metrics.doc}, inner=${metrics.inner}`);
 }
 
-async function askLikeHuman(page, prompt) {
+async function nonPendingAssistantCount(page) {
+  return page.evaluate(() => Array.from(document.querySelectorAll("article")).filter((article) => article.textContent?.includes("NEXTRON") && !article.hasAttribute("data-nextron-pending-turn")).length);
+}
+
+async function waitForTerminalAsk(page, prompt) {
+  await expect(page.locator('[data-nextron-pending-turn="true"]')).toHaveCount(0, { timeout: 10000 });
+  await expect(page.locator("#nextron-question-status")).not.toContainText(/received your message|checking permitted evidence|Analyzing/i, { timeout: 10000 });
+  await expect(page.locator("article", { hasText: prompt })).toBeVisible({ timeout: 10000 });
+  await expect.poll(async () => nonPendingAssistantCount(page), { timeout: 10000 }).toBeGreaterThan(0);
+}
+
+async function askLikeHuman(page, prompt, method = "click") {
   await page.locator("#nextron-question").fill(prompt);
-  await page.getByRole("button", { name: "Send to NEXTRON" }).click();
+  await expect(page.getByRole("button", { name: "Send to NEXTRON" })).toBeEnabled({ timeout: 10000 });
+  if (method === "enter") await page.keyboard.press("Enter");
+  else await page.getByRole("button", { name: "Send to NEXTRON" }).click();
   await expect(page.locator("#nextron-question-status")).toContainText("received your message", { timeout: 5000 });
   await expect(page.locator('[data-nextron-pending-turn="true"]')).toBeVisible({ timeout: 5000 });
-  await expect(page.locator("body")).toContainText(/NEXTRON received the message|NEXTRON did not finish that answer/, { timeout: 15000 });
+  await waitForTerminalAsk(page, prompt);
 }
 
 async function exerciseControls(page) {
@@ -150,12 +163,15 @@ async function exerciseControls(page) {
   await expect(page.getByText("NEXTRON Signals")).toBeHidden({ timeout: 10000 });
 
   await askLikeHuman(page, "What can you help me with?");
-  pass("composer submit has acknowledgement and visible result");
+  pass("first composer submit has acknowledgement and visible result");
 
-  await page.locator("#nextron-question").fill("How am I doing?");
-  await page.keyboard.press("Enter");
-  await expect(page.locator("body")).toContainText("NEXTRON received the message", { timeout: 15000 });
-  pass("Enter-key submit has visible result");
+  await page.locator("#nextron-question").fill("How am I doing after that?");
+  await expect(page.getByRole("button", { name: "Send to NEXTRON" })).toBeEnabled({ timeout: 10000 });
+  await askLikeHuman(page, "How am I doing after that?");
+  pass("second immediate composer submit is enabled and succeeds");
+
+  await askLikeHuman(page, "What should I check next?", "enter");
+  pass("third Enter-key submit succeeds after prior terminal response");
 
   const quickQuestion = page.getByRole("button", { name: "What should I focus on today?" }).first();
   if (await quickQuestion.isVisible().catch(() => false)) {
@@ -203,6 +219,15 @@ async function exerciseControls(page) {
 }
 
 async function exerciseErrorPaths(page, controls) {
+  async function retryAndWait(label) {
+    await page.getByRole("button", { name: "Try again" }).click();
+    await expect(page.locator('[data-nextron-pending-turn="true"]')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('[data-nextron-pending-turn="true"]')).toHaveCount(0, { timeout: 10000 });
+    await expect(page.locator("#nextron-question-status")).not.toContainText(/received your message|checking permitted evidence|Analyzing/i, { timeout: 10000 });
+    await expect.poll(async () => nonPendingAssistantCount(page), { timeout: 10000 }).toBeGreaterThan(0);
+    pass(label);
+  }
+
   async function askExpectError(mode, prompt, label) {
     controls.setAskMode(mode);
     await page.locator("#nextron-question").fill(prompt);
@@ -223,17 +248,17 @@ async function exerciseErrorPaths(page, controls) {
   pass("timeout path shows retryable error");
 
   controls.setAskMode("success");
-  await page.getByRole("button", { name: "Try again" }).click();
-  await expect(page.locator("body")).toContainText("NEXTRON received the message", { timeout: 15000 });
-  pass("retry recovers after timeout");
+  await retryAndWait("retry recovers after timeout");
+  await askLikeHuman(page, "Next ask after timeout retry recovery");
+  pass("next ask succeeds after timeout retry recovery");
 
   await askExpectError("network", "Network failure path", "network failure");
   await askExpectError("api", "API failure path", "non-200 API failure");
   await askExpectError("malformed", "Malformed response path", "malformed response");
   controls.setAskMode("success");
-  await page.getByRole("button", { name: "Try again" }).click();
-  await expect(page.locator("body")).toContainText("NEXTRON received the message", { timeout: 15000 });
-  pass("retry recovers after malformed response");
+  await retryAndWait("retry recovers after malformed response");
+  await askLikeHuman(page, "Next ask after malformed retry recovery");
+  pass("next ask succeeds after malformed retry recovery");
 }
 
 async function runViewport(browser, viewport, label) {

@@ -248,14 +248,59 @@ async function assertNextronHumanHierarchy(page, label) {
   await assertNoOverflow(page, label);
 }
 
+async function nonPendingNextronAssistantCount(page) {
+  return page.evaluate(() => Array.from(document.querySelectorAll("article")).filter((article) => article.textContent?.includes("NEXTRON") && !article.hasAttribute("data-nextron-pending-turn")).length);
+}
+
+async function nextronSendState(page) {
+  const questionPresent = await page.locator("#nextron-question").evaluate((node) => node instanceof HTMLTextAreaElement && node.value.trim().length > 0).catch(() => false);
+  const statusText = await page.locator("#nextron-question-status").innerText().catch(() => "");
+  const sendButton = page.getByRole("button", { name: /Send to NEXTRON|Analyzing/i }).first();
+  const sendEnabled = await sendButton.isEnabled().catch(() => false);
+  const sendVisible = await sendButton.isVisible().catch(() => false);
+  const pendingVisible = await page.locator('[data-nextron-pending-turn="true"]').isVisible().catch(() => false);
+  const contextLoading = /loading permitted context/i.test(statusText) || await page.getByText("Loading permitted context", { exact: false }).isVisible().catch(() => false);
+  const asking = pendingVisible || /received your message|checking permitted evidence|analyzing/i.test(statusText);
+  return { questionPresent, sendVisible, sendEnabled, pendingVisible, contextLoading, asking };
+}
+
+async function logNextronSendState(page, label) {
+  const state = await nextronSendState(page);
+  console.log(`  NEXTRON SEND STATE ${label}`);
+  for (const [key, value] of Object.entries(state)) console.log(`    ${key}=${value}`);
+}
+
+async function expectNextronSendReady(page, label) {
+  try {
+    await expect.poll(async () => {
+      const state = await nextronSendState(page);
+      return state.questionPresent && state.sendVisible && state.sendEnabled && !state.asking && !state.contextLoading;
+    }, { timeout: 30000 }).toBe(true);
+  } catch (error) {
+    await logNextronSendState(page, label);
+    throw error;
+  }
+}
+
+async function waitForNextronAskTerminal(page, prompt, label) {
+  try {
+    await expect(page.locator('[data-nextron-pending-turn="true"]')).toHaveCount(0, { timeout: 30000 });
+    await expect(page.locator("#nextron-question-status")).not.toContainText(/checking permitted evidence|received your message|Analyzing/i, { timeout: 30000 });
+    await expect(page.locator("article", { hasText: prompt })).toBeVisible({ timeout: 30000 });
+    await expect.poll(async () => nonPendingNextronAssistantCount(page), { timeout: 30000 }).toBeGreaterThan(0);
+  } catch (error) {
+    await logNextronSendState(page, label);
+    throw error;
+  }
+}
+
 async function askNextronHumanPath(page, prompt) {
-  const previousAssistantCount = await page.locator("article", { hasText: "NEXTRON" }).count();
   await page.locator("#nextron-question").fill(prompt);
-  await expect(page.getByRole("button", { name: "Send to NEXTRON" })).toBeEnabled({ timeout: 30000 });
+  await expectNextronSendReady(page, "before production ask");
   await page.getByRole("button", { name: "Send to NEXTRON" }).click({ timeout: 30000 });
   await expect(page.locator("article", { hasText: prompt })).toBeVisible({ timeout: 5000 });
   const observedPending = await page.locator('[data-nextron-pending-turn="true"]').isVisible({ timeout: 2500 }).catch(() => false);
-  await expect.poll(async () => page.locator("article", { hasText: "NEXTRON" }).count(), { timeout: 90000 }).toBeGreaterThan(previousAssistantCount);
+  await waitForNextronAskTerminal(page, prompt, "after production ask");
   if (observedPending) pass("NEXTRON pending acknowledgement appeared before production response");
   else pass("NEXTRON production response arrived before pending acknowledgement could be observed");
 }
@@ -553,9 +598,7 @@ async function verifyLifeMapAndNextron(client, browserState) {
     await openMoreIntelligence(desktopPage);
     pass("NEXTRON Alpha 1.1 human-first hierarchy and secondary systems verified");
     for (const prompt of ["What supports my certification goal?", "Which project is connected to my goal?", "Show me my projects.", "Show me my habits.", "What should I focus on?"]) {
-      await desktopPage.locator("#nextron-question").fill(prompt);
-      await desktopPage.getByRole("button", { name: "Send to NEXTRON" }).click({ timeout: 30000 });
-      await expect(desktopPage.locator("#nextron-question-status")).not.toContainText(/checking permitted evidence|received your message|Analyzing/i, { timeout: 60000 });
+      await askNextronHumanPath(desktopPage, prompt);
     }
     await expect(desktopPage.locator('[data-nextron-rich-response="true"]').last()).toBeVisible({ timeout: 30000 });
     await desktopPage.reload({ waitUntil: "domcontentloaded" });
