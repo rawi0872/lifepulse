@@ -618,9 +618,14 @@ async function verifyLifeMapAndNextron(client, browserState) {
     }
     pass("NEXTRON Alpha 1.1 390px and 320px hierarchy checks completed");
 
+    const todayProviderCalls = [];
+    desktopPage.on("request", (request) => {
+      const url = request.url();
+      if (url.includes("/api/nextron/ask") || url.includes("/api/nextron/onboarding")) todayProviderCalls.push(url);
+    });
     await desktopPage.goto(`${BASE}/today`, { waitUntil: "domcontentloaded", timeout: 30000 });
-    await expect(desktopPage.locator("body")).toContainText(/Model calls: 0|No background AI/i, { timeout: 30000 });
-    pass("Attention/Today loaded with zero-background-call copy");
+    await expect(desktopPage.getByRole("heading", { name: "What matters today?" })).toBeVisible({ timeout: 30000 });
+    assert(todayProviderCalls.length === 0, "Today loaded with zero provider-route calls");
     await desktop.close();
   } finally {
     await browser.close();
