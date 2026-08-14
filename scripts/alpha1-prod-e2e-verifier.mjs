@@ -239,7 +239,7 @@ async function assertNoOverflow(page, label) {
 
 async function assertNextronHumanHierarchy(page, label) {
   await expect(page.getByRole("heading", { name: "NEXTRON" })).toBeVisible({ timeout: 30000 });
-  await expect(page.getByText("Talk to NEXTRON")).toBeVisible({ timeout: 30000 });
+  await expect(page.locator("header").getByText("Talk to NEXTRON", { exact: true })).toBeVisible({ timeout: 30000 });
   await expect(page.locator("#nextron-question")).toBeVisible({ timeout: 30000 });
   await expect(page.getByRole("button", { name: "Send to NEXTRON" })).toBeVisible({ timeout: 30000 });
   await expect(page.getByRole("button", { name: "What should I focus on today?" }).first()).toBeVisible({ timeout: 30000 });
