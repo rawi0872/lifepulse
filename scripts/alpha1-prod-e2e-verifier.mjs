@@ -403,7 +403,7 @@ async function browserFirstRun(admin, userId) {
     console.log(`  POST-SETUP STATE onboarding_completed=${completion.onboardingCompleted} onboarding_status=${completion.onboardingStatus ?? "null"}`);
     assert(completion.onboardingCompleted === true, "Post-setup profile onboarding_completed=true");
     assert(completion.onboardingStatus === "completed", "Post-setup onboarding status=completed");
-    await expect(page.getByRole("heading", { name: /Good / })).toBeVisible({ timeout: 30000 });
+    await expect(page.getByRole("heading", { name: "What matters today?" })).toBeVisible({ timeout: 30000 });
     pass("Post-setup Today landmark is visible");
 
     await page.goto(`${BASE}/nextron`, { waitUntil: "domcontentloaded", timeout: 30000 });
