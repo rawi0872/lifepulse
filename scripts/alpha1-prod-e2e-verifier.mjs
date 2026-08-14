@@ -362,13 +362,13 @@ async function browserFirstRun(admin, userId) {
     pass("Starting plan rendered in production before writes");
 
     const beforePlan = await counts(admin, userId, ["goals", "projects", "habits", "tasks", "goal_links"]);
-    assert(Object.values(beforePlan).every((value) => value === 0), "Setup Draft created no domain rows before approval");
+    assert(Object.values(beforePlan).every((value) => value === 0), "Starting plan created no domain rows before approval");
 
     await page.getByRole("button", { name: "Build my Life Pulse" }).click({ timeout: 30000 });
-    await expect(page.locator("body")).toContainText("Action Plan Preview", { timeout: 60000 });
-    pass("Setup phase: action plan preview shown");
+    await expect(page.locator('[data-nextron-onboarding-draft="true"]')).toContainText("Review before creating", { timeout: 60000 });
+    pass("Setup phase: approval review shown");
     const afterPreview = await counts(admin, userId, ["goals", "projects", "habits", "tasks", "goal_links"]);
-    assert(JSON.stringify(afterPreview) === JSON.stringify(beforePlan), "Action Plan Preview created no domain rows before permissions or approval");
+    assert(JSON.stringify(afterPreview) === JSON.stringify(beforePlan), "Approval review created no domain rows before permissions or approval");
 
     await expect(page.locator("body")).toContainText("Allow NEXTRON to create these items?", { timeout: 15000 });
     pass("Setup phase: permission review shown");
