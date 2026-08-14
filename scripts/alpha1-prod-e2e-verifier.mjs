@@ -314,7 +314,7 @@ async function openMoreIntelligence(page) {
   await expect(page.getByText("Patterns")).toBeVisible({ timeout: 30000 });
   await expect(page.getByText("NEXTRON Actions")).toBeVisible({ timeout: 30000 });
   await expect(page.getByText("NEXTRON access")).toBeVisible({ timeout: 30000 });
-  await expect(page.getByText("What NEXTRON can use")).toBeVisible({ timeout: 30000 });
+  await expect(page.getByRole("heading", { name: "What NEXTRON can use" })).toBeVisible({ timeout: 30000 });
 }
 
 async function sendOnboarding(page, text) {
