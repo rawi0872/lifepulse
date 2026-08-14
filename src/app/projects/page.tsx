@@ -9,6 +9,7 @@ import { HelpPopover } from "@/components/HelpPopover";
 import { toggleTaskCompletion } from "@/lib/taskCompletion";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { recordProductLearningEvent } from "@/lib/product-learning/client";
 import { QuickDraftWizard, TASK_TEMPLATES, detectCategory, guessRealm } from "@/components/projects/QuickDraftWizard";
 import { ProjectForm } from "@/components/projects/ProjectForm";
 import { ProjectCard } from "@/components/projects/ProjectCard";
@@ -255,6 +256,7 @@ export default function ProjectsPage() {
       payload.status = "active";
       const { error: err } = await supabase.from("projects").insert(payload);
       if (err) { toast({ type: "error", title: "Failed to create project." }); setSaving(false); return; }
+      void recordProductLearningEvent("project_created");
     }
 
     resetForm();

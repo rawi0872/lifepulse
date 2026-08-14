@@ -86,7 +86,7 @@ export async function PATCH(request: Request) {
 
   if (body.action === "complete") {
     const draft = normalizeLifeSetupDraft(state.setup_draft);
-    if (!draft) return NextResponse.json({ error: "Review the Life Setup Draft before marking setup ready." }, { status: 409 });
+    if (!draft) return NextResponse.json({ error: "Review the starting plan before marking setup ready." }, { status: 409 });
     const completedAt = new Date().toISOString();
     const { error: onboardingError } = await supabase.from("nextron_onboarding").update({ status: "completed", completed_at: completedAt, last_error: null }).eq("user_id", user.id);
     if (onboardingError) return NextResponse.json({ error: "NEXTRON onboarding could not be completed." }, { status: 503 });

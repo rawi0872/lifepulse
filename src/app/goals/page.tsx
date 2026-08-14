@@ -6,6 +6,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { DashboardNav } from "@/components/DashboardNav";
 import { useToast } from "@/hooks/use-toast";
+import { recordProductLearningEvent } from "@/lib/product-learning/client";
 import { SectionHeader } from "@/components/ui/section-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { GoalPulseHeader } from "@/components/goals/GoalPulseHeader";
@@ -254,6 +255,7 @@ function GoalsContent() {
           .insert({ ...data, user_id: user.id });
         if (error) { toast({ type: "error", title: "Failed to create goal." }); setSaving(false); return; }
         toast({ type: "success", title: "Goal created!" });
+        void recordProductLearningEvent("goal_created");
       }
 
       setShowForm(false);

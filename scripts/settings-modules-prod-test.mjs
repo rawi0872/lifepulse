@@ -38,7 +38,7 @@ const requiredModuleLabels = [
   "Tasks",
   "Habits",
   "Journal",
-  "Coach",
+  "NEXTRON",
   "Devices",
   "Business",
   "Team",
@@ -122,16 +122,16 @@ async function main() {
     await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible({ timeout: 15000 });
     pass("Settings page loaded");
 
-    await expectBodyText(page, "System control");
+    await expectBodyText(page, "Account");
     await expectBodyText(page, "Preferences");
     await expectBodyText(page, "Life Pulse setup");
     await expectBodyText(page, "Progression");
     await expectBodyText(page, "How XP works");
     await expectBodyText(page, "Modules / system");
     await expectBodyText(page, "Life Pulse modules");
-    await expectBodyText(page, "Your starting mode recommends areas to keep visible.");
+    await expectBodyText(page, "See what is active now and what is intentionally secondary.");
     await expectBodyText(page, "Recommended for your starting mode");
-    await expectBodyText(page, "System map");
+    await expectBodyText(page, "Advanced areas");
     await expectBodyText(page, "Connected areas");
     await expectBodyText(page, "Account / security");
     await expectBodyText(page, "Available");

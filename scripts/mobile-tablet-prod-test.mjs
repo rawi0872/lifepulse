@@ -41,7 +41,7 @@ const viewports = [
 ];
 
 const routes = [
-  { path: "/today", label: "Today", text: ["Good ", "Daily focus", "Start with one priority.", "Quick capture", "Daily execution"] },
+  { path: "/today", label: "Today", text: ["What matters today?", "Daily focus", "Start with one priority.", "Quick capture", "Tasks and habits"] },
   { path: "/tasks", label: "Tasks", text: ["Tasks"] },
   { path: "/habits", label: "Habits", text: ["Habits"] },
   { path: "/goals", label: "Goals", text: ["Goals"] },
@@ -51,12 +51,12 @@ const routes = [
   { path: "/knowledge", label: "Knowledge", text: ["Knowledge"] },
   { path: "/weekly-review", label: "Weekly Review", text: ["Weekly Review"] },
   { path: "/insights", label: "Insights", text: ["Insights"] },
-  { path: "/nextron", label: "NEXTRON", text: ["NEXTRON", "Ask NEXTRON"] },
+  { path: "/nextron", label: "NEXTRON", text: ["NEXTRON", "Talk to NEXTRON"] },
   { path: "/body", label: "Body", text: ["Body"] },
   { path: "/mind", label: "Mind", text: ["Mind Pulse", "Mind Habits", "Log Today's Mind Data"] },
   { path: "/finance", label: "Finance", text: ["Finance"] },
   { path: "/passions", label: "Passions", text: ["Passions", "Your hobbies, skills, and creative pursuits", "Active Passions"] },
-  { path: "/settings", label: "Settings", text: ["Settings", "NEXTRON Memory", "Save setup"] },
+  { path: "/settings", label: "Settings", text: ["Settings", "NEXTRON Memory", "Save setup", "NEXTRON"] },
   { path: "/devices", label: "Devices", text: ["Device Pulse", "Coming Soon", "No devices connected"] },
 ];
 
@@ -158,11 +158,14 @@ async function verifyMobileNavigation(page) {
   await page.getByRole("button", { name: "More" }).click();
   await expect(page.getByRole("heading", { name: "More" })).toBeVisible({ timeout: 15000 });
   const moreText = await page.locator("body").innerText({ timeout: 15000 });
-  if (!/Direction|Review|Use NEXTRON when you need synthesis/i.test(moreText)) {
+  if (!/Direction|Review|Optional Context/i.test(moreText)) {
     throw new Error("More menu did not show current product route grouping copy.");
   }
   await expect(page.getByRole("link", { name: /^Goals$/ })).toBeVisible({ timeout: 15000 });
   await expect(page.getByRole("link", { name: /^Results$/ })).toBeVisible({ timeout: 15000 });
+  for (const hiddenText of ["Devices", "Life Map", "Insights", "Knowledge", "Finance", "Passions"]) {
+    await expect(page.getByRole("link", { name: new RegExp(`^${hiddenText}$`) })).toBeHidden({ timeout: 5000 });
+  }
   pass("Phone More menu opens and shows secondary routes");
 
   await page.getByRole("button", { name: "Close more menu" }).click();

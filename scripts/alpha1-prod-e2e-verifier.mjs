@@ -43,6 +43,8 @@ const USER_TABLES = [
   "nextron_conversations",
   "nextron_messages",
   "nextron_action_proposals",
+  "product_learning_events",
+  "beta_feedback",
   "nextron_context_preferences",
   "nextron_memories",
   "goals",
@@ -244,7 +246,7 @@ async function assertNextronHumanHierarchy(page, label) {
   await expect(page.getByRole("button", { name: "What needs my attention?" }).first()).toBeVisible({ timeout: 30000 });
   await expect(page.getByRole("button", { name: "What can you help me with?" }).first()).toBeVisible({ timeout: 30000 });
   await expect(page.locator("summary").filter({ hasText: "More intelligence" })).toBeVisible({ timeout: 30000 });
-  await expect(page.getByText("NEXTRON Signals")).toBeHidden({ timeout: 30000 });
+  await expect(page.locator('[data-nextron-signals="true"]')).toBeHidden({ timeout: 30000 });
   await assertNoOverflow(page, label);
 }
 
@@ -260,7 +262,7 @@ async function nextronSendState(page) {
   const sendVisible = await sendButton.isVisible().catch(() => false);
   const pendingVisible = await page.locator('[data-nextron-pending-turn="true"]').isVisible().catch(() => false);
   const contextLoading = /loading permitted context/i.test(statusText) || await page.getByText("Loading permitted context", { exact: false }).isVisible().catch(() => false);
-  const asking = pendingVisible || /received your message|checking permitted evidence|analyzing/i.test(statusText);
+  const asking = pendingVisible || /received your message|is thinking|analyzing/i.test(statusText);
   return { questionPresent, sendVisible, sendEnabled, pendingVisible, contextLoading, asking };
 }
 
@@ -285,7 +287,7 @@ async function expectNextronSendReady(page, label) {
 async function waitForNextronAskTerminal(page, prompt, label) {
   try {
     await expect(page.locator('[data-nextron-pending-turn="true"]')).toHaveCount(0, { timeout: 30000 });
-    await expect(page.locator("#nextron-question-status")).not.toContainText(/checking permitted evidence|received your message|Analyzing/i, { timeout: 30000 });
+    await expect(page.locator("#nextron-question-status")).not.toContainText(/is thinking|received your message|Analyzing/i, { timeout: 30000 });
     await expect(page.locator("article", { hasText: prompt })).toBeVisible({ timeout: 30000 });
     await expect.poll(async () => nonPendingNextronAssistantCount(page), { timeout: 30000 }).toBeGreaterThan(0);
   } catch (error) {
@@ -309,10 +311,10 @@ async function openMoreIntelligence(page) {
   const summary = page.locator("summary").filter({ hasText: "More intelligence" });
   await summary.click({ timeout: 30000 });
   await expect(page.getByText("Conversations", { exact: true })).toBeVisible({ timeout: 30000 });
-  await expect(page.getByText("NEXTRON Signals")).toBeVisible({ timeout: 30000 });
+  await expect(page.getByText("Patterns")).toBeVisible({ timeout: 30000 });
   await expect(page.getByText("NEXTRON Actions")).toBeVisible({ timeout: 30000 });
-  await expect(page.getByText("Context permissions and access controls")).toBeVisible({ timeout: 30000 });
-  await expect(page.getByText("Context Sources")).toBeVisible({ timeout: 30000 });
+  await expect(page.getByText("NEXTRON access")).toBeVisible({ timeout: 30000 });
+  await expect(page.getByText("What NEXTRON can use")).toBeVisible({ timeout: 30000 });
 }
 
 async function sendOnboarding(page, text) {
@@ -352,12 +354,12 @@ async function browserFirstRun(admin, userId) {
     for (let attempt = 0; attempt < 3; attempt += 1) {
       const draftCount = await page.locator('[data-nextron-onboarding-draft="true"]').count();
       if (draftCount > 0) break;
-      await sendOnboarding(page, "That is enough context. Please prepare the Life Setup Draft with only bounded goals, habits, projects, and tasks.");
+      await sendOnboarding(page, "That is enough context. Please prepare the starting plan with only bounded goals, habits, projects, and tasks.");
     }
     await expect(page.locator('[data-nextron-onboarding-draft="true"]')).toBeVisible({ timeout: 90000 });
-    await expect(page.locator("body")).toContainText("Life Setup Draft", { timeout: 30000 });
+    await expect(page.locator("body")).toContainText("Starting plan", { timeout: 30000 });
     await expect(page.locator("body")).toContainText("Deliberately left out", { timeout: 30000 });
-    pass("Life Setup Draft rendered in production before writes");
+    pass("Starting plan rendered in production before writes");
 
     const beforePlan = await counts(admin, userId, ["goals", "projects", "habits", "tasks", "goal_links"]);
     assert(Object.values(beforePlan).every((value) => value === 0), "Setup Draft created no domain rows before approval");
@@ -368,13 +370,13 @@ async function browserFirstRun(admin, userId) {
     const afterPreview = await counts(admin, userId, ["goals", "projects", "habits", "tasks", "goal_links"]);
     assert(JSON.stringify(afterPreview) === JSON.stringify(beforePlan), "Action Plan Preview created no domain rows before permissions or approval");
 
-    await expect(page.locator("body")).toContainText("Permission review", { timeout: 15000 });
+    await expect(page.locator("body")).toContainText("Allow NEXTRON to create these items?", { timeout: 15000 });
     pass("Setup phase: permission review shown");
     const blockedApproveButton = page.getByRole("button", { name: "Grant permissions first" });
     await expect(blockedApproveButton).toBeDisabled({ timeout: 15000 });
     pass("Setup phase: approval unavailable before explicit permissions");
 
-    await page.getByRole("button", { name: "Grant approved-write permissions" }).click({ timeout: 30000 });
+    await page.getByRole("button", { name: "Allow setup changes" }).click({ timeout: 30000 });
     pass("Setup phase: permission grant requested");
     await page.waitForTimeout(1500);
     const afterPermissions = await counts(admin, userId, ["goals", "projects", "habits", "tasks", "goal_links"]);

@@ -201,7 +201,7 @@ export default function LifeMapPage() {
                       <h2 className="mt-1 text-xl font-semibold text-[var(--text)]">{selectedNode.title}</h2>
                       <p className="mt-1 text-xs text-[var(--text-muted)]">{TYPE_LABELS[selectedNode.type]} · {nodeDetail(selectedNode) || "No extra context"}</p>
                     </div>
-                    <Link href={nodeHref(selectedNode)} className="inline-flex min-h-10 items-center justify-center rounded-lg border border-[var(--accent)]/25 px-3 py-2 text-xs font-semibold text-[var(--accent)]">Open source page</Link>
+                    <Link href={nodeHref(selectedNode)} className="inline-flex min-h-10 items-center justify-center rounded-lg border border-[var(--accent)]/25 px-3 py-2 text-xs font-semibold text-[var(--accent)]">Open page</Link>
                   </div>
                   <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                     {selectedEdges.length === 0 ? <p className="text-sm text-[var(--text-muted)]">No explicit relationships for this item yet.</p> : selectedEdges.map((edge) => {

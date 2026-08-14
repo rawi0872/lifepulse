@@ -49,9 +49,10 @@ const icons = {
 
 const navGroups: NavGroup[] = [
   {
-    label: "Execute",
+    label: "Start",
     items: [
       { label: "Today", href: "/today", icon: icons.today },
+      { label: "NEXTRON", href: "/nextron", icon: icons.coach },
       { label: "Tasks", href: "/tasks", icon: icons.tasks },
       { label: "Habits", href: "/habits", icon: icons.habits },
     ],
@@ -60,43 +61,49 @@ const navGroups: NavGroup[] = [
     label: "Direction",
     items: [
       { label: "Goals", href: "/goals", icon: icons.goals },
-      { label: "Life Map", href: "/life-map", icon: icons.lifeMap },
       { label: "Projects", href: "/projects", icon: icons.projects },
     ],
   },
   {
     label: "Review",
     items: [
-      { label: "Results", href: "/results", icon: icons.results },
       { label: "Weekly Review", href: "/weekly-review", icon: icons.review },
-      { label: "Insights", href: "/insights", icon: icons.insights },
       { label: "Journal", href: "/journal", icon: icons.journal },
     ],
   },
   {
-    label: "Knowledge",
+    label: "Account",
     items: [
-      { label: "Knowledge", href: "/knowledge", icon: icons.knowledge },
-      { label: "Body", href: "/body", icon: icons.body },
+      { label: "Settings", href: "/settings", icon: icons.settings },
+    ],
+  },
+];
+
+const mobileMoreGroups: NavGroup[] = [
+  {
+    label: "Direction",
+    items: [
+      { label: "Goals", href: "/goals", icon: icons.goals },
+      { label: "Projects", href: "/projects", icon: icons.projects },
+    ],
+  },
+  {
+    label: "Review",
+    items: [
+      { label: "Weekly Review", href: "/weekly-review", icon: icons.review },
+      { label: "Journal", href: "/journal", icon: icons.journal },
+      { label: "Results", href: "/results", icon: icons.results },
+    ],
+  },
+  {
+    label: "Optional Context",
+    items: [
       { label: "Mind", href: "/mind", icon: icons.mind },
-      { label: "Finance", href: "/finance", icon: icons.finance },
-      { label: "Passions", href: "/passions", icon: icons.passions },
+      { label: "Body", href: "/body", icon: icons.body },
     ],
   },
   {
-    label: "Intelligence",
-    items: [
-      { label: "NEXTRON", href: "/nextron", icon: icons.coach },
-    ],
-  },
-  {
-    label: "Preview",
-    items: [
-      { label: "Devices", href: "/devices", icon: icons.devices, badge: "Preview" },
-    ],
-  },
-  {
-    label: "System",
+    label: "Account",
     items: [
       { label: "Settings", href: "/settings", icon: icons.settings },
     ],
@@ -107,12 +114,10 @@ const mobilePrimaryItems = [
   navGroups[0].items[0],
   navGroups[0].items[1],
   navGroups[0].items[2],
-  navGroups[4].items[0],
+  navGroups[0].items[3],
 ].filter(Boolean) as NavItem[];
 
-const mobileMoreGroups = navGroups.slice(1);
-
-const mobileMoreItems = navGroups.slice(1).flatMap((group) => group.items);
+const mobileMoreItems = mobileMoreGroups.flatMap((group) => group.items);
 
 function NavLink({ item, active, onClick }: { item: NavItem; active: boolean; onClick?: () => void }) {
   return (
@@ -169,11 +174,11 @@ export function DashboardNav({ children }: { children: React.ReactNode }) {
             </span>
             <span className="min-w-0">
               <span className="block text-xs font-semibold tracking-tight text-[var(--text)]">NEXTRON</span>
-              <span className="block truncate text-[10px] text-cyan-100/60">Command center ready</span>
+              <span className="block truncate text-[10px] text-cyan-100/60">Ready to talk</span>
             </span>
           </div>
-          <Link href="/nextron" className="mt-3 inline-flex min-h-8 w-full items-center justify-center rounded-lg border border-cyan-300/15 bg-cyan-300/10 px-2 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-cyan-50/80 transition-colors hover:border-cyan-200/30 hover:bg-cyan-300/15" aria-label="Open command center">
-            Open command center
+          <Link href="/nextron" className="mt-3 inline-flex min-h-8 w-full items-center justify-center rounded-lg border border-cyan-300/15 bg-cyan-300/10 px-2 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-cyan-50/80 transition-colors hover:border-cyan-200/30 hover:bg-cyan-300/15" aria-label="Talk to NEXTRON">
+            Talk to NEXTRON
           </Link>
           <span className="mt-3 block h-px origin-left rounded-full bg-gradient-to-r from-cyan-200/60 via-cyan-200/20 to-transparent command-pulse" aria-hidden="true" />
         </div>
@@ -241,7 +246,7 @@ export function DashboardNav({ children }: { children: React.ReactNode }) {
             <div className="mb-3 flex items-center justify-between">
               <div>
                 <h2 className="text-base font-semibold tracking-[-0.02em] text-[var(--text)]">More</h2>
-                <p className="mt-0.5 text-xs text-[var(--text-muted)]">Start with Today. Use NEXTRON when you need synthesis across the system.</p>
+                <p className="mt-0.5 text-xs text-[var(--text-muted)]">Start with Today. Everything else supports the daily loop.</p>
               </div>
               <button
                 onClick={() => setMoreOpen(false)}

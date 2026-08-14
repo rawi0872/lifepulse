@@ -43,7 +43,7 @@ export function BodyPulseSection({
     <section>
       <div className="mb-3 flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-baseline gap-2">
-          <h2 className="text-sm font-semibold tracking-[-0.01em] text-[var(--text)]">Body Pulse</h2>
+          <h2 className="text-sm font-semibold tracking-[-0.01em] text-[var(--text)]">Habits due</h2>
           <span className="text-xs text-[var(--text-muted)]">{completedHabitCount}/{dueHabitsLength}</span>
         </div>
         <Link href="/habits" className="text-xs text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)]">
@@ -57,9 +57,7 @@ export function BodyPulseSection({
           message="When you are ready, add one small repeatable action you can actually keep."
           compact
           action={
-            <Link href="/habits" className="inline-flex min-h-10 items-center gap-1 rounded-lg bg-[var(--accent-soft)] px-3 text-xs font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0 sm:bg-transparent sm:px-0">
-              Add one habit &rarr;
-            </Link>
+            <Link href="/habits" className="inline-flex min-h-10 items-center gap-1 rounded-lg bg-[var(--accent-soft)] px-3 text-xs font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0 sm:bg-transparent sm:px-0">Add one habit &rarr;</Link>
           }
         />
       ) : (

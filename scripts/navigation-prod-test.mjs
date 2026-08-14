@@ -34,13 +34,10 @@ const PASSWORD = env.LIFE_PULSE_TEST_PASSWORD;
 const ERROR_SCREENSHOT_PATH = "screenshot-navigation-prod-error.png";
 
 const requiredGroupText = [
-  ["Execute"],
+  ["Start"],
   ["Direction"],
   ["Review"],
-  ["Knowledge"],
-  ["Intelligence"],
-  ["Preview"],
-  ["System"],
+  ["Account"],
 ];
 
 const requiredNavText = [
@@ -48,22 +45,15 @@ const requiredNavText = [
   "NEXTRON",
   "Weekly Review",
   "Goals",
-  "Life Map",
   "Projects",
   "Tasks",
   "Habits",
-  "Body",
-  "Mind",
-  "Passions",
-  "Finance",
   "Journal",
-  "Results",
-  "Insights",
-  "Devices",
   "Settings",
 ];
 
 const removedNavText = ["Today\u2019s Pulse", "Life Domains", "Money"];
+const hiddenV1NavText = ["Life Map", "Insights", "Knowledge", "Finance", "Passions", "Devices", "Body", "Mind", "Results"];
 
 function requireConfig() {
   const missing = [];
@@ -171,12 +161,16 @@ async function main() {
       await expectNavText(sidebar, text);
     }
 
-    const nextronLink = sidebar.getByRole("link", { name: /NEXTRON/i });
+    const nextronLink = sidebar.getByRole("link", { name: "NEXTRON", exact: true });
     await expect(nextronLink).toBeVisible({ timeout: 15000 });
     await expect(nextronLink).toHaveAttribute("href", /\/nextron$/);
     pass("NEXTRON nav route points to /nextron");
 
     for (const text of removedNavText) {
+      await expectNavTextAbsent(sidebar, text);
+    }
+
+    for (const text of hiddenV1NavText) {
       await expectNavTextAbsent(sidebar, text);
     }
 

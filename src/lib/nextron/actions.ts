@@ -443,7 +443,7 @@ function planPreview(actions: PlanAction[], source: "onboarding" | "conversation
   const fields = Object.entries(counts).map(([domain, count]) => ({ label: domain[0].toUpperCase() + domain.slice(1), after: `${count} ${count === 1 ? "change" : "changes"}` }));
   return {
     heading: source === "onboarding" ? "BUILD LIFE PULSE" : "ACTION PLAN",
-    subheading: source === "onboarding" ? "Create the approved setup from your saved Life Setup Draft" : "Apply approved Life Pulse changes",
+    subheading: source === "onboarding" ? "Create the approved setup from your saved starting plan" : "Apply approved Life Pulse changes",
     fields,
     approvalLabel: `Approve ${actions.length} ${actions.length === 1 ? "change" : "changes"}`,
   };
@@ -470,7 +470,7 @@ function setupDraftToActions(draft: LifeSetupDraft): PlanAction[] {
 
 export async function createOnboardingSetupActionPlan(args: { supabase: SupabaseClient; onboardingState: { setup_draft: unknown; updated_at: string; status: string } }): Promise<{ ok: true; proposal: NextronActionProposal } | { ok: false; reason: string; message: string }> {
   const draft = normalizeLifeSetupDraft(args.onboardingState.setup_draft);
-  if (!draft) return { ok: false, reason: "DRAFT_NOT_READY", message: "Review the Life Setup Draft before building an action plan." };
+  if (!draft) return { ok: false, reason: "DRAFT_NOT_READY", message: "Review the starting plan before building an action plan." };
   const actions = setupDraftToActions(draft);
   if (actions.length === 0) return { ok: false, reason: "EMPTY_PLAN", message: "The saved draft did not contain any supported setup changes." };
   const sourceHash = `${draftHash(draft)}-${Date.parse(args.onboardingState.updated_at) || 0}`;

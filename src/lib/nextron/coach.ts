@@ -204,8 +204,8 @@ function noEvidenceResponse(intent: NextronCoachingIntent): NextronCoachResponse
   return response(
     `interactive_${intent.toLowerCase()}_limited_evidence`,
     "calm",
-    [fact("today", "Permitted evidence is limited for this request right now.")],
-    "NEXTRON cannot make a stronger recommendation without more permitted Life Pulse evidence.",
+    [fact("today", "Life Pulse has limited context for this request right now.")],
+    "NEXTRON cannot make a stronger recommendation without more relevant Life Pulse context.",
     "Open Today",
     "/today",
     "Use Today to log one real priority or completion, then ask again.",
@@ -217,11 +217,11 @@ function boundaryResponse(request: NextronUserRequest): NextronCoachResponse {
     return response("interactive_crisis_boundary", "high", [fact("today", "This request may involve immediate safety or self-harm risk.")], "NEXTRON is not a crisis or therapy service and cannot handle immediate-danger situations.", "Open Today", "/today", "If you may be in immediate danger, contact local emergency services or a trusted person now.");
   }
   const label = request.intent === "AUTONOMOUS_ACTION" ? "NEXTRON cannot take autonomous actions for you." : "This request needs expertise outside Life Pulse.";
-  return response("interactive_boundary", "calm", [fact("today", label)], "NEXTRON can answer practical Life Pulse questions from permitted evidence, but it will not provide medical, legal, financial, or autonomous-action handling.", "Open Today", "/today", "Ask about focus, next action, attention, progress, planning, review, patterns, or friction instead.");
+  return response("interactive_boundary", "calm", [fact("today", label)], "NEXTRON can answer practical Life Pulse questions from the context you allow, but it will not provide medical, legal, financial, or autonomous-action handling.", "Open Today", "/today", "Ask about focus, next action, attention, progress, planning, review, patterns, or friction instead.");
 }
 
 function unsupportedResponse(): NextronCoachResponse {
-  return response("interactive_unsupported", "calm", [fact("today", "The request is not a supported deterministic Life Pulse question yet.")], "NEXTRON can currently answer practical questions about focus, next action, attention, progress, planning, review, patterns, and friction from permitted Life Pulse evidence.", "Open Today", "/today", "Try asking: What should I focus on today? What needs my attention? Or what should I do next?");
+  return response("interactive_unsupported", "calm", [fact("today", "That request is outside what NEXTRON can help with right now.")], "NEXTRON can currently answer practical questions about focus, next action, attention, progress, planning, review, patterns, and friction from your Life Pulse context.", "Open Today", "/today", "Try asking: What should I focus on today? What needs my attention? Or what should I do next?");
 }
 
 function reflectionRequestResponse(packet: NextronEvidencePacket, request: NextronUserRequest): NextronCoachResponse | null {
@@ -276,7 +276,7 @@ export function buildInteractiveNextronResponse(packet: NextronEvidencePacket, r
     }
     case "CROSS_DOMAIN_AGENT":
       return facts.length > 0
-        ? response("interactive_cross_domain_fallback", "medium", facts, "These are the clearest cross-domain attention signals in permitted evidence. NEXTRON is using deterministic fallback rather than agent synthesis right now.", fallback.nextAction.label, fallback.nextAction.href, fallback.nextAction.rationale)
+        ? response("interactive_cross_domain_fallback", "medium", facts, "These are the clearest things across your Life Pulse context right now.", fallback.nextAction.label, fallback.nextAction.href, fallback.nextAction.rationale)
         : noEvidenceResponse(request.intent);
     case "KNOWLEDGE_QUERY":
       return packet.knowledge.status === "permission_denied"
@@ -288,7 +288,7 @@ export function buildInteractiveNextronResponse(packet: NextronEvidencePacket, r
     case "ATTENTION":
     case "NEGLECT":
     case "STUCK":
-      return facts.length > 0 ? response(`interactive_${request.intent.toLowerCase()}`, "medium", facts, request.intent === "STUCK" ? "These are factual friction signals, not proof of a personal cause." : "These are the clearest attention signals in permitted evidence.", fallback.nextAction.label, fallback.nextAction.href, fallback.nextAction.rationale) : noEvidenceResponse(request.intent);
+      return facts.length > 0 ? response(`interactive_${request.intent.toLowerCase()}`, "medium", facts, request.intent === "STUCK" ? "These are factual friction signals, not proof of a personal cause." : "These are the clearest things that may need attention.", fallback.nextAction.label, fallback.nextAction.href, fallback.nextAction.rationale) : noEvidenceResponse(request.intent);
     case "WEEK_PROGRESS": {
       const weeklyFacts = [
         ...availableFact("tasks", packet.tasks.data ? `${plural(packet.tasks.data.completedTodayCount, "task")} completed today.` : null),
@@ -299,16 +299,16 @@ export function buildInteractiveNextronResponse(packet: NextronEvidencePacket, r
       return weeklyFacts.length > 0 ? response("interactive_week_progress", "low", weeklyFacts, "This is a factual weekly snapshot, not a score or trend prediction.", "Open Weekly Review", "/weekly-review", "Review the week if you want to turn these facts into a short reflection.") : noEvidenceResponse(request.intent);
     }
     case "PROGRESS":
-      return positives.length > 0 ? response("interactive_progress", "low", positives, "These are the strongest positive signals currently visible in permitted evidence.", "Open Today", "/today", "Keep the loop small: continue one thing that is already moving.") : noEvidenceResponse(request.intent);
+      return positives.length > 0 ? response("interactive_progress", "low", positives, "These are the strongest positive signals currently visible in Life Pulse.", "Open Today", "/today", "Keep the loop small: continue one thing that is already moving.") : noEvidenceResponse(request.intent);
     case "PLANNING":
-      return response("interactive_planning", "medium", [...memoryPreferenceFacts(packet), ...(facts.length > 0 ? facts.slice(0, 2) : [fact("today", "NEXTRON does not see a strong urgent signal in permitted evidence.")])].slice(0, 3), "A safe plan is bounded: choose one immediate item, then one follow-up, then close the day with a review only if useful. Confirmed preferences can shape style, but current Life Pulse facts stay authoritative.", "Open Today", "/today", "Use Today to pick the first step; avoid inventing calendar times that are not already in Life Pulse.");
+      return response("interactive_planning", "medium", [...memoryPreferenceFacts(packet), ...(facts.length > 0 ? facts.slice(0, 2) : [fact("today", "NEXTRON does not see a strong urgent signal in Life Pulse.")])].slice(0, 3), "A safe plan is bounded: choose one immediate item, then one follow-up, then close the day with a review only if useful. Confirmed preferences can shape style, but current Life Pulse facts stay authoritative.", "Open Today", "/today", "Use Today to pick the first step; avoid inventing calendar times that are not already in Life Pulse.");
     case "REVIEW":
       return [...facts.slice(0, 2), ...positives.slice(0, 2)].length > 0
         ? response("interactive_review", "low", [...facts.slice(0, 2), ...positives.slice(0, 2)].slice(0, 4), "The best review target is the area with either unfinished work or recent activity.", "Open Weekly Review", "/weekly-review", "Review factual summaries first, then save a reflection only if it adds something real.")
         : noEvidenceResponse(request.intent);
     case "PATTERN": {
       const repeated = positives.filter((item) => item.text.includes("week") || item.text.includes("logged"));
-      return repeated.length >= 2 ? response("interactive_pattern", "low", repeated, "There is enough repeated logged activity to name a small pattern, but not enough to claim a trend.", "Open Insights", "/insights", "Use Insights to compare this with other logged signals.") : response("interactive_pattern_insufficient", "calm", [fact("today", "There is not enough repeated permitted evidence to name a reliable pattern yet.")], "NEXTRON will not invent a trend from one-off or missing data.", "Open Today", "/today", "Keep logging normally, then ask again after more repeated evidence exists.");
+      return repeated.length >= 2 ? response("interactive_pattern", "low", repeated, "There is enough repeated logged activity to name a small pattern, but not enough to claim a trend.", "Open Insights", "/insights", "Use Insights to compare this with other logged signals.") : response("interactive_pattern_insufficient", "calm", [fact("today", "There is not enough repeated context to name a reliable pattern yet.")], "NEXTRON will not invent a trend from one-off or missing data.", "Open Today", "/today", "Keep logging normally, then ask again after more repeated context exists.");
     }
     default:
       return unsupportedResponse();
@@ -451,7 +451,7 @@ export function buildDeterministicNextronResponse(packet: NextronEvidencePacket)
       fact("today", today ? `${today.completedTodayTaskCount} task${today.completedTodayTaskCount === 1 ? "" : "s"} and ${today.completedHabitCount} habit${today.completedHabitCount === 1 ? "" : "s"} completed today.` : "Today context is limited or denied."),
       fact("tasks", tasks ? `${tasks.boundedOpenTaskCount} bounded open task${tasks.boundedOpenTaskCount === 1 ? "" : "s"} are visible.` : "Task context is limited or denied."),
     ],
-    "Nothing in the permitted evidence requires urgency. Keep the loop simple and avoid adding work just to satisfy the system.",
+    "Nothing in Life Pulse requires urgency. Keep the loop simple and avoid adding work just to satisfy the system.",
     "Open Today",
     "/today",
     "Use Today if you want to choose one small next step; otherwise keep logging normally.",

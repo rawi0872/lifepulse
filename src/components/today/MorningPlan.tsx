@@ -56,17 +56,17 @@ export function MorningPlan({
           <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
               <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--accent)]">
-                Morning plan
+                Start here
               </p>
               <h2 id="morning-plan-heading" className="mt-1 text-xl font-semibold tracking-[-0.03em] text-[var(--text)]">
-                Start the day without sorting everything.
+                What matters first?
               </h2>
               <p className="mt-1 max-w-2xl text-sm leading-relaxed text-[var(--text-secondary)]">
-                A short local plan from today&apos;s tasks, due habits, and your local priorities.
+                One priority or one visible action is enough.
               </p>
             </div>
             <span className={`w-fit rounded-full border px-2.5 py-1 text-[10px] font-medium ${isMorning ? "border-[var(--accent)]/30 bg-[var(--accent-soft)] text-[var(--accent)]" : "border-[var(--border)] bg-[var(--surface-soft)] text-[var(--text-muted)]"}`}>
-              {isMorning ? "Morning emphasis" : timePeriod === "day" ? "Available for today" : "Still available"}
+              {isMorning ? "Now" : timePeriod === "day" ? "Today" : "Tonight"}
             </span>
           </div>
         </div>
@@ -74,7 +74,7 @@ export function MorningPlan({
         <div className="grid min-w-0 gap-0 divide-y divide-[var(--border)] lg:grid-cols-[1.1fr_0.9fr] lg:divide-x lg:divide-y-0">
           <div className="min-w-0 p-4 sm:p-5">
             <div className="rounded-2xl border border-[var(--accent)]/20 bg-black/[0.12] p-4">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">Start here</p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">First action</p>
               {firstAction ? (
                 <div className="mt-3 flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
@@ -108,17 +108,13 @@ export function MorningPlan({
                 </div>
               ) : (
                 <div className="mt-3">
-                  <p className="text-sm font-medium text-[var(--text)]">Nothing urgent is waiting.</p>
-                  <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
-                    Choose one useful action or add a task when something needs to become concrete.
-                  </p>
+                  <p className="text-sm font-medium text-[var(--text)]">You&apos;re clear for now.</p>
+                  <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">Add a small task only if something needs action.</p>
                   <div className="mt-3 flex flex-wrap gap-2 text-xs">
                     <a href="#quick-capture" className="rounded-lg border border-[var(--accent)]/20 bg-[var(--accent-soft)] px-3 py-2 font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)]">
                       Use quick capture
                     </a>
-                    <Link href="/tasks" className="rounded-lg border border-[var(--border)] px-3 py-2 text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/25 hover:text-[var(--accent)]">
-                      Open tasks
-                    </Link>
+                    <Link href="/tasks" className="rounded-lg border border-[var(--border)] px-3 py-2 text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/25 hover:text-[var(--accent)]">Open tasks</Link>
                   </div>
                 </div>
               )}
@@ -138,7 +134,7 @@ export function MorningPlan({
                 className="mt-2 min-h-11 w-full rounded-xl border border-white/[0.09] bg-[rgba(8,11,15,0.72)] px-3.5 py-3 text-sm text-[var(--text)] placeholder:text-[var(--text-muted)]/80 shadow-inner shadow-black/20 transition-all focus:border-[var(--accent-strong)]/50 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/12"
               />
               <p id="morning-intent-note" className="mt-1.5 text-[10px] text-[var(--text-muted)]">
-                Saved on this device for today. Not synced.
+                Saved here for today.
               </p>
             </div>
           </div>
@@ -164,7 +160,7 @@ export function MorningPlan({
                 </div>
               ) : (
                 <p className="mt-3 rounded-lg border border-dashed border-[var(--border)] bg-black/[0.08] px-3 py-3 text-xs text-[var(--text-muted)]">
-                  Choose up to three priorities for today.
+                  No priorities yet.
                 </p>
               )}
               {activePriorities.length < 3 && (
@@ -176,7 +172,7 @@ export function MorningPlan({
 
             <div className="p-4 sm:p-5">
               <div className="flex items-center justify-between gap-3">
-                <h3 className="text-sm font-semibold text-[var(--text)]">Needs attention</h3>
+                <h3 className="text-sm font-semibold text-[var(--text)]">Also available</h3>
                 <a href="#daily-execution" className="text-xs text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)]">See all</a>
               </div>
               {attentionItems.length > 0 ? (
@@ -194,7 +190,7 @@ export function MorningPlan({
                 </div>
               ) : (
                 <p className="mt-3 rounded-lg border border-dashed border-[var(--border)] bg-black/[0.08] px-3 py-3 text-xs text-[var(--text-muted)]">
-                  No overdue tasks, due-today tasks, or incomplete due habits.
+                  Nothing else is waiting.
                 </p>
               )}
             </div>

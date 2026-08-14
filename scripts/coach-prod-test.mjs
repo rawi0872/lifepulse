@@ -38,25 +38,23 @@ const SUPABASE_ANON_KEY = env.NEXT_PUBLIC_SUPABASE_ANON_KEY || env.SUPABASE_ANON
 const ERROR_SCREENSHOT_PATH = "screenshot-nextron-prod-error.png";
 
 const requiredNextronText = [
-  "Personal Intelligence",
   "NEXTRON",
-  "NEXTRON Daily Brief",
+  "Talk to NEXTRON",
+  "Daily Brief",
   "What to know and protect today",
   "Generate brief",
-  "NEXTRON Signals",
+  "Patterns",
   "What changed or deserves attention",
-  "Refresh signals",
+  "Refresh",
   "NEXTRON Actions",
   "Approval framework",
-  "Command channel",
   "Ask NEXTRON",
-  "Main intelligence",
-  "Live intelligence",
+  "What should we work through?",
+  "More intelligence",
   "Read-only schedule",
   "Active Projects",
-  "Context Sources",
-  "Context permissions",
-  "Context permissions and access controls",
+  "What NEXTRON can use",
+  "NEXTRON access",
   "Operational context",
   "Private text context",
   "Currently available",
@@ -69,7 +67,7 @@ const requiredTransparencyText = [
   "Reminders, email, and messages",
   "External connectors are read-only",
   "Drive uses selected imported files only",
-  "NEXTRON is permissioned, bounded, and user-controlled",
+  "NEXTRON is user-controlled",
 ];
 
 const forbiddenFinancePhrases = [
@@ -272,20 +270,21 @@ async function main() {
       pass(`Forbidden NEXTRON memory phrase absent: ${phrase}`);
     }
 
+    await page.locator("summary").filter({ hasText: "More intelligence" }).click({ timeout: 30000 });
     await expect(page.locator('[data-nextron-signals="true"]')).toBeVisible({ timeout: 20000 });
     const signalCount = await page.locator('[data-nextron-signal="true"]').count();
     expect(signalCount).toBeLessThanOrEqual(5);
     if (signalCount > 0) {
-      await expect(page.locator('[data-nextron-signals="true"]')).toContainText("Why this signal exists", { timeout: 10000 });
+      await expect(page.locator('[data-nextron-signals="true"]')).toContainText("Why this matters", { timeout: 10000 });
       await expect(page.getByRole("button", { name: "Why does this matter?" }).first()).toBeVisible({ timeout: 10000 });
-      pass(`NEXTRON Signals visible with ${signalCount} active signal(s)`);
+      pass(`NEXTRON patterns visible with ${signalCount} active pattern(s)`);
     } else {
-      await expect(page.locator('[data-nextron-signals="true"]')).toContainText("No meaningful signals right now", { timeout: 10000 });
-      pass("NEXTRON Signals empty state is visible");
+      await expect(page.locator('[data-nextron-signals="true"]')).toContainText("Nothing meaningful to surface right now", { timeout: 10000 });
+      pass("NEXTRON patterns empty state is visible");
     }
-    await page.getByRole("button", { name: "Refresh signals" }).click();
+    await page.locator('[data-nextron-signals="true"]').getByRole("button", { name: /Refresh|Refreshing/ }).click();
     await expect(page.locator('[data-nextron-signals="true"]')).toContainText("Model calls: 0", { timeout: 15000 });
-    pass("NEXTRON Signals refresh completed");
+    pass("NEXTRON patterns refresh completed");
 
     await expect(page.locator('[data-nextron-actions="true"]')).toContainText("Goals, Habits, Projects, and Tasks", { timeout: 10000 });
     await page.locator("#nextron-question").fill(`Create a task called ${createTitle} tomorrow`);
@@ -361,7 +360,7 @@ async function main() {
     await expect(page.locator('[data-nextron-daily-brief="true"]')).toContainText("Updated", { timeout: 30000 });
     await expect(page.locator('[data-nextron-daily-brief="true"]')).toContainText("Sources used", { timeout: 10000 });
     await expect(page.locator('[data-nextron-daily-brief="true"]')).toContainText("Recommended approach", { timeout: 10000 });
-    await expect(page.getByRole("button", { name: "Ask why" })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole("button", { name: "Ask about this brief" })).toBeVisible({ timeout: 10000 });
     const priorityCount = await page.locator('[data-nextron-daily-brief-priority="true"]').count();
     expect(priorityCount).toBeLessThanOrEqual(3);
     pass(`Daily Brief generated with ${priorityCount} primary priorities`);

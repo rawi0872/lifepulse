@@ -48,12 +48,12 @@ assert(signals.includes('deduped = new Map') && signals.includes('severityRank(c
 assert(signals.includes('isNextronContextAllowed(evidence.permissions, "calendar")') && signals.includes('isNextronContextAllowed(evidence.permissions, "projects")'), "M permission-off sources do not create source-derived signals");
 assert(signals.includes('task.status === "todo"') && signals.includes('completedAt'), "N completed/resolved task conditions disappear from current signals");
 assert(signals.includes('replace(/\\b(ignore|reveal|system prompt|developer message|secret)\\b/gi'), "O injection-like task/calendar text is sanitized as data");
-assert(coach.includes('No meaningful signals right now') && coach.includes('not manufacturing urgency'), "P no-data state is honest and calm");
+assert(coach.includes('Nothing meaningful to surface right now'), "P no-data state is honest and calm");
 
 assert(!signals.includes('GROQ_API_KEY') && !signals.includes('OPENAI_API_KEY'), "Model providers are not used for signal detection");
 assert(!signals.includes('knowledge_items') && !signals.includes('google_drive_imports') && !signals.includes('nextron_memories'), "Knowledge, Drive, and Memory are not automatically scanned");
 assert(coach.includes('data-nextron-signals="true"') && coach.includes('data-nextron-signal="true"'), "Signal UI exposes stable QA landmarks");
-assert(coach.includes('data-nextron-attention="true"') && coach.includes('NEXTRON Noticed'), "Signals feed the proactive NEXTRON Attention presentation");
+assert(coach.includes('data-nextron-attention="true"') && coach.includes('NEXTRON noticed'), "Signals feed the proactive NEXTRON Attention presentation");
 assert(coach.includes('Why does this matter?') && coach.includes('What should I do?'), "Signal conversation bridge is present without actions");
 assert(coach.includes('loadSignals') && coach.includes('visibilitychange') && coach.includes('loadLiveContext'), "Signals refresh on entry/focus/current context refresh pattern without polling");
 

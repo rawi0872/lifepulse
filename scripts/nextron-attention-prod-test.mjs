@@ -69,7 +69,7 @@ async function verifyNextronAttention(page, label) {
   await page.goto(`${BASE}/nextron`, { waitUntil: "domcontentloaded", timeout: 30000 });
   await assertAuthenticated(page, label);
   await expect(page.locator('[data-nextron-attention="true"]')).toBeVisible({ timeout: 30000 });
-  await expect(page.locator("body")).toContainText("NEXTRON Noticed", { timeout: 30000 });
+  await expect(page.locator("body")).toContainText("NEXTRON noticed", { timeout: 30000 });
   await expect(page.locator("body")).toContainText("Model calls: 0", { timeout: 30000 });
   await assertNoOverflow(page, `${label} NEXTRON attention`);
 }
@@ -78,7 +78,7 @@ async function verifyTodayAttention(page, label) {
   await page.goto(`${BASE}/today`, { waitUntil: "domcontentloaded", timeout: 30000 });
   await assertAuthenticated(page, label);
   await expect(page.locator('[data-today-nextron-attention="true"]')).toBeVisible({ timeout: 30000 });
-  await expect(page.locator("body")).toContainText("NEXTRON Noticed", { timeout: 30000 });
+  await expect(page.locator("body")).toContainText("NEXTRON noticed", { timeout: 30000 });
   await expect(page.locator("body")).toContainText("Model calls: 0", { timeout: 30000 });
   await assertNoOverflow(page, `${label} Today attention`);
 }

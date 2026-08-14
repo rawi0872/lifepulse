@@ -145,11 +145,9 @@ export default function JournalPage() {
             Private history
           </p>
           <h1 className="text-2xl font-bold text-[var(--text)]">Journal</h1>
-          <p className="mt-1 text-pretty text-sm leading-relaxed text-[var(--text-muted)]">
-            Your private history for daily reflections written from Today and weekly reviews saved from Weekly Review.
-          </p>
+          <p className="mt-1 text-pretty text-sm leading-relaxed text-[var(--text-muted)]">A private place to capture what mattered.</p>
           <div className="mt-3 flex min-w-0 flex-col gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)]/70 px-3.5 py-3 text-xs text-[var(--text-muted)] sm:flex-row sm:items-center sm:justify-between sm:gap-2">
-            <span className="min-w-0 text-pretty">Return here to see what changed over time. No AI summaries or external processing.</span>
+            <span className="min-w-0 text-pretty">Reflect from Today. Review the week when enough has happened.</span>
             <div className="flex shrink-0 flex-wrap gap-2">
               <Link href="/today#evening-reflection" className="inline-flex min-h-10 items-center rounded-lg border border-[var(--accent)]/20 bg-[var(--accent-soft)] px-3 font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0 sm:border-0 sm:bg-transparent sm:px-0">
                 Return to Today reflection
@@ -164,7 +162,7 @@ export default function JournalPage() {
 
         <DailyLoopConnector
           activeStep="reflect"
-          note="Journal is the private history of what changed. Reflection starts from Today, then Weekly Review gets clearer as entries collect."
+            note="Journal keeps your private reflections in one place."
         />
 
         {entries.length > 0 && (
@@ -182,8 +180,7 @@ export default function JournalPage() {
           <EmptyState
             eyebrow="Private journal"
             title="Your private history will appear here."
-            message="Reflect from Today during the week, save Weekly Review on day 7, then return here to see what changed over time."
-            description="No judgment. Quiet weeks still count. No AI summaries, sharing, or external processing."
+            message="Reflect from Today when something matters. Your entries will collect here."
             action={(
               <div className="flex flex-col items-center justify-center gap-2 sm:flex-row">
                 <Link href="/today#evening-reflection">

@@ -121,7 +121,7 @@ async function installMocks(page) {
 
 async function waitForReady(page) {
   await expect(page.locator("#nextron-question")).toBeVisible({ timeout: 60000 });
-  await expect(page.locator("#nextron-question-status")).not.toContainText("loading permitted context", { timeout: 60000 });
+  await expect(page.locator("#nextron-question-status")).not.toContainText("getting ready", { timeout: 60000 });
 }
 
 async function assertNoOverflow(page, label) {
@@ -135,7 +135,7 @@ async function nonPendingAssistantCount(page) {
 
 async function waitForTerminalAsk(page, prompt) {
   await expect(page.locator('[data-nextron-pending-turn="true"]')).toHaveCount(0, { timeout: 10000 });
-  await expect(page.locator("#nextron-question-status")).not.toContainText(/received your message|checking permitted evidence|Analyzing/i, { timeout: 10000 });
+  await expect(page.locator("#nextron-question-status")).not.toContainText(/received your message|is thinking|Analyzing/i, { timeout: 10000 });
   await expect(page.locator("article", { hasText: prompt })).toBeVisible({ timeout: 10000 });
   await expect.poll(async () => nonPendingAssistantCount(page), { timeout: 10000 }).toBeGreaterThan(0);
 }
@@ -152,7 +152,7 @@ async function askLikeHuman(page, prompt, method = "click") {
 
 async function exerciseControls(page) {
   await expect(page.getByRole("heading", { name: "NEXTRON" })).toBeVisible({ timeout: 10000 });
-  await expect(page.getByText("Talk to NEXTRON")).toBeVisible({ timeout: 10000 });
+  await expect(page.locator("main").getByText("Talk to NEXTRON").first()).toBeVisible({ timeout: 10000 });
   await expect(page.getByRole("heading", { name: "What should we work through?" })).toBeVisible({ timeout: 10000 });
   await expect(page.locator("#nextron-question")).toBeVisible({ timeout: 10000 });
   await expect(page.getByRole("button", { name: "Send to NEXTRON" })).toBeVisible({ timeout: 10000 });
@@ -160,7 +160,7 @@ async function exerciseControls(page) {
   await expect(page.getByRole("button", { name: "What needs my attention?" }).first()).toBeVisible({ timeout: 10000 });
   await expect(page.getByRole("button", { name: "What can you help me with?" }).first()).toBeVisible({ timeout: 10000 });
   await expect(page.locator("summary").filter({ hasText: "More intelligence" })).toBeVisible({ timeout: 10000 });
-  await expect(page.getByText("NEXTRON Signals")).toBeHidden({ timeout: 10000 });
+  await expect(page.locator('[data-nextron-signals="true"]')).toBeHidden({ timeout: 10000 });
 
   await askLikeHuman(page, "What can you help me with?");
   pass("first composer submit has acknowledgement and visible result");
@@ -181,7 +181,7 @@ async function exerciseControls(page) {
   }
 
   await page.locator("summary").filter({ hasText: "More intelligence" }).click();
-  await expect(page.getByText("History, live context, Signals, Actions, and permissions.")).toBeVisible({ timeout: 10000 });
+  await expect(page.getByText("History, current context, actions, and permissions.")).toBeVisible({ timeout: 10000 });
   pass("secondary intelligence is reachable by disclosure");
 
   await expect(page.getByRole("button", { name: "New conversation" })).toBeVisible({ timeout: 10000 });
@@ -196,7 +196,7 @@ async function exerciseControls(page) {
     pass("compact attention stays quiet when nothing meaningful surfaces");
   }
 
-  const signalsRefresh = page.locator('[data-nextron-signals="true"]').getByRole("button", { name: /Refresh signals|Refreshing/ });
+  const signalsRefresh = page.locator('[data-nextron-signals="true"]').getByRole("button", { name: /Refresh|Refreshing/ });
   await signalsRefresh.click();
   await expect(signalsRefresh).toBeVisible({ timeout: 10000 });
   pass("signals refresh gives visible state");
@@ -213,8 +213,8 @@ async function exerciseControls(page) {
     pass("daily brief control gives visible state");
   }
 
-  await page.getByText("Context permissions and access controls").click();
-  await expect(page.getByText("Saved permissions control what evidence enters NEXTRON")).toBeVisible({ timeout: 10000 });
+  await page.getByText("NEXTRON access").click();
+  await expect(page.getByText("Saved permissions are active")).toBeVisible({ timeout: 10000 });
   pass("context permissions disclosure opens visibly");
 }
 
@@ -223,7 +223,7 @@ async function exerciseErrorPaths(page, controls) {
     await page.getByRole("button", { name: "Try again" }).click();
     await expect(page.locator('[data-nextron-pending-turn="true"]')).toBeVisible({ timeout: 5000 });
     await expect(page.locator('[data-nextron-pending-turn="true"]')).toHaveCount(0, { timeout: 10000 });
-    await expect(page.locator("#nextron-question-status")).not.toContainText(/received your message|checking permitted evidence|Analyzing/i, { timeout: 10000 });
+    await expect(page.locator("#nextron-question-status")).not.toContainText(/received your message|is thinking|Analyzing/i, { timeout: 10000 });
     await expect.poll(async () => nonPendingAssistantCount(page), { timeout: 10000 }).toBeGreaterThan(0);
     pass(label);
   }

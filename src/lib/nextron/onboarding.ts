@@ -310,7 +310,7 @@ export function buildLifeSetupDraft(understanding: NextronOnboardingUnderstandin
 }
 
 function buildReply(understanding: NextronOnboardingUnderstanding, readiness: NextronOnboardingReadiness, missing: string[]): string {
-  if (readiness === "ready") return "I think I have enough to give you a useful starting structure. Review the Life Setup Draft below, or keep talking if something important is missing.";
+  if (readiness === "ready") return "I think I have enough to give you a useful starting structure. Review the starting plan below, or keep talking if something important is missing.";
   if (readiness === "nearly_ready") return `I'm starting to see the shape of this. The most useful thing to clarify next is ${missing[0] ?? "what usually gets in the way"}.`;
   return "Before I organize anything, I want to understand what you're trying to change. Tell me what's going on in your life right now.";
 }
@@ -390,7 +390,7 @@ async function runOnboardingProvider(args: { prompt: string; understanding: Next
         max_output_tokens: 2200,
         text: { format: { type: "json_schema", name: "nextron_onboarding_turn", schema: responseSchema(), strict: true } },
         input: JSON.stringify({
-          instruction: "You are NEXTRON onboarding a new Life Pulse user. Ask only high-value follow-ups. Build a compact Life Setup Draft when ready. Do not create entities, claim writes, ask for sensitive details, expose JSON, or store Memory.",
+          instruction: "You are NEXTRON onboarding a new Life Pulse user. Ask only high-value follow-ups. Build a compact starting plan when ready. Do not create entities, claim writes, ask for sensitive details, expose JSON, or store Memory.",
           currentUnderstanding: args.understanding,
           recentMessages: recent,
           userPrompt: sanitizeConversationContent(args.prompt, NEXTRON_ONBOARDING_MAX_PROMPT),

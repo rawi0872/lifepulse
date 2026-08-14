@@ -35,13 +35,13 @@ assert(attentionRoute.includes("export async function GET()") && attentionRoute.
 assert(!attentionRoute.includes("POST") && !attentionRoute.includes("PATCH") && !attentionRoute.includes("DELETE"), "Attention API must not expose mutation endpoints.");
 assert(!attentionRoute.includes("service_role") && !attentionRoute.includes("SUPABASE_SERVICE_ROLE"), "Attention API must not use service role access.");
 
-assert(coachPage.includes('data-nextron-attention="true"') && coachPage.includes("NEXTRON Noticed") && coachPage.includes("What deserves attention right now"), "NEXTRON command center must surface proactive Attention before asking.");
+assert(coachPage.includes('data-nextron-attention="true"') && coachPage.includes("NEXTRON noticed") && coachPage.includes("What may deserve attention"), "NEXTRON command center must surface proactive Attention before asking.");
 assert(coachPage.includes("Why this surfaced") && coachPage.includes("Ask NEXTRON") && coachPage.includes("onAsk(item.bridgePrompt)"), "Attention UI must expose evidence and normal Ask-NEXTRON transition.");
 assert(!coachPage.includes("dangerouslySetInnerHTML") && !coachPage.includes("new Function"), "Attention UI must not execute arbitrary markup or code.");
 
-assert(todayPage.includes('data-today-nextron-attention="true"') && todayPage.includes("/api/nextron/attention") && todayPage.includes("NEXTRON Noticed"), "Today must reuse the same Attention engine through the Attention API.");
+assert(todayPage.includes('data-today-nextron-attention="true"') && todayPage.includes("/api/nextron/attention") && todayPage.includes("NEXTRON noticed"), "Today must reuse the same Attention engine through the Attention API.");
 assert(todayPage.includes("lifepulse:nextron-bridge") && todayPage.includes("item.bridgePrompt"), "Today attention items must bridge to normal NEXTRON Ask without auto-sending.");
-assert(todayPage.includes("Model calls: {attention?.meta.modelCalls ?? 0}"), "Today Attention UI must expose zero-model cost state.");
+assert(todayPage.includes('modelCalls: 0') && todayPage.includes('candidate.meta?.modelCalls === 0'), "Today Attention UI must preserve zero-model attention contract.");
 
 assert(!coachPage.includes("setInterval") && !todayPage.includes("setInterval"), "Prompt 5 must not add polling.");
 assert(!attentionRoute.includes("cron") && !signalRoute.includes("cron"), "Prompt 5 must not add scheduled/background execution.");

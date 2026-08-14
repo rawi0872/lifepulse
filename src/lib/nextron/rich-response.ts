@@ -119,7 +119,7 @@ export function buildNextronRichResponse(response: NextronCoachResponse, packet:
   ].filter((entry): entry is NextronRichListItem => Boolean(entry)).slice(0, MAX_ITEMS);
   pushBlock(blocks, (viewIntent === "today" || viewIntent === "attention" || viewIntent === "summary" || viewIntent === "life_map") && priorityItems.length > 0 ? { type: "priority_list", title: "What Deserves Attention", items: priorityItems } : null);
 
-  const taskItems = (tasks?.nextOpenTitles ?? []).map((title) => item(title, "tasks", "Next open task from permitted evidence.", "/tasks"));
+  const taskItems = (tasks?.nextOpenTitles ?? []).map((title) => item(title, "tasks", "Next open task from Life Pulse.", "/tasks"));
   const projectItems = (projects?.sampleNames ?? []).map((title) => item(title, "projects", "Active project visible to NEXTRON.", "/projects"));
   const goalItems = (goals?.sampleNames ?? []).map((title) => item(title, "goals", "Active goal visible to NEXTRON.", "/goals"));
   const habitItems = habits ? [item(`${habits.completedTodayCount} of ${habits.dueTodayCount} due habits completed`, "habits", `${habits.weeklyCompletedCount} habit completions logged this week.`, "/habits", habits.completedTodayCount < habits.dueTodayCount ? "attention" : "positive")] : [];

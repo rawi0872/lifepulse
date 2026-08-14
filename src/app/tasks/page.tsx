@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useToast } from "@/hooks/use-toast";
+import { recordProductLearningEvent } from "@/lib/product-learning/client";
 
 interface Realm {
   id: string;
@@ -345,6 +346,7 @@ export default function TasksPage() {
         title: task.status !== "done" ? "Visible action logged" : "Task reopened",
         description: task.status !== "done" ? "+25 XP added. This task will appear in your weekly rhythm. Return to Today to reflect." : undefined,
       });
+      if (task.status !== "done") void recordProductLearningEvent("task_completed");
       await reloadTasks();
     } finally {
       setTogglingTaskId(null);
@@ -632,7 +634,7 @@ export default function TasksPage() {
 
         <div className="mb-4 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2.5">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-xs text-[var(--text-muted)]">Tasks are canonical here. NEXTRON can discuss them and prepare approved Task actions.</p>
+            <p className="text-xs text-[var(--text-muted)]">Tasks are one-time actions. NEXTRON can help you choose what matters next.</p>
             <Link href="/nextron?subject=tasks" className="inline-flex min-h-10 shrink-0 items-center justify-center rounded-lg border border-[var(--accent)]/20 px-3 py-2 text-xs font-semibold text-[var(--accent)] transition-colors hover:border-[var(--accent)]/35 hover:text-[var(--accent-strong)]">
               Ask NEXTRON about my tasks
             </Link>

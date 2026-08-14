@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { LifePulseLogo } from "@/components/LifePulseLogo";
+import { recordProductLearningEvent } from "@/lib/product-learning/client";
 
 type OnboardingStatus = "not_started" | "in_progress" | "draft_ready" | "completed" | "skipped";
 
@@ -116,6 +117,8 @@ export default function OnboardingPage() {
   const [setupPermissionsGranted, setSetupPermissionsGranted] = useState(false);
   const [proposalStatus, setProposalStatus] = useState<"idle" | "building" | "granting" | "approving" | "cancelling" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
+  const [allowProductLearning, setAllowProductLearning] = useState(false);
+  const [savingProductLearning, setSavingProductLearning] = useState(false);
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -135,6 +138,13 @@ export default function OnboardingPage() {
   useEffect(() => {
     const timeoutId = window.setTimeout(() => { void load(); }, 0);
     return () => window.clearTimeout(timeoutId);
+  }, []);
+  useEffect(() => {
+    fetch("/api/product-learning/preference", { cache: "no-store" })
+      .then((res) => res.ok ? res.json() : null)
+      .then((body: { allow?: unknown } | null) => setAllowProductLearning(Boolean(body?.allow)))
+      .catch(() => undefined);
+    void recordProductLearningEvent("onboarding_started");
   }, []);
   useEffect(() => { bottomRef.current?.scrollIntoView({ block: "end" }); }, [messages.length, sending]);
 
@@ -175,7 +185,18 @@ export default function OnboardingPage() {
     }
     setState(result.body.state);
     setMessages(result.body.messages);
+    if (action === "complete") void recordProductLearningEvent("onboarding_completed");
     if (action === "skip" || action === "complete") router.push("/today");
+  }
+
+  async function saveProductLearningPreference(allow: boolean) {
+    setSavingProductLearning(true);
+    const ok = await fetch("/api/product-learning/preference", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ allow }) }).then((res) => res.ok).catch(() => false);
+    setSavingProductLearning(false);
+    if (ok) {
+      setAllowProductLearning(allow);
+      if (allow) void recordProductLearningEvent("onboarding_started");
+    }
   }
 
   async function buildSetupPlan() {
@@ -244,16 +265,23 @@ export default function OnboardingPage() {
           <LifePulseLogo />
           <p className="mt-6 text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-200/70">First session</p>
           <h1 className="mt-2 text-3xl font-bold tracking-[-0.04em] text-[var(--text)] sm:text-4xl">Build Life Pulse around your actual life.</h1>
-          <p className="mt-3 text-sm leading-relaxed text-[var(--text-secondary)]">Start by talking to NEXTRON. No goals, habits, tasks, or projects are created in this step. You are shaping a setup draft.</p>
+          <p className="mt-3 text-sm leading-relaxed text-[var(--text-secondary)]">Start by talking to NEXTRON. It will learn what matters, then show you a starting plan before anything is created.</p>
           <div className="mt-5 grid grid-cols-3 gap-2">
-            <MiniStat label="Status" value={state?.status === "draft_ready" ? "Draft" : skipped ? "Skipped" : "Learning"} />
-            <MiniStat label="Signals" value={String(insightCount)} />
-            <MiniStat label="Writes" value="0" />
+            <MiniStat label="Status" value={state?.status === "draft_ready" ? "Plan ready" : skipped ? "Skipped" : "Learning"} />
+            <MiniStat label="Learned" value={String(insightCount)} />
+            <MiniStat label="Created" value="0" />
           </div>
           <div className="mt-5 rounded-2xl border border-cyan-300/10 bg-black/15 p-3">
-            <p className="text-xs font-semibold text-[var(--text)]">Privacy boundary</p>
-            <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">This onboarding understanding is not Memory. NEXTRON will not permanently remember statements unless you later use explicit Memory behavior.</p>
+            <p className="text-xs font-semibold text-[var(--text)]">Private by default</p>
+            <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">This conversation sets up your account. NEXTRON will not save long-term preferences unless you explicitly ask it to remember something later.</p>
           </div>
+          <label className="mt-3 flex items-start gap-3 rounded-2xl border border-cyan-300/10 bg-black/15 p-3 text-left">
+            <input type="checkbox" checked={allowProductLearning} disabled={savingProductLearning} onChange={(event) => void saveProductLearningPreference(event.target.checked)} className="mt-1 h-4 w-4 rounded border-cyan-300/25 bg-black/20" />
+            <span>
+              <span className="block text-xs font-semibold text-[var(--text)]">Help improve Life Pulse</span>
+              <span className="mt-1 block text-xs leading-relaxed text-[var(--text-muted)]">Share basic usage events. This never includes NEXTRON conversations, journal entries, task names, or other private content.</span>
+            </span>
+          </label>
           <button type="button" onClick={() => void transition("skip")} disabled={transitioning !== null} className="mt-4 inline-flex min-h-10 w-full items-center justify-center rounded-xl border border-cyan-300/15 bg-black/15 px-3 py-2 text-sm font-semibold text-[var(--text-secondary)] transition-colors hover:border-cyan-200/30 hover:bg-cyan-300/10 disabled:opacity-50">
             {transitioning === "skip" ? "Skipping..." : "Skip for now"}
           </button>
@@ -266,7 +294,7 @@ export default function OnboardingPage() {
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-200/70">NEXTRON onboarding</p>
               <h2 className="mt-1 text-xl font-semibold tracking-[-0.03em] text-[var(--text)]">Tell me what is changing.</h2>
-              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[var(--text-muted)]">NEXTRON will ask only for what changes the setup. Corrections are part of the conversation.</p>
+              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[var(--text-muted)]">Say what you want to improve, what is hard right now, or what your week needs to support.</p>
             </div>
             <span className="w-fit rounded-full border border-cyan-300/18 bg-cyan-300/8 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-cyan-100/75">{sending ? "Analyzing" : draft ? "Draft ready" : "Listening"}</span>
           </div>
@@ -274,7 +302,7 @@ export default function OnboardingPage() {
           <div className="flex-1 space-y-3 overflow-y-auto pr-1">
             {!hasConversation && <OnboardingTurn role="assistant" content={assistantGreeting} />}
             {messages.map((message) => <OnboardingTurn key={message.id} role={message.role} content={message.content} />)}
-            {sending && <OnboardingTurn role="assistant" content="NEXTRON is updating the setup draft from this turn..." pending />}
+            {sending && <OnboardingTurn role="assistant" content="NEXTRON is updating your starting plan..." pending />}
             <div ref={bottomRef} />
           </div>
 
@@ -289,7 +317,7 @@ export default function OnboardingPage() {
             <div className="rounded-2xl border border-cyan-300/18 bg-[linear-gradient(180deg,rgba(2,6,23,0.44),rgba(2,6,23,0.24))] p-2 shadow-inner shadow-cyan-950/20 transition-all duration-200 focus-within:border-cyan-200/55 focus-within:shadow-[0_0_0_1px_rgba(103,232,249,0.12),0_0_42px_rgba(8,145,178,0.12)]">
               <textarea ref={composerRef} id="nextron-onboarding-composer" value={prompt} onChange={(event) => { setPrompt(event.target.value.slice(0, 1500)); setError(null); }} onKeyDown={(event) => { if (event.nativeEvent.isComposing) return; if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void send(); } }} rows={3} maxLength={1500} placeholder="Tell NEXTRON what is happening right now..." className="min-h-24 w-full resize-y rounded-xl border-0 bg-transparent px-3 py-3 text-base leading-relaxed text-[var(--text)] outline-none placeholder:text-[var(--text-muted)]" />
               <div className="flex flex-wrap items-center justify-between gap-2 border-t border-cyan-300/10 px-2 pt-2">
-                <p className="text-xs text-[var(--text-muted)]">{prompt.trim().length}/1500. Enter sends; Shift+Enter adds a line.</p>
+                <p className="text-xs text-[var(--text-muted)]">Enter sends; Shift+Enter adds a line.</p>
                 <button type="submit" disabled={sending || !prompt.trim()} className="inline-flex min-h-11 items-center rounded-xl bg-cyan-300 px-4 py-2 text-sm font-semibold text-slate-950 shadow-lg shadow-cyan-950/30 transition-all hover:-translate-y-0.5 hover:bg-cyan-200 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-45">{sending ? "Analyzing..." : "Send to NEXTRON"}</button>
               </div>
             </div>
@@ -341,7 +369,7 @@ function UnderstandingSection({ title, items, empty }: { title: string; items: s
 }
 
 function DraftWaitingPanel() {
-  return <section className="nextron-surface rounded-[1.5rem] p-4"><p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-200/60">Life Setup Draft</p><h2 className="mt-1 text-sm font-semibold text-[var(--text)]">Not ready yet</h2><p className="mt-3 text-xs leading-relaxed text-[var(--text-muted)]">NEXTRON will propose a compact setup once it understands your outcomes, near-term priorities, and real constraints. Unknown nonessential details will be left out instead of forcing questions.</p></section>;
+  return <section className="nextron-surface rounded-[1.5rem] p-4"><p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-200/60">Starting plan</p><h2 className="mt-1 text-sm font-semibold text-[var(--text)]">Not ready yet</h2><p className="mt-3 text-xs leading-relaxed text-[var(--text-muted)]">NEXTRON will suggest a small setup once it understands your priorities and constraints. It will leave out anything that does not seem necessary.</p></section>;
 }
 
 function DraftPanel({
@@ -371,9 +399,9 @@ function DraftPanel({
   const completed = proposal?.status === "completed" || proposal?.status === "partially_failed";
   return (
     <section className="nextron-surface rounded-[1.5rem] p-4" data-nextron-onboarding-draft="true">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-200/60">Life Setup Draft</p>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-200/60">Starting plan</p>
       <h2 className="mt-1 text-lg font-semibold tracking-[-0.03em] text-[var(--text)]">Your plan is ready to build.</h2>
-      <p className="mt-2 text-xs leading-relaxed text-[var(--text-muted)]">Marking this ready does not create goals, habits, tasks, projects, or calendar events. It confirms the draft for the next step.</p>
+      <p className="mt-2 text-xs leading-relaxed text-[var(--text-muted)]">Review this first. Nothing is created until you allow and approve it.</p>
       <div className="mt-4 space-y-4">
         <DraftList title="Current focus" items={draft.currentFocus} />
         <DraftCards title="Recommended goals" items={draft.goals.map((goal) => `${goal.title} — ${goal.why} (${goal.horizon}, ${goal.priority})`)} />
@@ -385,22 +413,22 @@ function DraftPanel({
         <DraftCards title="Deliberately left out" items={draft.deliberatelyLeftOut.map((item) => `${item.item} — ${item.reason}`)} muted />
       </div>
       {!proposal && <div className="mt-4 flex flex-col gap-2">
-        <button type="button" onClick={onComplete} disabled={busy} className="inline-flex min-h-11 items-center justify-center rounded-xl border border-cyan-300/20 bg-cyan-300/10 px-4 py-2 text-sm font-semibold text-cyan-50/85 transition-all hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-50">{busy ? "Marking ready..." : "Looks right - setup ready"}</button>
+        <button type="button" onClick={onComplete} disabled={busy} className="inline-flex min-h-11 items-center justify-center rounded-xl border border-cyan-300/20 bg-cyan-300/10 px-4 py-2 text-sm font-semibold text-cyan-50/85 transition-all hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-50">{busy ? "Saving..." : "Looks right"}</button>
         <button type="button" onClick={onBuildPlan} disabled={proposalStatus === "building"} className="inline-flex min-h-11 items-center justify-center rounded-xl bg-cyan-300 px-4 py-2 text-sm font-semibold text-slate-950 transition-all hover:-translate-y-0.5 hover:bg-cyan-200 disabled:translate-y-0 disabled:opacity-50">{proposalStatus === "building" ? "Preparing preview..." : "Build my Life Pulse"}</button>
       </div>}
       {proposal && <div className="mt-5 rounded-2xl border border-cyan-300/18 bg-black/18 p-4">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-200/70">Action Plan Preview</p>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-200/70">Review before creating</p>
         <h3 className="mt-1 text-base font-semibold text-[var(--text)]">{proposal.preview.heading}</h3>
         <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">{proposal.description}</p>
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
           {proposal.preview.fields.map((field) => <div key={field.label} className="rounded-xl border border-cyan-300/10 bg-cyan-300/8 px-3 py-2"><p className="text-[10px] uppercase tracking-[0.12em] text-[var(--text-muted)]">{field.label}</p><p className="mt-1 text-sm font-semibold text-[var(--text)]">{field.after}</p></div>)}
         </div>
         {!completed && <div className="mt-4 rounded-xl border border-cyan-300/12 bg-black/15 p-3">
-          <p className="text-xs font-semibold text-[var(--text)]">Permission review</p>
-          <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">To build this setup, NEXTRON needs permission to make approved changes to Goals, Habits, Projects, and Tasks. This does not allow autonomous changes; the preview still requires approval.</p>
-          <button type="button" onClick={onGrantPermissions} disabled={proposalStatus === "granting"} className="mt-3 inline-flex min-h-10 items-center rounded-xl border border-cyan-300/20 bg-cyan-300/10 px-3 py-2 text-xs font-semibold text-cyan-50/85 transition-all hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-50">{proposalStatus === "granting" ? "Saving permissions..." : "Grant approved-write permissions"}</button>
+          <p className="text-xs font-semibold text-[var(--text)]">Allow NEXTRON to create these items?</p>
+          <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">This allows only the Goals, Habits, Projects, and Tasks shown in this review. NEXTRON still cannot change anything without your approval.</p>
+          <button type="button" onClick={onGrantPermissions} disabled={proposalStatus === "granting"} className="mt-3 inline-flex min-h-10 items-center rounded-xl border border-cyan-300/20 bg-cyan-300/10 px-3 py-2 text-xs font-semibold text-cyan-50/85 transition-all hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-50">{proposalStatus === "granting" ? "Saving..." : "Allow setup changes"}</button>
         </div>}
-        <p className="mt-3 text-xs text-[var(--text-muted)]">Status: {proposal.status.replace(/_/g, " ")}</p>
+        <p className="mt-3 text-xs text-[var(--text-muted)]">Status: {proposal.status === "pending" ? "Waiting for your approval" : proposal.status.replace(/_/g, " ")}</p>
         <div className="mt-3 flex flex-wrap gap-2">
           <button type="button" onClick={onApprovePlan} disabled={!pending || !setupPermissionsGranted || proposalStatus === "approving"} className="inline-flex min-h-11 items-center rounded-xl bg-cyan-300 px-4 py-2 text-sm font-semibold text-slate-950 transition-all hover:-translate-y-0.5 hover:bg-cyan-200 disabled:translate-y-0 disabled:opacity-50">{proposalStatus === "approving" ? "Applying..." : setupPermissionsGranted ? proposal.preview.approvalLabel : "Grant permissions first"}</button>
           <button type="button" onClick={onCancelPlan} disabled={!pending || proposalStatus === "cancelling"} className="inline-flex min-h-11 items-center rounded-xl border border-[var(--danger)]/25 bg-[var(--danger-soft)] px-4 py-2 text-sm font-semibold text-[var(--danger)] transition-all hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-50">Cancel</button>

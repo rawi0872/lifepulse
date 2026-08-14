@@ -92,8 +92,8 @@ export function resolvePromptWithConversation(rawPrompt: string, context: Conver
     : lastIntent === "CALENDAR_QUERY"
       ? "Continue as a Calendar question and re-check current Calendar evidence."
       : lastIntent === "PROJECT_AGENT" || lastIntent === "CROSS_DOMAIN_AGENT"
-        ? "Continue as a project or cross-domain Life Pulse question using current permitted evidence."
-        : "Continue this Life Pulse intelligence question using current permitted evidence.";
+        ? "Continue as a project or cross-domain Life Pulse question using the current allowed context."
+        : "Continue this Life Pulse intelligence question using the current allowed context.";
   return `${hint} Previous turn context: ${previous}. Current follow-up: ${prompt}`.slice(0, 500);
 }
 

@@ -16,6 +16,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { useToast } from "@/hooks/use-toast";
 import { getTodayDateString, getWeekStartDate } from "@/lib/utils";
 import { getCurrentStreak, getBestStreak, getTimesPerWeekTarget, getWeeklyProgress, isHabitDueOnDate, normalizeCompletedDates } from "@/lib/streaks";
+import { recordProductLearningEvent } from "@/lib/product-learning/client";
 
 interface Realm {
   id: string;
@@ -356,6 +357,7 @@ export default function HabitsPage() {
 
         setTodayCompleted((prev) => new Set([...prev, habitId]));
         toast({ type: "success", title: "Visible action logged", description: "+10 XP added. This habit will appear in your weekly rhythm. Return to Today to reflect." });
+        void recordProductLearningEvent("habit_completed");
       } else {
         const { data: logs } = await supabase
           .from("habit_logs")

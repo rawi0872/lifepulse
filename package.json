@@ -52,7 +52,10 @@
     "test:prompt7-final-gate": "node scripts/prompt7-final-gate-test.mjs",
     "test:alpha1-release-gate": "node scripts/alpha1-release-gate-test.mjs",
     "test:nextron-product-cohesion": "node scripts/nextron-product-cohesion-test.mjs",
-    "test:knowledge-hybrid": "node scripts/knowledge-hybrid-test.mjs"
+    "test:knowledge-hybrid": "node scripts/knowledge-hybrid-test.mjs",
+    "report:product-learning": "node scripts/report-product-learning.mjs",
+    "test:product-learning-privacy": "node scripts/product-learning-privacy-test.mjs",
+    "test:prod:feedback-product-learning": "node scripts/feedback-product-learning-prod-test.mjs"
   },
   "dependencies": {
     "@mastra/core": "^1.53.0",

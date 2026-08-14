@@ -34,21 +34,13 @@ const PASSWORD = env.LIFE_PULSE_TEST_PASSWORD;
 const ERROR_SCREENSHOT_PATH = "screenshot-today-command-center-prod-error.png";
 
 const requiredTodayCoreText = [
+  "What matters today?",
   "Daily focus",
   "Start with one priority.",
   "Quick capture",
-  "Daily execution",
-  "Life Pulse context",
-];
-
-const requiredEcosystemLinks = ["Today", "Tasks", "Habits", "Journal"];
-
-const requiredMemoryLoopText = [
-  "Memory loop",
-  "Today reflection",
-  "Knowledge this week",
-  "Weekly memory review",
-  "Private manual memory. No AI summaries or external processing.",
+  "Tasks and habits",
+  "What can be completed today",
+  "NEXTRON noticed",
 ];
 
 const conditionalExecutionBridgeText = [
@@ -187,27 +179,11 @@ async function main() {
     if (page.url().includes("/onboarding")) {
       throw new Error("Smoke-test account is not onboarded. Use an existing onboarded LIFE_PULSE_TEST_EMAIL account for this read-only Today check.");
     }
-    await expect(page.getByRole("heading", { name: /Good / })).toBeVisible({ timeout: 20000 });
+    await expect(page.getByRole("heading", { name: "What matters today?" })).toBeVisible({ timeout: 20000 });
     pass("Today page loaded");
 
     for (const text of requiredTodayCoreText) {
       await expectBodyText(page, text);
-    }
-
-    const ecosystem = page.locator("section", { hasText: "Active ecosystem" }).first();
-    await expect(ecosystem).toBeVisible({ timeout: 15000 });
-    pass("Active ecosystem strip is visible");
-
-    for (const label of requiredEcosystemLinks) {
-      await expect(ecosystem.getByRole("link", { name: new RegExp(`^${label}(?:\\s+Preview)?$`) })).toBeVisible({ timeout: 15000 });
-      pass(`Found ecosystem link: ${label}`);
-    }
-
-    const previewCount = await ecosystem.getByText("Preview", { exact: true }).count();
-    if (previewCount > 0) {
-      pass("Preview label appears for visible preview module");
-    } else {
-      skip("No preview module is visible in the current Today ecosystem strip");
     }
 
     const bodyText = await page.locator("body").innerText({ timeout: 10000 });
@@ -215,22 +191,22 @@ async function main() {
       throw new Error("Today page loaded with an error state.");
     }
 
-    const mindPulse = page.locator("section", { hasText: "Mind Pulse" }).first();
-    await expect(mindPulse).toBeVisible({ timeout: 15000 });
-    pass("Mind Pulse task section is visible");
+    const taskSection = page.locator("section", { hasText: "Tasks" }).first();
+    await expect(taskSection).toBeVisible({ timeout: 15000 });
+    pass("Task section is visible");
 
-    const mindPulseText = await mindPulse.innerText({ timeout: 10000 });
-    const taskRowsVisible = !mindPulseText.includes("No tasks for today.");
+    const taskSectionText = await taskSection.innerText({ timeout: 10000 });
+    const taskRowsVisible = !taskSectionText.includes("No tasks for today.");
     if (taskRowsVisible) {
       pass("Today task rows are visible");
 
-      if (mindPulseText.includes("Project:")) {
+      if (taskSectionText.includes("Project:")) {
         pass("Today task project context is visible");
       } else {
         skip("Today task project context is data-dependent and not visible for this account/task state");
       }
 
-      if (todayTaskGoalContextText.some((text) => mindPulseText.includes(text))) {
+      if (todayTaskGoalContextText.some((text) => taskSectionText.includes(text))) {
         pass("Today task direct goal context is visible");
       } else {
         skip("Today task goal context is data-dependent and not visible for this account/task state");
@@ -257,20 +233,11 @@ async function main() {
       skip("Execution bridge section is data-dependent and not visible for this account/goal state");
     }
 
-    for (const text of requiredMemoryLoopText) {
-      await expectBodyText(page, text);
-    }
+    await expect(page.locator("summary").filter({ hasText: "More context" })).toBeVisible({ timeout: 15000 });
+    pass("Secondary Today context is collapsed behind More context");
 
-    if (bodyText.includes("Captured today")) {
-      pass("Today reflection state visible: Captured today");
-    } else if (bodyText.includes("Not captured yet")) {
-      pass("Today reflection state visible: Not captured yet");
-    } else {
-      throw new Error("Memory loop did not show a Today reflection state.");
-    }
-
-    await expect(page.getByText("Open Weekly Review", { exact: true })).toBeVisible({ timeout: 15000 });
-    pass("Weekly Review action text is visible but not clicked");
+    await expect(page.getByText("Active ecosystem")).toBeHidden({ timeout: 5000 });
+    pass("Active ecosystem strip is absent from Today first paint");
 
     for (const text of riskyTodayMemoryText) {
       expect(bodyText.toLowerCase()).not.toContain(text.toLowerCase());

@@ -7,7 +7,6 @@ import { createClient } from "@/lib/supabase/client";
 import {
   getTodayDateString,
   getWeekStartDate,
-  getTodayDayOfWeek,
 } from "@/lib/utils";
 import { getCurrentStreak, normalizeCompletedDates } from "@/lib/streaks";
 import { toggleTaskCompletion } from "@/lib/taskCompletion";
@@ -16,18 +15,15 @@ import { XpDisplay } from "@/components/XpDisplay";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { TodaysPulseHeader } from "@/components/today/TodaysPulseHeader";
-import { CommandStrip } from "@/components/today/CommandStrip";
 import { MissionControl } from "@/components/today/MissionControl";
 import { BodyPulseSection } from "@/components/today/BodyPulseSection";
 import { MindPulseSection } from "@/components/today/MindPulseSection";
 import { FinanceOverview } from "@/components/today/FinanceOverview";
-import { NextBestAction } from "@/components/today/NextBestAction";
 import { MorningPlan } from "@/components/today/MorningPlan";
 import { EveningShutdown } from "@/components/today/EveningShutdown";
-import { TodayEcosystemStrip } from "@/components/today/TodayEcosystemStrip";
 import { TODAY_COPY } from "@/lib/intendedUse";
-import { getRecommendedModules } from "@/lib/modules";
 import { useTodayData } from "@/hooks/use-today-data";
+import { recordProductLearningEvent } from "@/lib/product-learning/client";
 
 interface FirstLoopGuideStep {
   label: string;
@@ -167,18 +163,17 @@ function TodayContent() {
   const [bodyEnergyToday, setBodyEnergyToday] = useState<number | null>(null);
   const [mindLoggedToday, setMindLoggedToday] = useState(false);
   const [mindMoodToday, setMindMoodToday] = useState<number | null>(null);
-  const [hasWorkoutThisWeek, setHasWorkoutThisWeek] = useState(true);
-  const [hasNutritionToday, setHasNutritionToday] = useState(true);
-  const [hasActivePassions, setHasActivePassions] = useState(true);
-  const [hasPassionSessionThisWeek, setHasPassionSessionThisWeek] = useState(true);
   const router = useRouter();
   const [supabase] = useState(() => createClient());
   const { toast } = useToast();
   const todayData = useTodayData(supabase);
+
+  useEffect(() => {
+    void recordProductLearningEvent("today_opened");
+  }, []);
   const todayModel = todayData.model;
   const today = todayModel?.date.localDate ?? getTodayDateString();
   const weekStart = todayModel?.date.weekStart ?? getWeekStartDate();
-  const todayDow = todayModel?.date.dayOfWeek ?? getTodayDayOfWeek();
   const habits = useMemo(() => todayModel?.habits.all ?? [], [todayModel?.habits.all]);
   const dueHabits = useMemo(() => todayModel?.habits.dueToday ?? [], [todayModel?.habits.dueToday]);
   const completedHabitIds = todayModel?.habits.completedIds ?? new Set<string>();
@@ -203,9 +198,7 @@ function TodayContent() {
   const [suggestedHidden, setSuggestedHidden] = useState(false);
   const todoProjectTasks = useMemo(() => projectTasks.filter((t) => t.status === "todo"), [projectTasks]);
   const suggestedTask = !suggestedHidden ? (todoProjectTasks[0] ?? null) : null;
-  const linkedGoalIds = useMemo(() => new Set(goalPreviewLinks.map((link) => link.goal_id).filter(Boolean)), [goalPreviewLinks]);
   const activeGoalPreviews = useMemo(() => goalPreviewGoals.filter((g) => g.status === "active"), [goalPreviewGoals]);
-  const hasGoalWithoutLinks = useMemo(() => activeGoalPreviews.length > 0 && activeGoalPreviews.some((goal) => !linkedGoalIds.has(goal.id)), [activeGoalPreviews, linkedGoalIds]);
   const activeGoalIds = useMemo(() => new Set(activeGoalPreviews.map((goal) => goal.id)), [activeGoalPreviews]);
   const activeGoalLinks = useMemo(() => goalPreviewLinks.filter((link) => link.goal_id && activeGoalIds.has(link.goal_id)), [activeGoalIds, goalPreviewLinks]);
   const activeGoalsCount = activeGoalPreviews.length;
@@ -339,6 +332,7 @@ function TodayContent() {
       }
 
       if (success) {
+        if (type === "project") void recordProductLearningEvent("project_created");
         toast({ type: "success", title: "Quick capture saved!" });
         setQuickCapture("");
         reloadAll();
@@ -391,7 +385,7 @@ function TodayContent() {
         const lastDay = new Date(Number(year), Number(month), 0).getDate();
         const monthEnd = `${year}-${month}-${String(lastDay).padStart(2, "0")}`;
 
-        const [financeRes, bodyRes, mindRes, workoutRes, nutritionRes, passionsRes, sessionsRes, allHabitLogsRes] = await Promise.all([
+        const [financeRes, bodyRes, mindRes, allHabitLogsRes] = await Promise.all([
           supabase
             .from("finance_transactions")
             .select("amount, type")
@@ -411,26 +405,6 @@ function TodayContent() {
             .eq("entry_date", today)
             .maybeSingle(),
           supabase
-            .from("workouts")
-            .select("id")
-            .eq("user_id", user.id)
-            .gte("workout_date", weekStart),
-          supabase
-            .from("nutrition_logs")
-            .select("id")
-            .eq("user_id", user.id)
-            .eq("log_date", today),
-          supabase
-            .from("passions")
-            .select("id")
-            .eq("user_id", user.id)
-            .eq("status", "active"),
-          supabase
-            .from("passion_sessions")
-            .select("id")
-            .eq("user_id", user.id)
-            .gte("session_date", weekStart),
-          supabase
             .from("habit_logs")
             .select("habit_id, completed_date")
             .eq("user_id", user.id),
@@ -448,11 +422,6 @@ function TodayContent() {
         setBodyEnergyToday(bodyRes.data?.energy ?? null);
         setMindLoggedToday(Boolean(mindRes.data));
         setMindMoodToday(mindRes.data?.mood ?? null);
-        setHasWorkoutThisWeek((workoutRes.data ?? []).length > 0);
-        setHasNutritionToday((nutritionRes.data ?? []).length > 0);
-        setHasActivePassions((passionsRes.data ?? []).length > 0);
-        setHasPassionSessionThisWeek((sessionsRes.data ?? []).length > 0);
-
         const logsByHabit: Record<string, string[]> = {};
         ((allHabitLogsRes.data ?? []) as { habit_id: string; completed_date: string }[]).forEach((log) => {
           if (!logsByHabit[log.habit_id]) logsByHabit[log.habit_id] = [];
@@ -535,6 +504,7 @@ function TodayContent() {
         });
         todayData.setHabitCompleted(habitId, true);
         todayData.adjustXp(10, 10);
+        void recordProductLearningEvent("habit_completed");
       } else {
         const { data: logs } = await supabase
           .from("habit_logs")
@@ -589,6 +559,7 @@ function TodayContent() {
         ),
       );
       todayData.adjustXp(25, 25);
+      void recordProductLearningEvent("task_completed");
     } else {
       todayData.setTasks((prev) =>
         prev.map((t) =>
@@ -618,6 +589,7 @@ function TodayContent() {
         description: "This action will appear in your weekly rhythm. Reflect tonight to add context.",
       });
       todayData.adjustXp(25, 25);
+      void recordProductLearningEvent("task_completed");
     } else {
       todayData.adjustXp(-25, -25);
     }
@@ -657,9 +629,6 @@ function TodayContent() {
     },
   ];
   const copy = TODAY_COPY[intendedUse];
-  const ecosystemModules = getRecommendedModules(intendedUse)
-    .filter((module) => module.href && module.status !== "planned")
-    .slice(0, 8);
   const reviewHandoffRows = useMemo<ReviewHandoffRow[]>(() => {
     return [
       {
@@ -748,8 +717,6 @@ function TodayContent() {
         </div>
       )}
 
-      <TodayNextronAttention attention={attention} status={attentionStatus} onRefresh={() => void loadNextronAttention()} />
-
       {todayModel && (
         <MorningPlan
           model={todayModel}
@@ -764,11 +731,9 @@ function TodayContent() {
 
       <section id="daily-execution" className="mb-6 scroll-mt-24" aria-labelledby="active-day-heading">
         <div className="mb-3 flex min-w-0 flex-col gap-1 border-t border-white/[0.06] pt-5 sm:mb-4">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--accent)]">Active day</p>
-          <h2 id="active-day-heading" className="text-xl font-semibold tracking-[-0.03em] text-[var(--text)]">Capture, choose, complete.</h2>
-          <p className="max-w-2xl text-sm leading-relaxed text-[var(--text-secondary)]">
-            Keep the day concrete: set local priorities, add loose work, then finish one task or habit that is visible today.
-          </p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--accent)]">Today</p>
+          <h2 id="active-day-heading" className="text-xl font-semibold tracking-[-0.03em] text-[var(--text)]">Tasks and habits</h2>
+          <p className="max-w-2xl text-sm leading-relaxed text-[var(--text-secondary)]">Finish one visible action.</p>
         </div>
 
         <div id="daily-focus" className="scroll-mt-24">
@@ -813,25 +778,12 @@ function TodayContent() {
           />
         )}
 
-        <CommandStrip
-          completedHabitCount={completedHabitCount}
-          dueHabitsLength={dueHabits.length}
-          doneTaskCount={doneTaskCount}
-          tasksLength={tasks.length}
-          hasJournal={hasJournal}
-          todayXp={todayXp}
-          financeNet={financeNet}
-          financeHasTx={financeHasTx}
-        />
-
         {!hasContent && (
           <Card variant="elevated" className="mb-5 overflow-hidden border-[var(--accent)]/20 bg-[linear-gradient(135deg,rgba(244,247,251,0.055),rgba(122,162,199,0.045)),var(--surface)]">
             <div className="border-b border-[var(--border)] px-5 py-4">
               <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">First setup</p>
               <h3 className="mt-1 text-base font-semibold text-[var(--text)]">Start with one daily action.</h3>
-              <p className="mt-1 text-sm leading-relaxed text-[var(--text-secondary)]">
-                {copy.emptyTitle}. Add one task or one habit, then come back tonight to reflect.
-              </p>
+              <p className="mt-1 text-sm leading-relaxed text-[var(--text-secondary)]">Add one task or habit, then come back tonight to reflect.</p>
             </div>
             <div className="flex flex-col gap-2 px-5 py-3 sm:flex-row sm:items-center sm:gap-4">
               <Link
@@ -862,13 +814,10 @@ function TodayContent() {
 
         <Card className="overflow-hidden border-white/[0.09] bg-[linear-gradient(180deg,rgba(244,247,251,0.028),rgba(244,247,251,0.006)),var(--surface)]">
           <div className="border-b border-[var(--border)] px-4 py-4 sm:px-5">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--accent)]">Tasks and habits</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--accent)]">Action list</p>
             <div className="mt-1 flex min-w-0 flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
               <div className="min-w-0">
-                <h3 className="text-xl font-semibold tracking-[-0.03em] text-[var(--text)]">Complete what is actually available now.</h3>
-                <p className="mt-1 max-w-2xl text-sm leading-relaxed text-[var(--text-secondary)]">
-                  Check off due habits and relevant tasks here. Morning Plan stays the primary starting point; this area is the working list.
-                </p>
+                <h3 className="text-xl font-semibold tracking-[-0.03em] text-[var(--text)]">What can be completed today</h3>
               </div>
               <a href="#evening-reflection" className="inline-flex min-h-10 shrink-0 items-center rounded-md text-xs font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0">
                 Close the day &rarr;
@@ -919,19 +868,6 @@ function TodayContent() {
                   </div>
                 </div>
               </Card>
-            ) : hasContent ? (
-              <Card variant="subtle" className="border-dashed border-[var(--border)] bg-black/10">
-                <div className="px-4 py-3.5 sm:py-3">
-                  <p className="text-[10px] font-medium text-[var(--text-muted)]">No project action for today</p>
-                  <p className="mt-0.5 text-xs text-[var(--text-muted)]">
-                    Complete one visible task or habit below, or{' '}
-                    <Link href="/tasks" className="text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)]">
-                      capture a task
-                    </Link>
-                    {' '}to make goal or project work visible in Today.
-                  </p>
-                </div>
-              </Card>
             ) : null}
 
             {visibleActionDone && (
@@ -967,23 +903,11 @@ function TodayContent() {
               />
             </div>
 
-            <NextBestAction
-              hasBodyLogged={bodyLoggedToday}
-              hasMindLogged={mindLoggedToday}
-              hasHighPriorityTasks={tasks.some((t) => t.priority === "high" && t.status === "todo")}
-              hasGoalWithoutLinks={hasGoalWithoutLinks}
-              hasJournalToday={hasJournal}
-              visibleActionDone={visibleActionDone}
-              hasContent={hasContent}
-              hasWorkoutThisWeek={hasWorkoutThisWeek}
-              hasNutritionToday={hasNutritionToday}
-              hasActivePassions={hasActivePassions}
-              hasPassionSessionThisWeek={hasPassionSessionThisWeek}
-              dayOfWeek={todayDow}
-            />
           </div>
         </Card>
       </section>
+
+      <TodayNextronAttention attention={attention} status={attentionStatus} onRefresh={() => void loadNextronAttention()} />
 
       {todayModel && (
         <EveningShutdown
@@ -992,19 +916,18 @@ function TodayContent() {
           timePeriod={timePeriod}
           onSaved={todayData.refresh}
           onAuthRequired={() => router.push("/login")}
-          onSuccess={() => toast({ type: "success", title: "Evening Shutdown saved." })}
+          onSuccess={() => { void recordProductLearningEvent("journal_entry_created"); toast({ type: "success", title: "Evening Shutdown saved." }); }}
           onError={() => toast({ type: "error", title: "Failed to save Evening Shutdown." })}
         />
       )}
 
-      <section id="today-context" className="space-y-4 scroll-mt-24">
-        <div className="flex min-w-0 flex-col gap-1 border-t border-white/[0.06] pt-5">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Secondary context</p>
-          <h2 className="text-sm font-semibold tracking-[-0.01em] text-[var(--text)]">Context for later</h2>
-          <p className="text-xs text-[var(--text-muted)]">Supporting areas are available after the core loop. They are not required to complete Today.</p>
-        </div>
+      <details id="today-context" className="scroll-mt-24 rounded-2xl border border-white/[0.08] bg-[var(--surface-soft)]/45 p-4">
+        <summary className="cursor-pointer list-none text-sm font-semibold text-[var(--text)] [&::-webkit-details-marker]:hidden">
+          More context
+          <span className="ml-2 text-xs font-normal text-[var(--text-muted)]">Body, Mind, Finance, goals, and review.</span>
+        </summary>
 
-        <div className="grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(17rem,0.65fr)]">
+        <div className="mt-4 grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(17rem,0.65fr)]">
           <div className="min-w-0 space-y-4">
             <TodayReviewHandoff rows={reviewHandoffRows} />
 
@@ -1055,14 +978,12 @@ function TodayContent() {
                 <TodayContextLink href="/body" label="Body Pulse" status={bodyLoggedToday ? `Logged${bodyEnergyToday !== null ? ` · Energy ${bodyEnergyToday}/5` : ""}` : "Log"} accent="success" />
                 <TodayContextLink href="/mind" label="Mind Pulse" status={mindLoggedToday ? `Logged${mindMoodToday !== null ? ` · Mood ${mindMoodToday}/5` : ""}` : "Log"} accent="accent" />
                 <TodayContextLink href="/goals" label="Goal Pulse" status={goalPulseStatus} accent="accent" />
-                <TodayContextLink href="/passions" label="Passions" status="View" accent="accent" />
               </div>
             </div>
           </div>
         </div>
 
-        <TodayEcosystemStrip modules={ecosystemModules} />
-      </section>
+      </details>
     </div>
   );
 }
@@ -1137,15 +1058,14 @@ function TodayNextronAttention({ attention, status, onRefresh }: { attention: Ne
     <section aria-labelledby="today-nextron-attention" data-today-nextron-attention="true" className="mb-6 rounded-2xl border border-[var(--accent)]/15 bg-[linear-gradient(135deg,rgba(56,189,248,0.10),rgba(15,23,42,0.18))] p-4 shadow-xl shadow-black/10">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--accent)]">NEXTRON Noticed</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--accent)]">NEXTRON noticed</p>
           <h2 id="today-nextron-attention" className="mt-1 text-lg font-semibold tracking-[-0.03em] text-[var(--text)]">What deserves attention today</h2>
-          <p className="mt-1 text-sm leading-relaxed text-[var(--text-secondary)]">Deterministic attention from the same NEXTRON Signals engine. Model calls: {attention?.meta.modelCalls ?? 0}.</p>
         </div>
         <button type="button" onClick={onRefresh} disabled={status === "loading"} className="inline-flex min-h-10 items-center rounded-xl border border-[var(--accent)]/20 bg-[var(--surface-soft)] px-3 py-2 text-xs font-semibold text-[var(--accent)] transition-colors hover:border-[var(--accent)]/35 disabled:opacity-50">{status === "loading" ? "Checking..." : "Refresh"}</button>
       </div>
       <div className="mt-3 space-y-2">
-        {status === "loading" && !attention && <p className="rounded-xl border border-white/[0.08] bg-black/15 p-3 text-sm text-[var(--text-muted)]">Checking current attention...</p>}
-        {status === "error" && <p className="rounded-xl border border-[var(--warning)]/25 bg-[var(--warning-soft)] p-3 text-sm text-[var(--warning)]">NEXTRON attention is unavailable right now. Today still works normally.</p>}
+        {status === "loading" && !attention && <p className="rounded-xl border border-white/[0.08] bg-black/15 p-3 text-sm text-[var(--text-muted)]">Checking today...</p>}
+        {status === "error" && <p className="rounded-xl border border-[var(--warning)]/25 bg-[var(--warning-soft)] p-3 text-sm text-[var(--warning)]">NEXTRON is unavailable right now. Today still works.</p>}
         {attention && !primary && <p className="rounded-xl border border-white/[0.08] bg-black/15 p-3 text-sm text-[var(--text-secondary)]">{attention.calmMessage}{attention.currentFocus ? ` Next meaningful item: ${attention.currentFocus.title}.` : ""}</p>}
         {primary && <TodayAttentionItem item={primary} primary />}
         {secondary.length > 0 && <div className="grid gap-2 sm:grid-cols-2">{secondary.map((item) => <TodayAttentionItem key={item.id} item={item} />)}</div>}
@@ -1161,7 +1081,7 @@ function TodayAttentionItem({ item, primary = false }: { item: NextronAttentionI
       sessionStorage.setItem("lifepulse:nextron-bridge", JSON.stringify({ subject: "today", prompt: item.bridgePrompt, createdAt: Date.now() }));
     } catch {}
   }
-  return <article className={`rounded-xl border p-3 ${tone}`}><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">{item.domain} · {item.severity}</p><h3 className={`${primary ? "text-base" : "text-sm"} mt-1 break-words font-semibold text-[var(--text)]`}>{item.title}</h3><p className="mt-1 break-words text-sm leading-relaxed text-[var(--text-secondary)]">{item.explanation}</p><details className="mt-2"><summary className="cursor-pointer text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">Why</summary><ul className="mt-1 space-y-1">{item.evidence.slice(0, 3).map((fact, index) => <li key={`${item.id}-${index}`} className="break-words text-xs text-[var(--text-secondary)]">{fact}</li>)}</ul></details><div className="mt-2 flex flex-wrap gap-2"><Link href={item.route} className="inline-flex min-h-9 items-center rounded-lg border border-[var(--accent)]/20 bg-[var(--surface-soft)] px-2.5 py-1 text-xs font-semibold text-[var(--accent)]">Open source</Link><Link href="/nextron?subject=today" onClick={bridgeAttentionPrompt} className="inline-flex min-h-9 items-center rounded-lg border border-white/[0.08] bg-black/15 px-2.5 py-1 text-xs font-semibold text-[var(--text-secondary)]">Ask NEXTRON</Link></div></article>;
+  return <article className={`rounded-xl border p-3 ${tone}`}><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">{item.domain}</p><h3 className={`${primary ? "text-base" : "text-sm"} mt-1 break-words font-semibold text-[var(--text)]`}>{item.title}</h3><p className="mt-1 break-words text-sm leading-relaxed text-[var(--text-secondary)]">{item.explanation}</p><details className="mt-2"><summary className="cursor-pointer text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">Why this matters</summary><ul className="mt-1 space-y-1">{item.evidence.slice(0, 3).map((fact, index) => <li key={`${item.id}-${index}`} className="break-words text-xs text-[var(--text-secondary)]">{fact}</li>)}</ul></details><div className="mt-2 flex flex-wrap gap-2"><Link href={item.route} className="inline-flex min-h-9 items-center rounded-lg border border-[var(--accent)]/20 bg-[var(--surface-soft)] px-2.5 py-1 text-xs font-semibold text-[var(--accent)]">View</Link><Link href="/nextron?subject=today" onClick={bridgeAttentionPrompt} className="inline-flex min-h-9 items-center rounded-lg border border-white/[0.08] bg-black/15 px-2.5 py-1 text-xs font-semibold text-[var(--text-secondary)]">Ask NEXTRON</Link></div></article>;
 }
 
 function TodayReviewHandoff({ rows }: { rows: ReviewHandoffRow[] }) {
@@ -1173,15 +1093,12 @@ function TodayReviewHandoff({ rows }: { rows: ReviewHandoffRow[] }) {
             <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Private review payoff</p>
             <h3 className="mt-1 text-base font-semibold tracking-[-0.02em] text-[var(--text)]">Today builds your review</h3>
             <p className="mt-1 max-w-2xl text-xs leading-relaxed text-[var(--text-muted)]">
-              Each manual log adds private context for Weekly Review and broader patterns in Insights. No AI summaries or external processing.
+              Today feeds your Journal and Weekly Review. Optional logs can add context later.
             </p>
           </div>
           <div className="flex shrink-0 flex-wrap gap-2 text-xs">
             <Link href="/weekly-review" className="inline-flex min-h-10 items-center rounded-lg border border-[var(--accent)]/20 bg-[var(--accent-soft)] px-3 font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0 sm:bg-transparent sm:py-1.5">
               Weekly Review
-            </Link>
-            <Link href="/insights" className="inline-flex min-h-10 items-center rounded-lg border border-[var(--border)] px-3 font-medium text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/25 hover:text-[var(--accent)] sm:min-h-0 sm:py-1.5">
-              View Insights
             </Link>
           </div>
         </div>

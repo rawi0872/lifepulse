@@ -865,7 +865,7 @@ async function main() {
       await feedbackBtn.click();
       await page.waitForTimeout(1000);
 
-      const dialogTitle = page.locator('h2:has-text("Send feedback")');
+      const dialogTitle = page.locator('h2:has-text("Private beta feedback")');
       if (await dialogTitle.isVisible({ timeout: 3000 })) {
         pass("Feedback dialog - opened");
 

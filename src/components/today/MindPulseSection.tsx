@@ -39,7 +39,7 @@ export function MindPulseSection({ tasks, doneTaskCount, tasksLength, taskContex
     <section>
       <div className="mb-3 flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-baseline gap-2">
-          <h2 className="text-sm font-semibold tracking-[-0.01em] text-[var(--text)]">Mind Pulse</h2>
+          <h2 className="text-sm font-semibold tracking-[-0.01em] text-[var(--text)]">Tasks</h2>
           <span className="text-xs text-[var(--text-muted)]">{doneTaskCount}/{tasksLength}</span>
         </div>
         <Link href="/tasks" className="text-xs text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)]">
@@ -49,13 +49,12 @@ export function MindPulseSection({ tasks, doneTaskCount, tasksLength, taskContex
       {tasks.length === 0 ? (
         <EmptyState
           eyebrow="Tasks"
-          title="No mind tasks for today."
-          message="If nothing needs action, a private mind check-in can still add context for Today and Weekly Review."
-          description="Optional manual tracking only, not clinical or medical guidance."
+          title="No tasks for today."
+          message="You're clear for now."
           compact
           action={
-            <Link href="/mind" className="inline-flex min-h-10 items-center gap-1 rounded-lg bg-[var(--accent-soft)] px-3 text-xs font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0 sm:bg-transparent sm:px-0">
-              Log mind check-in &rarr;
+            <Link href="/tasks" className="inline-flex min-h-10 items-center gap-1 rounded-lg bg-[var(--accent-soft)] px-3 text-xs font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)] sm:min-h-0 sm:bg-transparent sm:px-0">
+              Add one task &rarr;
             </Link>
           }
         />

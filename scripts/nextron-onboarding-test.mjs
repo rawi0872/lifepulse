@@ -47,7 +47,7 @@ assert(onboardingRoute.includes("status: \"completed\"") && onboardingRoute.incl
 assert(!onboardingRoute.includes("from(\"goals\")") && !onboardingRoute.includes("from(\"habits\")") && !onboardingRoute.includes("from(\"tasks\")") && !onboardingRoute.includes("from(\"projects\")"), "Onboarding API performs no domain writes");
 assert(!onboardingRoute.includes("/api/nextron/actions") && !onboardingRoute.includes("approve"), "Onboarding API cannot execute actions");
 
-assert(onboardingLib.includes("MAX_GOALS = 4") && onboardingLib.includes("MAX_HABITS = 4") && onboardingLib.includes("MAX_TASKS = 6") && onboardingLib.includes("MAX_PROJECTS = 3"), "Life Setup Draft counts are bounded");
+assert(onboardingLib.includes("MAX_GOALS = 4") && onboardingLib.includes("MAX_HABITS = 4") && onboardingLib.includes("MAX_TASKS = 6") && onboardingLib.includes("MAX_PROJECTS = 3"), "Starting plan counts are bounded");
 assert(onboardingLib.includes("deliberatelyLeftOut") && onboardingLib.includes("Large tracker library"), "Draft includes deliberate omissions");
 assert(onboardingLib.includes("normalizeLifeSetupDraft") && onboardingLib.includes("normalizeOnboardingUnderstanding"), "Draft and understanding schemas are validated");
 assert(onboardingLib.includes("removePatterns") && onboardingLib.includes("forget|remove|drop|not now"), "Corrections can replace outdated assumptions");
@@ -55,10 +55,10 @@ assert(onboardingLib.includes("onboardingReadiness") && !onboardingLib.includes(
 assert(onboardingLib.includes("PROVIDER_DISABLED") && onboardingLib.includes("buildDeterministicOnboardingTurn"), "Provider failure has deterministic fallback");
 assert(onboardingLib.includes("Do not create entities") && onboardingLib.includes("or store Memory"), "Provider contract forbids writes and hidden Memory");
 
-assert(onboardingPage.includes("Tell me what is changing") && onboardingPage.includes("Life Setup Draft"), "Onboarding UI is conversation-first with structured draft UI");
+assert(onboardingPage.includes("Tell me what is changing") && onboardingPage.includes("Starting plan"), "Onboarding UI is conversation-first with human starting-plan UI");
 assert(onboardingPage.includes("What I understand") && onboardingPage.includes("Deliberately left out"), "UI shows understanding and judgment sections");
 assert(onboardingPage.includes("Skip for now") && onboardingPage.includes("Resume onboarding"), "Skip and resume controls are present");
-assert(onboardingPage.includes("does not create goals, habits, tasks, projects, or calendar events"), "Ready action copy avoids misleading writes");
+assert(onboardingPage.includes("Nothing is created until you allow and approve it"), "Ready action copy avoids misleading writes");
 assert(!onboardingPage.includes("setInterval") && !onboardingPage.includes("poll"), "Onboarding UI has no polling");
 assert(!onboardingPage.includes("/api/nextron/onboarding", onboardingPage.indexOf("useEffect")) || onboardingPage.includes("method: \"GET\""), "Onboarding page render does not call model endpoint directly");
 

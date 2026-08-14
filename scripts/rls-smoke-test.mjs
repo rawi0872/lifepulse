@@ -5,23 +5,51 @@
 // Tests that User A and User B data are fully isolated.
 
 import { createClient } from "@supabase/supabase-js";
+import { randomBytes } from "node:crypto";
+import { existsSync, readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+function loadEnv(filepath) {
+  if (!existsSync(filepath)) return {};
+  const vars = {};
+  for (const line of readFileSync(filepath, "utf8").split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const eqIdx = trimmed.indexOf("=");
+    if (eqIdx <= 0) continue;
+    const key = trimmed.slice(0, eqIdx).trim();
+    let value = trimmed.slice(eqIdx + 1).trim();
+    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+      value = value.slice(1, -1);
+    }
+    vars[key] = value;
+  }
+  return vars;
+}
+
+const env = { ...loadEnv(resolve(__dirname, "..", ".env.local")), ...loadEnv(resolve(__dirname, "..", ".env.test.local")), ...process.env };
 
 // ─── Env vars ─────────────────────────────────────────────────────────────────
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const EMAIL_A = process.env.RLS_TEST_USER_A_EMAIL;
-const PASSWORD_A = process.env.RLS_TEST_USER_A_PASSWORD;
-const EMAIL_B = process.env.RLS_TEST_USER_B_EMAIL;
-const PASSWORD_B = process.env.RLS_TEST_USER_B_PASSWORD;
+const SUPABASE_URL = env.NEXT_PUBLIC_SUPABASE_URL || env.SUPABASE_URL;
+const SUPABASE_ANON_KEY = env.NEXT_PUBLIC_SUPABASE_ANON_KEY || env.SUPABASE_ANON_KEY;
+let EMAIL_A = env.RLS_TEST_USER_A_EMAIL;
+let PASSWORD_A = env.RLS_TEST_USER_A_PASSWORD;
+let EMAIL_B = env.RLS_TEST_USER_B_EMAIL;
+let PASSWORD_B = env.RLS_TEST_USER_B_PASSWORD;
+const ADMIN_KEY = env.SUPABASE_SECRET_KEY || env.SUPABASE_SERVICE_ROLE_KEY;
+const LIVE_WRITE_ACK = env.LIFE_PULSE_RLS_LIVE_WRITE_ACK === "1";
 
 const missing = [];
 if (!SUPABASE_URL) missing.push("NEXT_PUBLIC_SUPABASE_URL");
 if (!SUPABASE_ANON_KEY) missing.push("NEXT_PUBLIC_SUPABASE_ANON_KEY");
-if (!EMAIL_A) missing.push("RLS_TEST_USER_A_EMAIL");
-if (!PASSWORD_A) missing.push("RLS_TEST_USER_A_PASSWORD");
-if (!EMAIL_B) missing.push("RLS_TEST_USER_B_EMAIL");
-if (!PASSWORD_B) missing.push("RLS_TEST_USER_B_PASSWORD");
+const hasManualCredentialPairA = Boolean(EMAIL_A && PASSWORD_A);
+const hasManualCredentialPairB = Boolean(EMAIL_B && PASSWORD_B);
+const needsSyntheticUsers = !(hasManualCredentialPairA && hasManualCredentialPairB);
+if (needsSyntheticUsers && !ADMIN_KEY) missing.push("RLS_TEST_USER_A_EMAIL/RLS_TEST_USER_A_PASSWORD/RLS_TEST_USER_B_EMAIL/RLS_TEST_USER_B_PASSWORD or SUPABASE_SECRET_KEY/SUPABASE_SERVICE_ROLE_KEY for disposable provisioning");
 
 if (missing.length > 0) {
   console.error("");
@@ -34,26 +62,38 @@ if (missing.length > 0) {
   process.exit(1);
 }
 
-if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+const supabaseHost = SUPABASE_URL ? new URL(SUPABASE_URL).hostname : null;
+const isCloudTarget = Boolean(supabaseHost?.endsWith(".supabase.co"));
+const supabaseRef = isCloudTarget ? supabaseHost.split(".")[0] : supabaseHost;
+
+console.log(`RLS target URL: ${SUPABASE_URL}`);
+console.log(`RLS target ref: ${supabaseRef ?? "unknown"}`);
+console.log(`RLS target kind: ${isCloudTarget ? "supabase-cloud" : "local-or-custom"}`);
+
+if (needsSyntheticUsers && isCloudTarget && !LIVE_WRITE_ACK) {
   console.error("");
-  console.error("SAFETY: SUPABASE_SERVICE_ROLE_KEY is set. This test must use");
-  console.error("the anon key only. Unset it and try again.");
+  console.error("RLS synthetic-user provisioning would create/delete live Supabase auth users and run-scoped rows.");
+  console.error("Set LIFE_PULSE_RLS_LIVE_WRITE_ACK=1 to acknowledge this bounded live write, then run:");
+  console.error("  npm run test:rls");
   console.error("");
-  process.exit(1);
+  process.exit(2);
 }
 
-console.error("Using anon key only (safe).");
+console.error(needsSyntheticUsers ? "Using admin only for synthetic auth setup/cleanup; RLS checks use anon authenticated clients." : "Using pre-existing test credentials with anon authenticated clients.");
 
 // ─── Timestamp prefix for unique test records ─────────────────────────────────
 
 const TS = new Date().toISOString().replace(/[:.]/g, "-");
 const PREFIX = `RLS_TEST_${TS}`;
+const RUN_ID = `rls-${new Date().toISOString().replace(/[-:TZ.]/g, "").slice(0, 14)}-${randomBytes(4).toString("hex")}`;
 
 // ─── Test state ───────────────────────────────────────────────────────────────
 
 let passed = 0;
 let failed = 0;
 const failures = [];
+const syntheticUserIds = [];
+let adminForCleanup = null;
 
 function pass(msg) {
   passed++;
@@ -64,6 +104,84 @@ function fail(msg) {
   failed++;
   failures.push(msg);
   console.log(`  \u274c ${msg}`);
+}
+
+function safeSupabaseError(error) {
+  if (!error || typeof error !== "object") return "unknown error";
+  const parts = [];
+  if ("status" in error && error.status) parts.push(`status=${error.status}`);
+  if ("code" in error && error.code) parts.push(`code=${error.code}`);
+  if ("message" in error && error.message) parts.push(`message=${String(error.message).slice(0, 200)}`);
+  return parts.length > 0 ? parts.join(" ") : "no safe diagnostics available";
+}
+
+function adminClient() {
+  return createClient(SUPABASE_URL, ADMIN_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
+}
+
+async function validateAdmin(admin) {
+  const { error } = await admin.auth.admin.listUsers({ page: 1, perPage: 1 });
+  if (error) throw new Error(`Admin credential validation failed: ${safeSupabaseError(error)}`);
+  pass("Admin credential authenticated without printing secrets");
+}
+
+async function createSyntheticUser(admin, label) {
+  const email = `${label}-${RUN_ID}@example.invalid`;
+  const password = `Rls-${randomBytes(24).toString("base64url")}!1a`;
+  const { data, error } = await admin.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+    user_metadata: { synthetic_run_id: RUN_ID, synthetic_release_gate: "rls-smoke" },
+  });
+  if (error || !data.user?.id) throw new Error(`Could not create synthetic ${label} user: ${safeSupabaseError(error)}`);
+  syntheticUserIds.push(data.user.id);
+  return { email, password, userId: data.user.id };
+}
+
+async function ensureTestUsers() {
+  if (!needsSyntheticUsers) return;
+  const admin = adminClient();
+  adminForCleanup = admin;
+  await validateAdmin(admin);
+  const userA = await createSyntheticUser(admin, "rls-test-a");
+  const userB = await createSyntheticUser(admin, "rls-test-b");
+  EMAIL_A = userA.email;
+  PASSWORD_A = userA.password;
+  EMAIL_B = userB.email;
+  PASSWORD_B = userB.password;
+  pass("Synthetic RLS users created without printing credentials");
+}
+
+async function countByUser(admin, table, userId) {
+  const { count, error } = await admin.from(table).select("user_id", { count: "exact", head: true }).eq("user_id", userId);
+  if (error) return null;
+  return count ?? 0;
+}
+
+async function cleanupSyntheticUsers() {
+  if (!adminForCleanup || syntheticUserIds.length === 0) return;
+  let authUsers = 0;
+  let productRows = 0;
+  let feedbackRows = 0;
+  for (const userId of syntheticUserIds) {
+    const { error } = await adminForCleanup.auth.admin.deleteUser(userId);
+    if (error) console.warn(`  Warning: synthetic auth cleanup failed for ...${userId.slice(-6)}: ${safeSupabaseError(error)}`);
+    const authUser = await adminForCleanup.auth.admin.getUserById(userId).catch((err) => ({ data: null, error: err }));
+    if (!authUser.error && authUser.data?.user) authUsers += 1;
+    productRows += await countByUser(adminForCleanup, "product_learning_events", userId) ?? 0;
+    feedbackRows += await countByUser(adminForCleanup, "beta_feedback", userId) ?? 0;
+  }
+  console.log(`  CLEANUP auth_users=${authUsers} product_learning_events=${productRows} beta_feedback=${feedbackRows}`);
+}
+
+function assertSourcePrivacyContracts() {
+  const productRoute = readFileSync(resolve(__dirname, "..", "src", "app", "api", "product-learning", "events", "route.ts"), "utf8");
+  const feedbackRoute = readFileSync(resolve(__dirname, "..", "src", "app", "api", "feedback", "route.ts"), "utf8");
+  if (productRoute.includes("SUPABASE_SERVICE_ROLE") || productRoute.includes("SUPABASE_SECRET_KEY")) fail("Product-learning API exposes privileged analytics access");
+  else pass("Product-learning API uses session ownership, not privileged client access");
+  if (feedbackRoute.includes("body.userId !== undefined") && feedbackRoute.includes("Owner identity is derived from the session.")) pass("Feedback API rejects client-supplied owner identity");
+  else fail("Feedback API does not explicitly reject owner spoofing");
 }
 
 // ─── Supabase clients ─────────────────────────────────────────────────────────
@@ -95,6 +213,11 @@ async function main() {
   console.log("");
   console.log("=== Life Pulse RLS Smoke Test ===");
   console.log(`Prefix: ${PREFIX}`);
+  console.log(`Run ID: ${RUN_ID}`);
+  console.log("");
+
+  await ensureTestUsers();
+  assertSourcePrivacyContracts();
   console.log("");
 
   // ── 1. Sign in ──────────────────────────────────────────────────────────────
@@ -363,6 +486,93 @@ async function main() {
     process.exit(1);
   }
   console.log(`  Goal link created: ${goalLinkA.id}`);
+
+  // 2s. Product learning event
+  const { data: productLearningA, error: productLearningAErr } = await supabaseA
+    .from("product_learning_events")
+    .insert({
+      user_id: userAId,
+      event_type: "today_opened",
+      surface: "today",
+      viewport: "desktop",
+      release_version: RUN_ID,
+    })
+    .select()
+    .single();
+  if (productLearningAErr) {
+    console.error(`  Failed to create product learning event: ${productLearningAErr.message}`);
+    process.exit(1);
+  }
+  console.log(`  Product learning event created: ${productLearningA.id}`);
+
+  // 2t. Explicit beta feedback
+  const { data: feedbackA, error: feedbackAErr } = await supabaseA
+    .from("beta_feedback")
+    .insert({
+      user_id: userAId,
+      page_path: "/settings",
+      rating: 4,
+      category: "idea",
+      message: `${PREFIX}_Feedback`,
+      browser_info: "viewport:desktop",
+    })
+    .select()
+    .single();
+  if (feedbackAErr) {
+    console.error(`  Failed to create beta feedback: ${feedbackAErr.message}`);
+    process.exit(1);
+  }
+  console.log(`  Beta feedback created: ${feedbackA.id}`);
+
+  // 2u. Product improvement preference remains own-profile only
+  const { error: preferenceAErr } = await supabaseA
+    .from("profiles")
+    .update({ allow_product_improvement_events: true })
+    .eq("user_id", userAId);
+  if (preferenceAErr) {
+    console.error(`  Failed to update product improvement preference: ${preferenceAErr.message}`);
+    process.exit(1);
+  }
+  console.log("  Product improvement preference updated");
+  console.log("");
+
+  const { error: spoofProductLearningErr } = await supabaseB.from("product_learning_events").insert({
+    user_id: userAId,
+    event_type: "today_opened",
+    surface: "today",
+    viewport: "desktop",
+    release_version: RUN_ID,
+  });
+  if (spoofProductLearningErr) pass("User B cannot spoof User A product learning event owner");
+  else fail("User B could spoof User A product learning event owner");
+
+  const { error: spoofFeedbackErr } = await supabaseB.from("beta_feedback").insert({
+    user_id: userAId,
+    page_path: "/settings",
+    rating: 3,
+    category: "bug",
+    message: `${PREFIX}_SpoofFeedback`,
+    browser_info: "viewport:desktop",
+  });
+  if (spoofFeedbackErr) pass("User B cannot spoof User A feedback owner");
+  else fail("User B could spoof User A feedback owner");
+
+  const { data: preferenceBefore } = await supabaseA
+    .from("profiles")
+    .select("allow_product_improvement_events")
+    .eq("user_id", userAId)
+    .single();
+  await supabaseB.from("profiles").update({ allow_product_improvement_events: false }).eq("user_id", userAId);
+  const { data: preferenceAfter } = await supabaseA
+    .from("profiles")
+    .select("allow_product_improvement_events")
+    .eq("user_id", userAId)
+    .single();
+  if (preferenceBefore?.allow_product_improvement_events === true && preferenceAfter?.allow_product_improvement_events === true) {
+    pass("User B cannot change User A product improvement preference");
+  } else {
+    fail("User B could change User A product improvement preference");
+  }
   console.log("");
 
   // ── 3. User B isolation: READ ──────────────────────────────────────────────
@@ -385,6 +595,8 @@ async function main() {
     ["mind metrics", "mind_metrics", mindMetricsA.id],
     ["goal", "goals", goalA.id],
     ["goal link", "goal_links", goalLinkA.id],
+    ["product learning event", "product_learning_events", productLearningA.id],
+    ["beta feedback", "beta_feedback", feedbackA.id],
   ];
 
   for (const [label, table, id] of readTests) {
@@ -431,6 +643,8 @@ async function main() {
     ["mind metrics", "mind_metrics", mindMetricsA.id, { mood: 1 }],
     ["goal", "goals", goalA.id, { title: `${PREFIX}_HackedGoal` }],
     ["goal link", "goal_links", goalLinkA.id, { linked_type: "habit" }],
+    ["product learning event", "product_learning_events", productLearningA.id, { viewport: "mobile" }],
+    ["beta feedback", "beta_feedback", feedbackA.id, { message: `${PREFIX}_HackedFeedback` }],
   ];
 
   for (const [label, table, id, changes] of updateTests) {
@@ -467,6 +681,8 @@ async function main() {
     ["goal", "goals", goalA.id],
     ["goal milestone", "goal_milestones", milestoneA.id],
     ["goal link", "goal_links", goalLinkA.id],
+    ["product learning event", "product_learning_events", productLearningA.id],
+    ["beta feedback", "beta_feedback", feedbackA.id],
   ];
 
   for (const [label, table, id] of deleteTests) {
@@ -710,6 +926,28 @@ async function main() {
     pass("User B can create own journal entry");
   }
 
+  const { data: productLearningB, error: productLearningBErr } = await supabaseB
+    .from("product_learning_events")
+    .insert({ user_id: userBId, event_type: "today_opened", surface: "today", viewport: "desktop", release_version: RUN_ID })
+    .select()
+    .single();
+  if (productLearningBErr) {
+    fail(`User B could not create own product learning event: ${productLearningBErr.message}`);
+  } else {
+    pass("User B can create own product learning event");
+  }
+
+  const { data: feedbackB, error: feedbackBErr } = await supabaseB
+    .from("beta_feedback")
+    .insert({ user_id: userBId, page_path: "/settings", rating: 5, category: "praise", message: `${PREFIX}_Feedback_B`, browser_info: "viewport:desktop" })
+    .select()
+    .single();
+  if (feedbackBErr) {
+    fail(`User B could not submit own feedback: ${feedbackBErr.message}`);
+  } else {
+    pass("User B can submit own feedback");
+  }
+
   const { data: finCatB, error: finCatBErr } = await supabaseB
     .from("finance_categories")
     .insert({ name: `${PREFIX}_Cat_B`, type: "expense", user_id: userBId })
@@ -787,6 +1025,8 @@ async function main() {
     ["mind metrics", "mind_metrics", mindMetricsA.id],
     ["goal", "goals", goalA.id],
     ["goal link", "goal_links", goalLinkA.id],
+    ["product learning event", "product_learning_events", productLearningA.id],
+    ["beta feedback", "beta_feedback", feedbackA.id],
   ];
 
   for (const [label, table, id] of selfReadTests) {
@@ -819,6 +1059,8 @@ async function main() {
     ["finance_accounts", "id", finAccountA.id],
     ["journal_entries", "id", journalA.id],
     ["body_metrics", "id", bodyMetricsA.id],
+    ["product_learning_events", "id", productLearningA.id],
+    ["beta_feedback", "id", feedbackA.id],
     ["goal_links", "id", goalLinkA.id],
     ["goal_milestones", "id", milestoneA.id],
     ["goals", "id", goalA.id],
@@ -837,6 +1079,8 @@ async function main() {
   const cleanupB = [
     ["finance_transactions", "id", finTxB?.id],
     ["finance_categories", "id", finCatB?.id],
+    ["product_learning_events", "id", productLearningB?.id],
+    ["beta_feedback", "id", feedbackB?.id],
     ["journal_entries", "id", journalB?.id],
     ["goal_links", "id", goalLinkB?.id],
     ["goals", "id", goalB?.id],
@@ -877,7 +1121,26 @@ async function main() {
   }
 }
 
-main().catch((err) => {
-  console.error("Unhandled error:", err);
-  process.exit(1);
-});
+class ExitSignal extends Error {
+  constructor(code) {
+    super(`process.exit(${code})`);
+    this.code = code;
+  }
+}
+
+const realProcessExit = process.exit.bind(process);
+process.exit = (code = 0) => {
+  throw new ExitSignal(code);
+};
+
+main()
+  .then(async () => {
+    await cleanupSyntheticUsers();
+    realProcessExit(0);
+  })
+  .catch(async (err) => {
+    await cleanupSyntheticUsers();
+    if (err instanceof ExitSignal) realProcessExit(err.code);
+    console.error("Unhandled error:", err);
+    realProcessExit(1);
+  });

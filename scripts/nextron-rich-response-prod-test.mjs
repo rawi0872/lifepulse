@@ -94,7 +94,7 @@ async function ask(page, prompt) {
   const sendButton = page.getByRole("button", { name: /Send to NEXTRON|Analyzing/i });
   await expect(sendButton).toBeEnabled({ timeout: 60000 });
   await sendButton.click({ timeout: 60000 });
-  await expect(page.locator("#nextron-question-status")).not.toContainText(/Analyzing|checking permitted evidence/i, { timeout: 45000 });
+  await expect(page.locator("#nextron-question-status")).not.toContainText(/Analyzing|is thinking/i, { timeout: 45000 });
 }
 
 async function askExpectRich(page, prompt, label) {

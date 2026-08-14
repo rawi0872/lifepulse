@@ -66,6 +66,8 @@ export default function SettingsPage() {
   const [birthDate, setBirthDate] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [intendedUse, setIntendedUse] = useState<IntendedUse>("personal");
+  const [allowProductLearning, setAllowProductLearning] = useState(false);
+  const [savingProductLearning, setSavingProductLearning] = useState(false);
   const [email, setEmail] = useState("");
   const [saving, setSaving] = useState(false);
   const [savingSetup, setSavingSetup] = useState(false);
@@ -114,7 +116,7 @@ export default function SettingsPage() {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("first_name, last_name, birth_date, display_name, intended_use")
+        .select("first_name, last_name, birth_date, display_name, intended_use, allow_product_improvement_events")
         .eq("user_id", user.id)
         .single();
 
@@ -125,6 +127,7 @@ export default function SettingsPage() {
         setBirthDate(profile.birth_date ?? "");
         setDisplayName(profile.display_name ?? "");
         setIntendedUse(resolveIntendedUse(profile.intended_use));
+        setAllowProductLearning(Boolean(profile.allow_product_improvement_events));
       }
 
       const { data: realmData } = await supabase
@@ -217,6 +220,27 @@ export default function SettingsPage() {
     }
 
     toast({ type: "success", title: "Setup preference saved." });
+  }
+
+  async function saveProductLearningPreference(allow: boolean) {
+    setSavingProductLearning(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      setSavingProductLearning(false);
+      return;
+    }
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({ allow_product_improvement_events: allow })
+      .eq("user_id", user.id);
+    setSavingProductLearning(false);
+    if (error) {
+      toast({ type: "error", title: "Could not save product improvement setting." });
+      return;
+    }
+    setAllowProductLearning(allow);
+    toast({ type: "success", title: allow ? "Product improvement sharing enabled." : "Product improvement sharing disabled." });
   }
 
   async function handleLogout() {
@@ -494,18 +518,20 @@ export default function SettingsPage() {
     <DashboardNav>
       <div className="mx-auto max-w-2xl px-4 py-6 animate-fade-in sm:px-5 sm:py-8">
         <div className="mb-5 rounded-2xl border border-[var(--border)] bg-[radial-gradient(circle_at_top_left,var(--accent-soft),transparent_36%),var(--surface-soft)] px-4 py-4 shadow-sm shadow-black/10 sm:px-5">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">System control</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">Account</p>
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-[var(--text)]">Settings</h1>
-          <p className="mt-1 max-w-xl text-sm leading-relaxed text-[var(--text-secondary)]">
-            Control how Life Pulse works for you. Manage your account, preferences, progress, and connected areas.
-          </p>
-          <p className="mt-2 text-xs text-[var(--text-muted)]">
-            Keep the system simple. Turn to deeper areas when you need them.
-          </p>
+          <p className="mt-1 max-w-xl text-sm leading-relaxed text-[var(--text-secondary)]">Manage your profile, NEXTRON access, connections, and Life Pulse preferences.</p>
         </div>
 
+        <nav aria-label="Settings sections" className="mb-4 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
+          <a href="#settings-account" className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2 text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/25 hover:text-[var(--accent)]">Account</a>
+          <a href="#settings-personalization" className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2 text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/25 hover:text-[var(--accent)]">Personalization</a>
+          <a href="#settings-nextron" className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2 text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/25 hover:text-[var(--accent)]">NEXTRON</a>
+          <a href="#settings-connections" className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2 text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/25 hover:text-[var(--accent)]">Connections</a>
+        </nav>
+
         {/* Profile card */}
-        <Card className="mb-4 border-[var(--border-strong)]">
+        <Card id="settings-account" className="mb-4 scroll-mt-24 border-[var(--border-strong)]">
           <div className="p-5">
             <div className="mb-5 flex items-center gap-4">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[var(--accent-soft)] text-sm font-bold text-[var(--accent)] ring-1 ring-[var(--accent-soft)]">
@@ -580,7 +606,7 @@ export default function SettingsPage() {
         </Card>
 
         {/* Life Pulse setup */}
-        <Card className="mb-4 border-[var(--border-strong)]">
+        <Card id="settings-personalization" className="mb-4 scroll-mt-24 border-[var(--border-strong)]">
           <div className="p-5">
             <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Preferences</p>
             <h3 className="mb-1 text-sm font-semibold text-[var(--text)]">Life Pulse setup</h3>
@@ -600,9 +626,7 @@ export default function SettingsPage() {
                 </option>
               ))}
             </select>
-            <p className="mt-2 text-xs text-[var(--text-muted)]">
-              This does not create or delete workspaces, permissions, CRM data, or modules.
-            </p>
+            <p className="mt-2 text-xs text-[var(--text-muted)]">This changes emphasis only. It does not delete your data.</p>
 
             <div className="mt-4 flex justify-end">
               <Button size="sm" onClick={saveSetupPreference} disabled={savingSetup}>
@@ -612,13 +636,36 @@ export default function SettingsPage() {
           </div>
         </Card>
 
-        {/* Google Calendar */}
         <Card className="mb-4 border-[var(--border-strong)]">
+          <div className="p-5">
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Privacy</p>
+            <h3 className="mb-1 text-sm font-semibold text-[var(--text)]">Help improve Life Pulse</h3>
+            <p className="mb-4 text-xs leading-relaxed text-[var(--text-muted)]">
+              Share basic usage events so we can improve Life Pulse. This never includes your NEXTRON conversations, journal entries, task names, or other private content.
+            </p>
+            <label className="flex items-start gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+              <input
+                type="checkbox"
+                checked={allowProductLearning}
+                disabled={savingProductLearning}
+                onChange={(event) => void saveProductLearningPreference(event.target.checked)}
+                className="mt-1 h-4 w-4 rounded border-[var(--border-strong)] bg-[var(--surface-soft)]"
+              />
+              <span>
+                <span className="block text-xs font-semibold text-[var(--text)]">Share product improvement events</span>
+                <span className="mt-1 block text-xs leading-relaxed text-[var(--text-muted)]">Optional. Declining does not limit Life Pulse.</span>
+              </span>
+            </label>
+          </div>
+        </Card>
+
+        {/* Google Calendar */}
+        <Card id="settings-connections" className="mb-4 scroll-mt-24 border-[var(--border-strong)]">
           <div className="p-5">
             <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Integrations</p>
             <h3 className="mb-1 text-sm font-semibold text-[var(--text)]">Google Calendar</h3>
             <p className="mb-4 text-xs leading-relaxed text-[var(--text-muted)]">
-              Connect Google Calendar for bounded NEXTRON answers like what is on your calendar tomorrow. Calendar v1 is read-only.
+              Let NEXTRON answer calendar questions. Calendar access is read-only.
             </p>
 
             {calendarLoading ? (
@@ -634,8 +681,8 @@ export default function SettingsPage() {
                       {calendarReconnectRequired
                         ? "Your Google authorization expired or was revoked. Reconnect Google Calendar to continue."
                         : calendarStatus?.connected
-                        ? "OAuth tokens are stored server-side only and Calendar data is read only when relevant."
-                        : "Connect with the approved Google Calendar read-only scopes."}
+                        ? "Calendar is connected. NEXTRON reads it only when relevant."
+                        : "Connect with read-only access."}
                     </p>
                     {calendarStatus?.missingEnv?.length ? (
                       <p className="mt-1 text-xs text-[var(--danger)]">Server configuration is still missing.</p>
@@ -659,7 +706,7 @@ export default function SettingsPage() {
                     className="mt-1 h-4 w-4 rounded border-[var(--border-strong)] bg-[var(--surface-soft)]"
                   />
                   <span>
-                    <span className="block text-xs font-semibold text-[var(--text)]">Allow NEXTRON to read Calendar</span>
+                    <span className="block text-xs font-semibold text-[var(--text)]">Allow NEXTRON to use Calendar</span>
                     <span className="mt-1 block text-xs leading-relaxed text-[var(--text-muted)]">
                       This is separate from connecting your Google account. It does not allow creating, editing, deleting, or responding to events.
                     </span>
@@ -676,7 +723,7 @@ export default function SettingsPage() {
             <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Integrations</p>
             <h3 className="mb-1 text-sm font-semibold text-[var(--text)]">Google Drive</h3>
             <p className="mb-4 text-xs leading-relaxed text-[var(--text-muted)]">
-              Connect Google Drive to import specific files you select into Knowledge. Drive v1 is read-only and uses the limited drive.file scope.
+              Import selected files into Knowledge. Drive access is read-only.
             </p>
 
             {driveLoading ? (
@@ -692,8 +739,8 @@ export default function SettingsPage() {
                       {driveReconnectRequired
                         ? "Your Google authorization expired or was revoked. Reconnect Google Drive to continue."
                         : driveStatus?.connected
-                        ? `${driveStatus.imports.length} selected Drive file${driveStatus.imports.length === 1 ? "" : "s"} imported. Life Pulse cannot browse or search your whole Drive.`
-                        : "Connect with Google Drive selected-file access, then import files from Knowledge."}
+                        ? `${driveStatus.imports.length} selected Drive file${driveStatus.imports.length === 1 ? "" : "s"} imported. Life Pulse cannot browse your whole Drive.`
+                        : "Connect selected-file access, then import from Knowledge."}
                     </p>
                     {driveStatus?.missingEnv?.length ? (
                       <p className="mt-1 text-xs text-[var(--danger)]">Server configuration is still missing.</p>
@@ -717,7 +764,7 @@ export default function SettingsPage() {
                     className="mt-1 h-4 w-4 rounded border-[var(--border-strong)] bg-[var(--surface-soft)]"
                   />
                   <span>
-                    <span className="block text-xs font-semibold text-[var(--text)]">Allow NEXTRON to read imported Drive files</span>
+                    <span className="block text-xs font-semibold text-[var(--text)]">Allow NEXTRON to use imported Drive files</span>
                     <span className="mt-1 block text-xs leading-relaxed text-[var(--text-muted)]">
                       This only exposes files you imported into Knowledge. It does not allow Drive browsing, search, edits, sharing, or deletion.
                     </span>
@@ -729,12 +776,12 @@ export default function SettingsPage() {
         </Card>
 
         {/* NEXTRON Memory */}
-        <Card className="mb-4 border-[var(--border-strong)]">
+        <Card id="settings-nextron" className="mb-4 scroll-mt-24 border-[var(--border-strong)]">
           <div className="p-5">
             <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">NEXTRON</p>
             <h3 className="mb-1 text-sm font-semibold text-[var(--text)]">NEXTRON Memory</h3>
             <p className="mb-4 text-xs leading-relaxed text-[var(--text-muted)]">
-              NEXTRON Memory v1 stores only explicit preference memories you confirm, such as planning style. It does not store inferences, hidden facts, or conversation history.
+              Memory stores only preferences you explicitly ask NEXTRON to remember.
             </p>
 
             {memoryLoading ? (
@@ -794,13 +841,16 @@ export default function SettingsPage() {
             )}
 
             <p className="mt-4 text-xs leading-relaxed text-[var(--text-muted)]">
-              Life Pulse facts remain authoritative. Memory can shape style only when it fits the current request.
+              Memory can shape style, not override your current Life Pulse data.
             </p>
           </div>
         </Card>
 
         {/* Progression */}
-        <Card variant="subtle" className="mb-4 overflow-hidden border-[var(--border)]">
+        <details className="mb-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)]/60 p-4">
+          <summary className="cursor-pointer list-none text-sm font-semibold text-[var(--text)] [&::-webkit-details-marker]:hidden">Progress and modules</summary>
+          <div className="mt-4 space-y-4">
+        <Card variant="subtle" className="overflow-hidden border-[var(--border)]">
           <div className="border-b border-[var(--border)] px-5 py-4">
             <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Progression</p>
             <h3 className="text-sm font-semibold text-[var(--text)]">How XP works</h3>
@@ -827,12 +877,12 @@ export default function SettingsPage() {
         </Card>
 
         {/* Module configuration foundation */}
-        <Card className="mb-4 border-[var(--border-strong)]">
+        <Card className="border-[var(--border-strong)]">
           <div className="p-5">
             <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Modules / system</p>
             <h3 className="mb-1 text-sm font-semibold text-[var(--text)]">Life Pulse modules</h3>
             <p className="mb-4 text-xs leading-relaxed text-[var(--text-muted)]">
-              Your starting mode recommends areas to keep visible. Available modules work today. Preview and planned areas are quieter context, available when ready.
+              See what is active now and what is intentionally secondary.
             </p>
 
             <div className="mb-3 flex flex-wrap gap-2">
@@ -868,11 +918,8 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <div className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)]/70 p-4">
-              <h4 className="text-xs font-semibold text-[var(--text)]">System map</h4>
-              <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
-                Active now comes first. Future areas are shown as secondary context so Settings stays honest without becoming a roadmap brochure.
-              </p>
+            <details className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)]/70 p-4">
+              <summary className="cursor-pointer list-none text-xs font-semibold text-[var(--text)] [&::-webkit-details-marker]:hidden">Advanced areas</summary>
 
               <div className="mt-4 space-y-4">
                 {moduleCategoryOrder.map((category) => (
@@ -905,13 +952,15 @@ export default function SettingsPage() {
                   </section>
                 ))}
               </div>
-            </div>
+            </details>
 
             <p className="mt-4 text-xs leading-relaxed text-[var(--text-muted)]">
-              Planned modules are not active yet. This page does not create workspaces, team permissions, CRM tools, device sync, AI memory, or database module preferences.
+              Planned areas are not active yet.
             </p>
           </div>
         </Card>
+          </div>
+        </details>
 
         {/* Realms */}
         <Card className="mb-4 border-[var(--border-strong)]">

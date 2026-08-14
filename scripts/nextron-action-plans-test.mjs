@@ -42,7 +42,7 @@ assert(actionPermissionsRoute.includes("WRITE_DOMAINS") && actionPermissionsRout
 assert(actionPermissionsRoute.includes("supabase.auth.getUser()") && !actionPermissionsRoute.includes("service_role"), "Permission endpoint is authenticated and does not use service role");
 
 assert(migration.includes("partially_failed") && migration.includes("stale") && migration.includes("failed"), "Plan lifecycle includes partial failure, stale, and failed terminal states");
-assert(migration.includes("where id = p_proposal_id and user_id = v_user_id and status = 'pending'\n  for update"), "Execution locks only pending owner-scoped proposals");
+assert(/where id = p_proposal_id and user_id = v_user_id and status = 'pending'\s+for update/.test(migration), "Execution locks only pending owner-scoped proposals");
 assert(migration.includes("return v_row;") && migration.includes("select * into v_row from public.nextron_action_proposals where id = p_proposal_id and user_id = v_user_id"), "Replay of terminal proposals returns durable state instead of re-executing");
 assert(migration.includes("create unique index if not exists idx_nextron_action_proposals_user_idempotency"), "Durable idempotency key protects duplicate proposal creation");
 assert(migration.includes("lower(title) = lower(v_title)") && migration.includes("'mutation', 'existing'"), "Create execution deduplicates obvious existing entities by title");
@@ -58,7 +58,7 @@ assert(actions.includes("supabase.rpc(\"nextron_execute_action\"") && migration.
 
 assert(actions.includes("setupDraftToActions") && actions.includes("normalizeLifeSetupDraft") && actions.includes("createOnboardingSetupActionPlan"), "Onboarding draft converts deterministically from saved validated draft");
 assert(onboardingRoute.includes("build_plan") && onboardingRoute.includes("createOnboardingSetupActionPlan"), "Onboarding exposes explicit build-plan transition");
-assert(onboardingPage.includes("Build my Life Pulse") && onboardingPage.includes("Permission review") && onboardingPage.includes("Grant approved-write permissions") && onboardingPage.includes("Approve"), "Onboarding UX separates plan preview, permission review, and approval");
+assert(onboardingPage.includes("Build my Life Pulse") && onboardingPage.includes("Allow NEXTRON to create these items?") && onboardingPage.includes("Allow setup changes") && onboardingPage.includes("Approve"), "Onboarding UX separates plan preview, permission review, and approval");
 assert(onboardingPage.includes("setupPermissionsGranted") && onboardingPage.includes("Grant permissions first") && onboardingPage.includes("!setupPermissionsGranted"), "Onboarding setup approval is unavailable until explicit write permissions are granted");
 assert(onboardingPage.includes("Enter Life Pulse") && onboardingPage.includes('router.push("/today")'), "Completed setup has an explicit path into Today through canonical completion transition");
 assert(!actions.includes("createConfiguredNextronProvider") && !actions.includes("runNextronProvider"), "Action preview/execution code makes no model call");

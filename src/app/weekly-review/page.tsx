@@ -22,6 +22,7 @@ import {
   removeWeeklyReviewBlock,
   type WeeklyReviewReflection,
 } from "@/lib/weekly-review";
+import { recordProductLearningEvent } from "@/lib/product-learning/client";
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -657,6 +658,7 @@ function WeeklyReviewContent() {
       setSaveError("We could not save your weekly review. Please try again.");
     } else {
       setReviewSaved(true);
+      void recordProductLearningEvent("weekly_review_completed");
     }
     setSavingReflection(false);
   };
@@ -747,7 +749,7 @@ function WeeklyReviewContent() {
       )}
 
       <section className="mb-8" aria-labelledby="week-facts-heading">
-        <SectionIntro id="week-facts-heading" title="Your week in facts" description="Evidence from this week only. No AI summary, score, or judgment." />
+        <SectionIntro id="week-facts-heading" title="Your week in facts" description="What you logged this week. No score or judgment." />
         <div className="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-4">
           <MetricCard label="Tasks completed" value={data.taskCount} />
           <MetricCard label="Tasks still open" value={data.openTaskCount} sub={`${data.overdueTaskCount} overdue`} />
@@ -761,7 +763,7 @@ function WeeklyReviewContent() {
       </section>
 
       <section className="mb-8" aria-labelledby="open-work-heading">
-        <SectionIntro id="open-work-heading" title="What is still open" description="Read-only context for unfinished work. Nothing is carried forward automatically." />
+        <SectionIntro id="open-work-heading" title="What is still open" description="Unfinished work from this week." />
         {data.openTasks.length > 0 ? (
           <div className="space-y-2">
             {data.openTasks.map((task) => (
@@ -782,7 +784,7 @@ function WeeklyReviewContent() {
       </section>
 
       <section className="mb-8" aria-labelledby="habit-review-heading">
-        <SectionIntro id="habit-review-heading" title="Habit review" description="Deduped completions and schedule-aware weekly progress where the schedule is defined." />
+        <SectionIntro id="habit-review-heading" title="Habit review" description="How your repeatable actions went this week." />
         {data.habitReview.length > 0 ? (
           <div className="grid min-w-0 gap-2 sm:grid-cols-2">
             {data.habitReview.map((habit) => (
@@ -798,7 +800,7 @@ function WeeklyReviewContent() {
       </section>
 
       <section className="mb-8" aria-labelledby="results-review-heading">
-        <SectionIntro id="results-review-heading" title="Results recorded" description="Compact factual measurement context. No interpretation or prediction." />
+        <SectionIntro id="results-review-heading" title="Results recorded" description="Measurements you entered this week." />
         {data.resultsReview.length > 0 ? (
           <div className="grid min-w-0 gap-2 sm:grid-cols-2">
             {data.resultsReview.map((metric) => (
