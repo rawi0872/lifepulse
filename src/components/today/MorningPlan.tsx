@@ -3,11 +3,11 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
-import type { TodayModel } from "@/lib/today/types";
+import type { TodayModel } from "@lifepulse/domain";
 import {
   selectMorningPlanFirstAction,
   type TodayLocalPriority,
-} from "@/lib/today/morning-plan";
+} from "@lifepulse/domain";
 
 interface MorningPlanProps {
   model: TodayModel;

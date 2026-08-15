@@ -7,7 +7,7 @@ import type { NextronPermissionState } from "@/lib/nextron/context";
 import { isNextronContextAllowed } from "@/lib/nextron/context";
 import type { NextronEvidencePacket } from "@/lib/nextron/evidence";
 import { getTodayDateString, getWeekStartDate } from "@/lib/utils";
-import { isHabitDueOnDate } from "@/lib/streaks";
+import { isHabitDueOnDate } from "@lifepulse/domain";
 
 export type NextronSignalType = "deadline_overdue" | "project_stall" | "habit_interruption" | "review_gap" | "calendar_pressure" | "free_block" | "open_loop_cluster" | "today_clear" | "habit_target_met";
 export type NextronSignalSeverity = "info" | "attention" | "important";

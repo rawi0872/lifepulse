@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useToast } from "@/hooks/use-toast";
 import { getTodayDateString, getWeekStartDate } from "@/lib/utils";
-import { getCurrentStreak, getBestStreak, getTimesPerWeekTarget, getWeeklyProgress, isHabitDueOnDate, normalizeCompletedDates } from "@/lib/streaks";
+import { getCurrentStreak, getBestStreak, getTimesPerWeekTarget, getWeeklyProgress, isHabitDueOnDate, normalizeCompletedDates } from "@lifepulse/domain";
 import { recordProductLearningEvent } from "@/lib/product-learning/client";
 
 interface Realm {

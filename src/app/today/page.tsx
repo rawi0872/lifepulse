@@ -7,14 +7,14 @@ import { createClient } from "@/lib/supabase/client";
 import {
   getTodayDateString,
 } from "@/lib/utils";
-import { getCurrentStreak, normalizeCompletedDates } from "@/lib/streaks";
+import { getCurrentStreak, normalizeCompletedDates } from "@lifepulse/domain";
 import { toggleTaskCompletion } from "@/lib/taskCompletion";
 import { DashboardNav } from "@/components/DashboardNav";
 import { useToast } from "@/hooks/use-toast";
 import { EveningShutdown } from "@/components/today/EveningShutdown";
 import { useTodayData } from "@/hooks/use-today-data";
 import { recordProductLearningEvent } from "@/lib/product-learning/client";
-import { selectMorningPlanFirstAction, type MorningPlanFirstAction } from "@/lib/today/morning-plan";
+import { selectMorningPlanFirstAction, type MorningPlanFirstAction } from "@lifepulse/domain";
 
 interface Priority {
   id: string;

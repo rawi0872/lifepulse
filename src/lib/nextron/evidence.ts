@@ -1,9 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { parseEveningShutdownReflection, removeEveningShutdownBlock } from "@/lib/today/evening-shutdown";
+import { parseEveningShutdownReflection, removeEveningShutdownBlock } from "@lifepulse/domain";
 import { parseWeeklyReviewReflection, removeWeeklyReviewBlock } from "@/lib/weekly-review";
 import { getTodayDateString, getWeekStartDate } from "@/lib/utils";
-import { groupTasksByDate, isValidLocalDateString, timestampToLocalDateString } from "@/lib/tasks";
-import { getWeeklyProgress, isHabitDueOnDate, normalizeCompletedDates } from "@/lib/streaks";
+import { groupTasksByDate, isValidLocalDateString, timestampToLocalDateString } from "@lifepulse/domain";
+import { getWeeklyProgress, isHabitDueOnDate, normalizeCompletedDates } from "@lifepulse/domain";
 import { buildLifeMapGraph, summarizeLifeMapForNextron } from "@/lib/life-map";
 import type { NextronContextDomain, NextronPermissionState } from "@/lib/nextron/context";
 import { isNextronContextAllowed } from "@/lib/nextron/context";

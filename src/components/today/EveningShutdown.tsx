@@ -4,7 +4,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import type { TodayModel } from "@/lib/today/types";
+import type { TodayModel } from "@lifepulse/domain";
 import {
   buildEveningShutdownBlock,
   buildEveningShutdownSummary,
@@ -12,7 +12,7 @@ import {
   normalizeEveningShutdownReflection,
   parseEveningShutdownReflection,
   type EveningShutdownReflection,
-} from "@/lib/today/evening-shutdown";
+} from "@lifepulse/domain";
 
 interface EveningShutdownProps {
   model: TodayModel;

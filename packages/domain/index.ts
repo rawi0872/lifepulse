@@ -28,6 +28,16 @@ export type { HabitSchedule, HabitWeeklyProgress } from "./streaks";
 export { normalizeTodayData } from "./today/normalize";
 export { selectMorningPlanFirstAction, getMorningPlanAttentionItems } from "./today/morning-plan";
 export type { TodayLocalPriority, MorningPlanFirstAction } from "./today/morning-plan";
+export {
+  buildEveningShutdownSummary,
+  normalizeEveningShutdownReflection,
+  buildEveningShutdownBlock,
+  removeEveningShutdownBlock,
+  mergeEveningShutdownBlock,
+  parseEveningShutdownReflection,
+} from "./today/evening-shutdown";
+export type { EveningShutdownReflection, EveningShutdownSummary } from "./today/evening-shutdown";
+
 export type {
   TodayRealmInfo,
   TodayHabit,

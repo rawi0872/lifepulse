@@ -9,7 +9,7 @@ import { DailyLoopConnector } from "@/components/DailyLoopConnector";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { removeEveningShutdownBlock } from "@/lib/today/evening-shutdown";
+import { removeEveningShutdownBlock } from "@lifepulse/domain";
 import {
   getWeeklyReviewWeekStart,
   hasCurrentWeeklyReviewBlock,

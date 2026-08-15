@@ -6,7 +6,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { resolveIntendedUse } from "@/lib/intendedUse";
 import { getTodayDateString, getTodayDayOfWeek, getTodayStartISO, getWeekStartDate } from "@/lib/utils";
 import { loadExactXpTotals } from "@/lib/xpTotals";
-import { normalizeTodayData } from "@/lib/today/normalize";
+import { normalizeTodayData } from "@lifepulse/domain";
 import type {
   TodayDataSnapshot,
   TodayDateContext,
@@ -14,7 +14,7 @@ import type {
   TodayModel,
   TodayProjectTask,
   TodayTask,
-} from "@/lib/today/types";
+} from "@lifepulse/domain";
 
 type JoinedRelation<T> = T | T[] | null | undefined;
 

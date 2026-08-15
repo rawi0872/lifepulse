@@ -1,6 +1,7 @@
-export const INTENDED_USE_VALUES = ["personal", "business", "team", "mixed"] as const;
+export { INTENDED_USE_VALUES, resolveIntendedUse } from "@lifepulse/domain";
+export type { IntendedUse } from "@lifepulse/domain";
 
-export type IntendedUse = (typeof INTENDED_USE_VALUES)[number];
+import type { IntendedUse } from "@lifepulse/domain";
 
 export const INTENDED_USE_OPTIONS: readonly {
   value: IntendedUse;
@@ -28,10 +29,6 @@ export const INTENDED_USE_OPTIONS: readonly {
     description: "Personal and business priorities in one system, with clear separation.",
   },
 ] as const;
-
-export function resolveIntendedUse(value: string | null | undefined): IntendedUse {
-  return INTENDED_USE_VALUES.includes(value as IntendedUse) ? (value as IntendedUse) : "personal";
-}
 
 export const TODAY_COPY: Record<IntendedUse, { subtitle: string; focusPrompt: string; emptyTitle: string; emptyBody: string }> = {
   personal: {

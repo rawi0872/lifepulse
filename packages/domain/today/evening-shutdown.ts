@@ -1,4 +1,4 @@
-import type { TodayHabit, TodayModel, TodayTask } from "@/lib/today/types";
+import type { TodayHabit, TodayModel, TodayTask } from "./types";
 
 const EVENING_SHUTDOWN_START = "<!-- LIFE_PULSE_EVENING_SHUTDOWN_START -->";
 const EVENING_SHUTDOWN_END = "<!-- LIFE_PULSE_EVENING_SHUTDOWN_END -->";

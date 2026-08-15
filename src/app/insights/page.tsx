@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/card";
 import { getTodayDateString, getTodayStartISO, getWeekStartDate } from "@/lib/utils";
 import { getLevelInfo, getOverallTitle } from "@/lib/levels";
 import { formatMoney } from "@/lib/config";
-import { getCurrentStreak, getBestStreak } from "@/lib/streaks";
+import { getCurrentStreak, getBestStreak } from "@lifepulse/domain";
 import { loadExactXpTotals } from "@/lib/xpTotals";
 import { InsightSkeleton } from "@/components/insights/InsightSkeleton";
 import { LevelOverviewCard } from "@/components/insights/LevelOverviewCard";

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { getTodayDateString } from "@/lib/utils";
-import { groupTasksByDate, hasInvalidTaskDueDate, isValidLocalDateString, timestampToLocalDateString } from "@/lib/tasks";
+import { groupTasksByDate, hasInvalidTaskDueDate, isValidLocalDateString, timestampToLocalDateString } from "@lifepulse/domain";
 import { DashboardNav } from "@/components/DashboardNav";
 import { DailyLoopConnector } from "@/components/DailyLoopConnector";
 import { RealmPicker } from "@/components/RealmPicker";

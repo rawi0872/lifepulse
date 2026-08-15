@@ -166,23 +166,25 @@ export default function TodayScreen() {
           <Text style={styles.upNextLabel}>UP NEXT</Text>
           <View style={styles.upNextCard}>
             <Text style={styles.upNextTitle} numberOfLines={2}>{upNext.title}</Text>
-            <Text style={styles.upNextReason}>{upNext.reason}</Text>
-            {upNext.type === "task" && (
-              <TouchableOpacity
-                style={styles.completeButton}
-                onPress={() => void completeTask(upNext.id)}
-              >
-                <Text style={styles.completeButtonText}>Complete</Text>
-              </TouchableOpacity>
-            )}
-            {upNext.type === "habit" && (
-              <TouchableOpacity
-                style={styles.completeButton}
-                onPress={() => void completeHabit(upNext.id)}
-              >
-                <Text style={styles.completeButtonText}>Log habit</Text>
-              </TouchableOpacity>
-            )}
+            <View style={styles.upNextFooter}>
+              <Text style={styles.upNextReason}>{upNext.reason}</Text>
+              {upNext.type === "task" && (
+                <TouchableOpacity
+                  style={styles.completeButton}
+                  onPress={() => void completeTask(upNext.id)}
+                >
+                  <Text style={styles.completeButtonText}>Complete</Text>
+                </TouchableOpacity>
+              )}
+              {upNext.type === "habit" && (
+                <TouchableOpacity
+                  style={styles.completeButton}
+                  onPress={() => void completeHabit(upNext.id)}
+                >
+                  <Text style={styles.completeButtonText}>Log habit</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
         </View>
       )}
@@ -302,19 +304,24 @@ const styles = StyleSheet.create({
   upNextReason: {
     color: "#7aa2c4",
     fontSize: 12,
-    marginTop: 4,
+    flex: 1,
+  },
+  upNextFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 10,
   },
   completeButton: {
-    marginTop: 12,
     backgroundColor: "rgba(122, 162, 196, 0.15)",
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    alignSelf: "flex-start",
+    borderRadius: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    marginLeft: 8,
   },
   completeButtonText: {
     color: "#7aa2c4",
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "600",
   },
   emptyUpNext: {

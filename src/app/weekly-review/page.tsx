@@ -10,9 +10,9 @@ import { PulseCard } from "@/components/ui/pulse-card";
 import { Card } from "@/components/ui/card";
 import { getTodayDateString, getWeekStartDate } from "@/lib/utils";
 import { formatCurrency } from "@/components/finance/financeUtils";
-import { removeEveningShutdownBlock } from "@/lib/today/evening-shutdown";
-import { groupTasksByDate, hasInvalidTaskDueDate, timestampToLocalDateString } from "@/lib/tasks";
-import { getWeeklyProgress, isHabitDueOnDate, normalizeCompletedDates } from "@/lib/streaks";
+import { removeEveningShutdownBlock } from "@lifepulse/domain";
+import { groupTasksByDate, hasInvalidTaskDueDate, timestampToLocalDateString } from "@lifepulse/domain";
+import { getWeeklyProgress, isHabitDueOnDate, normalizeCompletedDates } from "@lifepulse/domain";
 import {
   buildWeeklyReviewBlock,
   emptyWeeklyReviewReflection,
