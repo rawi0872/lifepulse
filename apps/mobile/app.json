@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "Life Pulse",
+    "slug": "lifepulse-mobile",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#080c12"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "app.lifepulse.mobile"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#080c12"
+      },
+      "package": "app.lifepulse.mobile"
+    },
+    "plugins": [
+      "expo-router"
+    ]
+  }
+}
