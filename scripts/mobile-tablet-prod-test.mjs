@@ -41,7 +41,7 @@ const viewports = [
 ];
 
 const routes = [
-  { path: "/today", label: "Today", text: ["What matters today?", "Daily focus", "Start with one priority.", "Quick capture", "Tasks and habits"] },
+  { path: "/today", label: "Today", text: ["Today", "Today's focus", "Up next", "Tasks", "Habits", "NEXTRON"] },
   { path: "/tasks", label: "Tasks", text: ["Tasks"] },
   { path: "/habits", label: "Habits", text: ["Habits"] },
   { path: "/goals", label: "Goals", text: ["Goals"] },
@@ -51,7 +51,7 @@ const routes = [
   { path: "/knowledge", label: "Knowledge", text: ["Knowledge"] },
   { path: "/weekly-review", label: "Weekly Review", text: ["Weekly Review"] },
   { path: "/insights", label: "Insights", text: ["Insights"] },
-  { path: "/nextron", label: "NEXTRON", text: ["NEXTRON", "Talk to NEXTRON"] },
+  { path: "/nextron", label: "NEXTRON", text: ["NEXTRON", "What's on your mind?", "Ask NEXTRON...", "Context"] },
   { path: "/body", label: "Body", text: ["Body"] },
   { path: "/mind", label: "Mind", text: ["Mind Pulse", "Mind Habits", "Log Today's Mind Data"] },
   { path: "/finance", label: "Finance", text: ["Finance"] },
@@ -158,7 +158,7 @@ async function verifyMobileNavigation(page) {
   await page.getByRole("button", { name: "More" }).click();
   await expect(page.getByRole("heading", { name: "More" })).toBeVisible({ timeout: 15000 });
   const moreText = await page.locator("body").innerText({ timeout: 15000 });
-  if (!/Direction|Review|Optional Context/i.test(moreText)) {
+  if (!/Plan|Reflect|Optional Context/i.test(moreText)) {
     throw new Error("More menu did not show current product route grouping copy.");
   }
   await expect(page.getByRole("link", { name: /^Goals$/ })).toBeVisible({ timeout: 15000 });

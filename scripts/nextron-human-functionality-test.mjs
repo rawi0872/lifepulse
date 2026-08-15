@@ -130,13 +130,13 @@ async function assertNoOverflow(page, label) {
 }
 
 async function nonPendingAssistantCount(page) {
-  return page.evaluate(() => Array.from(document.querySelectorAll("article")).filter((article) => article.textContent?.includes("NEXTRON") && !article.hasAttribute("data-nextron-pending-turn")).length);
+  return page.evaluate(() => Array.from(document.querySelectorAll('[aria-labelledby="nextron-answer"] article')).filter((article) => article.textContent?.includes("NEXTRON") && !article.hasAttribute("data-nextron-pending-turn")).length);
 }
 
 async function waitForTerminalAsk(page, prompt) {
   await expect(page.locator('[data-nextron-pending-turn="true"]')).toHaveCount(0, { timeout: 10000 });
   await expect(page.locator("#nextron-question-status")).not.toContainText(/received your message|is thinking|Analyzing/i, { timeout: 10000 });
-  await expect(page.locator("article", { hasText: prompt })).toBeVisible({ timeout: 10000 });
+  await expect(page.locator('[aria-labelledby="nextron-answer"] article', { hasText: prompt })).toBeVisible({ timeout: 10000 });
   await expect.poll(async () => nonPendingAssistantCount(page), { timeout: 10000 }).toBeGreaterThan(0);
 }
 
@@ -151,18 +151,17 @@ async function askLikeHuman(page, prompt, method = "click") {
 }
 
 async function exerciseControls(page) {
-  await expect(page.getByRole("heading", { name: "NEXTRON" })).toBeVisible({ timeout: 10000 });
-  await expect(page.locator("main").getByText("Talk to NEXTRON").first()).toBeVisible({ timeout: 10000 });
-  await expect(page.getByRole("heading", { name: "What should we work through?" })).toBeVisible({ timeout: 10000 });
+  await expect(page.getByRole("heading", { name: "NEXTRON", exact: true })).toBeVisible({ timeout: 10000 });
+  await expect(page.getByText("What's on your mind?")).toBeVisible({ timeout: 10000 });
   await expect(page.locator("#nextron-question")).toBeVisible({ timeout: 10000 });
   await expect(page.getByRole("button", { name: "Send to NEXTRON" })).toBeVisible({ timeout: 10000 });
   await expect(page.getByRole("button", { name: "What should I focus on today?" }).first()).toBeVisible({ timeout: 10000 });
-  await expect(page.getByRole("button", { name: "What needs my attention?" }).first()).toBeVisible({ timeout: 10000 });
-  await expect(page.getByRole("button", { name: "What can you help me with?" }).first()).toBeVisible({ timeout: 10000 });
-  await expect(page.locator("summary").filter({ hasText: "More intelligence" })).toBeVisible({ timeout: 10000 });
+  await expect(page.getByRole("button", { name: "Help me plan tomorrow." }).first()).toBeVisible({ timeout: 10000 });
+  await expect(page.getByRole("button", { name: "What am I falling behind on?" }).first()).toBeVisible({ timeout: 10000 });
+  await expect(page.getByRole("button", { name: "Context" })).toBeVisible({ timeout: 10000 });
   await expect(page.locator('[data-nextron-signals="true"]')).toBeHidden({ timeout: 10000 });
 
-  await askLikeHuman(page, "What can you help me with?");
+  await askLikeHuman(page, "What am I falling behind on?");
   pass("first composer submit has acknowledgement and visible result");
 
   await page.locator("#nextron-question").fill("How am I doing after that?");
@@ -180,8 +179,8 @@ async function exerciseControls(page) {
     pass("quick question control asks visibly");
   }
 
-  await page.locator("summary").filter({ hasText: "More intelligence" }).click();
-  await expect(page.getByText("History, current context, actions, and permissions.")).toBeVisible({ timeout: 10000 });
+  await page.getByRole("button", { name: "Context" }).click();
+  await expect(page.getByText("Sources, permissions, brief, actions, and diagnostics.")).toBeVisible({ timeout: 10000 });
   pass("secondary intelligence is reachable by disclosure");
 
   await expect(page.getByRole("button", { name: "New conversation" })).toBeVisible({ timeout: 10000 });
@@ -201,7 +200,7 @@ async function exerciseControls(page) {
   await expect(signalsRefresh).toBeVisible({ timeout: 10000 });
   pass("signals refresh gives visible state");
 
-  const actionRefresh = page.locator('[data-nextron-actions="true"]').getByRole("button", { name: /Refresh proposals|Loading/ });
+  const actionRefresh = page.locator('#nextron-context-panel [data-nextron-actions="true"]').getByRole("button", { name: /Refresh proposals|Loading/ });
   await actionRefresh.click();
   await expect(actionRefresh).toBeVisible({ timeout: 10000 });
   pass("proposal refresh gives visible state");
@@ -216,6 +215,7 @@ async function exerciseControls(page) {
   await page.getByText("NEXTRON access").click();
   await expect(page.getByText("Saved permissions are active")).toBeVisible({ timeout: 10000 });
   pass("context permissions disclosure opens visibly");
+  await page.getByRole("button", { name: "Close" }).click({ timeout: 10000 });
 }
 
 async function exerciseErrorPaths(page, controls) {
@@ -241,7 +241,13 @@ async function exerciseErrorPaths(page, controls) {
   controls.setAskMode("timeout");
   await page.getByRole("button", { name: "Send to NEXTRON" }).click();
   await expect(page.locator('[data-nextron-pending-turn="true"]')).toBeVisible({ timeout: 5000 });
+  if (!(await page.getByRole("button", { name: "Ask about today" }).first().isVisible().catch(() => false))) {
+    await page.getByRole("button", { name: "Context" }).click();
+  }
   await page.getByRole("button", { name: "Ask about today" }).first().click();
+  if (await page.getByRole("button", { name: "Close" }).isVisible().catch(() => false)) {
+    await page.getByRole("button", { name: "Close" }).click();
+  }
   await expect(page.locator("#nextron-question-status")).toContainText("already answering", { timeout: 5000 });
   pass("busy repeated ask gives visible feedback");
   await expect(page.locator('[data-nextron-ask-error="true"]')).toBeVisible({ timeout: 45000 });
@@ -271,9 +277,10 @@ async function runViewport(browser, viewport, label) {
   if (page.url().includes("/onboarding")) throw new Error(`${label} redirected to onboarding; use an onboarded QA account`);
   await waitForReady(page);
   await exerciseControls(page);
-  if (label === "desktop") await exerciseErrorPaths(page, controls);
+  await page.evaluate(() => window.scrollTo(0, 0));
   const firstScreen = await page.evaluate(() => ({ composerTop: document.querySelector("#nextron-question")?.getBoundingClientRect().top ?? 9999, answerTop: document.querySelector("#nextron-answer")?.getBoundingClientRect().top ?? 9999 }));
   if (firstScreen.composerTop > viewport.height || firstScreen.answerTop > viewport.height * 1.4) throw new Error(`${label} does not keep conversation primary enough: ${JSON.stringify(firstScreen)}`);
+  if (label === "desktop") await exerciseErrorPaths(page, controls);
   await assertNoOverflow(page, label);
   await context.close();
   pass(`${label} human-path controls verified`);

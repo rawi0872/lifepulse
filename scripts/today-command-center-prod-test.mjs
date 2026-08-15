@@ -34,13 +34,12 @@ const PASSWORD = env.LIFE_PULSE_TEST_PASSWORD;
 const ERROR_SCREENSHOT_PATH = "screenshot-today-command-center-prod-error.png";
 
 const requiredTodayCoreText = [
-  "What matters today?",
-  "Daily focus",
-  "Start with one priority.",
-  "Quick capture",
-  "Tasks and habits",
-  "What can be completed today",
-  "NEXTRON noticed",
+  "Today",
+  "Today's focus",
+  "Up next",
+  "Tasks",
+  "Habits",
+  "NEXTRON",
 ];
 
 const conditionalExecutionBridgeText = [
@@ -179,7 +178,7 @@ async function main() {
     if (page.url().includes("/onboarding")) {
       throw new Error("Smoke-test account is not onboarded. Use an existing onboarded LIFE_PULSE_TEST_EMAIL account for this read-only Today check.");
     }
-    await expect(page.getByRole("heading", { name: "What matters today?" })).toBeVisible({ timeout: 20000 });
+    await expect(page.getByRole("heading", { name: "Today", exact: true })).toBeVisible({ timeout: 20000 });
     pass("Today page loaded");
 
     for (const text of requiredTodayCoreText) {
@@ -233,8 +232,8 @@ async function main() {
       skip("Execution bridge section is data-dependent and not visible for this account/goal state");
     }
 
-    await expect(page.locator("summary").filter({ hasText: "More context" })).toBeVisible({ timeout: 15000 });
-    pass("Secondary Today context is collapsed behind More context");
+    await expect(page.locator("body")).toContainText("Up next", { timeout: 15000 });
+    pass("Up next is visible in Today primary surface");
 
     await expect(page.getByText("Active ecosystem")).toBeHidden({ timeout: 5000 });
     pass("Active ecosystem strip is absent from Today first paint");

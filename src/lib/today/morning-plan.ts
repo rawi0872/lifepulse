@@ -66,6 +66,8 @@ export function selectMorningPlanFirstAction(
   model: TodayModel,
   localPriorities: TodayLocalPriority[],
 ): MorningPlanFirstAction | null {
+  // Deterministic Up Next contract: unfinished Today priority-linked task,
+  // then overdue work, due-today work, due habits, then the next active task.
   const priorityTask = findPriorityTask(model, localPriorities);
   if (priorityTask) {
     return {

@@ -45,7 +45,7 @@ const pkg = JSON.parse(read(paths.packageJson));
 
 assert(pkg.scripts["test:nextron-product-cohesion"] === "node scripts/nextron-product-cohesion-test.mjs", "Product cohesion test script is registered");
 assert(nextronPage.includes('import CoachPage from "@/app/coach/page"') && nextConfig.includes('source: "/coach"') && nextConfig.includes('destination: "/nextron"'), "Canonical /nextron route exists and /coach compatibility redirects");
-assert(nav.includes('label: "Start"') && nav.includes('href: "/nextron"') && !nav.includes('href: "/coach", icon: icons.coach'), "Primary navigation exposes NEXTRON at /nextron");
+assert(nav.includes('label: "Daily"') && nav.includes('label: "Plan"') && nav.includes('label: "Reflect"') && nav.includes('href: "/nextron"') && !nav.includes('href: "/coach", icon: icons.coach'), "Primary navigation exposes NEXTRON at /nextron with use/plan/reflect hierarchy");
 assert(!nav.includes('href: "/life-map"') && lifeMap.includes('fetch("/api/life-map"'), "Life Map route is preserved without default V1 navigation exposure");
 assert(!nav.includes('badge: "Beta"') && !nav.includes('Review after logging') && !nav.includes('Organize bigger work'), "Navigation removes stale NEXTRON beta and legacy group labels");
 assert(modules.includes('href: "/nextron"') && modules.includes('personal intelligence') && !modules.includes('AI Coach foundation'), "Module registry describes NEXTRON as Life Pulse intelligence");

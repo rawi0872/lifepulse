@@ -133,13 +133,6 @@ export function useTodayData(supabase: SupabaseClient) {
         tasksRes,
         journalRes,
         weekLogsRes,
-        xpTotals,
-        projectTasksRes,
-        taskProjectsRes,
-        taskGoalLinksRes,
-        taskGoalsRes,
-        goalMilestonesRes,
-        goalLinksRes,
       ] = await Promise.all([
         supabase
           .from("profiles")
@@ -167,6 +160,38 @@ export function useTodayData(supabase: SupabaseClient) {
           .select("habit_id, completed_date")
           .eq("user_id", user.id)
           .gte("completed_date", date.weekStart),
+      ]);
+
+      if (seq !== requestSeq.current) return;
+
+      const coreSnapshot: TodayDataSnapshot = {
+        habits: normalizeHabitRows(habitsRes.data ?? []),
+        tasks: normalizeTaskRows(tasksRes.data ?? []),
+        weekLogs: (weekLogsRes.data ?? []) as TodayDataSnapshot["weekLogs"],
+        todayEntry: journalRes.data ?? null,
+        projectTasks: [],
+        taskProjects: [],
+        taskGoalLinks: [],
+        linkedGoals: [],
+        goalPreviewMilestones: [],
+        goalPreviewLinks: [],
+        todayXp: snapshotRef.current?.todayXp ?? 0,
+        totalXp: snapshotRef.current?.totalXp ?? 0,
+        intendedUse: resolveIntendedUse(profileRes.data?.intended_use),
+      };
+
+      applySnapshot(coreSnapshot, date, user.id);
+      setLoading(false);
+
+      const [
+        xpTotals,
+        projectTasksRes,
+        taskProjectsRes,
+        taskGoalLinksRes,
+        taskGoalsRes,
+        goalMilestonesRes,
+        goalLinksRes,
+      ] = await Promise.all([
         loadExactXpTotals(supabase, user.id, getTodayStartISO()),
         supabase
           .from("tasks")
@@ -202,10 +227,7 @@ export function useTodayData(supabase: SupabaseClient) {
       if (seq !== requestSeq.current) return;
 
       const snapshot: TodayDataSnapshot = {
-        habits: normalizeHabitRows(habitsRes.data ?? []),
-        tasks: normalizeTaskRows(tasksRes.data ?? []),
-        weekLogs: (weekLogsRes.data ?? []) as TodayDataSnapshot["weekLogs"],
-        todayEntry: journalRes.data ?? null,
+        ...coreSnapshot,
         projectTasks: normalizeProjectTaskRows(projectTasksRes.data ?? []),
         taskProjects: (taskProjectsRes.data ?? []) as TodayDataSnapshot["taskProjects"],
         taskGoalLinks: (taskGoalLinksRes.data ?? []) as TodayDataSnapshot["taskGoalLinks"],

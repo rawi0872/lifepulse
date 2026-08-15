@@ -517,7 +517,7 @@ export default function SettingsPage() {
   return (
     <DashboardNav>
       <div className="mx-auto max-w-2xl px-4 py-6 animate-fade-in sm:px-5 sm:py-8">
-        <div className="mb-5 rounded-2xl border border-[var(--border)] bg-[radial-gradient(circle_at_top_left,var(--accent-soft),transparent_36%),var(--surface-soft)] px-4 py-4 shadow-sm shadow-black/10 sm:px-5">
+        <div className="mb-5 rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-4 shadow-sm shadow-black/10 sm:px-5">
           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">Account</p>
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-[var(--text)]">Settings</h1>
           <p className="mt-1 max-w-xl text-sm leading-relaxed text-[var(--text-secondary)]">Manage your profile, NEXTRON access, connections, and Life Pulse preferences.</p>

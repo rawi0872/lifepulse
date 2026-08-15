@@ -34,10 +34,10 @@ const PASSWORD = env.LIFE_PULSE_TEST_PASSWORD;
 const ERROR_SCREENSHOT_PATH = "screenshot-navigation-prod-error.png";
 
 const requiredGroupText = [
-  ["Start"],
-  ["Direction"],
-  ["Review"],
-  ["Account"],
+  ["Daily"],
+  ["Plan"],
+  ["Reflect"],
+  ["Configure"],
 ];
 
 const requiredNavText = [
@@ -165,6 +165,8 @@ async function main() {
     await expect(nextronLink).toBeVisible({ timeout: 15000 });
     await expect(nextronLink).toHaveAttribute("href", /\/nextron$/);
     pass("NEXTRON nav route points to /nextron");
+    await expect(sidebar.getByRole("link", { name: "Talk to NEXTRON" })).toHaveCount(0, { timeout: 5000 });
+    pass("Sidebar NEXTRON promo card is absent");
 
     for (const text of removedNavText) {
       await expectNavTextAbsent(sidebar, text);

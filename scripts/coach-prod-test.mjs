@@ -39,7 +39,15 @@ const ERROR_SCREENSHOT_PATH = "screenshot-nextron-prod-error.png";
 
 const requiredNextronText = [
   "NEXTRON",
-  "Talk to NEXTRON",
+  "What's on your mind?",
+  "Ask NEXTRON",
+  "Context",
+  "What should I focus on today?",
+  "Help me plan tomorrow.",
+  "What am I falling behind on?",
+];
+
+const requiredNextronContextText = [
   "Daily Brief",
   "What to know and protect today",
   "Generate brief",
@@ -48,9 +56,6 @@ const requiredNextronText = [
   "Refresh",
   "NEXTRON Actions",
   "Approval framework",
-  "Ask NEXTRON",
-  "What should we work through?",
-  "More intelligence",
   "Read-only schedule",
   "Active Projects",
   "What NEXTRON can use",
@@ -249,6 +254,13 @@ async function main() {
     for (const text of requiredNextronText) {
       await expectBodyText(page, text);
     }
+    await expect(page.getByRole("button", { name: "Context" })).toBeVisible({ timeout: 15000 });
+    await page.getByRole("button", { name: "Context" }).click({ timeout: 30000 });
+    pass("Secondary NEXTRON systems are behind Context");
+
+    for (const text of requiredNextronContextText) {
+      await expectBodyText(page, text);
+    }
 
     for (const text of requiredTransparencyText) {
       await expectBodyText(page, text);
@@ -270,8 +282,12 @@ async function main() {
       pass(`Forbidden NEXTRON memory phrase absent: ${phrase}`);
     }
 
-    await page.locator("summary").filter({ hasText: "More intelligence" }).click({ timeout: 30000 });
+    if (!(await page.locator('[data-nextron-signals="true"]').isVisible().catch(() => false))) {
+      await page.getByRole("button", { name: "Context" }).click({ timeout: 30000 });
+    }
     await expect(page.locator('[data-nextron-signals="true"]')).toBeVisible({ timeout: 20000 });
+    await expect(page.locator('[data-nextron-signals="true"]')).not.toContainText("Refreshing...", { timeout: 20000 });
+    await expect(page.locator('[data-nextron-signals="true"]')).not.toContainText("Checking current patterns", { timeout: 20000 });
     const signalCount = await page.locator('[data-nextron-signal="true"]').count();
     expect(signalCount).toBeLessThanOrEqual(5);
     if (signalCount > 0) {
@@ -287,6 +303,7 @@ async function main() {
     pass("NEXTRON patterns refresh completed");
 
     await expect(page.locator('[data-nextron-actions="true"]')).toContainText("Goals, Habits, Projects, and Tasks", { timeout: 10000 });
+    await page.getByRole("button", { name: "Close" }).click({ timeout: 30000 });
     await page.locator("#nextron-question").fill(`Create a task called ${createTitle} tomorrow`);
     await page.getByRole("button", { name: "Send to NEXTRON" }).click();
     const createProposal = page.locator('[data-nextron-action-proposal="true"]').filter({ hasText: createTitle }).first();
@@ -332,6 +349,7 @@ async function main() {
     pass("Action cancellation finalized proposal");
 
     await page.reload({ waitUntil: "networkidle" });
+    await page.getByRole("button", { name: "Context" }).click({ timeout: 30000 });
     await expect(page.locator('[data-nextron-actions="true"]')).toContainText("Approved and completed. Life Pulse was updated and verified by the server.", { timeout: 20000 });
     await expect(page.locator('[data-nextron-actions="true"]')).toContainText("Canceled. This proposal can no longer be approved.", { timeout: 10000 });
     pass("Action proposal statuses persisted across refresh");
@@ -356,17 +374,21 @@ async function main() {
       info("NEXTRON memory nudge is data-dependent and not visible for this account/week state.");
     }
 
-    await page.getByRole("button", { name: "Generate brief" }).click();
-    await expect(page.locator('[data-nextron-daily-brief="true"]')).toContainText("Updated", { timeout: 30000 });
-    await expect(page.locator('[data-nextron-daily-brief="true"]')).toContainText("Sources used", { timeout: 10000 });
-    await expect(page.locator('[data-nextron-daily-brief="true"]')).toContainText("Recommended approach", { timeout: 10000 });
+    const dailyBriefPanel = page.locator('[data-nextron-daily-brief="true"]');
+    if (!(await dailyBriefPanel.isVisible().catch(() => false))) {
+      await page.getByRole("button", { name: "Context" }).click({ timeout: 30000 });
+    }
+    await dailyBriefPanel.getByRole("button", { name: "Generate brief" }).click();
+    await expect(dailyBriefPanel).toContainText("Updated", { timeout: 30000 });
+    await expect(dailyBriefPanel).toContainText("Sources used", { timeout: 10000 });
+    await expect(dailyBriefPanel).toContainText("Recommended approach", { timeout: 10000 });
     await expect(page.getByRole("button", { name: "Ask about this brief" })).toBeVisible({ timeout: 10000 });
     const priorityCount = await page.locator('[data-nextron-daily-brief-priority="true"]').count();
     expect(priorityCount).toBeLessThanOrEqual(3);
     pass(`Daily Brief generated with ${priorityCount} primary priorities`);
 
-    await page.getByRole("button", { name: "Refresh brief" }).click();
-    await expect(page.locator('[data-nextron-daily-brief="true"]')).toContainText("Updated", { timeout: 30000 });
+    await dailyBriefPanel.getByRole("button", { name: "Refresh brief" }).click();
+    await expect(dailyBriefPanel).toContainText("Updated", { timeout: 30000 });
     pass("Daily Brief refresh completed");
 
     console.log("");

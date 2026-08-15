@@ -49,7 +49,7 @@ const icons = {
 
 const navGroups: NavGroup[] = [
   {
-    label: "Start",
+    label: "Daily",
     items: [
       { label: "Today", href: "/today", icon: icons.today },
       { label: "NEXTRON", href: "/nextron", icon: icons.coach },
@@ -58,21 +58,21 @@ const navGroups: NavGroup[] = [
     ],
   },
   {
-    label: "Direction",
+    label: "Plan",
     items: [
       { label: "Goals", href: "/goals", icon: icons.goals },
       { label: "Projects", href: "/projects", icon: icons.projects },
     ],
   },
   {
-    label: "Review",
+    label: "Reflect",
     items: [
       { label: "Weekly Review", href: "/weekly-review", icon: icons.review },
       { label: "Journal", href: "/journal", icon: icons.journal },
     ],
   },
   {
-    label: "Account",
+    label: "Configure",
     items: [
       { label: "Settings", href: "/settings", icon: icons.settings },
     ],
@@ -81,14 +81,14 @@ const navGroups: NavGroup[] = [
 
 const mobileMoreGroups: NavGroup[] = [
   {
-    label: "Direction",
+    label: "Plan",
     items: [
       { label: "Goals", href: "/goals", icon: icons.goals },
       { label: "Projects", href: "/projects", icon: icons.projects },
     ],
   },
   {
-    label: "Review",
+    label: "Reflect",
     items: [
       { label: "Weekly Review", href: "/weekly-review", icon: icons.review },
       { label: "Journal", href: "/journal", icon: icons.journal },
@@ -103,7 +103,7 @@ const mobileMoreGroups: NavGroup[] = [
     ],
   },
   {
-    label: "Account",
+    label: "Configure",
     items: [
       { label: "Settings", href: "/settings", icon: icons.settings },
     ],
@@ -123,6 +123,7 @@ function NavLink({ item, active, onClick }: { item: NavItem; active: boolean; on
   return (
     <Link
       href={item.href}
+      prefetch
       onClick={onClick}
       aria-current={active ? "page" : undefined}
       className={`group relative flex min-h-10 min-w-0 items-center gap-2.5 rounded-lg border px-2.5 py-2 text-sm font-medium transition-all duration-200 md:min-h-0 ${
@@ -150,12 +151,10 @@ export function DashboardNav({ children }: { children: React.ReactNode }) {
   const [moreOpen, setMoreOpen] = useState(false);
 
   const isActive = (href: string) => pathname === href || (href !== "/" && pathname.startsWith(`${href}/`));
-  const nextronActive = isActive("/nextron");
-
   return (
     <div className="command-shell min-h-screen overflow-x-hidden">
-      <div className="command-shell-grid pointer-events-none fixed inset-0 opacity-60" aria-hidden="true" />
-      <aside className="fixed left-0 top-0 z-40 hidden h-screen w-56 flex-col border-r border-white/[0.06] bg-[linear-gradient(180deg,rgba(244,247,251,0.024),rgba(244,247,251,0.004)),rgba(8,12,18,0.94)] backdrop-blur-xl md:flex">
+      <div className="command-shell-grid pointer-events-none fixed inset-0 opacity-50" aria-hidden="true" />
+      <aside className="fixed left-0 top-0 z-40 hidden h-screen w-56 flex-col border-r border-white/[0.07] bg-[linear-gradient(180deg,rgba(244,247,251,0.018),rgba(244,247,251,0.004)),rgba(8,12,18,0.96)] backdrop-blur-xl md:flex">
         <Link href="/today" className="group mx-4 mt-5 mb-7 flex items-center gap-2.5 rounded-xl px-1 py-1 transition-colors hover:bg-white/[0.02]">
           <div className="relative transition-all duration-200 group-hover:opacity-80">
             <LifePulseLogo variant="mark" size="sm" />
@@ -165,23 +164,6 @@ export function DashboardNav({ children }: { children: React.ReactNode }) {
             <span className="text-[9px] font-medium uppercase tracking-[0.12em] text-[var(--text-muted)]">Personal OS</span>
           </div>
         </Link>
-
-        <div className={`mx-3 mb-4 overflow-hidden rounded-2xl border p-3 transition-all duration-200 ${nextronActive ? "border-cyan-200/30 bg-cyan-300/10 shadow-[0_0_28px_rgba(34,211,238,0.10)]" : "border-cyan-300/12 bg-cyan-950/10"}`}>
-          <div className="flex items-center gap-2.5">
-            <span className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-cyan-200/25 bg-cyan-300/10">
-              <span className="absolute inset-1 rounded-full border border-cyan-200/15" />
-              <span className="h-1.5 w-1.5 rounded-full bg-cyan-100 shadow-[0_0_18px_rgba(103,232,249,0.85)]" />
-            </span>
-            <span className="min-w-0">
-              <span className="block text-xs font-semibold tracking-tight text-[var(--text)]">NEXTRON</span>
-              <span className="block truncate text-[10px] text-cyan-100/60">Ready to talk</span>
-            </span>
-          </div>
-          <Link href="/nextron" className="mt-3 inline-flex min-h-8 w-full items-center justify-center rounded-lg border border-cyan-300/15 bg-cyan-300/10 px-2 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-cyan-50/80 transition-colors hover:border-cyan-200/30 hover:bg-cyan-300/15" aria-label="Talk to NEXTRON">
-            Talk to NEXTRON
-          </Link>
-          <span className="mt-3 block h-px origin-left rounded-full bg-gradient-to-r from-cyan-200/60 via-cyan-200/20 to-transparent command-pulse" aria-hidden="true" />
-        </div>
 
         <nav className="flex flex-1 flex-col gap-4 overflow-y-auto px-2.5 pb-2">
           {navGroups.map((group, groupIndex) => (
@@ -205,15 +187,16 @@ export function DashboardNav({ children }: { children: React.ReactNode }) {
         {children}
       </main>
 
-      <nav className="fixed right-0 bottom-0 left-0 z-50 border-t border-white/[0.08] bg-[rgba(8,12,18,0.96)] px-1.5 pb-[env(safe-area-inset-bottom)] shadow-[0_-18px_48px_rgba(0,0,0,0.28)] backdrop-blur-md md:hidden">
+      <nav className="fixed right-0 bottom-0 left-0 z-50 border-t border-white/[0.08] bg-[rgba(8,12,18,0.98)] px-1.5 pb-[env(safe-area-inset-bottom)] shadow-[0_-18px_48px_rgba(0,0,0,0.28)] backdrop-blur-md md:hidden">
         <div className="flex items-center justify-around py-1">
           {mobilePrimaryItems.map((item) => {
             const active = isActive(item.href);
             return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex min-w-[3.5rem] flex-col items-center gap-0.5 rounded-xl border px-2 py-1.5 text-[10px] font-medium transition-all duration-200 ${
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  prefetch
+                  className={`flex min-w-[3.5rem] flex-col items-center gap-0.5 rounded-xl border px-2 py-1.5 text-[10px] font-medium transition-all duration-200 ${
                   active ? "border-white/[0.08] bg-[var(--surface)] text-[var(--text)]" : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
                 }`}
               >

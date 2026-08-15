@@ -5,7 +5,6 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import type { TodayModel } from "@/lib/today/types";
 import {
-  getMorningPlanAttentionItems,
   selectMorningPlanFirstAction,
   type TodayLocalPriority,
 } from "@/lib/today/morning-plan";
@@ -31,7 +30,6 @@ export function MorningPlan({
 }: MorningPlanProps) {
   const [pendingActionId, setPendingActionId] = useState<string | null>(null);
   const firstAction = selectMorningPlanFirstAction(model, priorities);
-  const attentionItems = getMorningPlanAttentionItems(model, 5);
   const activePriorities = priorities.slice(0, 3);
   const isMorning = timePeriod === "morning";
 
@@ -51,9 +49,9 @@ export function MorningPlan({
 
   return (
     <section id="morning-plan" className="mb-5 scroll-mt-24 sm:mb-6" aria-labelledby="morning-plan-heading">
-      <Card className={`overflow-hidden ${isMorning ? "border-[var(--accent)]/28 bg-[linear-gradient(135deg,rgba(122,162,199,0.12),rgba(244,247,251,0.035)),var(--surface)] shadow-xl shadow-black/20" : "border-white/[0.08] bg-[linear-gradient(180deg,rgba(244,247,251,0.026),rgba(244,247,251,0.006)),var(--surface)]"}`}>
-        <div className="border-b border-[var(--border)] px-4 py-4 sm:px-5">
-          <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+      <Card className={`overflow-hidden ${isMorning ? "border-[var(--accent)]/24 bg-[linear-gradient(135deg,rgba(122,162,199,0.10),rgba(244,247,251,0.025)),var(--surface)]" : "border-white/[0.08] bg-[linear-gradient(180deg,rgba(244,247,251,0.022),rgba(244,247,251,0.004)),var(--surface)]"}`}>
+        <div className="px-4 py-4 sm:px-5">
+          <div className="flex min-w-0 flex-col gap-2 border-b border-white/[0.06] pb-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
               <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--accent)]">
                 Start here
@@ -71,18 +69,18 @@ export function MorningPlan({
           </div>
         </div>
 
-        <div className="grid min-w-0 gap-0 divide-y divide-[var(--border)] lg:grid-cols-[1.1fr_0.9fr] lg:divide-x lg:divide-y-0">
-          <div className="min-w-0 p-4 sm:p-5">
-            <div className="rounded-2xl border border-[var(--accent)]/20 bg-black/[0.12] p-4">
+        <div className="grid min-w-0 gap-5 px-4 pb-4 sm:px-5 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="min-w-0 pt-4">
+            <div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">First action</p>
               {firstAction ? (
                 <div className="mt-3 flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="rounded-full border border-[var(--accent)]/20 bg-[var(--accent-soft)] px-2 py-0.5 text-[10px] font-medium text-[var(--accent)]">
+                      <span className="text-[10px] font-medium uppercase tracking-[0.12em] text-[var(--accent)]">
                         {firstAction.reason}
                       </span>
-                      <span className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-2 py-0.5 text-[10px] text-[var(--text-muted)]">
+                      <span className="text-[10px] text-[var(--text-muted)]">
                         {firstAction.type === "task" ? "Task" : "Habit"}
                       </span>
                     </div>
@@ -120,7 +118,7 @@ export function MorningPlan({
               )}
             </div>
 
-            <div className="mt-4">
+            <div className="mt-5">
               <label htmlFor="morning-intent" className="text-xs font-medium text-[var(--text-secondary)]">
                 What would make today count?
               </label>
@@ -139,8 +137,8 @@ export function MorningPlan({
             </div>
           </div>
 
-          <div className="min-w-0 divide-y divide-[var(--border)]">
-            <div className="p-4 sm:p-5">
+          <div className="min-w-0 pt-4">
+            <div>
               <div className="flex items-center justify-between gap-3">
                 <h3 className="text-sm font-semibold text-[var(--text)]">Today&apos;s priorities</h3>
                 <a href="#daily-focus" className="text-xs text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)]">Manage</a>
@@ -148,7 +146,7 @@ export function MorningPlan({
               {activePriorities.length > 0 ? (
                 <div className="mt-3 space-y-2">
                   {activePriorities.map((priority) => (
-                    <div key={priority.id} className="min-w-0 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2.5">
+                    <div key={priority.id} className="min-w-0 border-b border-white/[0.06] py-2.5 last:border-b-0">
                       <p className={`break-words text-sm font-medium ${priority.done ? "text-[var(--text-muted)] line-through" : "text-[var(--text)]"}`}>
                         {priority.text}
                       </p>
@@ -159,7 +157,7 @@ export function MorningPlan({
                   ))}
                 </div>
               ) : (
-                <p className="mt-3 rounded-lg border border-dashed border-[var(--border)] bg-black/[0.08] px-3 py-3 text-xs text-[var(--text-muted)]">
+                <p className="mt-3 border-l border-[var(--border)] pl-3 text-xs text-[var(--text-muted)]">
                   No priorities yet.
                 </p>
               )}
@@ -170,30 +168,6 @@ export function MorningPlan({
               )}
             </div>
 
-            <div className="p-4 sm:p-5">
-              <div className="flex items-center justify-between gap-3">
-                <h3 className="text-sm font-semibold text-[var(--text)]">Also available</h3>
-                <a href="#daily-execution" className="text-xs text-[var(--accent)] transition-colors hover:text-[var(--accent-strong)]">See all</a>
-              </div>
-              {attentionItems.length > 0 ? (
-                <div className="mt-3 space-y-2">
-                  {attentionItems.map((item) => (
-                    <div key={`${item.type}:${item.id}`} className="flex min-w-0 items-start gap-2 rounded-lg bg-[var(--surface-soft)] px-3 py-2.5">
-                      <span className="mt-0.5 shrink-0 rounded-full border border-[var(--border)] bg-[var(--surface)] px-2 py-0.5 text-[10px] text-[var(--text-muted)]">
-                        {item.label}
-                      </span>
-                      <span className="min-w-0 flex-1 break-words text-xs font-medium leading-relaxed text-[var(--text-secondary)]">
-                        {item.title}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="mt-3 rounded-lg border border-dashed border-[var(--border)] bg-black/[0.08] px-3 py-3 text-xs text-[var(--text-muted)]">
-                  Nothing else is waiting.
-                </p>
-              )}
-            </div>
           </div>
         </div>
       </Card>
