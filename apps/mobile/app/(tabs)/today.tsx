@@ -315,8 +315,11 @@ const styles = StyleSheet.create({
   completeButton: {
     backgroundColor: "rgba(122, 162, 196, 0.15)",
     borderRadius: 6,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    minHeight: 44,
+    justifyContent: "center",
+    alignItems: "center",
     marginLeft: 8,
   },
   completeButtonText: {
@@ -372,9 +375,9 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   checkButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.15)",
     justifyContent: "center",

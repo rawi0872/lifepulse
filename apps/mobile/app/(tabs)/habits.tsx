@@ -322,9 +322,9 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   checkButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.15)",
     justifyContent: "center",
