@@ -1,20 +1,13 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { View, Text, ScrollView, StyleSheet, RefreshControl } from "react-native";
+import { View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity, Alert } from "react-native";
 import { supabase } from "../../lib/supabase";
 import { useAuth } from "../../lib/auth";
-
-interface Task {
-  id: string;
-  title: string;
-  priority: string;
-  due_date: string | null;
-  status: string;
-  completed_at: string | null;
-}
+import { getLocalTodayDateString, formatTaskDueStatus, groupTasksByDate } from "@lifepulse/domain";
+import type { TodayTask } from "@lifepulse/domain";
 
 export default function TasksScreen() {
   const { user } = useAuth();
-  const [tasks, setTasks] = useState<Task[]>([]);
+  const [tasks, setTasks] = useState<TodayTask[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const mountedRef = useRef(true);
@@ -24,8 +17,9 @@ export default function TasksScreen() {
 
     const { data } = await supabase
       .from("tasks")
-      .select("id, title, priority, due_date, status, completed_at")
+      .select("id, title, description, priority, due_date, status, completed_at, project_id")
       .eq("user_id", user.id)
+      .in("status", ["todo", "done"])
       .order("due_date", { ascending: true })
       .limit(50);
 
@@ -47,8 +41,44 @@ export default function TasksScreen() {
     setRefreshing(false);
   };
 
-  const todoTasks = tasks.filter((t) => t.status === "todo");
-  const doneTasks = tasks.filter((t) => t.status === "done");
+  const completeTask = async (taskId: string) => {
+    if (!user) return;
+
+    const { error } = await supabase
+      .from("tasks")
+      .update({ status: "done", completed_at: new Date().toISOString() })
+      .eq("id", taskId)
+      .eq("user_id", user.id)
+      .eq("status", "todo");
+
+    if (error) {
+      Alert.alert("Error", "Could not complete task.");
+      return;
+    }
+
+    void loadTasks();
+  };
+
+  const reopenTask = async (taskId: string) => {
+    if (!user) return;
+
+    const { error } = await supabase
+      .from("tasks")
+      .update({ status: "todo", completed_at: null })
+      .eq("id", taskId)
+      .eq("user_id", user.id)
+      .eq("status", "done");
+
+    if (error) {
+      Alert.alert("Error", "Could not reopen task.");
+      return;
+    }
+
+    void loadTasks();
+  };
+
+  const localDate = getLocalTodayDateString();
+  const groups = groupTasksByDate(tasks, localDate);
 
   return (
     <ScrollView
@@ -56,37 +86,83 @@ export default function TasksScreen() {
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#7aa2c4" />}
     >
-      <Text style={styles.title}>Tasks</Text>
+      {groups.overdue.length > 0 && (
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, styles.overdue]}>Overdue ({groups.overdue.length})</Text>
+          {groups.overdue.map((task) => (
+            <TaskRow key={task.id} task={task} localDate={localDate} onComplete={completeTask} />
+          ))}
+        </View>
+      )}
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>To Do ({todoTasks.length})</Text>
+        <Text style={styles.sectionTitle}>Due Today ({groups.dueToday.length})</Text>
         {loading ? (
           <Text style={styles.loadingText}>Loading...</Text>
-        ) : todoTasks.length === 0 ? (
-          <Text style={styles.emptyText}>No tasks</Text>
+        ) : groups.dueToday.length === 0 ? (
+          <Text style={styles.emptyText}>No tasks due today</Text>
         ) : (
-          todoTasks.map((task) => (
-            <View key={task.id} style={styles.card}>
-              <Text style={styles.cardTitle}>{task.title}</Text>
-              <Text style={styles.cardMeta}>
-                {task.priority} {task.due_date ? `· due ${task.due_date}` : "· no due date"}
-              </Text>
-            </View>
+          groups.dueToday.map((task) => (
+            <TaskRow key={task.id} task={task} localDate={localDate} onComplete={completeTask} />
           ))
         )}
       </View>
 
-      {doneTasks.length > 0 && (
+      {groups.upcoming.length > 0 && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Completed ({doneTasks.length})</Text>
-          {doneTasks.slice(0, 10).map((task) => (
-            <View key={task.id} style={[styles.card, styles.cardDone]}>
-              <Text style={styles.cardTitleDone}>{task.title}</Text>
-            </View>
+          <Text style={styles.sectionTitle}>Upcoming ({groups.upcoming.length})</Text>
+          {groups.upcoming.map((task) => (
+            <TaskRow key={task.id} task={task} localDate={localDate} onComplete={completeTask} />
           ))}
         </View>
       )}
+
+      {groups.unscheduled.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Unscheduled ({groups.unscheduled.length})</Text>
+          {groups.unscheduled.map((task) => (
+            <TaskRow key={task.id} task={task} localDate={localDate} onComplete={completeTask} />
+          ))}
+        </View>
+      )}
+
+      {groups.completedToday.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Completed Today ({groups.completedToday.length})</Text>
+          {groups.completedToday.map((task) => (
+            <TaskRow key={task.id} task={task} localDate={localDate} onComplete={reopenTask} isCompleted />
+          ))}
+        </View>
+      )}
+
+      {!loading && tasks.length === 0 && (
+        <Text style={styles.emptyText}>No tasks yet</Text>
+      )}
     </ScrollView>
+  );
+}
+
+function TaskRow({ task, localDate, onComplete, isCompleted }: { task: TodayTask; localDate: string; onComplete: (id: string) => void; isCompleted?: boolean }) {
+  const status = formatTaskDueStatus(task.due_date, localDate, task.status === "done");
+  return (
+    <View style={[styles.card, isCompleted && styles.cardCompleted]}>
+      <View style={styles.cardContent}>
+        <Text style={[styles.cardTitle, isCompleted && styles.cardTitleCompleted]} numberOfLines={2}>
+          {task.title}
+        </Text>
+        <Text style={styles.cardMeta}>
+          {task.priority} · {status}
+        </Text>
+      </View>
+      <TouchableOpacity
+        style={[styles.checkButton, isCompleted && styles.checkButtonCompleted]}
+        onPress={() => onComplete(task.id)}
+      >
+        <Text style={[styles.checkButtonText, isCompleted && styles.checkButtonTextCompleted]}>
+          {isCompleted ? "↩" : "✓"}
+        </Text>
+      </TouchableOpacity>
+    </View>
   );
 }
 
@@ -98,14 +174,10 @@ const styles = StyleSheet.create({
   content: {
     padding: 20,
     paddingTop: 60,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "600",
-    color: "#f0f4f8",
+    paddingBottom: 40,
   },
   section: {
-    marginTop: 24,
+    marginBottom: 24,
   },
   sectionTitle: {
     fontSize: 13,
@@ -115,6 +187,9 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     marginBottom: 12,
   },
+  overdue: {
+    color: "#ef4444",
+  },
   card: {
     backgroundColor: "rgba(255,255,255,0.03)",
     borderWidth: 1,
@@ -122,24 +197,48 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 14,
     marginBottom: 8,
+    flexDirection: "row",
+    alignItems: "center",
   },
-  cardDone: {
+  cardCompleted: {
     opacity: 0.5,
+  },
+  cardContent: {
+    flex: 1,
   },
   cardTitle: {
     color: "#f0f4f8",
     fontSize: 15,
     fontWeight: "500",
   },
-  cardTitleDone: {
-    color: "#6b7280",
-    fontSize: 15,
+  cardTitleCompleted: {
     textDecorationLine: "line-through",
+    color: "#6b7280",
   },
   cardMeta: {
     color: "#6b7280",
     fontSize: 12,
     marginTop: 4,
+  },
+  checkButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.15)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginLeft: 12,
+  },
+  checkButtonCompleted: {
+    borderColor: "rgba(107, 114, 128, 0.3)",
+  },
+  checkButtonText: {
+    color: "#7aa2c4",
+    fontSize: 14,
+  },
+  checkButtonTextCompleted: {
+    color: "#6b7280",
   },
   loadingText: {
     color: "#4b5563",
