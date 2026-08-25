@@ -16,8 +16,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "app.lifepulse.mobile",
       "infoPlist": {
-        "NSHealthShareUsageDescription": "Life Pulse reads sleep, steps, and heart rate from Apple Health only when you choose to connect. Data stays private and is not shared with NEXTRON without separate permission.",
-        "NSHealthUpdateUsageDescription": "Life Pulse stores health data you explicitly allow to sync."
+        "NSHealthShareUsageDescription": "Life Pulse reads sleep, steps, and heart rate from Apple Health only when you choose to connect. Data stays private and is not shared with NEXTRON without separate permission."
       },
       "entitlements": {
         "com.apple.developer.healthkit": true
