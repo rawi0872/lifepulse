@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import {
   getTodayDateString,
 } from "@/lib/utils";
-import { getCurrentStreak, normalizeCompletedDates } from "@lifepulse/domain";
+import { getCurrentStreak, normalizeCompletedDates, toLocalPriority, type TodayPriority } from "@lifepulse/domain";
 import { toggleTaskCompletion } from "@/lib/taskCompletion";
 import { DashboardNav } from "@/components/DashboardNav";
 import { useToast } from "@/hooks/use-toast";
@@ -15,13 +15,8 @@ import { EveningShutdown } from "@/components/today/EveningShutdown";
 import { useTodayData } from "@/hooks/use-today-data";
 import { recordProductLearningEvent } from "@/lib/product-learning/client";
 import { selectMorningPlanFirstAction, type MorningPlanFirstAction } from "@lifepulse/domain";
-
-interface Priority {
-  id: string;
-  text: string;
-  done: boolean;
-  taskId?: string;
-}
+import { loadPriorities, addPriority, togglePriority, deletePriority } from "@/lib/priorities";
+import { executePriorityMigration } from "@/lib/priority-migration";
 
 type TodayTimePeriod = "morning" | "day" | "evening";
 type AttentionSeverity = "info" | "attention" | "important";
@@ -48,8 +43,6 @@ interface NextronAttentionSummary {
   meta: { modelCalls: 0; provider: "deterministic"; persisted: false; source: "signals" };
 }
 
-let priorityIdCounter = 0;
-
 function getTodayTimePeriod(): TodayTimePeriod {
   const hour = new Date().getHours();
   if (hour < 12) return "morning";
@@ -74,34 +67,10 @@ function msUntilNextTimePeriodBoundary(): number {
   return Math.max(1_000, nextBoundary.getTime() - now.getTime());
 }
 
-function loadPrioritiesForDate(localDate: string): Priority[] {
-  try {
-    const saved = localStorage.getItem("lifepulse_priorities");
-    if (saved) {
-      const data = JSON.parse(saved) as { date?: string; items?: Priority[] };
-      if (data.date === localDate && Array.isArray(data.items)) return data.items.slice(0, 3);
-    }
-
-    const oldFocus = localStorage.getItem("lifepulse_focus");
-    if (oldFocus) {
-      const { text, date } = JSON.parse(oldFocus) as { text?: string; date?: string };
-      if (date === localDate && text) {
-        localStorage.removeItem("lifepulse_focus");
-        return [{ id: `p${++priorityIdCounter}`, text, done: false }];
-      }
-    }
-  } catch {}
-
-  return [];
-}
-
 function TodayContent() {
   const [streakMap, setStreakMap] = useState<Record<string, number>>({});
 
-  const [priorityState, setPriorityState] = useState(() => {
-    const initialDate = getTodayDateString();
-    return { date: initialDate, items: loadPrioritiesForDate(initialDate) };
-  });
+  const [priorities, setPriorities] = useState<TodayPriority[]>([]);
   const [priorityInput, setPriorityInput] = useState("");
   const [planningOpen, setPlanningOpen] = useState(false);
   const [timePeriod, setTimePeriod] = useState<TodayTimePeriod>(() => getTodayTimePeriod());
@@ -124,7 +93,6 @@ function TodayContent() {
   const weeklyProgressMap = todayModel?.habits.weeklyProgressById ?? {};
   const tasks = useMemo(() => todayModel?.tasks.relevant ?? [], [todayModel?.tasks.relevant]);
   const doneTaskCount = todayModel?.tasks.doneCount ?? 0;
-  const priorities = priorityState.date === today ? priorityState.items : [];
   const hasJournal = todayModel?.reflection.hasReflection ?? false;
   const loading = todayData.loading;
   const error = todayData.error;
@@ -148,27 +116,45 @@ function TodayContent() {
     return () => window.clearTimeout(timeoutId);
   }, [todayUserId]);
 
-  function savePriorities(items: Priority[]) {
-    const nextItems = items.slice(0, 3);
-    try {
-      localStorage.setItem("lifepulse_priorities", JSON.stringify({ date: today, items: nextItems }));
-    } catch {}
-    setPriorityState({ date: today, items: nextItems });
-  }
+  // Load priorities from backend on mount and when today changes — backend-first, safe migration
+  useEffect(() => {
+    if (!todayUserId) return;
+    let cancelled = false;
 
-  function addPriorityItem() {
-    if (!priorityInput.trim() || priorities.length >= 3) return;
-    const newItem: Priority = { id: `p${++priorityIdCounter}`, text: priorityInput.trim(), done: false };
-    savePriorities([...priorities, newItem]);
+    void (async () => {
+      const result = await executePriorityMigration({
+        supabase,
+        userId: todayUserId,
+        localDate: today,
+        localStorage: window.localStorage,
+      });
+      if (!cancelled) setPriorities(result.priorities);
+    })();
+
+    return () => { cancelled = true; };
+  }, [todayUserId, today, supabase]);
+
+  async function addPriorityItem() {
+    if (!priorityInput.trim() || priorities.length >= 3 || !todayUserId) return;
     setPriorityInput("");
+    const created = await addPriority(supabase, todayUserId, today, { text: priorityInput.trim() });
+    if (created) {
+      const loaded = await loadPriorities(supabase, todayUserId, today);
+      setPriorities(loaded);
+    }
   }
 
-  function togglePriorityItem(id: string) {
-    savePriorities(priorities.map((p) => (p.id === id ? { ...p, done: !p.done } : p)));
+  async function togglePriorityItem(id: string) {
+    const priority = priorities.find(p => p.id === id);
+    if (!priority || !todayUserId) return;
+    setPriorities(priorities.map(p => p.id === id ? { ...p, done: !p.done } : p));
+    await togglePriority(supabase, todayUserId, id, !priority.done);
   }
 
-  function removePriorityItem(id: string) {
-    savePriorities(priorities.filter((p) => p.id !== id));
+  async function removePriorityItem(id: string) {
+    if (!todayUserId) return;
+    setPriorities(priorities.filter(p => p.id !== id));
+    await deletePriority(supabase, todayUserId, id);
   }
 
   useEffect(() => {
@@ -348,7 +334,7 @@ function TodayContent() {
     }
   }
 
-  const nextAction = todayModel ? selectMorningPlanFirstAction(todayModel, priorities) : null;
+  const nextAction = todayModel ? selectMorningPlanFirstAction(todayModel, priorities.map(toLocalPriority)) : null;
   const openTasks = tasks.filter((task) => task.status !== "done").filter((task) => task.id !== nextAction?.id).slice(0, 5);
   const openHabits = dueHabits.filter((habit) => !completedHabitIds.has(habit.id)).slice(0, 5);
   const showEvening = timePeriod === "evening" || hasJournal;

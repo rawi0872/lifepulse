@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity, Alert } from "react-native";
+import { View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity, Alert, TextInput } from "react-native";
 import { supabase } from "../../lib/supabase";
 import { useAuth } from "../../lib/auth";
 import {
@@ -9,6 +9,8 @@ import {
   getWeekStartForDate,
   resolveIntendedUse,
   getCurrentStreak,
+  toLocalPriority,
+  MAX_PRIORITIES_PER_DAY,
 } from "@lifepulse/domain";
 import type {
   TodayModel,
@@ -16,11 +18,15 @@ import type {
   TodayDateContext,
   TodayHabit,
   TodayTask,
+  TodayPriority,
+  TodayPriorityInput,
 } from "@lifepulse/domain";
 
 export default function TodayScreen() {
   const { user } = useAuth();
   const [model, setModel] = useState<TodayModel | null>(null);
+  const [priorities, setPriorities] = useState<TodayPriority[]>([]);
+  const [priorityInput, setPriorityInput] = useState("");
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const mountedRef = useRef(true);
@@ -89,6 +95,20 @@ export default function TodayScreen() {
 
     const todayModel = normalizeTodayData(snapshot, date);
     setModel(todayModel);
+
+    // Load priorities from backend
+    const { data: priorityData } = await supabase
+      .from("today_priorities")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("local_date", date.localDate)
+      .order("position", { ascending: true })
+      .limit(MAX_PRIORITIES_PER_DAY);
+
+    if (mountedRef.current) {
+      setPriorities((priorityData ?? []) as TodayPriority[]);
+    }
+
     setLoading(false);
   }, [user, buildDateContext]);
 
@@ -151,7 +171,76 @@ export default function TodayScreen() {
     void loadData();
   };
 
-  const upNext = model ? selectMorningPlanFirstAction(model, []) : null;
+  const addPriority = async () => {
+    if (!user || !priorityInput.trim() || priorities.length >= MAX_PRIORITIES_PER_DAY) return;
+
+    const today = getLocalTodayDateString();
+    const input: TodayPriorityInput = { text: priorityInput.trim() };
+
+    const { data, error } = await supabase
+      .from("today_priorities")
+      .insert({
+        user_id: user.id,
+        local_date: today,
+        position: priorities.length + 1,
+        text: input.text,
+        task_id: input.task_id ?? null,
+        done: input.done ?? false,
+      })
+      .select("*")
+      .single();
+
+    if (error) {
+      Alert.alert("Error", "Could not add priority.");
+      return;
+    }
+
+    setPriorities([...priorities, data as TodayPriority]);
+    setPriorityInput("");
+  };
+
+  const togglePriority = async (id: string) => {
+    if (!user) return;
+
+    const priority = priorities.find(p => p.id === id);
+    if (!priority) return;
+
+    // Optimistic update
+    setPriorities(priorities.map(p => p.id === id ? { ...p, done: !p.done } : p));
+
+    const { error } = await supabase
+      .from("today_priorities")
+      .update({ done: !priority.done })
+      .eq("id", id)
+      .eq("user_id", user.id);
+
+    if (error) {
+      // Revert on error
+      setPriorities(priorities.map(p => p.id === id ? { ...p, done: priority.done } : p));
+      Alert.alert("Error", "Could not update priority.");
+    }
+  };
+
+  const removePriority = async (id: string) => {
+    if (!user) return;
+
+    const removed = priorities.find(p => p.id === id);
+    setPriorities(priorities.filter(p => p.id !== id));
+
+    const { error } = await supabase
+      .from("today_priorities")
+      .delete()
+      .eq("id", id)
+      .eq("user_id", user.id);
+
+    if (error) {
+      // Revert on error
+      if (removed) setPriorities([...priorities, removed]);
+      Alert.alert("Error", "Could not remove priority.");
+    }
+  };
+
+  const upNext = model ? selectMorningPlanFirstAction(model, priorities.map(toLocalPriority)) : null;
 
   return (
     <ScrollView
@@ -194,6 +283,67 @@ export default function TodayScreen() {
           <Text style={styles.emptyUpNextText}>No actionable work right now</Text>
         </View>
       )}
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>
+          {"Today's Focus"} ({priorities.length}/{MAX_PRIORITIES_PER_DAY})
+        </Text>
+        {priorities.length > 0 ? (
+          priorities.map((priority) => (
+            <View key={priority.id} style={styles.card}>
+              <TouchableOpacity
+                style={styles.checkButton}
+                onPress={() => void togglePriority(priority.id)}
+              >
+                <Text style={[styles.checkButtonText, priority.done && styles.checkButtonDone]}>
+                  {priority.done ? "✓" : ""}
+                </Text>
+              </TouchableOpacity>
+              <View style={styles.cardContent}>
+                <Text
+                  style={[styles.cardTitle, priority.done && styles.cardTitleDone]}
+                  numberOfLines={2}
+                >
+                  {priority.text}
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={styles.removeButton}
+                onPress={() => {
+                  Alert.alert("Remove priority", `"${priority.text}"?`, [
+                    { text: "Cancel", style: "cancel" },
+                    { text: "Remove", style: "destructive", onPress: () => void removePriority(priority.id) },
+                  ]);
+                }}
+              >
+                <Text style={styles.removeButtonText}>×</Text>
+              </TouchableOpacity>
+            </View>
+          ))
+        ) : (
+          <Text style={styles.emptyText}>No priorities set</Text>
+        )}
+        {priorities.length < MAX_PRIORITIES_PER_DAY && (
+          <View style={styles.addPriorityRow}>
+            <TextInput
+              style={styles.addPriorityInput}
+              value={priorityInput}
+              onChangeText={(text) => setPriorityInput(text.slice(0, 80))}
+              placeholder="Add a priority..."
+              placeholderTextColor="rgba(255,255,255,0.3)"
+              onSubmitEditing={() => void addPriority()}
+              returnKeyType="done"
+            />
+            <TouchableOpacity
+              style={[styles.addButton, !priorityInput.trim() && styles.addButtonDisabled]}
+              onPress={() => void addPriority()}
+              disabled={!priorityInput.trim()}
+            >
+              <Text style={styles.addButtonText}>Add</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>
@@ -387,6 +537,60 @@ const styles = StyleSheet.create({
   checkButtonText: {
     color: "#7aa2c4",
     fontSize: 14,
+  },
+  checkButtonDone: {
+    color: "#22c55e",
+  },
+  cardTitleDone: {
+    color: "#6b7280",
+    textDecorationLine: "line-through",
+  },
+  removeButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: "center",
+    alignItems: "center",
+    marginLeft: 8,
+  },
+  removeButtonText: {
+    color: "#6b7280",
+    fontSize: 18,
+    fontWeight: "600",
+  },
+  addPriorityRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 8,
+  },
+  addPriorityInput: {
+    flex: 1,
+    backgroundColor: "rgba(255,255,255,0.05)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    color: "#f0f4f8",
+    fontSize: 14,
+    minHeight: 44,
+  },
+  addButton: {
+    backgroundColor: "#7aa2c4",
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    minHeight: 44,
+    justifyContent: "center",
+    marginLeft: 8,
+  },
+  addButtonDisabled: {
+    opacity: 0.5,
+  },
+  addButtonText: {
+    color: "#0f172a",
+    fontSize: 14,
+    fontWeight: "600",
   },
   loadingText: {
     color: "#4b5563",
