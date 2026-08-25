@@ -3,7 +3,7 @@ import { runNextronCalendarReadOnly } from "@/lib/nextron/calendar";
 import type { NextronUserRequest } from "@/lib/nextron/coach";
 import { normalizeNextronPreferences, type NextronPreferenceRow } from "@/lib/nextron/context";
 import { buildNextronEvidencePacket } from "@/lib/nextron/evidence";
-import { createClient } from "@/lib/supabase/server";
+import { resolveNextronAuth } from "@/lib/supabase/nextron-auth";
 
 export const runtime = "nodejs";
 
@@ -32,11 +32,11 @@ function todayCalendarRequest(): NextronUserRequest {
   };
 }
 
-export async function GET() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Sign in to load NEXTRON context." }, { status: 401 });
-  const userId = user.id;
+export async function GET(request: Request) {
+  const auth = await resolveNextronAuth(request);
+  if (!auth.user || !auth.supabase) return NextResponse.json({ error: "Sign in to load NEXTRON context." }, { status: 401 });
+  const supabase = auth.supabase;
+  const userId = auth.user.id;
 
   const { data } = await supabase
     .from("nextron_context_preferences")

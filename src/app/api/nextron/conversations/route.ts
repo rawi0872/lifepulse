@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import { buildConversationTitle } from "@/lib/nextron/conversation";
-import { createClient } from "@/lib/supabase/server";
+import { resolveNextronAuth } from "@/lib/supabase/nextron-auth";
 
 export const runtime = "nodejs";
 
-export async function GET() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Sign in to load NEXTRON conversations." }, { status: 401 });
+export async function GET(request: Request) {
+  const auth = await resolveNextronAuth(request);
+  if (!auth.user || !auth.supabase) return NextResponse.json({ error: "Sign in to load NEXTRON conversations." }, { status: 401 });
+  const supabase = auth.supabase;
+  const user = auth.user;
 
   const { data, error } = await supabase
     .from("nextron_conversations")
@@ -21,9 +22,10 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Sign in to create a NEXTRON conversation." }, { status: 401 });
+  const auth = await resolveNextronAuth(request);
+  if (!auth.user || !auth.supabase) return NextResponse.json({ error: "Sign in to create a NEXTRON conversation." }, { status: 401 });
+  const supabase = auth.supabase;
+  const user = auth.user;
 
   const body = await request.json().catch(() => null) as { title?: unknown } | null;
   const title = typeof body?.title === "string" ? buildConversationTitle(body.title) : "New NEXTRON conversation";

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { invalidateConversationActionProposals } from "@/lib/nextron/actions";
-import { createClient } from "@/lib/supabase/server";
+import { resolveNextronAuth } from "@/lib/supabase/nextron-auth";
 
 export const runtime = "nodejs";
 
@@ -8,12 +8,13 @@ function validId(value: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 }
 
-export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
+export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
   if (!validId(id)) return NextResponse.json({ error: "Invalid conversation." }, { status: 404 });
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Sign in to load this NEXTRON conversation." }, { status: 401 });
+  const auth = await resolveNextronAuth(request);
+  if (!auth.user || !auth.supabase) return NextResponse.json({ error: "Sign in to load this NEXTRON conversation." }, { status: 401 });
+  const supabase = auth.supabase;
+  const user = auth.user;
 
   const { data: conversation, error: conversationError } = await supabase
     .from("nextron_conversations")
@@ -35,12 +36,13 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
   return NextResponse.json({ conversation, messages: messages ?? [] });
 }
 
-export async function DELETE(_request: Request, context: { params: Promise<{ id: string }> }) {
+export async function DELETE(request: Request, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
   if (!validId(id)) return NextResponse.json({ error: "Invalid conversation." }, { status: 404 });
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Sign in to delete this NEXTRON conversation." }, { status: 401 });
+  const auth = await resolveNextronAuth(request);
+  if (!auth.user || !auth.supabase) return NextResponse.json({ error: "Sign in to delete this NEXTRON conversation." }, { status: 401 });
+  const supabase = auth.supabase;
+  const user = auth.user;
 
   const { error } = await supabase
     .from("nextron_conversations")

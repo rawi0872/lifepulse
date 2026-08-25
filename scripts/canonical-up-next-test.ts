@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 // Canonical Up Next test — imports REAL domain functions, no copy
-import { selectMorningPlanFirstAction, toLocalPriority, MAX_PRIORITIES_PER_DAY } from "../packages/domain/index.ts";
-import type { TodayModel, TodayPriority, TodayTask, TodayHabit, TodayDateContext } from "../packages/domain/index.ts";
+import { selectMorningPlanFirstAction, toLocalPriority, MAX_PRIORITIES_PER_DAY } from "@lifepulse/domain";
+import type { TodayModel, TodayPriority, TodayTask, TodayHabit, TodayDateContext } from "@lifepulse/domain";
 
 function localDate(d=new Date()){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
 function yesterdayStr(){ const d=new Date(); d.setDate(d.getDate()-1); return localDate(d); }

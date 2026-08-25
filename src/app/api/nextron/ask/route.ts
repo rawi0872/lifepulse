@@ -17,7 +17,7 @@ import {
 } from "@/lib/nextron/memory";
 import { runNextronCrossDomainAgentOrFallback, runNextronKnowledgeAgentOrFallback, runNextronProjectAgentOrFallback } from "@/lib/nextron/project-agent/runtime";
 import { createConfiguredNextronProvider, getNextronProviderUnavailableReason, runNextronProviderOrFallbackDetailed } from "@/lib/nextron/provider";
-import { createClient } from "@/lib/supabase/server";
+import { resolveNextronAuth } from "@/lib/supabase/nextron-auth";
 
 export const runtime = "nodejs";
 
@@ -53,12 +53,13 @@ export async function POST(request: Request) {
   }
   const originalRequest = originalParsed.request;
 
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
+  const auth = await resolveNextronAuth(request);
+  if (!auth.user || !auth.supabase) {
     logAskFailure("AUTH_REQUIRED");
     return NextResponse.json({ error: "Sign in to ask NEXTRON.", code: "AUTH_REQUIRED" }, { status: 401 });
   }
+  const supabase = auth.supabase;
+  const user = auth.user;
   const userId = user.id;
 
   try {

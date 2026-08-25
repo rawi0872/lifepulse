@@ -5,14 +5,13 @@ import {
   rememberPreferenceMemory,
   supersedePreferenceMemoryById,
 } from "@/lib/nextron/memory";
-import { createClient } from "@/lib/supabase/server";
+import { resolveNextronAuth } from "@/lib/supabase/nextron-auth";
 
 export const runtime = "nodejs";
 
-async function authenticated() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  return user ? { supabase, userId: user.id } : null;
+async function authenticated(request?: Request) {
+  const auth = await resolveNextronAuth(request);
+  return auth.user && auth.supabase ? { supabase: auth.supabase, userId: auth.user.id } : null;
 }
 
 async function readBody(request: Request): Promise<Record<string, unknown> | null> {
@@ -32,7 +31,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const auth = await authenticated();
+  const auth = await authenticated(request);
   if (!auth) return NextResponse.json({ error: "Sign in to manage NEXTRON memory." }, { status: 401 });
   const body = await readBody(request);
   if (!body) return NextResponse.json({ error: "Invalid memory request." }, { status: 400 });
@@ -42,7 +41,7 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const auth = await authenticated();
+  const auth = await authenticated(request);
   if (!auth) return NextResponse.json({ error: "Sign in to manage NEXTRON memory." }, { status: 401 });
   const body = await readBody(request);
   if (!body || typeof body.id !== "string") return NextResponse.json({ error: "Invalid memory update request." }, { status: 400 });
@@ -52,7 +51,7 @@ export async function PATCH(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const auth = await authenticated();
+  const auth = await authenticated(request);
   if (!auth) return NextResponse.json({ error: "Sign in to manage NEXTRON memory." }, { status: 401 });
   const body = await readBody(request);
   if (!body || typeof body.id !== "string") return NextResponse.json({ error: "Invalid memory delete request." }, { status: 400 });

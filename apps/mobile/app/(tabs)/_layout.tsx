@@ -30,6 +30,13 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="nextron"
+        options={{
+          title: "NEXTRON",
+          tabBarIcon: ({ focused }) => <TabIcon label="NEXTRON" focused={focused} />,
+        }}
+      />
+      <Tabs.Screen
         name="tasks"
         options={{
           title: "Tasks",
