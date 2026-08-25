@@ -68,3 +68,25 @@ export {
   MAX_PRIORITIES_PER_DAY,
 } from "./today-priorities";
 export type { TodayPriority, TodayPriorityInput } from "./today-priorities";
+
+export {
+  HEALTH_METRIC_META,
+  CORE_HEALTH_METRICS,
+  isCoreMetric,
+  healthRecordDedupeKey,
+  buildHealthDedupeKey,
+  isValidHealthValue,
+  isValidHealthNumericValue,
+} from "./health";
+export type { HealthSource, HealthMetricType, HealthUnit, HealthRecord, HealthSourceConnection, HealthProvenance } from "./health";
+
+export {
+  DEFAULT_HEALTH_PRIVACY,
+  isStorageAllowed,
+  isNextronAllowed,
+  nextronHealthRequiresExplicitConsent,
+  filterForNextron,
+} from "./health-privacy";
+export type { HealthPrivacyState, HealthScope } from "./health-privacy";
+
+export type { HealthSourceAdapter, HealthAvailability, HealthPermissionStatus, HealthSyncResult } from "./health-adapter";

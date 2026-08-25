@@ -14,14 +14,28 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "app.lifepulse.mobile"
+      "bundleIdentifier": "app.lifepulse.mobile",
+      "infoPlist": {
+        "NSHealthShareUsageDescription": "Life Pulse reads sleep, steps, and heart rate from Apple Health only when you choose to connect. Data stays private and is not shared with NEXTRON without separate permission.",
+        "NSHealthUpdateUsageDescription": "Life Pulse stores health data you explicitly allow to sync."
+      },
+      "entitlements": {
+        "com.apple.developer.healthkit": true
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#080c12"
       },
-      "package": "app.lifepulse.mobile"
+      "package": "app.lifepulse.mobile",
+      "permissions": [
+        "android.permission.health.READ_SLEEP",
+        "android.permission.health.READ_STEPS",
+        "android.permission.health.READ_HEART_RATE",
+        "android.permission.health.READ_WEIGHT",
+        "android.permission.health.READ_EXERCISE"
+      ]
     },
     "plugins": [
       "expo-router"

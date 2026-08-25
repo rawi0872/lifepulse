@@ -14,12 +14,16 @@ const sizeMap = {
 };
 
 function PulseMark({ className }: { className?: string }) {
+  // Single source of truth: official Life Pulse logo asset (public/icon.svg)
   return (
-    <svg viewBox="0 0 24 24" fill="none" className={cn("h-full w-full", className)}>
-      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1" opacity="0.15" />
-      <circle cx="12" cy="12" r="2" fill="currentColor" opacity="0.85" />
-      <path d="M12 3a9 9 0 016.364 2.636" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" opacity="0.5" />
-    </svg>
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src="/icon.svg"
+      alt=""
+      aria-hidden="true"
+      className={cn("h-full w-full object-contain", className)}
+      draggable={false}
+    />
   );
 }
 

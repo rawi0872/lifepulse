@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import { Link } from "expo-router";
 import { supabase } from "../../lib/supabase";
 import { useAuth } from "../../lib/auth";
 
@@ -44,6 +45,13 @@ export default function AccountScreen() {
         <Text style={styles.label}>User ID</Text>
         <Text style={styles.valueSmall}>{user?.id ?? "—"}</Text>
       </View>
+
+      <Link href="/health" asChild>
+        <TouchableOpacity style={styles.healthButton}>
+          <Text style={styles.healthButtonText}>Health Connections</Text>
+          <Text style={styles.healthButtonSub}>Apple Health · Health Connect · NEXTRON access Off</Text>
+        </TouchableOpacity>
+      </Link>
 
       <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
         <Text style={styles.signOutText}>Sign out</Text>
@@ -93,6 +101,25 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontFamily: "monospace",
   },
+  healthButton: {
+    backgroundColor: "rgba(122,162,196,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(122,162,196,0.18)",
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    marginTop: 20,
+  },
+  healthButtonText: {
+    color: "#7aa2c4",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  healthButtonSub: {
+    color: "#6b7280",
+    fontSize: 11,
+    marginTop: 4,
+  },
   signOutButton: {
     backgroundColor: "rgba(239,68,68,0.15)",
     borderWidth: 1,
@@ -100,7 +127,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: "center",
-    marginTop: 32,
+    marginTop: 20,
   },
   signOutText: {
     color: "#ef4444",
