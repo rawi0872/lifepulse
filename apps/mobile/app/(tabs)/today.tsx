@@ -5,6 +5,7 @@ import { supabase } from "../../lib/supabase";
 import { useAuth } from "../../lib/auth";
 import { colors, spacing, radii, type, shadow } from "../../lib/theme";
 import { Pulse, ChecklistIcon, Habits as HabitsIcon, Check, Close, ChevronRight } from "../../src/icons";
+import { BODY_TODAY_SIGNALS_ENABLED } from "../../lib/featureFlags";
 import {
   normalizeTodayData,
   selectMorningPlanFirstAction,
@@ -14,6 +15,7 @@ import {
   getCurrentStreak,
   toLocalPriority,
   MAX_PRIORITIES_PER_DAY,
+  deriveBodySignals,
 } from "@lifepulse/domain";
 import type {
   TodayModel,
@@ -220,6 +222,11 @@ export default function TodayScreen() {
   };
 
   const upNext = model ? selectMorningPlanFirstAction(model, priorities.map(toLocalPriority)) : null;
+  // Body Today signals — deterministic, bounded, feature-flagged (OFF until Body 5)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _bodySignals = BODY_TODAY_SIGNALS_ENABLED
+    ? deriveBodySignals({ dueBodyHabits: [], goalProgress: [], todaySteps: null, sleepMinutes: null })
+    : [];
 
   const greeting = useMemo(() => {
     const h = new Date().getHours();

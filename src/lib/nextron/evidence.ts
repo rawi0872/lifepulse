@@ -116,6 +116,7 @@ export interface NextronEvidencePacket {
   goals: NextronPacketSection<{ activeCount: number; sampleNames: string[] }>;
   projects: NextronPacketSection<{ activeCount: number; activeWithoutOpenTaskCount: number; sampleNames: string[] }>;
   relationships: NextronPacketSection<ReturnType<typeof summarizeLifeMapForNextron>>;
+  body: NextronPacketSection<{ availableMetrics: string[]; todaySummary: string | null }>;
   knowledge: NextronPacketSection<{ noteSearchAvailable: boolean }>;
   calendar: NextronPacketSection<{ connected: boolean; readOnly: true }>;
   memory: NextronPacketSection<{ preferences: string[] }>;
@@ -192,6 +193,27 @@ export async function buildNextronEvidencePacket(
   let goals: NextronEvidencePacket["goals"] = denied();
   let projects: NextronEvidencePacket["projects"] = denied();
   let relationships: NextronEvidencePacket["relationships"] = denied("Life Map relationships require Goals, Projects, Tasks, and Habits context.");
+  // Body evidence — explicit health_preferences nextron_allowed_metrics gating (separate from profile/today/tasks)
+  let body: NextronPacketSection<{ availableMetrics: string[]; todaySummary: string | null }> = denied("Body evidence requires Health storage and NEXTRON health permission.");
+  try {
+    const { data: hp } = await supabase.from("health_preferences").select("allowed_metrics, nextron_allowed_metrics").eq("user_id", userId).maybeSingle() as any;
+    const allowed: string[] = hp?.allowed_metrics ?? [];
+    const nextronAllowed: string[] = hp?.nextron_allowed_metrics ?? [];
+    // schema unavailable → treat as denied (pending 00040)
+    if (Array.isArray(allowed) && Array.isArray(nextronAllowed)) {
+      const effective = nextronAllowed.filter((m: string) => allowed.includes(m));
+      if (effective.length > 0) {
+        body = available({ availableMetrics: effective, todaySummary: `Body metrics available: ${effective.join(", ")}` }, "Body metrics are summarized, not raw.");
+      } else if (allowed.length > 0) {
+        body = denied("NEXTRON Body access is off — enable in Health Connections.");
+      } else {
+        body = missing("No Body health metrics are enabled for storage.");
+      }
+    }
+  } catch {
+    body = denied("Body evidence unavailable.");
+  }
+
   const knowledge: NextronEvidencePacket["knowledge"] = isNextronContextAllowed(permissions, "knowledge")
     ? available({ noteSearchAvailable: true }, "Knowledge notes are searched only on explicit Knowledge questions.")
     : denied("Knowledge notes are not loaded unless allowed.");
@@ -445,6 +467,9 @@ export async function buildNextronEvidencePacket(
     if (section.status === "error" && section.note) warnings.push(section.note);
   }
 
+  // body evidence permission is metric-specific (health_preferences nextron_allowed_metrics), not generic domain
+  // ensure body never leaks when storage off — already handled in body variable construction
+
   return {
     version: "nextron-evidence-v1",
     generatedForLocalDate: today,
@@ -464,6 +489,7 @@ export async function buildNextronEvidencePacket(
     goals,
     projects,
     relationships,
+    body,
     warnings: Array.from(new Set(warnings)).slice(0, 4),
   };
 }

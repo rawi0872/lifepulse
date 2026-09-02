@@ -9,6 +9,7 @@ import {
   openSystemHealthSettings,
 } from "../lib/health-connect-adapter";
 import { getStorageConsent, setMetricConsent, syncSelectedHealthMetrics } from "../lib/health-sync";
+import { loadNextronHealthPermissions, setNextronHealthMetricPermission } from "../lib/nextron-health-permissions";
 import { useAuth } from "../lib/auth";
 import { colors, spacing, radii } from "../lib/theme";
 import type { HealthMetricType } from "@lifepulse/domain";
@@ -27,6 +28,8 @@ export default function HealthScreen() {
   const [availability, setAvailability] = useState<Availability>("unavailable");
   const [granted, setGranted] = useState<HealthMetricType[]>([]);
   const [allowed, setAllowed] = useState<HealthMetricType[]>([]);
+  const [nextronAllowed, setNextronAllowed] = useState<HealthMetricType[]>([]);
+  const [nextronSchemaAvailable, setNextronSchemaAvailable] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
 
@@ -45,6 +48,9 @@ export default function HealthScreen() {
       }
       const consent = await getStorageConsent();
       setAllowed((consent?.allowedMetrics as HealthMetricType[]) ?? []);
+      const nx = await loadNextronHealthPermissions();
+      setNextronAllowed(nx.nextronAllowed);
+      setNextronSchemaAvailable(nx.schemaAvailable);
     } finally {
       setLoading(false);
     }
@@ -152,9 +158,35 @@ export default function HealthScreen() {
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>NEXTRON health access</Text>
-        <Text style={[styles.cardStatus, { color: colors.textMuted }]}>Off by default</Text>
-        <Text style={styles.cardDetail}>Enable storage first, then grant NEXTRON access separately in Body settings.</Text>
+        <Text style={styles.cardTitle}>NEXTRON ACCESS</Text>
+        <Text style={styles.cardDetail}>Allow NEXTRON to use selected summarized Body data when answering you. Default off.</Text>
+        {!nextronSchemaAvailable ? (
+          <Text style={[styles.cardDetail, { color: colors.warning }]}>Update pending — NEXTRON access will be available after the next data update.</Text>
+        ) : (
+          GROUPS.flatMap((g) => g.metrics).map((m) => {
+            const storageOn = allowed.includes(m.key);
+            const nxOn = nextronAllowed.includes(m.key);
+            const disabled = !storageOn;
+            return (
+              <View key={`nx-${m.key}`} style={styles.metricRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.detailLabel, disabled && { opacity: 0.5 }]}>{m.label}</Text>
+                  <Text style={styles.metricSub}>{disabled ? "Enable storage first" : nxOn ? "NEXTRON can use" : "NEXTRON off"}</Text>
+                </View>
+                <TouchableOpacity
+                  style={[styles.toggleButton, nxOn ? styles.toggleOn : styles.toggleOff, disabled && { opacity: 0.45 }]}
+                  disabled={disabled}
+                  onPress={async () => {
+                    const r = await setNextronHealthMetricPermission(m.key, !nxOn);
+                    if (r.ok) setNextronAllowed((prev) => (!nxOn ? [...prev, m.key] : prev.filter((x) => x !== m.key)));
+                  }}
+                >
+                  <Text style={styles.toggleText}>{nxOn ? "On" : "Off"}</Text>
+                </TouchableOpacity>
+              </View>
+            );
+          })
+        )}
       </View>
 
       <Link href="/(tabs)/account" style={styles.backLink}>Back to Account</Link>

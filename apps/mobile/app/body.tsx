@@ -45,6 +45,8 @@ export default function BodyScreen() {
   const [period, setPeriod] = useState<7 | 30>(7);
   const [refreshing, setRefreshing] = useState(false);
   const [newGoalTitle, setNewGoalTitle] = useState("");
+  const [newGoalKind, setNewGoalKind] = useState<"general"|"steps_average"|"weight_target"|"sleep_duration">("general");
+  const [newGoalTargetValue, setNewGoalTargetValue] = useState("");
   const [newHabitTitle, setNewHabitTitle] = useState("");
   const [newTaskTitle, setNewTaskTitle] = useState("");
 
@@ -70,9 +72,24 @@ export default function BodyScreen() {
     if (!newGoalTitle.trim() || !overview?.realm) return;
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    const { error } = await supabase.from("goals").insert({ user_id: user.id, realm_id: overview.realm.id, title: newGoalTitle.trim(), status: "active" });
-    if (error) { Alert.alert("Could not create goal", error.message.slice(0,120)); return; }
-    setNewGoalTitle("");
+    const base: Record<string, unknown> = { user_id: user.id, realm_id: overview.realm.id, title: newGoalTitle.trim(), status: "active" };
+    // quantitative mapping per 00039 contract
+    if (newGoalKind !== "general") {
+      const v = Number(newGoalTargetValue);
+      if (!Number.isFinite(v) || v <= 0) { Alert.alert("Enter a valid target value."); return; }
+      base.goal_type = newGoalKind;
+      base.target_value = v;
+      base.target_metric = newGoalKind === "steps_average" ? "steps" : newGoalKind === "weight_target" ? "weight" : newGoalKind === "sleep_duration" ? "sleep_duration" : null;
+      base.target_unit = newGoalKind === "steps_average" ? "count" : newGoalKind === "weight_target" ? "kg" : newGoalKind === "sleep_duration" ? "hours" : null;
+    }
+    // try with quantitative columns; fallback if schema pending
+    let { error } = await supabase.from("goals").insert(base as any);
+    if (error && (error.message.includes("goal_type") || error.message.includes("target_") || error.message.includes("column") )) {
+      const { error: e2 } = await supabase.from("goals").insert({ user_id: user.id, realm_id: overview.realm.id, title: newGoalTitle.trim(), status: "active" } as any);
+      if (e2) { Alert.alert("Could not create goal", e2.message.slice(0,120)); return; }
+      Alert.alert("Goal created", "Quantitative fields will be available after the next data update.");
+    } else if (error) { Alert.alert("Could not create goal", error.message.slice(0,120)); return; }
+    setNewGoalTitle(""); setNewGoalTargetValue(""); setNewGoalKind("general");
     void load(period);
   };
 
@@ -216,6 +233,16 @@ export default function BodyScreen() {
                 <Text style={styles.rowHint}>Quantitative progress (target metric/value) not yet persisted — schema reserves for later.</Text>
               </View>
             ))}
+            <View style={{ flexDirection: "row", gap: 6, marginBottom: 6 }}>
+              {(["general","steps_average","weight_target","sleep_duration"] as const).map((k) => (
+                <TouchableOpacity key={k} onPress={() => setNewGoalKind(k)} style={[styles.chip, newGoalKind===k && styles.chipActive]}>
+                  <Text style={[styles.chipText, newGoalKind===k && styles.chipTextActive]}>{k.replace("_"," ")}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            {newGoalKind!=="general" && (
+              <TextInput value={newGoalTargetValue} onChangeText={setNewGoalTargetValue} placeholder={newGoalKind==="weight_target" ? "Target kg" : newGoalKind==="steps_average" ? "Steps/day" : "Hours"} placeholderTextColor={colors.textMuted} style={[styles.inlineInput, { marginBottom: 6 }]} keyboardType="numeric" maxLength={10} />
+            )}
             <View style={styles.inlineAdd}>
               <TextInput value={newGoalTitle} onChangeText={setNewGoalTitle} placeholder="Add a Body goal…" placeholderTextColor={colors.textMuted} style={styles.inlineInput} maxLength={80} />
               <TouchableOpacity onPress={createBodyGoal} disabled={!newGoalTitle.trim()} style={[styles.inlineBtn, !newGoalTitle.trim() && styles.inlineBtnDisabled]}><Text style={styles.inlineBtnText}>Add</Text></TouchableOpacity>
@@ -330,6 +357,10 @@ const styles = StyleSheet.create({
   rowMeta: { fontSize: 11, color: colors.textMuted, marginTop: 4 },
   rowHint: { fontSize: 11, color: colors.textFaint, marginTop: 4 },
   emptyText: { fontSize: 12, color: colors.textMuted, marginTop: 8 },
+  chip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: radii.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
+  chipActive: { backgroundColor: colors.accentSoft, borderColor: colors.accentBorder },
+  chipText: { fontSize: 11, fontWeight: "600", color: colors.textMuted },
+  chipTextActive: { color: colors.accentStrong },
   inlineAdd: { flexDirection: "row", gap: 8, marginTop: 8, alignItems: "center" },
   inlineInput: { flex: 1, backgroundColor: colors.surfaceElevated, borderWidth: 1, borderColor: colors.border, borderRadius: radii.md, paddingHorizontal: 10, paddingVertical: 8, color: colors.textPrimary, fontSize: 13 },
   inlineBtn: { backgroundColor: colors.accent, borderRadius: radii.md, paddingHorizontal: 12, paddingVertical: 8 },
