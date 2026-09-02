@@ -49,3 +49,13 @@ next-env.d.ts
 playwright-report/
 test-results/
 screenshot-*.png
+
+# file-sync artifacts
+/.stfolder/
+/.stignore
+ui.xml
+
+# mobile build artifacts
+*.apk
+*.aab
+apps/mobile/android/

@@ -2,7 +2,7 @@
   "expo": {
     "name": "Life Pulse",
     "slug": "lifepulse-mobile",
-    "version": "0.1.0",
+    "version": "0.1.7",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -28,16 +28,29 @@
         "backgroundColor": "#080c12"
       },
       "package": "app.lifepulse.mobile",
+      "versionCode": 8,
       "permissions": [
-        "android.permission.health.READ_SLEEP",
-        "android.permission.health.READ_STEPS",
-        "android.permission.health.READ_HEART_RATE",
-        "android.permission.health.READ_WEIGHT",
-        "android.permission.health.READ_EXERCISE"
+        "android.permission.health.READ_STEPS"
+      ],
+      "blockedPermissions": [
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.SYSTEM_ALERT_WINDOW"
       ]
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      "react-native-health-connect",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 26
+          }
+        }
+      ],
+      "expo-asset",
+      "expo-font"
     ]
   }
 }

@@ -95,6 +95,17 @@ export function buildHealthDedupeKey(args: { sourceRecordId: string | null; metr
   return `${args.metricType}:${range}${raw}`;
 }
 
+/**
+ * Stable identity for ONE daily aggregate row per local calendar day.
+ * Must NOT change when the user syncs later in the day, values increase,
+ * synced_at changes, or recorded_at changes. Only metric + localDate define it.
+ * DB uniqueness scope (user_id, health_source_id) is applied separately, so
+ * user/source are intentionally not embedded here.
+ */
+export function buildDailyHealthAggregateDedupeKey(metricType: HealthMetricType, localDate: string): string {
+  return `${metricType}:daily:${localDate}`;
+}
+
 // Sanity bounds — reject obviously malformed ingestion, no medical interpretation
 export function isValidHealthNumericValue(type: HealthMetricType, value: number): boolean {
   if (!Number.isFinite(value)) return false;

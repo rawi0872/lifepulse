@@ -75,6 +75,7 @@ export {
   isCoreMetric,
   healthRecordDedupeKey,
   buildHealthDedupeKey,
+  buildDailyHealthAggregateDedupeKey,
   isValidHealthValue,
   isValidHealthNumericValue,
 } from "./health";

@@ -9,3 +9,12 @@ dist/
 *.orig.*
 web-build/
 .env.local
+
+# Expo prebuild generated native project (app.json + config plugins are source of truth)
+/android/
+
+# runtime logs and temp dumps
+metro*.log
+build*.log
+ui.xml
+screen*.png

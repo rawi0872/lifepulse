@@ -36,13 +36,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) return { error: error.message };
-    return {};
+    const timeoutMs = 15000;
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("Request timed out. Check your connection and try again.")), timeoutMs),
+    );
+    try {
+      const result = (await Promise.race([
+        supabase.auth.signInWithPassword({ email, password }),
+        timeoutPromise,
+      ])) as Awaited<ReturnType<typeof supabase.auth.signInWithPassword>>;
+      if (result.error) return { error: result.error.message };
+      // Use the authoritative session returned directly — do not wait for an event that may have already fired
+      if (result.data.session) {
+        setSession(result.data.session);
+      }
+      return {};
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Unable to connect. Try again.";
+      return { error: message };
+    }
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } finally {
+      // Clear local state immediately so the UI redirects to login
+      // without waiting for the onAuthStateChange event to round-trip.
+      setSession(null);
+    }
   };
 
   return (

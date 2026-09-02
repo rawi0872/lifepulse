@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { CORE_HEALTH_METRICS, HEALTH_METRIC_META, buildHealthDedupeKey, isValidHealthNumericValue, isCoreMetric } from "@lifepulse/domain";
+import { CORE_HEALTH_METRICS, HEALTH_METRIC_META, buildHealthDedupeKey, buildDailyHealthAggregateDedupeKey, isValidHealthNumericValue, isCoreMetric } from "@lifepulse/domain";
 import { isStorageAllowed, isNextronAllowed, DEFAULT_HEALTH_PRIVACY } from "@lifepulse/domain";
 
 let passed=0, failed=0;
@@ -36,6 +36,44 @@ assert(isValidHealthNumericValue("resting_heart_rate", 60), "rhr 60 valid");
 assert(!isValidHealthNumericValue("resting_heart_rate", 300), "rhr 300 invalid");
 assert(isValidHealthNumericValue("weight", 70), "weight 70 valid");
 assert(!isValidHealthNumericValue("sleep_duration", 2000), "sleep 2000 invalid");
+
+console.log("\n=== Daily aggregate dedupe (Phase 3C) ===");
+// Same-day idempotency: sync at 10:00 and 18:00 with different totals
+// must produce the SAME stable dedupe key.
+const dayA = buildDailyHealthAggregateDedupeKey("steps", "2026-08-25");
+const dayA2 = buildDailyHealthAggregateDedupeKey("steps", "2026-08-25");
+assert(dayA === dayA2, `same-day key deterministic (${dayA})`);
+const syncA = buildDailyHealthAggregateDedupeKey("steps", "2026-08-25"); // recordedAt 2026-08-25T10:00, steps X
+const syncB = buildDailyHealthAggregateDedupeKey("steps", "2026-08-25"); // recordedAt 2026-08-25T18:00, steps Y
+assert(syncA === syncB, "same-day re-sync identical key despite different recorded_at/values");
+
+// Cross-day: one logical aggregate per local calendar day
+const dayB = buildDailyHealthAggregateDedupeKey("steps", "2026-08-26");
+assert(dayA !== dayB, `cross-day keys differ (${dayA} vs ${dayB})`);
+
+// Namespacing: metric is embedded so steps != weight for same date
+const weightSameDay = buildDailyHealthAggregateDedupeKey("weight", "2026-08-25");
+assert(dayA !== weightSameDay, "metric namespaced within daily key");
+
+// Key must be namespaced metric:daily:date only — no user/source identifiers
+assert(dayA === `steps:daily:2026-08-25`, "daily key format is metric:daily:localDate");
+
+// Simulated upsert semantics: conflict target (user_id, health_source_id, dedupe_key)
+// with two syncs on the same day -> row count stays 1, numeric_value becomes latest.
+{
+  type Row = { user_id: string; health_source_id: string; dedupe_key: string; numeric_value: number; recorded_at: string };
+  const table: Row[] = [];
+  const upsert = (row: Row) => {
+    const idx = table.findIndex((r) => r.user_id === row.user_id && r.health_source_id === row.health_source_id && r.dedupe_key === row.dedupe_key);
+    if (idx >= 0) table[idx] = row;
+    else table.push(row);
+  };
+  const U = "user-a", S = "source-a";
+  upsert({ user_id: U, health_source_id: S, dedupe_key: syncA, numeric_value: 3000, recorded_at: "2026-08-25T10:00:00Z" });
+  upsert({ user_id: U, health_source_id: S, dedupe_key: syncB, numeric_value: 7200, recorded_at: "2026-08-25T18:00:00Z" });
+  assert(table.length === 1, `simulated upsert keeps 1 row (got ${table.length})`);
+  assert(table[0].numeric_value === 7200, "latest aggregate value wins");
+}
 
 console.log("\n=== Consent ===");
 const s1 = { ...DEFAULT_HEALTH_PRIVACY, storageConsent:{allowedScopes:["steps" as any], updatedAt:null}, nextronAccess:{allowed:false, allowedScopes:[], updatedAt:null}};

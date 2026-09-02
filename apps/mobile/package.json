@@ -5,8 +5,8 @@
   "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
@@ -14,19 +14,27 @@
     "test:rls": "node scripts/test-rls.mjs"
   },
   "dependencies": {
-    "@react-native-async-storage/async-storage": "^2.1.2",
+    "@expo/vector-icons": "^14.1.0",
+    "@react-native-async-storage/async-storage": "2.1.2",
     "@supabase/supabase-js": "^2.105.4",
     "expo": "~53.0.0",
-    "expo-router": "~5.0.0",
+    "expo-asset": "~11.1.7",
+    "expo-build-properties": "~0.14.8",
+    "expo-constants": "~17.1.8",
+    "expo-font": "~13.3.2",
+    "expo-linking": "~7.1.7",
+    "expo-router": "~5.1.11",
     "expo-status-bar": "~2.2.0",
     "react": "19.0.0",
-    "react-native": "0.79.2",
-    "react-native-safe-area-context": "~5.4.0",
+    "react-native": "0.79.6",
+    "react-native-health-connect": "4.0.0",
+    "react-native-safe-area-context": "5.4.0",
     "react-native-screens": "~4.11.0",
+    "react-native-svg": "15.11.2",
     "react-native-url-polyfill": "^2.0.0"
   },
   "devDependencies": {
     "@types/react": "~19.0.0",
-    "typescript": "^5.0.0"
+    "typescript": "~5.8.3"
   }
 }
