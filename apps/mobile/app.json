@@ -2,7 +2,7 @@
   "expo": {
     "name": "Life Pulse",
     "slug": "lifepulse-mobile",
-    "version": "0.1.7",
+    "version": "0.2.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -28,9 +28,13 @@
         "backgroundColor": "#080c12"
       },
       "package": "app.lifepulse.mobile",
-      "versionCode": 8,
+      "versionCode": 9,
       "permissions": [
-        "android.permission.health.READ_STEPS"
+        "android.permission.health.READ_STEPS",
+        "android.permission.health.READ_SLEEP",
+        "android.permission.health.READ_RESTING_HEART_RATE",
+        "android.permission.health.READ_WEIGHT",
+        "android.permission.health.READ_EXERCISE"
       ],
       "blockedPermissions": [
         "android.permission.READ_EXTERNAL_STORAGE",
