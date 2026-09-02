@@ -360,6 +360,47 @@ export function createBodyPrivacyBoundary(allowedMetrics: HealthMetricType[], ne
   };
 }
 
+// ── NEXTRON Body evidence packet — deterministic, no raw records ──
+export interface BodyNextronEvidence {
+  generatedAt: string;
+  period: 7 | 30;
+  availableMetrics: BodyMetricKey[];
+  todaySummary: Pick<BodyDailySummary, "date" | "activityLevel" | "freshness"> & { availableCount: number };
+  sevenDayTrends: Array<Pick<BodyTrendSummary, "metric" | "currentAvg" | "direction" | "isSufficient">>;
+  bodyGoals: Array<{ title: string; status: string }>;
+  goalProgress: BodyGoalProgress[];
+  dueBodyHabits: Array<{ title: string }>;
+  bodyTasks: Array<{ title: string }>;
+  signals: BodySignal[];
+}
+
+export function buildBodyNextronEvidence(input: {
+  overview: { today: BodyDailySummary | null; trends: Record<string, BodyTrendSummary | null>; goals: Array<{ title: string; status: string }>; goalProgress: BodyGoalProgress[]; habits: Array<{ title: string }>; dueCount: number; tasks: Array<{ title: string }>; };
+  allowedMetrics: BodyMetricKey[];
+  nextronAllowed: BodyMetricKey[];
+  period?: 7 | 30;
+}): BodyNextronEvidence {
+  const allowedSet = new Set<BodyMetricKey>(input.allowedMetrics.filter((m) => input.nextronAllowed.includes(m)));
+  const available = input.allowedMetrics.filter((m) => allowedSet.has(m));
+  return {
+    generatedAt: new Date().toISOString(),
+    period: input.period ?? 7,
+    availableMetrics: available,
+    todaySummary: {
+      date: input.overview.today?.date ?? "",
+      activityLevel: input.overview.today?.activityLevel ?? "unknown",
+      freshness: input.overview.today?.freshness ?? "empty",
+      availableCount: input.overview.today?.availableMetrics.length ?? 0,
+    },
+    sevenDayTrends: Object.values(input.overview.trends).filter((t): t is BodyTrendSummary => !!t && allowedSet.has(t.metric as BodyMetricKey)).map((t) => ({ metric: t.metric, currentAvg: t.currentAvg, direction: t.direction, isSufficient: t.isSufficient })),
+    bodyGoals: input.overview.goals.map((g) => ({ title: g.title, status: g.status })),
+    goalProgress: input.overview.goalProgress.filter((g) => g.status !== "insufficient"),
+    dueBodyHabits: input.overview.habits.slice(0, 2).map((h) => ({ title: h.title })),
+    bodyTasks: input.overview.tasks.slice(0, 3).map((t) => ({ title: t.title })),
+    signals: [], // Today signals not yet injected — bounded
+  };
+}
+
 // ── Onboarding hook — physical improvement intents ──
 export type BodyOnboardingIntent = "general_fitness" | "lose_weight" | "build_muscle" | "move_more" | "sleep_better" | "exercise_consistently";
 

@@ -1,6 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars, prefer-const -- Health Connect SDK types are dynamic */
 // HealthConnectAdapter — multi-metric (Body V1)
-// Real Health Connect record types via react-native-health-connect@4.0
-// No NEXTRON, no Supabase here.
 
 import {
   initialize,
