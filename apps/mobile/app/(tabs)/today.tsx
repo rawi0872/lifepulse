@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity, Alert, TextInput } from "react-native";
+import { Link } from "expo-router";
 import { supabase } from "../../lib/supabase";
 import { useAuth } from "../../lib/auth";
 import { colors, spacing, radii, type, shadow } from "../../lib/theme";
@@ -238,12 +239,14 @@ export default function TodayScreen() {
     >
       {/* Header — compact */}
       <View style={styles.header}>
-        <View style={styles.brandRow}>
-          <View style={styles.brandMark}>
-            <Pulse size={18} color={colors.accentStrong} />
-          </View>
-          <Text style={styles.brandName}>LIFE PULSE</Text>
-        </View>
+        <Link href="/body" asChild>
+          <TouchableOpacity style={styles.brandRow} activeOpacity={0.7}>
+            <View style={styles.brandMark}>
+              <Pulse size={18} color={colors.accentStrong} />
+            </View>
+            <Text style={styles.brandName}>LIFE PULSE</Text>
+          </TouchableOpacity>
+        </Link>
         <Text style={styles.greeting}>{greeting}</Text>
         <Text style={styles.date}>{model?.date.displayDate ?? "Today"}</Text>
       </View>
