@@ -82,13 +82,8 @@ export default function BodyScreen() {
       base.target_metric = newGoalKind === "steps_average" ? "steps" : newGoalKind === "weight_target" ? "weight" : newGoalKind === "sleep_duration" ? "sleep_duration" : null;
       base.target_unit = newGoalKind === "steps_average" ? "count" : newGoalKind === "weight_target" ? "kg" : newGoalKind === "sleep_duration" ? "hours" : null;
     }
-    // try with quantitative columns; fallback if schema pending
-    let { error } = await supabase.from("goals").insert(base as any);
-    if (error && (error.message.includes("goal_type") || error.message.includes("target_") || error.message.includes("column") )) {
-      const { error: e2 } = await supabase.from("goals").insert({ user_id: user.id, realm_id: overview.realm.id, title: newGoalTitle.trim(), status: "active" } as any);
-      if (e2) { Alert.alert("Could not create goal", e2.message.slice(0,120)); return; }
-      Alert.alert("Goal created", "Quantitative fields will be available after the next data update.");
-    } else if (error) { Alert.alert("Could not create goal", error.message.slice(0,120)); return; }
+    const { error } = await supabase.from("goals").insert(base as any);
+    if (error) { Alert.alert("Could not create goal", error.message.slice(0,140)); return; }
     setNewGoalTitle(""); setNewGoalTargetValue(""); setNewGoalKind("general");
     void load(period);
   };
