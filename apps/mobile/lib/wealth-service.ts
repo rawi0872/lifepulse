@@ -15,15 +15,41 @@ export async function ensureWealthRealm(): Promise<{ id: string; name: string } 
   return created as any;
 }
 
-// ── Overview ──
+// ── Recent vs Cash-flow separation (fix 50-row truncation) ──
+export async function loadRecentWealthTransactions(limit = 50) {
+  const { data: { user } } = await supabase.auth.getUser(); if (!user) return [];
+  const { data } = await supabase.from("finance_transactions").select("id, user_id, account_id, category_id, amount, type, title, note, transaction_date, linked_transaction_id, created_at, finance_accounts(name, currency), finance_categories(name, type)").eq("user_id", user.id).order("transaction_date", { ascending: false }).order("created_at", { ascending: false }).limit(limit);
+  // currency: join or null (unknown) — do not fake ILS for null account
+  return (data ?? []).map((r: any) => ({
+    id: r.id, user_id: r.user_id, account_id: r.account_id, category_id: r.category_id, amount: Number(r.amount), type: r.type, title: r.title, note: r.note, transaction_date: r.transaction_date, linked_transaction_id: r.linked_transaction_id, currency: (r.finance_accounts as any)?.currency ?? null, raw: r,
+  })) as Array<WealthTransaction & { raw?: any }>;
+}
+export async function loadWealthCashFlowTransactions(period: { start: string; end: string }) {
+  const { data: { user } } = await supabase.auth.getUser(); if (!user) return [] as Array<WealthTransaction & { raw?: any }>;
+  // bounded, complete, no LIMIT — all transactions in requested window
+  const { data } = await supabase.from("finance_transactions").select("id, user_id, account_id, category_id, amount, type, title, transaction_date, linked_transaction_id, finance_accounts(currency)").eq("user_id", user.id).gte("transaction_date", period.start).lte("transaction_date", period.end).order("transaction_date", { ascending: false });
+  return (data ?? []).map((r: any) => ({
+    id: r.id, user_id: r.user_id, account_id: r.account_id, category_id: r.category_id, amount: Number(r.amount), type: r.type, title: r.title, transaction_date: r.transaction_date, linked_transaction_id: r.linked_transaction_id, currency: (r.finance_accounts as any)?.currency ?? null, raw: r,
+  })) as Array<WealthTransaction & { raw?: any }>;
+}
+
+// ── Overview (now correct) ──
 export async function loadWealthOverview() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
   const realm = await ensureWealthRealm();
   if (!realm) return null;
-  const [accountsRes, txRes, catRes, recurRes, goalsRes, prefsRes] = await Promise.all([
+  const now = new Date(); const y=now.getFullYear(), mm=now.getMonth()+1;
+  const monthStart = `${y}-${String(mm).padStart(2,'0')}-01`;
+  const monthEnd = `${y}-${String(mm).padStart(2,'0')}-${String(new Date(y, mm, 0).getDate()).padStart(2,'0')}`;
+  const threeM = new Date(y, mm-3, 1); // two months before
+  const threeY=threeM.getFullYear(), threeMo=threeM.getMonth()+1;
+  const threeStart = `${threeY}-${String(threeMo).padStart(2,'0')}-01`;
+  const [accountsRes, recentRes, cashMonthRes, cash3Res, catRes, recurRes, goalsRes, prefsRes] = await Promise.all([
     supabase.from("finance_accounts").select("id, user_id, realm_id, name, type, starting_balance, currency, is_archived, source_type, institution_name, created_at").eq("user_id", user.id).order("created_at"),
-    supabase.from("finance_transactions").select("id, user_id, account_id, category_id, amount, type, title, note, transaction_date, linked_transaction_id, created_at, finance_accounts(name, currency), finance_categories(name, type)").eq("user_id", user.id).order("transaction_date", { ascending: false }).limit(50),
+    loadRecentWealthTransactions(50),
+    loadWealthCashFlowTransactions({ start: monthStart, end: monthEnd }),
+    loadWealthCashFlowTransactions({ start: threeStart, end: monthEnd }),
     supabase.from("finance_categories").select("id, name, type").eq("user_id", user.id).order("name"),
     supabase.from("finance_recurring_items").select("id, user_id, realm_id, name, kind, amount, currency, frequency, next_due_date, account_id, category_id, is_active, created_at").eq("user_id", user.id).eq("is_active", true).order("next_due_date"),
     supabase.from("goals").select("id, title, status, target_date, goal_type, target_metric, target_value, target_unit").eq("user_id", user.id).eq("realm_id", realm.id).limit(10),
@@ -32,22 +58,33 @@ export async function loadWealthOverview() {
   const accounts = (accountsRes.data ?? []).map((r: any) => ({
     id: r.id, user_id: r.user_id, realm_id: r.realm_id ?? null, name: r.name, type: r.type, starting_balance: Number(r.starting_balance), currency: r.currency, is_archived: !!r.is_archived, source_type: r.source_type, institution_name: r.institution_name,
   })) as WealthAccount[];
-  const transactions = (txRes.data ?? []).map((r: any) => ({
-    id: r.id, user_id: r.user_id, account_id: r.account_id, category_id: r.category_id, amount: Number(r.amount), type: r.type, title: r.title, note: r.note, transaction_date: r.transaction_date, linked_transaction_id: r.linked_transaction_id, currency: (r.finance_accounts as any)?.currency ?? "ILS", raw: r,
-  })) as Array<WealthTransaction & { raw?: any }>;
-  // fallback currency via account map if joined data missing
-  const accCurrency = new Map<string,string>(accounts.map(a=>[a.id, a.currency]));
-  for (const t of transactions) if (!(t as any).currency) (t as any).currency = t.account_id ? (accCurrency.get(t.account_id) ?? "ILS") : "ILS";
+  const transactions = recentRes as Array<WealthTransaction & { raw?: any }>;
+  const cashMonthTx = cashMonthRes as Array<WealthTransaction & { raw?: any }>;
+  const cash3Tx = cash3Res as Array<WealthTransaction & { raw?: any }>;
   const recurrings = (recurRes.data ?? []).map((r: any)=> ({
     id: r.id, user_id: r.user_id, realm_id: r.realm_id ?? null, name: r.name, kind: r.kind, amount: Number(r.amount), currency: r.currency, frequency: r.frequency, next_due_date: r.next_due_date, account_id: r.account_id, category_id: r.category_id, is_active: r.is_active,
   })) as WealthRecurringItem[];
   const categories = (catRes.data ?? []) as Array<{id:string; name:string; type:string}>;
   const balance = getWealthBalanceSummary(accounts);
-  const now = new Date(); const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0,10); const end = new Date(now.getFullYear(), now.getMonth()+1, 0).toISOString().slice(0,10);
-  const cash = transactions.length ? getWealthCashFlowSummary(transactions, { start, end })[0] : null;
+  // period summaries now from complete sets, with multi-currency grouping and unknown detection
+  function perCurrencySummary(txs: Array<WealthTransaction & { currency: string | null }>, period:{start:string;end:string}){
+    const byCur = new Map<string,{income:number;expenses:number;count:number;unknown:number}>();
+    for(const t of txs){
+      if(t.type==="transfer"||t.type==="adjustment") continue;
+      const cur = (t as any).currency as string | null;
+      if(!cur){ // legacy null account → unknown, track partial
+        const k="__unknown"; let s=byCur.get(k); if(!s) { s={income:0,expenses:0,count:0,unknown:0}; byCur.set(k,s);} s.unknown++; continue;
+      }
+      let s=byCur.get(cur!); if(!s) { s={income:0,expenses:0,count:0,unknown:0}; byCur.set(cur!,s);}
+      if(t.type==="income") s.income+=t.amount; else if(t.type==="expense") s.expenses+=t.amount; s.count++;
+    }
+    return Array.from(byCur.entries()).filter(([k])=>k!=="__unknown").map(([cur,s])=> ({ currency:cur, income:s.income, expenses:s.expenses, net: s.income-s.expenses, count:s.count, unknown: (byCur.get("__unknown")?.unknown ?? 0) }));
+  }
+  const cashByCurrencyMonth = perCurrencySummary(cashMonthTx as any, { start: monthStart, end: monthEnd });
+  const cashByCurrency3 = perCurrencySummary(cash3Tx as any, { start: threeStart, end: monthEnd });
   const upcoming7 = getUpcomingWealthCommitments(recurrings, new Date().toISOString().slice(0,10), 7);
   const upcoming30 = getUpcomingWealthCommitments(recurrings, new Date().toISOString().slice(0,10), 30);
-  return { realm, accounts, transactions, categories, recurrings, balance, cashFlow: cash, upcoming7, upcoming30, goals: goalsRes.data ?? [], prefs: prefsRes.data ?? null, errors: { accounts: accountsRes.error, tx: txRes.error, recurrings: recurRes.error } };
+  return { realm, accounts, transactions, categories, recurrings, balance, cashMonthTx, cash3Tx, cashByCurrencyMonth, cashByCurrency3, monthBounds:{start:monthStart,end:monthEnd}, threeBounds:{start:threeStart,end:monthEnd}, upcoming7, upcoming30, goals: goalsRes.data ?? [], prefs: prefsRes.data ?? null, errors: { accounts: accountsRes.error, recurrings: recurRes.error } };
 }
 
 // ── Accounts ──

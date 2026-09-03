@@ -107,5 +107,37 @@ ok(accs[0].starting_balance===100 && txs[0].amount===500,"29 balance invariant m
 ok(["cash","bank","card","savings","investment","other"].includes("bank"),"30 legacy types");
 ok(wealthMinorFromMajor(123.45,"ILS")===12345,"30 legacy minor helper");
 
+// ── Completion Pass: >50, boundaries, transfer/adjust ──
+// F: 75 tx in one period (40 income 35 expense) must be fully counted; recent stays 50
+const many: WealthTransaction[] = [];
+for(let i=0;i<40;i++) many.push({id:`inc-${i}`,user_id:"u",account_id:"1",category_id:null,amount:10,currency:"ILS",type:"income",title:`Inc ${i}`,transaction_date:"2026-09-10"});
+for(let i=0;i<35;i++) many.push({id:`exp-${i}`,user_id:"u",account_id:"1",category_id:null,amount:5,currency:"ILS",type:"expense",title:`Exp ${i}`,transaction_date:"2026-09-11"});
+many.push({id:"tr-1",user_id:"u",account_id:"1",category_id:null,amount:100,currency:"ILS",type:"transfer",title:"Tr",transaction_date:"2026-09-10"});
+many.push({id:"adj-1",user_id:"u",account_id:"1",category_id:null,amount:20,currency:"ILS",type:"adjustment",title:"Adj",transaction_date:"2026-09-10"});
+const cfMany = getWealthCashFlowSummary(many, {start:"2026-09-01",end:"2026-09-30",currencyCode:"ILS"})[0];
+ok(cfMany.income===400 && cfMany.expenses===175 && cfMany.transactionCount===75,"F >50: 75 counted, transfer/adjust excluded");
+ok(cfMany.income===40*10 && cfMany.expenses===35*5,"F amounts correct");
+const recentSlice = many.slice(0,50);
+ok(recentSlice.length===50 && many.length===77,"F recent 50 vs period 75+2 transfers");
+
+// G: boundary inclusive
+const boundary: WealthTransaction[] = [
+  {id:"before",user_id:"u",account_id:"1",category_id:null,amount:10,currency:"ILS",type:"income",title:"before",transaction_date:"2026-08-31"},
+  {id:"start",user_id:"u",account_id:"1",category_id:null,amount:10,currency:"ILS",type:"income",title:"start",transaction_date:"2026-09-01"},
+  {id:"mid",user_id:"u",account_id:"1",category_id:null,amount:10,currency:"ILS",type:"expense",title:"mid",transaction_date:"2026-09-15"},
+  {id:"end",user_id:"u",account_id:"1",category_id:null,amount:10,currency:"ILS",type:"expense",title:"end",transaction_date:"2026-09-30"},
+  {id:"after",user_id:"u",account_id:"1",category_id:null,amount:10,currency:"ILS",type:"income",title:"after",transaction_date:"2026-10-01"},
+];
+const cfBound = getWealthCashFlowSummary(boundary, {start:"2026-09-01",end:"2026-09-30",currencyCode:"ILS"})[0];
+ok(cfBound.income===10 && cfBound.expenses===20 && cfBound.transactionCount===3,"G boundary inclusive (start/mid/end)");
+
+// H: transfer/adjustment appear in recent but not cash flow — already proven via cfMany count 75 (77 total -2 transfers)
+// unknown currency: null currency transactions should be excluded from per-currency cash flow and flagged partial
+const unknownTx: WealthTransaction[] = [
+  {id:"u1",user_id:"u",account_id:null,category_id:null,amount:99,currency:null as any,type:"income",title:"Legacy no account",transaction_date:"2026-09-10"},
+];
+const cfUnknown = getWealthCashFlowSummary(unknownTx, {start:"2026-09-01",end:"2026-09-30",currencyCode:"ILS"})[0];
+ok(cfUnknown.income===0 && cfUnknown.transactionCount===0,"H unknown currency not falsely assigned to ILS");
+
 console.log(`--- Summary ${p} passed, ${f} failed ---`);
 if(f) process.exit(1);

@@ -41,19 +41,12 @@ export default function WealthScreen() {
   const onRefresh = useCallback(()=>{ setRefreshing(true); void load(); },[load]);
 
   const baseCurrency = data?.prefs?.base_currency ?? "ILS";
-  const currencies = useMemo(()=> data?.balance?.map(b=>b.currencyCode) ?? [], [data]);
-  const periodBounds = wealthPeriodBounds(period);
-
   const cashByCurrency = useMemo(()=>{
-    if(!data?.transactions) return [];
-    const map = new Map<string, { income:number; expenses:number; net:number; count:number }>();
-    for(const c of (currencies.length ? currencies : [baseCurrency])){
-      const filtered = data.transactions.filter(t=> t.transaction_date >= periodBounds.start && t.transaction_date <= periodBounds.end && (t as any).currency===c && t.type!=="transfer" && t.type!=="adjustment");
-      let inc=0, exp=0; for(const t of filtered){ if(t.type==="income") inc+=t.amount; else if(t.type==="expense") exp+=t.amount; }
-      map.set(c, { income:inc, expenses:exp, net:inc-exp, count: filtered.length });
-    }
-    return Array.from(map.entries()).map(([cur,v])=> ({ currency:cur, ...v }));
-  },[data, periodBounds, currencies, baseCurrency]);
+    if(!data) return [];
+    return period==="month" ? (data as any).cashByCurrencyMonth ?? [] : (data as any).cashByCurrency3 ?? [];
+  },[data, period]);
+  const periodBounds = useMemo(()=> data ? (period==="month" ? (data as any).monthBounds : (data as any).threeBounds) as {start:string;end:string} : wealthPeriodBounds(period), [data, period]);
+  const hasUnknown = useMemo(()=> (cashByCurrency as any[]).some(c=> (c as any).unknown>0), [cashByCurrency]);
 
   const isFresh = !loading && data && data.accounts.filter(a=>!a.is_archived).length===0 && data.transactions.length===0 && data.recurrings.length===0 && data.goals.length===0;
 
@@ -193,10 +186,10 @@ export default function WealthScreen() {
           ))}
           <Text style={s.periodRange}>{periodBounds.start} → {periodBounds.end}</Text>
         </View>
-        {cashByCurrency.map(c=> (
+        {cashByCurrency.length===0 ? <Text style={s.note}>No spending recorded for this period. Based on recorded transactions.</Text> : cashByCurrency.map((c:any)=> (
           <View key={c.currency} style={s.cashRow}>
             <Text style={s.cashCurr}>{c.currency}</Text>
-            {c.count===0 ? <Text style={s.note}>No spending recorded for this period.</Text> : (
+            {c.count===0 ? <Text style={s.note}>No spending recorded for this period. Based on recorded transactions.</Text> : (
               <View style={s.cashGrid}>
                 <View style={s.cashCell}><Text style={s.cashLabel}>Income</Text><Text style={s.cashValue}>{formatWealthGrouped(c.income, c.currency)}</Text></View>
                 <View style={s.cashCell}><Text style={s.cashLabel}>Expenses</Text><Text style={s.cashValue}>{formatWealthGrouped(c.expenses, c.currency)}</Text></View>
@@ -205,7 +198,8 @@ export default function WealthScreen() {
             )}
           </View>
         ))}
-        <Text style={s.noteSmall}>Transfers and adjustments are excluded. Per-currency — no conversion.</Text>
+        <Text style={s.noteSmall}>Based on recorded transactions. Transfers and adjustments excluded. Per-currency — no conversion.</Text>
+        {hasUnknown ? <Text style={s.noteSmall}>Some legacy transactions have no account currency — marked as partial/unknown rather than assumed ILS.</Text> : null}
       </View>
 
       {/* Recent activity */}

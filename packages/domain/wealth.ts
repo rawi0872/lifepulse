@@ -100,8 +100,8 @@ export interface WealthCashFlowSummary {
 
 export function getWealthCashFlowSummary(transactions: WealthTransaction[], period: { start: string; end: string; currencyCode?: string }): WealthCashFlowSummary[] {
   const cur = period.currencyCode ?? (transactions.find(t=>t.currency)?.currency as string) ?? "ILS";
-  // Filter by transaction_date and currency (if transaction.currency missing, assume account currency = cur)
-  const filtered = transactions.filter((t) => t.transaction_date >= period.start && t.transaction_date <= period.end && (t.currency ?? cur) === cur);
+  // Strict per-currency: null/unknown currency is NOT silently assigned to cur (prevents misclassifying legacy null-account rows as ILS)
+  const filtered = transactions.filter((t) => t.transaction_date >= period.start && t.transaction_date <= period.end && t.currency === cur);
   let income = 0, expenses = 0, count = 0;
   for (const t of filtered) {
     if (t.type === "transfer" || t.type === "adjustment") continue;
@@ -249,14 +249,15 @@ export function advanceWealthRecurrence(date: string, freq: WealthFrequency): st
   else if (freq==="monthly") d.setMonth(d.getMonth()+1);
   else if (freq==="quarterly") d.setMonth(d.getMonth()+3);
   else if (freq==="yearly") d.setFullYear(d.getFullYear()+1);
-  return d.toISOString().slice(0,10);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
-// Cash-flow period helper
+// Cash-flow period helper (local, no UTC shift)
 export function wealthPeriodBounds(period: "month" | "3months"): { start: string; end: string } {
-  const now = new Date(); const end = new Date(now.getFullYear(), now.getMonth()+1, 0).toISOString().slice(0,10);
-  if (period==="month") { const s = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0,10); return { start:s, end }; }
-  const s = new Date(now.getFullYear(), now.getMonth()-2, 1); return { start: s.toISOString().slice(0,10), end };
+  const now = new Date(); const y=now.getFullYear(), mm=now.getMonth()+1;
+  const end = `${y}-${String(mm).padStart(2,'0')}-${String(new Date(y, mm, 0).getDate()).padStart(2,'0')}`;
+  if (period==="month") { const s = `${y}-${String(mm).padStart(2,'0')}-01`; return { start:s, end }; }
+  const d = new Date(y, mm-3, 1); return { start: `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01`, end };
 }
 // Compat wrappers for previous minor-units API (avoid silent breakage, delegate to numeric)
 export function formatWealthMinor(minor: number, currency: string): string { return formatWealth(minor/100, currency); }
