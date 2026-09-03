@@ -28,7 +28,7 @@
         "backgroundColor": "#080c12"
       },
       "package": "app.lifepulse.mobile",
-      "versionCode": 9,
+      "versionCode": 10,
       "permissions": [
         "android.permission.health.READ_STEPS",
         "android.permission.health.READ_SLEEP",
