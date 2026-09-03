@@ -246,7 +246,7 @@ export default function TodayScreen() {
     >
       {/* Header — compact */}
       <View style={styles.header}>
-        <Link href="/body" asChild>
+        <Link href="/realms" asChild>
           <TouchableOpacity style={styles.brandRow} activeOpacity={0.7}>
             <View style={styles.brandMark}>
               <Pulse size={18} color={colors.accentStrong} />

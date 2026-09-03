@@ -1,65 +1,72 @@
-// Wealth Realm V1 — foundation domain, pure TS, integer minor units
+// Wealth Realm V1 — canonical finance domain, pure TS, numeric(12,2) exact decimal
+// PostgreSQL numeric is exact decimal, not float. JS number used with 2-decimal rounding
+// matches DB storage. No bigint minor-units duplication.
 
-export type WealthAccountType = "checking" | "savings" | "cash" | "investment" | "credit_card" | "loan" | "asset" | "liability" | "other";
+export type WealthAccountType = "cash" | "bank" | "card" | "savings" | "investment" | "other" | "checking" | "credit_card" | "loan" | "asset" | "liability";
 export type WealthCategory = "income" | "housing" | "food" | "transport" | "health" | "education" | "entertainment" | "shopping" | "subscriptions" | "debt" | "savings" | "investments" | "other";
 export type WealthTransactionType = "income" | "expense" | "transfer" | "adjustment";
 export type WealthRecurringKind = "income" | "bill" | "subscription" | "debt_payment" | "savings" | "investment" | "other";
 export type WealthFrequency = "weekly" | "monthly" | "quarterly" | "yearly";
 
+// Canonical shapes map 1:1 to finance_* tables (numeric amounts, category_id FK preferred)
 export interface WealthAccount {
   id: string;
   user_id: string;
-  realm_id: string;
+  realm_id?: string | null;
   name: string;
-  account_type: WealthAccountType;
-  currency_code: string;
-  current_balance_minor: number;
-  institution_name?: string | null;
+  type: WealthAccountType;
+  starting_balance: number; // numeric(12,2)
+  currency: string; // e.g. ILS
   is_archived: boolean;
   source_type: "manual" | "import" | "external";
+  institution_name?: string | null;
 }
 
 export interface WealthTransaction {
   id: string;
   user_id: string;
   account_id: string | null;
-  transaction_type: WealthTransactionType;
-  amount_minor: number;
-  currency_code: string;
-  category: WealthCategory;
-  description?: string | null;
-  transaction_date: string;
+  category_id: string | null;
+  amount: number; // numeric(12,2) exact
+  type: WealthTransactionType;
+  title: string;
+  note?: string | null;
+  transaction_date: string; // YYYY-MM-DD
+  currency?: string | null; // derived from account if null; kept for compat
   linked_transaction_id?: string | null;
 }
 
 export interface WealthRecurringItem {
   id: string;
   user_id: string;
-  realm_id: string;
+  realm_id?: string | null;
   name: string;
   kind: WealthRecurringKind;
-  amount_minor: number;
-  currency_code: string;
+  amount: number; // numeric(12,2)
+  currency: string;
   frequency: WealthFrequency;
   next_due_date: string;
   account_id?: string | null;
-  category?: WealthCategory | null;
+  category_id?: string | null;
   is_active: boolean;
 }
 
-export function isLiabilityAccount(a: Pick<WealthAccount, "account_type">): boolean {
-  return a.account_type === "credit_card" || a.account_type === "loan" || a.account_type === "liability";
+export function isLiabilityAccount(a: Pick<WealthAccount, "type">): boolean {
+  return a.type === "credit_card" || a.type === "loan" || a.type === "liability";
 }
-export function isAssetAccount(a: Pick<WealthAccount, "account_type">): boolean {
+export function isAssetAccount(a: Pick<WealthAccount, "type">): boolean {
   return !isLiabilityAccount(a);
 }
 
-// ── Net worth ──
+// ── Net worth (starting_balance + transactions if needed, but V1 stored explicit starting_balance as current for manual-first) ──
+// Source-of-truth: finance_accounts.starting_balance is the displayed balance for manual-first V1.
+// Transactions do NOT auto-mutate balances to avoid silent drift. Future bank imports will reconcile.
+// Invariant documented in migration comment and service.
 export interface WealthBalanceSummary {
   currencyCode: string;
-  assetsMinor: number;
-  liabilitiesMinor: number;
-  netWorthMinor: number;
+  assets: number;
+  liabilities: number;
+  netWorth: number;
   accountCount: number;
   assetAccountCount: number;
   liabilityAccountCount: number;
@@ -69,14 +76,14 @@ export function getWealthBalanceSummary(accounts: WealthAccount[]): WealthBalanc
   const byCur = new Map<string, WealthBalanceSummary>();
   for (const acc of accounts) {
     if (acc.is_archived) continue;
-    const cur = acc.currency_code;
+    const cur = acc.currency;
     let s = byCur.get(cur);
-    if (!s) { s = { currencyCode: cur, assetsMinor: 0, liabilitiesMinor: 0, netWorthMinor: 0, accountCount: 0, assetAccountCount: 0, liabilityAccountCount: 0 }; byCur.set(cur, s); }
+    if (!s) { s = { currencyCode: cur, assets: 0, liabilities: 0, netWorth: 0, accountCount: 0, assetAccountCount: 0, liabilityAccountCount: 0 }; byCur.set(cur, s); }
     s.accountCount++;
-    if (isLiabilityAccount(acc)) { s.liabilitiesMinor += acc.current_balance_minor; s.liabilityAccountCount++; }
-    else { s.assetsMinor += acc.current_balance_minor; s.assetAccountCount++; }
+    if (isLiabilityAccount(acc)) { s.liabilities += acc.starting_balance; s.liabilityAccountCount++; }
+    else { s.assets += acc.starting_balance; s.assetAccountCount++; }
   }
-  for (const s of byCur.values()) s.netWorthMinor = s.assetsMinor - s.liabilitiesMinor;
+  for (const s of byCur.values()) s.netWorth = s.assets - s.liabilities;
   return Array.from(byCur.values());
 }
 
@@ -85,28 +92,29 @@ export interface WealthCashFlowSummary {
   periodStart: string;
   periodEnd: string;
   currencyCode: string;
-  incomeMinor: number;
-  expensesMinor: number;
-  netCashFlowMinor: number;
+  income: number;
+  expenses: number;
+  netCashFlow: number;
   transactionCount: number;
 }
 
 export function getWealthCashFlowSummary(transactions: WealthTransaction[], period: { start: string; end: string; currencyCode?: string }): WealthCashFlowSummary[] {
-  const cur = period.currencyCode ?? transactions[0]?.currency_code ?? "ILS";
-  const filtered = transactions.filter((t) => t.transaction_date >= period.start && t.transaction_date <= period.end && t.currency_code === cur);
+  const cur = period.currencyCode ?? (transactions.find(t=>t.currency)?.currency as string) ?? "ILS";
+  // Filter by transaction_date and currency (if transaction.currency missing, assume account currency = cur)
+  const filtered = transactions.filter((t) => t.transaction_date >= period.start && t.transaction_date <= period.end && (t.currency ?? cur) === cur);
   let income = 0, expenses = 0, count = 0;
   for (const t of filtered) {
-    if (t.transaction_type === "transfer" || t.transaction_type === "adjustment") continue;
-    if (t.transaction_type === "income") income += t.amount_minor;
-    else if (t.transaction_type === "expense") expenses += t.amount_minor;
+    if (t.type === "transfer" || t.type === "adjustment") continue;
+    if (t.type === "income") income += t.amount;
+    else if (t.type === "expense") expenses += t.amount;
     count++;
   }
-  return [{ periodStart: period.start, periodEnd: period.end, currencyCode: cur, incomeMinor: income, expensesMinor: expenses, netCashFlowMinor: income - expenses, transactionCount: count }];
+  return [{ periodStart: period.start, periodEnd: period.end, currencyCode: cur, income, expenses, netCashFlow: income - expenses, transactionCount: count }];
 }
 
 export function getSavingsRate(cashFlow: WealthCashFlowSummary): { rate: number | null; status: "insufficient" | "ok" } {
-  if (cashFlow.incomeMinor <= 0 || cashFlow.transactionCount < 3) return { rate: null, status: "insufficient" };
-  return { rate: (cashFlow.incomeMinor - cashFlow.expensesMinor) / cashFlow.incomeMinor, status: "ok" };
+  if (cashFlow.income <= 0 || cashFlow.transactionCount < 3) return { rate: null, status: "insufficient" };
+  return { rate: (cashFlow.income - cashFlow.expenses) / cashFlow.income, status: "ok" };
 }
 
 // ── Recurring upcoming ──
@@ -114,8 +122,8 @@ export interface WealthUpcomingCommitment {
   id: string;
   name: string;
   kind: WealthRecurringKind;
-  amount_minor: number;
-  currency_code: string;
+  amount: number;
+  currency: string;
   dueDate: string;
   daysUntilDue: number;
 }
@@ -129,7 +137,7 @@ export function getUpcomingWealthCommitments(items: WealthRecurringItem[], today
     const due = new Date(it.next_due_date);
     if (due >= start && due <= end) {
       const diff = Math.ceil((due.getTime() - start.getTime()) / 86400000);
-      out.push({ id: it.id, name: it.name, kind: it.kind, amount_minor: it.amount_minor, currency_code: it.currency_code, dueDate: it.next_due_date, daysUntilDue: diff });
+      out.push({ id: it.id, name: it.name, kind: it.kind, amount: it.amount, currency: it.currency, dueDate: it.next_due_date, daysUntilDue: diff });
     }
   }
   return out.sort((a,b)=> a.dueDate.localeCompare(b.dueDate));
@@ -155,8 +163,7 @@ export function deriveWealthSignals(input: {
   for (const s of input.upcomingSubscriptions.slice(0,1)) signals.push({ kind:"wealth_subscription_due", priority:15, title:s.name, rationale:`Subscription due in ${s.daysUntilDue}d`, dueDate: s.dueDate });
   for (const t of input.dueWealthTasks.slice(0,1)) signals.push({ kind:"wealth_task_due", priority:20, title:t.title, rationale:"Wealth task due" });
   for (const h of input.dueWealthHabits.slice(0,1)) signals.push({ kind:"wealth_goal_action_due", priority:25, title:h.title, rationale:"Wealth habit due" });
-  if (input.cashFlow && input.cashFlow.netCashFlowMinor < 0 && input.cashFlow.transactionCount >= 5) signals.push({ kind:"wealth_negative_cash_flow", priority:40, title:"Spending exceeded income", rationale:`Net ${input.cashFlow.netCashFlowMinor} minor` });
-  // only strong signals auto-worthy; weak analytical must not nag — caller filters by priority <30
+  if (input.cashFlow && input.cashFlow.netCashFlow < 0 && input.cashFlow.transactionCount >= 5) signals.push({ kind:"wealth_negative_cash_flow", priority:40, title:"Spending exceeded income", rationale:`Net ${input.cashFlow.netCashFlow}` });
   return signals.sort((a,b)=> a.priority-b.priority).slice(0,4);
 }
 
@@ -191,13 +198,13 @@ export const WEALTH_ONBOARDING_OPTIONS: Array<{ value: WealthOnboardingIntent; l
   { value: "general_organization", label: "General financial organization" },
 ];
 
-// ── Money ──
-export function formatWealthMinor(minor: number, currency: string): string {
-  const abs = Math.abs(minor);
-  const major = (abs / 100).toFixed(2);
-  const sign = minor < 0 ? "-" : "";
+// ── Money helpers (numeric exact) ──
+export function formatWealth(amount: number, currency: string): string {
+  const abs = Math.abs(amount);
+  const major = abs.toFixed(2);
+  const sign = amount < 0 ? "-" : "";
   return `${sign}${major} ${currency}`;
 }
-export function wealthMinorFromMajor(major: number, _currency: string): number {
-  return Math.round(major * 100);
-}
+// Compat wrappers for previous minor-units API (avoid silent breakage, delegate to numeric)
+export function formatWealthMinor(minor: number, currency: string): string { return formatWealth(minor/100, currency); }
+export function wealthMinorFromMajor(major: number, _currency: string): number { return Math.round(major * 100); }

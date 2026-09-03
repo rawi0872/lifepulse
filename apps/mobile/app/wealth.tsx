@@ -3,7 +3,7 @@ import { View, Text, ScrollView, StyleSheet, ActivityIndicator } from "react-nat
 import { Stack, Link } from "expo-router";
 import { colors, spacing, radii } from "../lib/theme";
 import { loadWealthOverview } from "../lib/wealth-service";
-import { formatWealthMinor } from "@lifepulse/domain";
+import { formatWealth } from "@lifepulse/domain";
 
 export default function WealthScreen() {
   const [data, setData] = useState<Awaited<ReturnType<typeof loadWealthOverview>> | null>(null);
@@ -13,15 +13,15 @@ export default function WealthScreen() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Stack.Screen options={{ title:"Wealth", headerStyle:{backgroundColor:colors.bg}, headerTintColor:colors.textPrimary }} />
       <Text style={styles.title}>Wealth</Text>
-      <Text style={styles.sub}>Financial awareness — accounts, net worth, cash flow, goals.</Text>
+      <Text style={styles.sub}>Financial awareness — accounts, net worth, cash flow, goals. Source: finance_accounts starting_balance (manual-first, no auto-drift).</Text>
       {loading ? <ActivityIndicator color={colors.accent} style={{marginTop:16}}/> : null}
       {!loading && data && (
         <>
-          <View style={styles.card}><Text style={styles.cardTitle}>Net worth</Text>{data.balance.length===0 ? <Text style={styles.note}>No accounts yet.</Text> : data.balance.map(b=> <Text key={b.currencyCode} style={styles.value}>{formatWealthMinor(b.netWorthMinor, b.currencyCode)} · {b.assetAccountCount} assets {b.liabilityAccountCount} liabilities</Text>)}</View>
-          <View style={styles.card}><Text style={styles.cardTitle}>Cash flow (month)</Text>{!data.cashFlow ? <Text style={styles.note}>No transactions.</Text> : <Text style={styles.value}>{formatWealthMinor(data.cashFlow.netCashFlowMinor, data.cashFlow.currencyCode)} net</Text>}</View>
-          <View style={styles.card}><Text style={styles.cardTitle}>Upcoming (7d)</Text>{data.upcoming7.length===0 ? <Text style={styles.note}>Nothing due in 7 days.</Text> : data.upcoming7.map(u=> <Text key={u.id} style={styles.row}>{u.name} · {formatWealthMinor(u.amount_minor, u.currency_code)} · {u.dueDate}</Text>)}</View>
-          <View style={styles.card}><Text style={styles.cardTitle}>Goals</Text>{data.goals.length===0 ? <Text style={styles.note}>No Wealth goals yet.</Text> : data.goals.map((g:any)=><Text key={g.id} style={styles.row}>{g.title}</Text>)}</View>
-          <Link href="/(tabs)/today" style={styles.link}>Back to Today</Link>
+          <View style={styles.card}><Text style={styles.cardTitle}>Net worth</Text>{data.balance.length===0 ? <Text style={styles.note}>No accounts yet.</Text> : data.balance.map(b=> <Text key={b.currencyCode} style={styles.value}>{formatWealth(b.netWorth, b.currencyCode)} · {b.assetAccountCount} assets {b.liabilityAccountCount} liabilities</Text>)}</View>
+          <View style={styles.card}><Text style={styles.cardTitle}>Cash flow (month)</Text>{!data.cashFlow ? <Text style={styles.note}>No transactions.</Text> : <Text style={styles.value}>{formatWealth(data.cashFlow.netCashFlow, data.cashFlow.currencyCode)} net · income {formatWealth(data.cashFlow.income, data.cashFlow.currencyCode)}</Text>}</View>
+          <View style={styles.card}><Text style={styles.cardTitle}>Upcoming (7d)</Text>{data.upcoming7.length===0 ? <Text style={styles.note}>Nothing due in 7 days.</Text> : data.upcoming7.map(u=> <Text key={u.id} style={styles.row}>{u.name} · {formatWealth(u.amount, u.currency)} · {u.dueDate}</Text>)}</View>
+          <View style={styles.card}><Text style={styles.cardTitle}>Goals</Text>{data.goals.length===0 ? <Text style={styles.note}>No Wealth goals yet.</Text> : data.goals.map((g:any)=><Text key={g.id} style={styles.row}>{g.title} · {g.goal_type ?? g.target_metric ?? ""}</Text>)}</View>
+          <Link href="/realms" style={styles.link}>Back to Realms</Link>
         </>
       )}
       {!loading && !data ? <Text style={styles.note}>Sign in to view Wealth.</Text> : null}
