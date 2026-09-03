@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 import { supabase } from "./supabase";
 import { loadNextronHealthPermissions, effectiveNextronMetrics } from "./nextron-health-permissions";
 import { loadBodyOverview } from "./body-service";

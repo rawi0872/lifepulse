@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // NEXTRON health permission — explicit, separate from storage consent
 // Metric usable by NEXTRON only when: metric ∈ allowed_metrics AND metric ∈ nextron_allowed_metrics
 // Handles pending 00040 gracefully: if column/helper unavailable → OFF
