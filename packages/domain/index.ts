@@ -93,3 +93,4 @@ export type { HealthPrivacyState, HealthScope } from "./health-privacy";
 export type { HealthSourceAdapter, HealthAvailability, HealthPermissionStatus, HealthSyncResult } from "./health-adapter";
 
 export * from "./body";
+export * from "./wealth";
