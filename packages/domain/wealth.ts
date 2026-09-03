@@ -205,6 +205,59 @@ export function formatWealth(amount: number, currency: string): string {
   const sign = amount < 0 ? "-" : "";
   return `${sign}${major} ${currency}`;
 }
+// Locale-aware presentation (commas) without FX
+export function formatWealthGrouped(amount: number, currency: string): string {
+  const sign = amount < 0 ? "-" : "";
+  const abs = Math.abs(amount);
+  const parts = abs.toFixed(2).split(".");
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return `${sign}${parts[0]}.${parts[1]} ${currency}`;
+}
+export function parseWealthAmount(input: string): number | null {
+  const t = input.trim().replace(/,/g, "");
+  if (!t) return null;
+  if (!/^-?\d+(\.\d{1,2})?$/.test(t)) return null;
+  const n = Number(t);
+  if (!Number.isFinite(n)) return null;
+  if (n < 0) return null; // V1 expects positive amounts; liability owed is positive
+  if (n > 999999999) return null;
+  return Math.round(n * 100) / 100;
+}
+export const WEALTH_CURRENCIES: string[] = ["ILS","USD","EUR","GBP"];
+export function isValidWealthCurrency(c: string): boolean { return /^[A-Z]{3}$/.test(c); }
+export const WEALTH_ACCOUNT_TYPE_DISPLAY: Record<WealthAccountType, string> = {
+  cash:"Cash", bank:"Checking / Bank", checking:"Checking / Bank", card:"Card", savings:"Savings",
+  investment:"Investment", credit_card:"Credit card", loan:"Loan", asset:"Other asset", liability:"Other liability", other:"Other",
+};
+export const WEALTH_ACCOUNT_TYPE_OPTIONS: Array<{ value: WealthAccountType; label: string }> = [
+  { value:"checking", label:"Checking / Bank"}, { value:"savings", label:"Savings"}, { value:"cash", label:"Cash"},
+  { value:"investment", label:"Investment"}, { value:"credit_card", label:"Credit card"}, { value:"loan", label:"Loan"},
+  { value:"asset", label:"Other asset"}, { value:"liability", label:"Other liability"}, { value:"other", label:"Other"},
+];
+export const WEALTH_GOAL_TYPE_DISPLAY: Record<string,string> = {
+  savings_target:"Save money", net_worth_target:"Reach net worth", debt_payoff:"Pay off debt",
+  emergency_fund:"Build emergency fund", investment_contribution:"Investment contribution", general:"General financial goal",
+};
+export const WEALTH_GOAL_TARGET_METRIC: Record<string,string> = {
+  savings_target:"savings_balance", net_worth_target:"net_worth", debt_payoff:"debt_balance",
+  emergency_fund:"savings_balance", investment_contribution:"investment_contribution", general:"savings_balance",
+};
+
+export function advanceWealthRecurrence(date: string, freq: WealthFrequency): string {
+  const d = new Date(date + "T12:00:00");
+  if (freq==="weekly") d.setDate(d.getDate()+7);
+  else if (freq==="monthly") d.setMonth(d.getMonth()+1);
+  else if (freq==="quarterly") d.setMonth(d.getMonth()+3);
+  else if (freq==="yearly") d.setFullYear(d.getFullYear()+1);
+  return d.toISOString().slice(0,10);
+}
+
+// Cash-flow period helper
+export function wealthPeriodBounds(period: "month" | "3months"): { start: string; end: string } {
+  const now = new Date(); const end = new Date(now.getFullYear(), now.getMonth()+1, 0).toISOString().slice(0,10);
+  if (period==="month") { const s = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0,10); return { start:s, end }; }
+  const s = new Date(now.getFullYear(), now.getMonth()-2, 1); return { start: s.toISOString().slice(0,10), end };
+}
 // Compat wrappers for previous minor-units API (avoid silent breakage, delegate to numeric)
 export function formatWealthMinor(minor: number, currency: string): string { return formatWealth(minor/100, currency); }
 export function wealthMinorFromMajor(major: number, _currency: string): number { return Math.round(major * 100); }
