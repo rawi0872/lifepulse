@@ -1,5 +1,6 @@
 import { supabase } from "./supabase";
 import { getWealthBalanceSummary, getWealthCashFlowSummary, getUpcomingWealthCommitments, type WealthAccount, type WealthTransaction, type WealthRecurringItem } from "@lifepulse/domain";
+import { getWealthMonthlyHistory, getWealthHistoryPerCurrency, getWealthTrends, getWealthCategorySummaries, getTopCategoryChanges, getWealthBudgetStatuses, getWealthGoalProgress, getWealthBalanceFreshness, getWealthRecurringIntelligence, getWealthDataCoverage, deriveWealthInsights, deriveWealthSignalsV2 } from "@lifepulse/domain";
 
 // ── Realm ──
 export async function ensureWealthRealm(): Promise<{ id: string; name: string } | null> {
@@ -205,6 +206,20 @@ export async function deleteWealthGoal(id:string){
   if(error) throw error;
 }
 
+// ── Budgets ──
+export async function createWealthBudget(input:{ category_id:string; month:string; amount:number }){
+  const { data:{user}} = await supabase.auth.getUser(); if(!user) throw new Error("not authed");
+  // month must be first of month YYYY-MM-01
+  const m = input.month.slice(0,7)+"-01";
+  const { data, error } = await supabase.from("finance_budgets").insert({ user_id:user.id, category_id: input.category_id, month: m, amount: input.amount }).select("id").single();
+  if(error) throw error; return data;
+}
+export async function deleteWealthBudget(id:string){
+  const { data:{user}} = await supabase.auth.getUser(); if(!user) throw new Error("not authed");
+  const { error } = await supabase.from("finance_budgets").delete().eq("id", id).eq("user_id", user.id);
+  if(error) throw error;
+}
+
 // ── Preferences ──
 export async function getWealthPrefs(){
   const { data:{user}} = await supabase.auth.getUser(); if(!user) return null;
@@ -215,4 +230,79 @@ export async function setBaseCurrency(currency:string){
   const { data:{user}} = await supabase.auth.getUser(); if(!user) throw new Error("not authed");
   const { error } = await supabase.from("finance_preferences").upsert({ user_id:user.id, base_currency: currency }, { onConflict:"user_id" });
   if(error) throw error;
+}
+
+// ── Intelligence (deterministic, bounded) ──
+export async function loadWealthIntelligence(){
+  const { data:{user}} = await supabase.auth.getUser(); if(!user) return null;
+  const realm = await ensureWealthRealm(); if(!realm) return null;
+  const now = new Date(); const y=now.getFullYear(), mm=now.getMonth()+1;
+  const monthStart = `${y}-${String(mm).padStart(2,'0')}-01`;
+  const monthEnd = `${y}-${String(mm).padStart(2,'0')}-${String(new Date(y, mm, 0).getDate()).padStart(2,'0')}`;
+  // 12-month window inclusive
+  const start12 = new Date(y, mm-12, 1); const s12y=start12.getFullYear(), s12m=start12.getMonth()+1;
+  const start12Str = `${s12y}-${String(s12m).padStart(2,'0')}-01`;
+  const [accountsRes, tx12Res, catRes, budgetsRes, recurRes, goalsRes, prefsRes, habitsRes, tasksRes] = await Promise.all([
+    supabase.from("finance_accounts").select("id, name, type, currency, starting_balance, is_archived, updated_at").eq("user_id", user.id).order("created_at"),
+    supabase.from("finance_transactions").select("id, amount, type, transaction_date, currency:finance_accounts(currency), category_id, account_id, finance_accounts!inner(currency)").eq("user_id", user.id).gte("transaction_date", start12Str).lte("transaction_date", monthEnd).order("transaction_date",{ascending:true}),
+    // fallback simple query for broad 12m if join inner fails: use non-inner
+    supabase.from("finance_categories").select("id, name, type").eq("user_id", user.id),
+    supabase.from("finance_budgets").select("id, category_id, month, amount").eq("user_id", user.id).order("month",{ascending:false}).limit(20),
+    supabase.from("finance_recurring_items").select("id, name, kind, amount, currency, frequency, next_due_date, is_active").eq("user_id", user.id).order("next_due_date"),
+    supabase.from("goals").select("id, title, goal_type, target_value, baseline_value, target_metric").eq("user_id", user.id).eq("realm_id", realm.id),
+    supabase.from("finance_preferences").select("base_currency").eq("user_id", user.id).maybeSingle(),
+    supabase.from("habits").select("id, title").eq("user_id", user.id).limit(20),
+    supabase.from("tasks").select("id, title, status, due_date").eq("user_id", user.id).eq("status","todo").limit(20),
+  ]);
+  // Fallback for tx12 if inner join excluded null-account rows: query without inner
+  let txs: WealthTransaction[] = [];
+  const rawTx = (tx12Res.data as any[]) ?? [];
+  if(rawTx.length===0){
+    const { data: alt } = await supabase.from("finance_transactions").select("id, amount, type, transaction_date, category_id, account_id, finance_accounts(currency)").eq("user_id", user.id).gte("transaction_date", start12Str).lte("transaction_date", monthEnd);
+    txs = (alt ?? []).map((r:any)=>({ id:r.id, user_id:user.id, account_id:r.account_id, category_id:r.category_id, amount:Number(r.amount), type:r.type, title:"", transaction_date:r.transaction_date, currency: r.finance_accounts?.currency ?? null })) as any;
+  } else {
+    txs = rawTx.map((r:any)=>({ id:r.id, user_id:user.id, account_id:r.account_id, category_id:r.category_id, amount:Number(r.amount), type:r.type, title:"", transaction_date:r.transaction_date, currency: r.finance_accounts?.currency ?? r.currency ?? null })) as any;
+    // also fetch any missing null-currency rows separately to count unknown
+    const { data: extra } = await supabase.from("finance_transactions").select("id, amount, type, transaction_date, category_id, account_id, finance_accounts(currency)").eq("user_id", user.id).gte("transaction_date", start12Str).lte("transaction_date", monthEnd).is("account_id", null);
+    if(extra && extra.length){
+      for(const r of extra as any[]){ if(!txs.find(t=>t.id===r.id)) txs.push({ id:r.id, user_id:user.id, account_id:null, category_id:r.category_id, amount:Number(r.amount), type:r.type, title:"", transaction_date:r.transaction_date, currency: null } as any); }
+    }
+  }
+  const accounts = (accountsRes.data ?? []).map((r:any)=>({ id:r.id, user_id:user.id, name:r.name, type:r.type, currency:r.currency, starting_balance:Number(r.starting_balance), is_archived: !!r.is_archived, source_type:"manual" as const, updated_at: r.updated_at })) as Array<WealthAccount & {updated_at?:string}>;
+  const currencies = Array.from(new Set(accounts.filter(a=>!a.is_archived).map(a=>a.currency)));
+  const baseCurrency = (prefsRes.data as any)?.base_currency ?? currencies[0] ?? "ILS";
+  const todayStr = now.toISOString().slice(0,10);
+  // histories per currency
+  const historyPerCurrency = getWealthHistoryPerCurrency(txs, 12, currencies, todayStr);
+  const history3PerCurrency: Record<string, any> = {};
+  for(const cur of currencies) history3PerCurrency[cur]=getWealthHistoryPerCurrency(txs, 3, [cur], todayStr)[cur];
+  const trends = currencies.map(cur=> getWealthTrends(historyPerCurrency[cur] ?? [])).filter(Boolean) as any[];
+  // category summaries for current month and previous
+  const catSummaries: Record<string, any> = {};
+  const catPrev: Record<string, any> = {};
+  for(const cur of currencies){
+    catSummaries[cur]=getWealthCategorySummaries(txs, (catRes.data as any[]) ?? [], cur, { start: monthStart, end: monthEnd });
+    const prevStartObj = new Date(y, mm-2, 1); const py=prevStartObj.getFullYear(), pm=prevStartObj.getMonth()+1;
+    const prevStart = `${py}-${String(pm).padStart(2,'0')}-01`; const prevEnd = `${py}-${String(pm).padStart(2,'0')}-${String(new Date(py, pm, 0).getDate()).padStart(2,'0')}`;
+    catPrev[cur]=getWealthCategorySummaries(txs, (catRes.data as any[]) ?? [], cur, { start: prevStart, end: prevEnd });
+  }
+  const categoryChanges: Record<string, any> = {};
+  for(const cur of currencies) categoryChanges[cur]=getTopCategoryChanges(catSummaries[cur] ?? [], catPrev[cur] ?? []);
+  // budgets
+  const budgets = (budgetsRes.data as any[]) ?? [];
+  // filter budgets to current month for status? show all but compare to current month actual for same month string
+  const budgetStatuses = getWealthBudgetStatuses(budgets.filter(b=> b.month.slice(0,7)===monthStart.slice(0,7)), (catRes.data as any[]) ?? [], catSummaries[baseCurrency] ?? [], baseCurrency);
+  // goals
+  const goalProgress = getWealthGoalProgress((goalsRes.data as any[]) ?? [], accounts as WealthAccount[]);
+  // freshness
+  const freshness = getWealthBalanceFreshness(accounts as any, todayStr, 30);
+  // recurring
+  const recurringIntel = getWealthRecurringIntelligence((recurRes.data as any[]) ?? [], todayStr);
+  // coverage
+  const coverage = getWealthDataCoverage({ accounts: accounts as WealthAccount[], transactions: txs, budgets, goals: goalsRes.data ?? [], recurring: (recurRes.data as any[]) ?? [], freshness });
+  // insights
+  const insights = deriveWealthInsights({ trends, categoryChanges: Object.values(categoryChanges).flat() as any, budgets: budgetStatuses, goals: goalProgress, recurring: recurringIntel, freshness, coverage });
+  // signals (strong only for Prompt 4 boundary — analytical not Today yet)
+  const signals = deriveWealthSignalsV2({ billsDue: recurringIntel.due7.filter(r=>r.kind==="bill"), subsDue: recurringIntel.due7.filter(r=>r.kind==="subscription"), tasksDue: (tasksRes.data as any[])?.slice(0,1) ?? [], habitsDue: (habitsRes.data as any[])?.slice(0,1) ?? [], goalsDue: goalProgress.filter(g=>g.status==="behind"), insights });
+  return { currencies, baseCurrency, monthStart, monthEnd, historyPerCurrency, trends, catSummaries, categoryChanges, budgetStatuses, goalProgress, freshness, recurringIntel, coverage, insights, signals, rawCounts: { tx12: txs.length } };
 }

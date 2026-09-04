@@ -5,8 +5,9 @@ import { colors, spacing, radii, type } from "../lib/theme";
 import { WealthIcon } from "../src/icons/WealthIcon";
 import { Plus } from "../src/icons/Plus";
 import { Close } from "../src/icons/Close";
-import { loadWealthOverview, createWealthAccount, updateWealthAccount, archiveWealthAccount, createWealthTransaction, createPairedTransfer, updateWealthTransaction, deleteWealthTransaction, createWealthCategory, createWealthRecurring, updateWealthRecurring, setRecurringActive, advanceWealthRecurring, createWealthGoal, deleteWealthGoal, setBaseCurrency } from "../lib/wealth-service";
+import { loadWealthOverview, loadWealthIntelligence, createWealthAccount, updateWealthAccount, archiveWealthAccount, createWealthTransaction, createPairedTransfer, updateWealthTransaction, deleteWealthTransaction, createWealthCategory, createWealthRecurring, updateWealthRecurring, setRecurringActive, advanceWealthRecurring, createWealthGoal, deleteWealthGoal, setBaseCurrency, createWealthBudget, deleteWealthBudget } from "../lib/wealth-service";
 import { formatWealth, formatWealthGrouped, parseWealthAmount, WEALTH_CURRENCIES, WEALTH_ACCOUNT_TYPE_OPTIONS, WEALTH_ACCOUNT_TYPE_DISPLAY, WEALTH_GOAL_TYPE_DISPLAY, WEALTH_GOAL_TARGET_METRIC, wealthPeriodBounds } from "@lifepulse/domain";
+import { Svg, Rect } from "react-native-svg";
 
 type Period = "month" | "3months";
 const GOAL_OPTIONS: Array<{ value: string; label: string }> = [
@@ -20,9 +21,11 @@ const GOAL_OPTIONS: Array<{ value: string; label: string }> = [
 
 export default function WealthScreen() {
   const [data, setData] = useState<Awaited<ReturnType<typeof loadWealthOverview>> | null>(null);
+  const [intel, setIntel] = useState<Awaited<ReturnType<typeof loadWealthIntelligence>> | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [period, setPeriod] = useState<Period>("month");
+  const [histMonths, setHistMonths] = useState<3|6|12>(3);
   const [err, setErr] = useState<string | null>(null);
 
   // modals
@@ -33,9 +36,10 @@ export default function WealthScreen() {
   const [showTransfer, setShowTransfer] = useState(false); const [trFrom, setTrFrom] = useState<string>(""); const [trTo, setTrTo] = useState<string>(""); const [trAmt, setTrAmt] = useState(""); const [trDate, setTrDate] = useState(new Date().toISOString().slice(0,10));
   const [showRec, setShowRec] = useState(false); const [recName, setRecName] = useState(""); const [recKind, setRecKind] = useState("bill"); const [recAmt, setRecAmt] = useState(""); const [recCurr, setRecCurr] = useState("ILS"); const [recFreq, setRecFreq] = useState("monthly"); const [recDue, setRecDue] = useState(new Date(Date.now()+86400000*7).toISOString().slice(0,10)); const [editRecId, setEditRecId] = useState<string | null>(null);
   const [showGoal, setShowGoal] = useState(false); const [goalTitle, setGoalTitle] = useState(""); const [goalType, setGoalType] = useState("savings_target"); const [goalValue, setGoalValue] = useState(""); const [goalDate, setGoalDate] = useState("");
+  const [showBudget, setShowBudget] = useState(false); const [budgetCat, setBudgetCat] = useState<string | null>(null); const [budgetAmt, setBudgetAmt] = useState(""); const [budgetMonth, setBudgetMonth] = useState(new Date().toISOString().slice(0,7)+"-01");
 
   const load = useCallback(async () => {
-    try { setErr(null); const d = await loadWealthOverview(); setData(d); } catch (e:any){ setErr(e.message ?? "Failed to load"); } finally { setLoading(false); setRefreshing(false); }
+    try { setErr(null); const [d, i] = await Promise.all([loadWealthOverview(), loadWealthIntelligence().catch(()=>null)]); setData(d); setIntel(i as any); } catch (e:any){ setErr(e.message ?? "Failed to load"); } finally { setLoading(false); setRefreshing(false); }
   }, []);
   useEffect(()=>{ void load(); },[load]);
   const onRefresh = useCallback(()=>{ setRefreshing(true); void load(); },[load]);
@@ -202,6 +206,118 @@ export default function WealthScreen() {
         {hasUnknown ? <Text style={s.noteSmall}>Some legacy transactions have no account currency — marked as partial/unknown rather than assumed ILS.</Text> : null}
       </View>
 
+      {/* Financial Rhythm — deterministic history */}
+      {intel ? (
+        <View style={s.card}>
+          <Text style={s.cardLabel}>FINANCIAL RHYTHM</Text>
+          <View style={s.periodRow}>
+            {([3,6,12] as const).map(m=> (
+              <TouchableOpacity key={m} style={[s.periodBtn, histMonths===m && s.periodActive]} onPress={()=>setHistMonths(m)}><Text style={[s.periodText, histMonths===m && s.periodActiveText]}>{m}M</Text></TouchableOpacity>
+            ))}
+          </View>
+          {intel.currencies.length===0 ? <Text style={s.note}>No accounts — history not available.</Text> : intel.currencies.map((cur:string)=>{
+            const hist = (intel.historyPerCurrency as any)[cur] as any[]; const slice = hist ? hist.slice(-histMonths) : [];
+            const max = Math.max(1, ...slice.map(h=> Math.max(h.income, h.expenses)));
+            const hasAny = slice.some(h=>h.hasData);
+            if(!hasAny) return <View key={cur} style={s.cashRow}><Text style={s.cashCurr}>{cur}</Text><Text style={s.note}>Not enough recorded history yet.</Text></View>;
+            return (
+              <View key={cur} style={s.cashRow}>
+                <Text style={s.cashCurr}>{cur} · {histMonths} months</Text>
+                <View style={{flexDirection:"row", alignItems:"flex-end", gap:6, height:44, marginTop:8}}>
+                  {slice.map((h:any)=>(
+                    <View key={h.month} style={{flex:1, alignItems:"center", gap:2}}>
+                      <View style={{flexDirection:"row", gap:2, alignItems:"flex-end", height:32}}>
+                        <View style={{width:8, height: (h.income/max)*28+2, backgroundColor: colors.accentSoft, borderWidth:1, borderColor: colors.accentBorder, borderRadius:3}} />
+                        <View style={{width:8, height: (h.expenses/max)*28+2, backgroundColor: "rgba(239,68,68,0.16)", borderWidth:1, borderColor:"rgba(239,68,68,0.22)", borderRadius:3}} />
+                      </View>
+                      <Text style={{fontSize:9, color: h.isPartial? colors.warning : colors.textFaint}}>{h.month.slice(5)}</Text>
+                    </View>
+                  ))}
+                </View>
+                <Text style={s.noteSmall}>Recorded income (blue) vs expenses (muted red). Current month is partial.</Text>
+                {intel.trends.find((t:any)=>t.currency===cur && t.isSufficient) ? (
+                  <Text style={s.noteSmall}>
+                    {(() => { const tr=intel.trends.find((t:any)=>t.currency===cur); return `Previous: income ${formatWealthGrouped(tr.previous.income, cur)} expenses ${formatWealthGrouped(tr.previous.expenses, cur)} · Net change ${formatWealthGrouped(tr.netChange, cur)}${tr.expenseChangePct!=null?` · Expenses ${Math.round(tr.expenseChangePct*100)}%`:``} · ${tr.coverage}`; })()}
+                  </Text>
+                ) : <Text style={s.noteSmall}>Not enough transaction history for a 3-month comparison. Based on recorded transactions.</Text>}
+              </View>
+            );
+          })}
+        </View>
+      ) : null}
+
+      {/* Budgets — currency explicit, baseCurrency only */}
+      {intel ? (
+        <View style={s.card}>
+          <View style={s.sectionHead}><Text style={s.cardLabel}>BUDGETS · {intel.budgetStatuses.length} · {intel.baseCurrency}</Text><TouchableOpacity style={s.addBtn} onPress={()=>{ setBudgetCat(data?.categories[0]?.id ?? null); setBudgetAmt(""); setBudgetMonth(new Date().toISOString().slice(0,7)+"-01"); setShowBudget(true); }}><Text style={s.addBtnText}>+ Add</Text></TouchableOpacity></View>
+          <Text style={s.noteSmall}>Budgets compared in base currency only — schema has no budget currency. Multi-currency budgets need currency column.</Text>
+          {intel.budgetStatuses.length===0 ? <Text style={s.note}>No budgets for this month.</Text> : intel.budgetStatuses.map((b:any)=>(
+            <View key={b.budgetId} style={s.row}>
+              <View style={{flex:1}}><Text style={s.rowTitle}>{b.categoryName}</Text><Text style={s.rowMeta}>Budget {formatWealthGrouped(b.budget,b.currency)} · Recorded {formatWealthGrouped(b.actual,b.currency)} · Remaining {formatWealthGrouped(b.remaining,b.currency)} · {Math.round(b.percentUsed*100)}% {b.status}</Text></View>
+              <TouchableOpacity onPress={async()=>{ try{ await deleteWealthBudget(b.budgetId); void load(); }catch(e:any){ Alert.alert("Error",e.message);} }}><Text style={s.dangerText}>Delete</Text></TouchableOpacity>
+            </View>
+          ))}
+        </View>
+      ) : null}
+
+      {/* Goal Progress — deterministic */}
+      {intel ? (
+        <View style={s.card}>
+          <Text style={s.cardLabel}>GOAL PROGRESS</Text>
+          {intel.goalProgress.length===0 ? <Text style={s.note}>No Wealth goals yet. Progress appears after you set a target.</Text> : intel.goalProgress.map((g:any)=>(
+            <View key={g.goalId} style={s.row}>
+              <View style={{flex:1}}>
+                <Text style={s.rowTitle}>{g.title} · {g.type}</Text>
+                <Text style={s.rowMeta}>
+                  {g.target!=null?`Target ${formatWealthGrouped(g.target, intel.baseCurrency)}`:"No target"} {g.current!=null?`· Current ${formatWealthGrouped(g.current, intel.baseCurrency)}`:"· Insufficient tracked data"}
+                  {g.progressPct!=null?` · ${Math.round(g.progressPct*100)}%`:""} · {g.status} {g.direction==="down"?"(lower is toward target)":""}
+                </Text>
+                {g.progressPct!=null ? <View style={{height:6, backgroundColor: colors.surfaceElevated, borderRadius:3, marginTop:6, overflow:"hidden"}}><View style={{width: `${Math.min(100, Math.round(g.progressPct*100))}%`, height:6, backgroundColor: g.status==="achieved"? colors.success : colors.accent}} /></View> : null}
+              </View>
+            </View>
+          ))}
+          <Text style={s.noteSmall}>Progress from tracked account balances — not from transaction sums, no fake history.</Text>
+        </View>
+      ) : null}
+
+      {/* Insights — bounded 3-5, descriptive */}
+      {intel && intel.insights.length>0 ? (
+        <View style={s.card}>
+          <Text style={s.cardLabel}>INSIGHTS · {intel.insights.length}</Text>
+          {intel.insights.map((ins:any, i:number)=>(
+            <View key={i} style={[s.row, {borderBottomWidth: i===intel.insights.length-1?0:1}]}>
+              <View style={{flex:1}}><Text style={s.rowTitle}>{ins.title}</Text><Text style={s.rowMeta}>{ins.rationale}{ins.currency?` · ${ins.currency}`:""}</Text></View>
+            </View>
+          ))}
+          <Text style={s.noteSmall}>Descriptive, not advisory. Max 5.</Text>
+        </View>
+      ) : null}
+
+      {/* Recurring intelligence + Data coverage + Net-worth history note */}
+      {intel ? (
+        <>
+          <View style={s.card}>
+            <Text style={s.cardLabel}>RECURRING OBLIGATIONS</Text>
+            <Text style={s.rowMeta}>Due 7d {intel.recurringIntel.due7.length} · Due 30d {intel.recurringIntel.due30.length} · Scheduled date has passed {intel.recurringIntel.overdue.length}</Text>
+            {intel.recurringIntel.overdue.length>0 ? intel.recurringIntel.overdue.slice(0,3).map((r:any)=><Text key={r.id} style={s.rowMeta}>{r.name} · {r.currency} {formatWealthGrouped(r.amount,r.currency)} · scheduled {r.next_due_date} (has passed)</Text>) : null}
+            {Object.keys(intel.recurringIntel.outflowByCurrency).length>0 ? <Text style={s.noteSmall}>Upcoming committed outflow: {Object.entries(intel.recurringIntel.outflowByCurrency).map(([c,v])=> `${formatWealthGrouped(v as number, c)}`).join(", ")} per currency — income separate.</Text> : null}
+            <Text style={s.noteSmall}>Recurring savings/investment not labeled as expense. No adherence history — next_due_date only.</Text>
+          </View>
+
+          <View style={s.card}>
+            <Text style={s.cardLabel}>DATA COVERAGE</Text>
+            <Text style={s.rowMeta}>Accounts tracked {intel.coverage.accountsTracked} · Transactions recorded {intel.coverage.transactionsRecorded} · History months {intel.coverage.historyMonths} · Budgets {intel.coverage.budgetsConfigured} · Goals {intel.coverage.goalsConfigured} · Recurring {intel.coverage.recurringConfigured}</Text>
+            <Text style={s.rowMeta}>Balances fresh {intel.coverage.balancesFresh} · stale {intel.coverage.balancesStale} (30d threshold) · Unknown currency {intel.coverage.unknownCurrency}</Text>
+            <Text style={s.noteSmall}>{intel.coverage.note}</Text>
+          </View>
+
+          <View style={s.card}>
+            <Text style={s.cardLabel}>NET WORTH HISTORY</Text>
+            <Text style={s.note}>Historical balance trend will appear as you update balances over time. Current: tracked assets/liabilities per currency shown above. No fake net-worth trend.</Text>
+          </View>
+        </>
+      ) : null}
+
       {/* Recent activity */}
       <View style={s.card}>
         <View style={s.sectionHead}>
@@ -353,6 +469,18 @@ export default function WealthScreen() {
           <Text style={s.inputLabel}>Target amount (optional)</Text><TextInput style={s.input} value={goalValue} onChangeText={setGoalValue} keyboardType="decimal-pad" placeholder="20000" placeholderTextColor={colors.textFaint} />
           <Text style={s.inputLabel}>Target date (YYYY-MM-DD, optional)</Text><TextInput style={s.input} value={goalDate} onChangeText={setGoalDate} placeholder="2027-12-31" placeholderTextColor={colors.textFaint} />
           <TouchableOpacity style={s.primaryBtn} onPress={saveGoal}><Text style={s.primaryText}>Create goal</Text></TouchableOpacity>
+        </View></View>
+      </Modal>
+
+      <Modal visible={showBudget} transparent animationType="slide" onRequestClose={()=>setShowBudget(false)}>
+        <View style={s.modalBg}><View style={s.modal}>
+          <View style={s.modalHead}><Text style={s.modalTitle}>Add budget</Text><TouchableOpacity onPress={()=>setShowBudget(false)}><Close size={18} color={colors.textMuted} /></TouchableOpacity></View>
+          <Text style={s.inputLabel}>Category (expense)</Text>
+          <View style={s.chipRow}>{(data?.categories.filter((c:any)=>c.type==="expense").slice(0,8) ?? []).map((c:any)=>(<TouchableOpacity key={c.id} style={[s.chip, budgetCat===c.id && s.chipActive]} onPress={()=>setBudgetCat(c.id)}><Text style={[s.chipText, budgetCat===c.id && s.chipTextActive]}>{c.name}</Text></TouchableOpacity>))}</View>
+          <Text style={s.inputLabel}>Amount ({intel?.baseCurrency ?? baseCurrency})</Text><TextInput style={s.input} value={budgetAmt} onChangeText={setBudgetAmt} keyboardType="decimal-pad" placeholder="500.00" placeholderTextColor={colors.textFaint} />
+          <Text style={s.inputLabel}>Month (YYYY-MM-01)</Text><TextInput style={s.input} value={budgetMonth} onChangeText={setBudgetMonth} placeholder="2026-09-01" placeholderTextColor={colors.textFaint} />
+          <Text style={s.noteSmall}>Budget compared in base currency only.</Text>
+          <TouchableOpacity style={s.primaryBtn} onPress={async()=>{ const amt=parseWealthAmount(budgetAmt); if(!budgetCat){ Alert.alert("Category required"); return;} if(amt===null){ Alert.alert("Valid amount"); return;} try{ await createWealthBudget({ category_id: budgetCat, month: budgetMonth, amount: amt}); setShowBudget(false); void load(); }catch(e:any){ Alert.alert("Error",e.message);} }}><Text style={s.primaryText}>Save budget</Text></TouchableOpacity>
         </View></View>
       </Modal>
 

@@ -94,3 +94,4 @@ export type { HealthSourceAdapter, HealthAvailability, HealthPermissionStatus, H
 
 export * from "./body";
 export * from "./wealth";
+export * from "./wealth-intelligence";
