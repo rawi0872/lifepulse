@@ -165,12 +165,14 @@ function isForbiddenText(value: string): boolean {
 }
 
 function collectNumericEvidence(input: NextronProviderInput): Set<string> {
-  const numbers = JSON.stringify(input).match(/-?\d+(?:\.\d+)?/g) ?? [];
+  const text = JSON.stringify(input).replace(/,/g, "");
+  const numbers = text.match(/-?\d+(?:\.\d+)?/g) ?? [];
   return new Set([...numbers, "1"]);
 }
 
 function hasUnsupportedNumber(value: string, allowedNumbers: Set<string>): boolean {
-  const numbers = value.match(/-?\d+(?:\.\d+)?/g) ?? [];
+  const text = value.replace(/,/g, "");
+  const numbers = text.match(/-?\d+(?:\.\d+)?/g) ?? [];
   return numbers.some((number) => !allowedNumbers.has(number));
 }
 
@@ -206,9 +208,18 @@ function validateNextronProviderOutputDetailed(value: unknown, input: NextronPro
   if (facts.length !== parsed.facts.length || !interpretation || !label || !rationale) return { ok: false, reason: "STRUCTURE_INVALID" };
   if (!ALLOWED_ROUTE_SET.has(parsed.nextAction.route)) return { ok: false, reason: "ROUTE_INVALID" };
   for (const fact of facts) {
-    if (!EVIDENCE_CATEGORIES.includes(fact.category) || !availableCategories.has(fact.category)) return { ok: false, reason: "EVIDENCE_CATEGORY_INVALID" };
-    if (isForbiddenText(fact.text)) return { ok: false, reason: "FORBIDDEN_CONTENT" };
-    if (hasUnsupportedNumber(fact.text, allowedNumbers)) return { ok: false, reason: "NUMERIC_FACT_INVALID" };
+    if (!EVIDENCE_CATEGORIES.includes(fact.category) || !availableCategories.has(fact.category)) {
+      console.log("EVIDENCE_CATEGORY_INVALID", JSON.stringify({ fact: fact.text, category: fact.category, available: Array.from(availableCategories).slice(0,10) }));
+      return { ok: false, reason: "EVIDENCE_CATEGORY_INVALID" };
+    }
+    if (isForbiddenText(fact.text)) {
+      console.log("FORBIDDEN_CONTENT", JSON.stringify({ fact: fact.text, len: fact.text.length }));
+      return { ok: false, reason: "FORBIDDEN_CONTENT" };
+    }
+    if (hasUnsupportedNumber(fact.text, allowedNumbers)) {
+      console.log("NUMERIC_FACT_INVALID", JSON.stringify({ fact: fact.text, allowed: Array.from(allowedNumbers).slice(0,30) }));
+      return { ok: false, reason: "NUMERIC_FACT_INVALID" };
+    }
   }
   if ([interpretation, label, rationale].some((text) => isForbiddenText(text))) return { ok: false, reason: "FORBIDDEN_CONTENT" };
   return {

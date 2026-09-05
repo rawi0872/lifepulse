@@ -157,7 +157,7 @@ export async function buildWealthNextronEvidence(
   if (effectiveSections.includes("wealth_goals")) {
     const prog = Intel.getWealthGoalProgress((goalsRes.data as any[]) ?? [], accounts as any);
     evidence.goals = prog.slice(0, 5).map((g) => ({
-      type: g.type, target: g.target, current: g.current, remaining: g.remaining, currency: g.currency, status: g.status, targetDate: (goalsRes.data as any[])?.find((x: any) => x.id === g.goalId)?.target_date ?? null, sourceDescription: g.sourceDescription,
+      type: g.type, target: g.target, current: g.current, remaining: g.remaining, currency: g.currency, status: g.status, targetDate: (goalsRes.data as any[])?.find((x: any) => x.id === g.goalId)?.target_date ?? null, sourceDescription: g.sourceDescription, progressPct: g.progressPct, progressPercent: g.progressPct != null ? Math.round(g.progressPct*100) : null,
     }));
   }
 
