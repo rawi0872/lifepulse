@@ -178,44 +178,68 @@ export function getWealthBudgetStatuses(budgets: Array<{id:string; category_id:s
 }
 
 // ── Goal progress ──
-export interface WealthGoalProgress { goalId:string; title:string; type:string; target:number|null; current:number|null; baseline:number|null; remaining:number|null; progressPct:number|null; status:"achieved"|"in_progress"|"behind"|"insufficient"; direction:"up"|"down"; }
-export function getWealthGoalProgress(goals: Array<{id:string;title:string;goal_type:string;target_value:number|null;baseline_value:number|null;target_metric:string|null}>, accounts: WealthAccount[]): WealthGoalProgress[] {
+// Truthful V1 semantics:
+// - savings_target / emergency_fund: ONLY `savings` accounts in target currency
+// - net_worth_target: assets - liabilities per target currency
+// - debt_payoff: total liabilities per target currency (credit_card/loan/liability)
+// - investment_contribution: always insufficient (no deterministic contribution history)
+export interface WealthGoalProgress { goalId:string; title:string; type:string; target:number|null; current:number|null; baseline:number|null; remaining:number|null; progressPct:number|null; status:"achieved"|"in_progress"|"behind"|"insufficient"; direction:"up"|"down"; currency:string|null; sourceDescription:string; }
+function isValidCurrencyCode(c:string|null|undefined): boolean { return !!c && /^[A-Z]{3}$/.test(c); }
+function goalCurrency(goal: {target_unit?:string|null}): string|null {
+  const u = (goal as any).target_unit as string|null;
+  return isValidCurrencyCode(u) ? u! : null;
+}
+export function getWealthGoalProgress(goals: Array<{id:string;title:string;goal_type:string;target_value:number|null;baseline_value:number|null;target_metric:string|null;target_unit?:string|null}>, accounts: WealthAccount[]): WealthGoalProgress[] {
   const bal = getWealthBalanceSummary(accounts);
-  // helpers to get current per target currency (use first currency or ILS)
-  const firstCur = bal[0]?.currencyCode ?? "ILS";
-  function currentFor(goal:any): number|null {
-    const cur = firstCur;
+  function currentFor(goal:any, cur:string): number|null {
     const s = bal.find(b=>b.currencyCode===cur);
     if(goal.goal_type==="savings_target" || goal.goal_type==="emergency_fund"){
-      // sum savings accounts in target currency
-      const sum = accounts.filter(a=>!a.is_archived && a.currency===cur && (a.type==="savings"||a.type==="cash"||a.type==="checking"||a.type==="bank")).reduce((acc,a)=>acc+a.starting_balance,0);
+      // V1 conservative: ONLY savings accounts
+      const hasSavingsInCur = accounts.some(a=>!a.is_archived && a.currency===cur && a.type==="savings");
+      if(!hasSavingsInCur) return null;
+      const sum = accounts.filter(a=>!a.is_archived && a.currency===cur && a.type==="savings").reduce((acc,a)=>acc+a.starting_balance,0);
       return sum;
     }
     if(goal.goal_type==="net_worth_target"){
       return s ? s.netWorth : null;
     }
     if(goal.goal_type==="debt_payoff"){
-      // total liabilities in cur
       return s ? s.liabilities : null;
     }
     if(goal.goal_type==="investment_contribution"){
-      const sumInv = accounts.filter(a=>!a.is_archived && a.currency===cur && a.type==="investment").reduce((acc,a)=>acc+a.starting_balance,0);
-      return sumInv;
+      // CRITICAL: do not use investment account balance (market gains). No deterministic contribution history in V1.
+      return null;
     }
     return null;
   }
   return goals.map(g=>{
-    const cur = currentFor(g);
+    const curCurrency = goalCurrency(g);
     const target = g.target_value!=null? Number(g.target_value): null;
     const baseline = g.baseline_value!=null? Number(g.baseline_value): null;
     const isDebt = g.goal_type==="debt_payoff";
     const direction: "up"|"down" = isDebt ? "down" : "up";
-    if(cur===null || target===null) return { goalId:g.id, title:g.title, type:g.goal_type, target, current:cur, baseline, remaining: target!=null && cur!=null ? (isDebt? cur - target : target - cur) : null, progressPct: null, status:"insufficient" as const, direction };
+    if(!curCurrency){
+      return { goalId:g.id, title:g.title, type:g.goal_type, target, current:null, baseline, remaining:null, progressPct: null, status:"insufficient" as const, direction, currency:null, sourceDescription:"No target currency set" };
+    }
+    const cur = currentFor(g, curCurrency);
+    if(cur===null){
+      const source = g.goal_type==="investment_contribution"
+        ? "Life Pulse does not yet have enough contribution history to calculate this progress."
+        : g.goal_type==="savings_target" || g.goal_type==="emergency_fund"
+          ? "Based on tracked savings balances — no savings account in target currency"
+          : g.goal_type==="net_worth_target" ? "Based on tracked accounts — no accounts in target currency"
+          : g.goal_type==="debt_payoff" ? "Based on tracked liabilities — no liabilities in target currency"
+          : "Insufficient data";
+      return { goalId:g.id, title:g.title, type:g.goal_type, target, current:cur, baseline, remaining:null, progressPct: null, status:"insufficient" as const, direction, currency:curCurrency, sourceDescription: source };
+    }
+    if(target===null){
+      return { goalId:g.id, title:g.title, type:g.goal_type, target, current:cur, baseline, remaining:null, progressPct: null, status:"insufficient" as const, direction, currency:curCurrency, sourceDescription:"No target amount set" };
+    }
     let pct: number|null=null;
     if(isDebt){
-      // debt: progress = (baseline - current)/(baseline - target) or if no baseline, (target? ) simpler: if baseline exists else 1 - cur/target
+      // Requires baseline for truthful debt progress (direction baseline → cur → target)
       if(baseline!=null && baseline!==target) pct = (baseline - cur)/(baseline - target);
-      else if(target>0) pct = Math.max(0, 1 - cur/target);
+      else pct = null; // insufficient without baseline — do not guess
     } else {
       if(baseline!=null && target!==baseline) pct = (cur - baseline)/(target - baseline);
       else if(target>0) pct = cur/target;
@@ -226,7 +250,11 @@ export function getWealthGoalProgress(goals: Array<{id:string;title:string;goal_
     else if(pct!=null && pct<0.5 && g.target_value!=null) status="behind";
     else if(pct===null) status="insufficient";
     const remaining = isDebt? (cur - target) : (target - cur);
-    return { goalId:g.id, title:g.title, type:g.goal_type, target, current:cur, baseline, remaining, progressPct: pct, status, direction };
+    const sourceDescription = g.goal_type==="savings_target" || g.goal_type==="emergency_fund" ? "Based on tracked savings balances"
+      : g.goal_type==="net_worth_target" ? "Based on tracked accounts"
+      : g.goal_type==="debt_payoff" ? "Based on tracked liabilities"
+      : g.goal_type==="investment_contribution" ? "Based on contribution history" : "Based on tracked data";
+    return { goalId:g.id, title:g.title, type:g.goal_type, target, current:cur, baseline, remaining, progressPct: pct, status, direction, currency:curCurrency, sourceDescription };
   });
 }
 

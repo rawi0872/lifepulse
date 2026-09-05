@@ -213,26 +213,55 @@ const sepTx = [
 ] as WealthTransaction[];
 const trMis = getComparableTrend(sepTx, "ILS", "2026-09-04");
 ok(trMis.current.expenses===100 && trMis.previous && trMis.previous.expenses===80 && (trMis.expenseChangePct as number) > 0,"O MTD comparable not polluted by Aug 5-31");
-// 16 savings goal
+// 16 savings goal (truthful: only savings counts, checking excluded)
 const accForGoal: WealthAccount[] = [
-  {id:"a1",user_id:"u",realm_id:null,name:"Savings",type:"savings",starting_balance:600,currency:"ILS",is_archived:false,source_type:"manual"},
+  {id:"a1",user_id:"u",realm_id:null,name:"Savings",type:"savings",starting_balance:1000,currency:"ILS",is_archived:false,source_type:"manual"},
   {id:"a2",user_id:"u",realm_id:null,name:"Checking",type:"checking",starting_balance:400,currency:"ILS",is_archived:false,source_type:"manual"},
 ];
-const progSave = getWealthGoalProgress([{id:"g1",title:"Save",goal_type:"savings_target",target_value:1000,baseline_value:0,target_metric:"savings_balance"} as any], accForGoal);
-ok(progSave[0].progressPct !== null && Math.abs(progSave[0].progressPct! -1) <0.01 && progSave[0].status==="achieved","16 savings progress");
-// 17 net worth
-const progNet = getWealthGoalProgress([{id:"g2",title:"Net",goal_type:"net_worth_target",target_value:500,baseline_value:0,target_metric:"net_worth"} as any], accForGoal);
-ok(progNet[0].current===1000,"17 net worth cur");
+const progSave = getWealthGoalProgress([{id:"g1",title:"Save",goal_type:"savings_target",target_value:1000,baseline_value:0,target_metric:"savings_balance",target_unit:"ILS"} as any], accForGoal);
+ok(progSave[0].progressPct !== null && Math.abs(progSave[0].progressPct! -1) <0.01 && progSave[0].status==="achieved" && progSave[0].currency==="ILS","16 savings progress");
+// 17 net worth (per target currency) — assets 1000+400=1400, no liabilities
+const progNet = getWealthGoalProgress([{id:"g2",title:"Net",goal_type:"net_worth_target",target_value:500,baseline_value:0,target_metric:"net_worth",target_unit:"ILS"} as any], accForGoal);
+ok(progNet[0].current===1400,"17 net worth cur");
 // 18 debt direction
 const accDebt: WealthAccount[] = [{id:"d1",user_id:"u",realm_id:null,name:"Loan",type:"loan",starting_balance:800,currency:"ILS",is_archived:false,source_type:"manual"}];
-const progDebt = getWealthGoalProgress([{id:"g3",title:"Debt",goal_type:"debt_payoff",target_value:0,baseline_value:1000,target_metric:"debt_balance"} as any], accDebt);
+const progDebt = getWealthGoalProgress([{id:"g3",title:"Debt",goal_type:"debt_payoff",target_value:0,baseline_value:1000,target_metric:"debt_balance",target_unit:"ILS"} as any], accDebt);
 ok(progDebt[0].direction==="down" && progDebt[0].progressPct!==null,"18 debt direction");
-// 19 emergency fund
-const progEmer = getWealthGoalProgress([{id:"g4",title:"Emer",goal_type:"emergency_fund",target_value:500,baseline_value:null,target_metric:"savings_balance"} as any], accForGoal);
-ok(progEmer[0].progressPct!==null,"19 emergency");
-// 20 insufficient goal data
-const progIns = getWealthGoalProgress([{id:"g5",title:"NoTarget",goal_type:"savings_target",target_value:null,baseline_value:null,target_metric:"savings_balance"} as any], accForGoal);
+// 19 emergency fund (savings only, with currency)
+const progEmer = getWealthGoalProgress([{id:"g4",title:"Emer",goal_type:"emergency_fund",target_value:500,baseline_value:0,target_metric:"savings_balance",target_unit:"ILS"} as any], accForGoal);
+ok(progEmer[0].progressPct!==null && progEmer[0].currency==="ILS","19 emergency");
+// 20 insufficient goal data (no target)
+const progIns = getWealthGoalProgress([{id:"g5",title:"NoTarget",goal_type:"savings_target",target_value:null,baseline_value:null,target_metric:"savings_balance",target_unit:"ILS"} as any], accForGoal);
 ok(progIns[0].status==="insufficient","20 insufficient");
+// 20b no target currency -> insufficient
+const progNoCurr = getWealthGoalProgress([{id:"g6",title:"NoCurr",goal_type:"savings_target",target_value:1000,baseline_value:0,target_metric:"savings_balance"} as any], accForGoal);
+ok(progNoCurr[0].status==="insufficient" && progNoCurr[0].currency===null,"20b no currency insufficient");
+// L1-6 savings truthfulness
+const mixedAccs: WealthAccount[] = [
+  {id:"s1",user_id:"u",realm_id:null,name:"Savings",type:"savings",starting_balance:6000,currency:"ILS",is_archived:false,source_type:"manual"},
+  {id:"c1",user_id:"u",realm_id:null,name:"Checking",type:"checking",starting_balance:8000,currency:"ILS",is_archived:false,source_type:"manual"},
+  {id:"ca",user_id:"u",realm_id:null,name:"Cash",type:"cash",starting_balance:2000,currency:"ILS",is_archived:false,source_type:"manual"},
+  {id:"inv",user_id:"u",realm_id:null,name:"Invest",type:"investment",starting_balance:20000,currency:"ILS",is_archived:false,source_type:"manual"},
+];
+const progMix = getWealthGoalProgress([{id:"gm",title:"Save10k",goal_type:"savings_target",target_value:10000,baseline_value:0,target_metric:"savings_balance",target_unit:"ILS"} as any], mixedAccs);
+ok(progMix[0].current===6000 && progMix[0].progressPct!==null && Math.abs(progMix[0].progressPct! -0.6)<0.01,"L1 savings only 6000 not 16000");
+ok(progMix[0].current!==16000 && progMix[0].current!==36000,"L2-4 checking/cash/invest excluded");
+// 5 mixed-currency savings excluded
+const multiCurrAccs: WealthAccount[] = [
+  {id:"sIls",user_id:"u",realm_id:null,name:"Sav ILS",type:"savings",starting_balance:1000,currency:"ILS",is_archived:false,source_type:"manual"},
+  {id:"sUsd",user_id:"u",realm_id:null,name:"Sav USD",type:"savings",starting_balance:5000,currency:"USD",is_archived:false,source_type:"manual"},
+];
+const progMulti = getWealthGoalProgress([{id:"gM",title:"SaveIls",goal_type:"savings_target",target_value:2000,baseline_value:0,target_metric:"savings_balance",target_unit:"ILS"} as any], multiCurrAccs);
+ok(progMulti[0].current===1000,"L5 mixed-currency isolated");
+// 6 no savings in target currency -> insufficient
+const noSavAccs: WealthAccount[] = [{id:"c1",user_id:"u",realm_id:null,name:"Checking",type:"checking",starting_balance:5000,currency:"ILS",is_archived:false,source_type:"manual"}];
+const progNoSav = getWealthGoalProgress([{id:"gn",title:"Save",goal_type:"savings_target",target_value:1000,baseline_value:0,target_metric:"savings_balance",target_unit:"ILS"} as any], noSavAccs);
+ok(progNoSav[0].status==="insufficient" && progNoSav[0].current===null,"L6 no savings insufficient");
+// 14-16 investment insufficient
+const progInv2 = getWealthGoalProgress([{id:"gi2",title:"Inv",goal_type:"investment_contribution",target_value:5000,baseline_value:0,target_metric:"investment_contribution",target_unit:"ILS"} as any], mixedAccs);
+ok(progInv2[0].status==="insufficient" && progInv2[0].progressPct===null,"L14 investment balance not contribution");
+// 17 insufficient -> progressPct null not 0
+ok(progNoSav[0].progressPct===null && progNoSav[0].status==="insufficient","L17 insufficient null not 0");
 // 21 stale
 const fresh = getWealthBalanceFreshness([{id:"a1",name:"Sav",type:"savings",currency:"ILS",starting_balance:0,is_archived:false,source_type:"manual",updated_at: new Date(Date.now()-40*86400000).toISOString()} as any], undefined, 30);
 ok(fresh[0].freshness==="stale","21 stale");

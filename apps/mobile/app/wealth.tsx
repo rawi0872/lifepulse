@@ -35,7 +35,7 @@ export default function WealthScreen() {
   const [txType, setTxType] = useState<string>("expense"); const [txTitle, setTxTitle] = useState(""); const [txAmt, setTxAmt] = useState(""); const [txDate, setTxDate] = useState(new Date().toISOString().slice(0,10)); const [txAcc, setTxAcc] = useState<string | null>(null); const [txCat, setTxCat] = useState<string | null>(null); const [txNote, setTxNote] = useState(""); const [editTxId, setEditTxId] = useState<string | null>(null);
   const [showTransfer, setShowTransfer] = useState(false); const [trFrom, setTrFrom] = useState<string>(""); const [trTo, setTrTo] = useState<string>(""); const [trAmt, setTrAmt] = useState(""); const [trDate, setTrDate] = useState(new Date().toISOString().slice(0,10));
   const [showRec, setShowRec] = useState(false); const [recName, setRecName] = useState(""); const [recKind, setRecKind] = useState("bill"); const [recAmt, setRecAmt] = useState(""); const [recCurr, setRecCurr] = useState("ILS"); const [recFreq, setRecFreq] = useState("monthly"); const [recDue, setRecDue] = useState(new Date(Date.now()+86400000*7).toISOString().slice(0,10)); const [editRecId, setEditRecId] = useState<string | null>(null);
-  const [showGoal, setShowGoal] = useState(false); const [goalTitle, setGoalTitle] = useState(""); const [goalType, setGoalType] = useState("savings_target"); const [goalValue, setGoalValue] = useState(""); const [goalDate, setGoalDate] = useState("");
+  const [showGoal, setShowGoal] = useState(false); const [goalTitle, setGoalTitle] = useState(""); const [goalType, setGoalType] = useState("savings_target"); const [goalValue, setGoalValue] = useState(""); const [goalDate, setGoalDate] = useState(""); const [goalCurr, setGoalCurr] = useState("ILS");
   const [showBudget, setShowBudget] = useState(false); const [budgetCat, setBudgetCat] = useState<string | null>(null); const [budgetAmt, setBudgetAmt] = useState(""); const [budgetMonth, setBudgetMonth] = useState(new Date().toISOString().slice(0,7)+"-01"); const [budgetCurr, setBudgetCurr] = useState("ILS");
 
   const load = useCallback(async () => {
@@ -108,8 +108,9 @@ export default function WealthScreen() {
   const saveGoal = async ()=>{
     const t = goalTitle.trim(); if(!t){ Alert.alert("Title required"); return; }
     const v = goalValue.trim() ? parseWealthAmount(goalValue) : null; if(goalValue.trim() && v===null){ Alert.alert("Target must be numeric"); return; }
+    if(!/^[A-Z]{3}$/.test(goalCurr)){ Alert.alert("Currency required"); return; }
     try{
-      await createWealthGoal({ title:t, goal_type: goalType, target_metric: (WEALTH_GOAL_TARGET_METRIC as any)[goalType] ?? "savings_balance", target_value: v, target_date: goalDate.trim() || null });
+      await createWealthGoal({ title:t, goal_type: goalType, target_metric: (WEALTH_GOAL_TARGET_METRIC as any)[goalType] ?? "savings_balance", target_value: v, target_unit: goalCurr, target_date: goalDate.trim() || null });
       setShowGoal(false); setGoalTitle(""); setGoalValue(""); setGoalDate(""); void load();
     }catch(e:any){ Alert.alert("Error", e.message); }
   };
@@ -143,7 +144,7 @@ export default function WealthScreen() {
           <Text style={s.emptySub}>Start with one account. Transactions and goals build from there.</Text>
           <TouchableOpacity style={s.primaryBtn} onPress={()=>openAddAcc()} activeOpacity={0.85}><Text style={s.primaryText}>Add your first account</Text></TouchableOpacity>
           <View style={s.emptySecondaryRow}>
-            <TouchableOpacity onPress={()=>setShowGoal(true)} style={s.secondaryBtn}><Text style={s.secondaryText}>+ Goal</Text></TouchableOpacity>
+            <TouchableOpacity onPress={()=>{ setGoalCurr(baseCurrency); setShowGoal(true); }} style={s.secondaryBtn}><Text style={s.secondaryText}>+ Goal</Text></TouchableOpacity>
             <TouchableOpacity onPress={()=>setShowRec(true)} style={s.secondaryBtn}><Text style={s.secondaryText}>+ Recurring</Text></TouchableOpacity>
           </View>
         </View>
@@ -276,19 +277,19 @@ export default function WealthScreen() {
         </View>
       ) : null}
 
-      {/* Goal Progress — deterministic */}
+      {/* Goal Progress — truthful */}
       {intel ? (
         <View style={s.card}>
           <Text style={s.cardLabel}>GOAL PROGRESS</Text>
           {intel.goalProgress.length===0 ? <Text style={s.note}>No Wealth goals yet. Progress appears after you set a target.</Text> : intel.goalProgress.map((g:any)=>(
             <View key={g.goalId} style={s.row}>
               <View style={{flex:1}}>
-                <Text style={s.rowTitle}>{g.title} · {g.type}</Text>
+                <Text style={s.rowTitle}>{g.title} · {g.type} {g.currency?`· ${g.currency}`:""}</Text>
                 <Text style={s.rowMeta}>
-                  {g.target!=null?`Target ${formatWealthGrouped(g.target, intel.baseCurrency)}`:"No target"} {g.current!=null?`· Current ${formatWealthGrouped(g.current, intel.baseCurrency)}`:"· Insufficient tracked data"}
+                  {g.target!=null && g.currency?`Target ${formatWealthGrouped(g.target, g.currency)}`:"No target"} {g.current!=null && g.currency?`· Current ${formatWealthGrouped(g.current, g.currency)}`:`· ${g.sourceDescription ?? "Insufficient tracked data"}`}
                   {g.progressPct!=null?` · ${Math.round(g.progressPct*100)}%`:""} · {g.status} {g.direction==="down"?"(lower is toward target)":""}
                 </Text>
-                {g.progressPct!=null ? <View style={{height:6, backgroundColor: colors.surfaceElevated, borderRadius:3, marginTop:6, overflow:"hidden"}}><View style={{width: `${Math.min(100, Math.round(g.progressPct*100))}%`, height:6, backgroundColor: g.status==="achieved"? colors.success : colors.accent}} /></View> : null}
+                {g.progressPct!=null ? <View style={{height:6, backgroundColor: colors.surfaceElevated, borderRadius:3, marginTop:6, overflow:"hidden"}}><View style={{width: `${Math.min(100, Math.round(g.progressPct*100))}%`, height:6, backgroundColor: g.status==="achieved"? colors.success : colors.accent}} /></View> : <Text style={s.noteSmall}>{g.sourceDescription}</Text>}
               </View>
             </View>
           ))}
@@ -382,7 +383,7 @@ export default function WealthScreen() {
       <View style={s.card}>
         <View style={s.sectionHead}>
           <Text style={s.cardLabel}>GOALS</Text>
-          <TouchableOpacity style={s.addBtn} onPress={()=>setShowGoal(true)}><Text style={s.addBtnText}>+ Add</Text></TouchableOpacity>
+          <TouchableOpacity style={s.addBtn} onPress={()=>{ setGoalCurr(baseCurrency); setShowGoal(true); }}><Text style={s.addBtnText}>+ Add</Text></TouchableOpacity>
         </View>
         {data.goals.length===0 ? <Text style={s.note}>No Wealth goals yet. Add a savings or net-worth target.</Text> : data.goals.map((g:any)=> (
           <View key={g.id} style={s.row}>
@@ -482,6 +483,8 @@ export default function WealthScreen() {
           <View style={s.modalHead}><Text style={s.modalTitle}>Add Wealth goal</Text><TouchableOpacity onPress={()=>setShowGoal(false)}><Close size={18} color={colors.textMuted} /></TouchableOpacity></View>
           <Text style={s.inputLabel}>Title</Text><TextInput style={s.input} value={goalTitle} onChangeText={setGoalTitle} placeholder="Emergency fund" placeholderTextColor={colors.textFaint} />
           <View style={s.chipRow}>{GOAL_OPTIONS.map(o=> (<TouchableOpacity key={o.value} style={[s.chip, goalType===o.value && s.chipActive]} onPress={()=>setGoalType(o.value)}><Text style={[s.chipText, goalType===o.value && s.chipTextActive]}>{o.label}</Text></TouchableOpacity>))}</View>
+          <Text style={s.inputLabel}>Target currency</Text>
+          <View style={s.chipRow}>{WEALTH_CURRENCIES.map(c=> (<TouchableOpacity key={c} style={[s.chip, goalCurr===c && s.chipActive]} onPress={()=>setGoalCurr(c)}><Text style={[s.chipText, goalCurr===c && s.chipTextActive]}>{c}</Text></TouchableOpacity>))}</View>
           <Text style={s.inputLabel}>Target amount (optional)</Text><TextInput style={s.input} value={goalValue} onChangeText={setGoalValue} keyboardType="decimal-pad" placeholder="20000" placeholderTextColor={colors.textFaint} />
           <Text style={s.inputLabel}>Target date (YYYY-MM-DD, optional)</Text><TextInput style={s.input} value={goalDate} onChangeText={setGoalDate} placeholder="2027-12-31" placeholderTextColor={colors.textFaint} />
           <TouchableOpacity style={s.primaryBtn} onPress={saveGoal}><Text style={s.primaryText}>Create goal</Text></TouchableOpacity>

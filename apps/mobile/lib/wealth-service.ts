@@ -255,7 +255,7 @@ export async function loadWealthIntelligence(){
     supabase.from("finance_categories").select("id, name, type").eq("user_id", user.id),
     supabase.from("finance_budgets").select("id, category_id, month, amount, currency").eq("user_id", user.id).order("month",{ascending:false}).limit(20),
     supabase.from("finance_recurring_items").select("id, name, kind, amount, currency, frequency, next_due_date, is_active").eq("user_id", user.id).order("next_due_date"),
-    supabase.from("goals").select("id, title, goal_type, target_value, baseline_value, target_metric").eq("user_id", user.id).eq("realm_id", realm.id),
+    supabase.from("goals").select("id, title, goal_type, target_value, baseline_value, target_metric, target_unit").eq("user_id", user.id).eq("realm_id", realm.id),
     supabase.from("finance_preferences").select("base_currency").eq("user_id", user.id).maybeSingle(),
     supabase.from("habits").select("id, title").eq("user_id", user.id).limit(20),
     supabase.from("tasks").select("id, title, status, due_date").eq("user_id", user.id).eq("status","todo").limit(20),
