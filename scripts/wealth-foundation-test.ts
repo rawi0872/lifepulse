@@ -1,5 +1,6 @@
 import { getWealthBalanceSummary, getWealthCashFlowSummary, getSavingsRate, getUpcomingWealthCommitments, formatWealth, formatWealthGrouped, parseWealthAmount, advanceWealthRecurrence, wealthPeriodBounds, isWealthNextronAllowed, formatWealthMinor, wealthMinorFromMajor, WEALTH_CURRENCIES } from "../packages/domain/wealth";
 import { getWealthMonthlyHistory, getWealthHistoryPerCurrency, getWealthTrends, getWealthCategorySummaries, getTopCategoryChanges, getWealthBudgetStatuses, getWealthGoalProgress, getWealthBalanceFreshness, getWealthRecurringIntelligence, getWealthDataCoverage, deriveWealthInsights, deriveWealthSignalsV2, comparablePeriodBounds, getComparableTrend } from "../packages/domain/wealth-intelligence";
+import { selectTodayPrimaryCandidate } from "../packages/domain/today-wealth-ranking";
 import type { WealthAccount, WealthTransaction, WealthRecurringItem } from "../packages/domain/wealth";
 let p=0,f=0; const ok=(c:boolean,l:string)=>{ if(c){p++;console.log(`  PASS ${l}`);} else {f++;console.log(`  FAIL ${l}`);} };
 
@@ -385,6 +386,27 @@ ok(pickWealthCandidate(oneBillSigs)!==null,"L14 NEXTRON OFF still Today candidat
 // L15 no balances in Today candidate
 const cand = pickWealthCandidate(oneBillSigs)!;
 ok(!JSON.stringify(cand).includes("balance") && !JSON.stringify(cand).toLowerCase().includes("net_worth"),"L15 no balances in Today");
+// Real Today ranking helper (today-wealth-ranking) — must be the actual UI helper
+const upOverdueHigh = { type:"task", id:"t1", title:"Overdue High", reason:"Overdue", task:{ priority:"high", due_date:"2026-09-01", id:"t1" } } as any;
+const upHabit = { type:"habit", id:"h1", title:"Habit", reason:"Habit due today", habit:{ id:"h1" } } as any;
+const wealthBillToday = { kind:"wealth_bill_due", priority:9, title:"Rent", rationale:"Rent scheduled today", dueDate:"2026-09-10", sourceId:"b1", strength:"strong" } as any;
+const wealthBillFuture = { kind:"wealth_bill_due", priority:16, title:"Future Bill", rationale:"Bill scheduled in 6 days", dueDate:"2026-09-16", sourceId:"b2", strength:"strong" } as any;
+ok(selectTodayPrimaryCandidate({ ordinaryUpNext: null, wealthCandidate: null }).chosen===null,"Real1 no candidates -> null");
+ok(selectTodayPrimaryCandidate({ ordinaryUpNext: upOverdueHigh as any, wealthCandidate: null }).source==="ordinary","Real2 high overdue alone -> ordinary");
+ok(selectTodayPrimaryCandidate({ ordinaryUpNext: null, wealthCandidate: wealthBillToday }).source==="wealth","Real3 bill alone -> bill");
+ok(selectTodayPrimaryCandidate({ ordinaryUpNext: upOverdueHigh as any, wealthCandidate: wealthBillFuture }).source==="ordinary","Real4 high overdue vs bill in 6 days -> task wins (urgency preserved)");
+ok(selectTodayPrimaryCandidate({ ordinaryUpNext: { type:"task", id:"tWeak", title:"Weak", reason:"Active task", task:{ priority:"low", due_date:null, id:"tWeak" } } as any, wealthCandidate: wealthBillToday }).source==="wealth","Real5 bill due today vs weak unscheduled -> bill wins");
+ok(selectTodayPrimaryCandidate({ ordinaryUpNext: upHabit as any, wealthCandidate: wealthBillToday }).source==="wealth","Real6 habit vs subscription -> deterministic");
+const dupTask = { type:"task", id:"dup1", title:"Wealth Task", reason:"Due today", task:{ priority:"medium", due_date:"2026-09-10", id:"dup1" } } as any;
+const wealthDup = { kind:"wealth_task_due", priority:20, title:"Wealth Task", rationale:"Wealth task due", sourceId:"dup1", strength:"strong" } as any;
+ok(selectTodayPrimaryCandidate({ ordinaryUpNext: dupTask as any, wealthCandidate: wealthDup }).chosen && (selectTodayPrimaryCandidate({ ordinaryUpNext: dupTask as any, wealthCandidate: wealthDup }).chosen as any).id==="dup1" && selectTodayPrimaryCandidate({ ordinaryUpNext: dupTask as any, wealthCandidate: wealthDup }).source==="ordinary","Real8 same source deduped not two");
+ok(selectTodayPrimaryCandidate({ ordinaryUpNext: upOverdueHigh as any, wealthCandidate: wealthBillFuture }).source==="ordinary","Real9 non-Wealth can outrank Wealth");
+ok(selectTodayPrimaryCandidate({ ordinaryUpNext: { type:"habit", id:"hWeak", title:"Weak", reason:"Habit due today", habit:{ id:"hWeak" } } as any, wealthCandidate: wealthBillToday }).source==="wealth","Real10 Wealth can outrank weaker");
+const multiWealth = deriveWealthSignalsV2({ billsDue:[{id:"b1",name:"A",next_due_date:"2026-09-10",kind:"bill"} as any, {id:"b2",name:"B",next_due_date:"2026-09-11",kind:"bill"} as any], subsDue:[], tasksDue:[], habitsDue:[], goalsDue:[], insights:[] });
+ok(pickWealthCandidate(deriveWealthSignalsV2({ billsDue:[{id:"b1",name:"A",next_due_date:"2026-09-10",kind:"bill"} as any, {id:"b2",name:"B",next_due_date:"2026-09-11",kind:"bill"} as any], subsDue:[], tasksDue:[], habitsDue:[], goalsDue:[], insights:[] }))!==null,"Real11 multiple Wealth -> only best enters (via pick)");
+ok(selectTodayPrimaryCandidate({ ordinaryUpNext: null, wealthCandidate: wealthBillToday }).chosen && (selectTodayPrimaryCandidate({ ordinaryUpNext: null, wealthCandidate: wealthBillToday }).chosen as any).kind==="wealth_bill_due" && selectTodayPrimaryCandidate({ ordinaryUpNext: upOverdueHigh as any, wealthCandidate: wealthBillToday }).chosen,"Real12 final max one");
+ok(deriveWealthSignalsV2({ billsDue:[], subsDue:[], tasksDue:[], habitsDue:[], goalsDue:[], insights:[{kind:"budget_over_limit",title:"Over",rationale:"x"} as any] }).filter(s=>s.strength==="strong").length===0,"Real13 analytical never enters");
+ok(!JSON.stringify(wealthBillToday).includes("balance"),"Real16 no balance in Today candidate");
 
 console.log(`--- Summary ${p} passed, ${f} failed ---`);
 if(f) process.exit(1);

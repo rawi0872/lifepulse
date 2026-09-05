@@ -16,6 +16,7 @@ import {
   toLocalPriority,
   MAX_PRIORITIES_PER_DAY,
   deriveBodySignals,
+  selectTodayPrimaryCandidate,
 } from "@lifepulse/domain";
 import type {
   TodayModel,
@@ -240,6 +241,8 @@ export default function TodayScreen() {
     return () => { cancelled = true; };
   }, [user]);
 
+  const ranking = useMemo(() => selectTodayPrimaryCandidate({ ordinaryUpNext: upNext, wealthCandidate }), [upNext, wealthCandidate]);
+
   const greeting = useMemo(() => {
     const h = new Date().getHours();
     if (h < 12) return "Good morning";
@@ -270,55 +273,36 @@ export default function TodayScreen() {
         <Text style={styles.date}>{model?.date.displayDate ?? "Today"}</Text>
       </View>
 
-      {/* Up Next — deterministic ranking: Wealth strong candidate vs existing habit/task via common priority */}
-      {(() => {
-        const wealthP = wealthCandidate?.priority ?? 999;
-        // Map UpNext to comparable priority: high-overdue 12, due-today-task 16, habit 19
-        let upNextP = 999;
-        if (upNext) upNextP = upNext.type === "task" ? 16 : 19;
-        const wealthWins = wealthCandidate && wealthP < upNextP;
-        if (wealthWins && wealthCandidate) {
-          return (
-            <View style={styles.upNextSection}>
-              <Text style={styles.sectionLabelTextAlt}>UP NEXT</Text>
-              <View style={styles.heroCard}>
-                <Text style={styles.heroType}>Wealth · scheduled</Text>
-                <Text style={styles.heroTitle}>{wealthCandidate.title}</Text>
-                <Text style={styles.heroReason}>{wealthCandidate.rationale}</Text>
-              </View>
+      {/* Up Next — single primary candidate via shared deterministic ranking */}
+      <View style={styles.upNextSection}>
+        <Text style={styles.sectionLabelTextAlt}>UP NEXT</Text>
+        {ranking.chosen ? (
+          ranking.source === "wealth" && wealthCandidate ? (
+            <View style={styles.heroCard}>
+              <Text style={styles.heroType}>Wealth · scheduled</Text>
+              <Text style={styles.heroTitle}>{(ranking.chosen as any).title}</Text>
+              <Text style={styles.heroReason}>{(ranking.chosen as any).rationale}</Text>
             </View>
-          );
-        }
-        return (
-          <View style={styles.upNextSection}>
-            <Text style={styles.sectionLabelTextAlt}>UP NEXT</Text>
-            {upNext ? (
-              <View style={styles.heroCard}>
-                <View style={styles.heroTop}>
-                  <Text style={styles.heroType}>{upNext.type === "habit" ? "Habit · due today" : "Task · due today"}</Text>
-                </View>
-                <Text style={styles.heroTitle}>{upNext.title}</Text>
-                <Text style={styles.heroReason}>{upNext.reason}</Text>
-                <TouchableOpacity style={styles.heroAction} activeOpacity={0.85} onPress={() => (upNext.type === "task" ? void completeTask(upNext.id) : void completeHabit(upNext.id))}>
-                  <Text style={styles.heroActionText}>{upNext.type === "task" ? "Complete task" : "Log habit"}</Text>
-                  <ChevronRight size={16} color={colors.onAccent} />
-                </TouchableOpacity>
+          ) : upNext ? (
+            <View style={styles.heroCard}>
+              <View style={styles.heroTop}>
+                <Text style={styles.heroType}>{upNext.type === "habit" ? "Habit · due today" : "Task · due today"}</Text>
               </View>
-            ) : wealthCandidate ? (
-              <View style={styles.heroCard}>
-                <Text style={styles.heroType}>Wealth · scheduled</Text>
-                <Text style={styles.heroTitle}>{wealthCandidate.title}</Text>
-                <Text style={styles.heroReason}>{wealthCandidate.rationale}</Text>
-              </View>
-            ) : (
-              <View style={styles.heroEmpty}>
-                <Check size={20} color={colors.textMuted} />
-                <Text style={styles.heroEmptyText}>You&apos;re caught up</Text>
-              </View>
-            )}
+              <Text style={styles.heroTitle}>{upNext.title}</Text>
+              <Text style={styles.heroReason}>{upNext.reason}</Text>
+              <TouchableOpacity style={styles.heroAction} activeOpacity={0.85} onPress={() => (upNext.type === "task" ? void completeTask(upNext.id) : void completeHabit(upNext.id))}>
+                <Text style={styles.heroActionText}>{upNext.type === "task" ? "Complete task" : "Log habit"}</Text>
+                <ChevronRight size={16} color={colors.onAccent} />
+              </TouchableOpacity>
+            </View>
+          ) : null
+        ) : (
+          <View style={styles.heroEmpty}>
+            <Check size={20} color={colors.textMuted} />
+            <Text style={styles.heroEmptyText}>You&apos;re caught up</Text>
           </View>
-        );
-      })()}
+        )}
+      </View>
 
       {/* Today's Focus — compact, actionable */}
       <View style={styles.section}>

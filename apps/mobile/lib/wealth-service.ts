@@ -322,12 +322,15 @@ export async function loadWealthTodayCandidate(): Promise<import("@lifepulse/dom
   const realm = await ensureWealthRealm(); if(!realm) return null;
   const today = new Date().toISOString().slice(0,10);
   // Bounded windows: upcoming 7d via recurring, overdue bounded 30d
+  // Fail-closed: if realm lookup fails, no Wealth task/habit signals (never fallback to unfiltered)
   const [recurRes, tasksRes, habitsRes] = await Promise.all([
     supabase.from("finance_recurring_items").select("id, name, kind, amount, currency, next_due_date, is_active").eq("user_id", user.id).eq("is_active", true).order("next_due_date").limit(20),
-    // Wealth tasks: status todo, due within window, realm_id = Wealth (try realm_id, fallback to no filter if column missing)
-    supabase.from("tasks").select("id, title, due_date").eq("user_id", user.id).eq("status","todo").eq("realm_id", realm.id).limit(10).then(r=> (r as any).error ? supabase.from("tasks").select("id, title, due_date").eq("user_id", user.id).eq("status","todo").limit(10) : r as any),
-    supabase.from("habits").select("id, title").eq("user_id", user.id).eq("realm_id", realm.id).limit(10).then(r=> (r as any).error ? supabase.from("habits").select("id, title").eq("user_id", user.id).limit(10) : r as any),
+    supabase.from("tasks").select("id, title, due_date").eq("user_id", user.id).eq("status","todo").eq("realm_id", realm.id).limit(10),
+    supabase.from("habits").select("id, title").eq("user_id", user.id).eq("realm_id", realm.id).limit(10),
   ]);
+  // If realm-filtered queries error (e.g., missing column), treat as no Wealth task/habit candidates — fail closed
+  const tasksData = (tasksRes as any).error ? [] : ((tasksRes as any).data ?? []);
+  const habitsData = (habitsRes as any).error ? [] : ((habitsRes as any).data ?? []);
   const allRecur = (recurRes.data as any[]) ?? [];
   const intel = getWealthRecurringIntelligence(allRecur as any, today);
   // Filter overdue to bounded 30d (not 2 years)
@@ -336,9 +339,9 @@ export async function loadWealthTodayCandidate(): Promise<import("@lifepulse/dom
     return diff >= -30 && diff < 0;
   });
   // Determine due tasks/habits within 7d window for Today (simplified: tasks due today)
-  const tasksDue = ((tasksRes as any)?.data ?? []).filter((t:any)=> t.due_date && t.due_date <= today && t.due_date >= new Date(new Date(today).getTime()-7*86400000).toISOString().slice(0,10)).slice(0,2) as any[];
+  const tasksDue = (tasksData as any[]).filter((t:any)=> t.due_date && t.due_date <= today && t.due_date >= new Date(new Date(today).getTime()-7*86400000).toISOString().slice(0,10)).slice(0,2) as any[];
   // Habits due today (if isHabitDueOnDate not available, just take first)
-  const habitsDue = ((habitsRes as any)?.data ?? []).slice(0,1) as any[];
+  const habitsDue = (habitsData as any[]).slice(0,1) as any[];
   const signals = deriveWealthSignalsV2({ billsDue: intel.due7.filter(r=>r.kind==="bill"), subsDue: intel.due7.filter(r=>r.kind==="subscription"), tasksDue, habitsDue, goalsDue: [], insights: [] });
   const strong = signals.filter(s=> s.strength==="strong");
   if(strong.length===0) {
