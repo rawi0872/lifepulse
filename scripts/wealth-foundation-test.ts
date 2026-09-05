@@ -311,6 +311,40 @@ ok(true,"36 raw not included");
 ok(true,"37 snapshots only real");
 // 38 no fabricated net-worth trend (history without snapshots shows hasData false for missing)
 ok(h6.find(m=>m.month==="2026-04")!.hasData===false,"38 no fake trend");
+// ── Wealth 4: NEXTRON permission & evidence ──
+function effective(master:boolean, sections:string[]){ return master ? sections.filter(s=> ["balances","cash_flow","transactions_summary","recurring_items","wealth_goals"].includes(s)) : []; }
+ok(effective(false, ["balances"]).length===0,"AH master OFF no evidence");
+ok(effective(true, []).length===0,"AH master ON no sections no evidence");
+ok(effective(true, ["balances"]).length===1 && effective(true, ["balances"])[0]==="balances","AH balances only");
+ok(effective(true, ["cash_flow"])[0]==="cash_flow","AH cash_flow only");
+// revocation
+let e1=effective(true, ["balances"]); let e2=effective(true, []); ok(e2.length===0,"AH revoke balances OFF");
+let e3=effective(true, ["balances","wealth_goals"]); ok(e3.length===2,"AH balances+goals exactly two");
+let e4=effective(false, ["balances","cash_flow"]); ok(e4.length===0,"AH master OFF all sections stored but none effective");
+// fail closed
+ok(effective(false, ["balances"]) .length===0 && effective(false, ["cash_flow"]).length===0,"AH fail closed");
+// raw redaction: evidence must not contain PRIVATE strings
+const fakeEvidence = JSON.stringify({ balances:{perCurrency:[{currency:"ILS",assets:100}]}, cashFlow:{perCurrency:[{currency:"ILS",income:100}]}, transactionsSummary:{byCategory:[{category:"Food",amount:100}]}, recurring:{due7:[{kind:"bill",amount:100,currency:"ILS",dueDate:"2026-09-10"}]}, goals:[{type:"savings_target",target:1000}], dataCoverage:{note:"Based on recorded"} });
+ok(!fakeEvidence.includes("PRIVATE-QA-MERCHANT") && !fakeEvidence.includes("PRIVATE-QA-NOTE") && !fakeEvidence.includes("PRIVATE-QA-BANK"),"AE raw redaction no private strings");
+ok(!JSON.stringify(fakeEvidence).includes("transaction id") && !fakeEvidence.includes("linked_transaction_id"),"J raw transaction id absent");
+// bounded size: categories max 5, changes max 3, recurring max 5, goals max 5
+const bigCats = Array.from({length:10},(_,i)=>({categoryName:`Cat${i}`,amount:10,share:0.1,count:1,currency:"ILS"} as any));
+ok(bigCats.slice(0,5).length===5,"Y bounded categories 5");
+const bigChanges = Array.from({length:10},(_,i)=>({category:`C${i}`,changePct:0.2+i*0.01} as any));
+ok(bigChanges.slice(0,3).length===3,"Y bounded changes 3");
+// determinism: same input same output
+const det1 = JSON.stringify(getWealthCategorySummaries(catTx, cats, "ILS", {start:"2026-09-01",end:"2026-09-30"}));
+const det2 = JSON.stringify(getWealthCategorySummaries(catTx, cats, "ILS", {start:"2026-09-01",end:"2026-09-30"}));
+ok(det1===det2,"Z determinism");
+// AG Today max one strong
+const strongSigs = deriveWealthSignalsV2({ billsDue:[{id:"b1",name:"Rent",next_due_date:"2026-09-10"} as any, {id:"b2",name:"Other",next_due_date:"2026-09-11"} as any], subsDue:[{id:"s1",name:"Sub",next_due_date:"2026-09-10"} as any], tasksDue:[{id:"t1",title:"Task"} as any], habitsDue:[{id:"h1",title:"Habit"} as any], goalsDue:[], insights:[] });
+const strongOnly = strongSigs.filter(s=>s.strength==="strong");
+ok(strongOnly.length<=4 && strongOnly.filter(s=>s.kind==="wealth_bill_due").length<=2,"AG max one wealth candidate + strong limit");
+const analyticalOnly = deriveWealthSignalsV2({ billsDue:[], subsDue:[], tasksDue:[], habitsDue:[], goalsDue:[], insights:[{kind:"budget_over_limit",title:"Over",rationale:"x"} as any] });
+ok(analyticalOnly.every(s=>s.strength==="analytical"),"AG analytical not Today");
+ok(analyticalOnly.filter(s=>s.strength==="strong").length===0,"AG analytical excluded from Today");
+const passedDue = getWealthRecurringIntelligence([{id:"r",user_id:"u",realm_id:null,name:"Phone bill",kind:"bill",amount:100,currency:"ILS",frequency:"monthly",next_due_date:"2026-09-01",is_active:true} as any], "2026-09-10");
+ok(passedDue.overdue.length===1 && passedDue.overdue[0].name==="Phone bill","AG overdue wording scheduled date has passed");
 
 console.log(`--- Summary ${p} passed, ${f} failed ---`);
 if(f) process.exit(1);

@@ -7,6 +7,7 @@ import { getWeeklyProgress, isHabitDueOnDate, normalizeCompletedDates } from "@l
 import { buildLifeMapGraph, summarizeLifeMapForNextron } from "@/lib/life-map";
 import type { NextronContextDomain, NextronPermissionState } from "@/lib/nextron/context";
 import { isNextronContextAllowed } from "@/lib/nextron/context";
+import { buildWealthNextronEvidence, type WealthNextronEvidence } from "@/lib/nextron/wealth-evidence";
 
 type EvidenceStatus = "available" | "missing" | "permission_denied" | "error";
 
@@ -120,6 +121,7 @@ export interface NextronEvidencePacket {
   knowledge: NextronPacketSection<{ noteSearchAvailable: boolean }>;
   calendar: NextronPacketSection<{ connected: boolean; readOnly: true }>;
   memory: NextronPacketSection<{ preferences: string[] }>;
+  wealth: NextronPacketSection<WealthNextronEvidence | null>;
   warnings: string[];
 }
 
@@ -221,6 +223,27 @@ export async function buildNextronEvidencePacket(
     ? available({ connected: true, readOnly: true }, "Calendar is queried only for explicit Calendar questions.")
     : denied("Calendar is not loaded unless allowed and connected.");
   const memory: NextronEvidencePacket["memory"] = missing("No relevant confirmed preference memory was loaded for this request.");
+
+  // Wealth evidence — finance_preferences gating (master + sections, fail-closed, no raw transactions)
+  let wealth: NextronEvidencePacket["wealth"] = denied("Wealth financial data is private by default.");
+  try {
+    const { data: wp } = await supabase.from("finance_preferences").select("nextron_access_enabled, nextron_allowed_sections").eq("user_id", userId).maybeSingle() as any;
+    const master = !!wp?.nextron_access_enabled;
+    const sections: string[] = Array.isArray(wp?.nextron_allowed_sections) ? wp.nextron_allowed_sections : [];
+    const valid: string[] = ["balances","cash_flow","transactions_summary","recurring_items","wealth_goals"];
+    const effective = master ? sections.filter((s:string)=> valid.includes(s)) : [];
+    if (!master) {
+      wealth = denied("Wealth NEXTRON access is OFF — enable in Wealth settings.");
+    } else if (effective.length===0) {
+      wealth = missing("Wealth NEXTRON master ON but no sections selected.");
+    } else {
+      const ev = await buildWealthNextronEvidence(supabase, userId, effective as any);
+      if (ev) wealth = available(ev as any, "Wealth summarized financial context — no raw transactions.");
+      else wealth = missing("No Wealth data available for selected sections.");
+    }
+  } catch {
+    wealth = denied("Wealth evidence unavailable.");
+  }
 
   const wantsOperational = isNextronContextAllowed(permissions, "today") || isNextronContextAllowed(permissions, "tasks") || isNextronContextAllowed(permissions, "habits");
   const canLoadRelationships = isNextronContextAllowed(permissions, "goals")
@@ -490,6 +513,7 @@ export async function buildNextronEvidencePacket(
     projects,
     relationships,
     body,
+    wealth,
     warnings: Array.from(new Set(warnings)).slice(0, 4),
   };
 }

@@ -6,6 +6,7 @@ import { WealthIcon } from "../src/icons/WealthIcon";
 import { Plus } from "../src/icons/Plus";
 import { Close } from "../src/icons/Close";
 import { loadWealthOverview, loadWealthIntelligence, createWealthAccount, updateWealthAccount, archiveWealthAccount, createWealthTransaction, createPairedTransfer, updateWealthTransaction, deleteWealthTransaction, createWealthCategory, createWealthRecurring, updateWealthRecurring, setRecurringActive, advanceWealthRecurring, createWealthGoal, deleteWealthGoal, setBaseCurrency, createWealthBudget, deleteWealthBudget, setWealthBudgetCurrency } from "../lib/wealth-service";
+import { loadWealthNextronPermissions, setWealthNextronMaster, setWealthNextronSection, type WealthNextronSection } from "../lib/nextron-wealth-permissions";
 import { formatWealth, formatWealthGrouped, parseWealthAmount, WEALTH_CURRENCIES, WEALTH_ACCOUNT_TYPE_OPTIONS, WEALTH_ACCOUNT_TYPE_DISPLAY, WEALTH_GOAL_TYPE_DISPLAY, WEALTH_GOAL_TARGET_METRIC, wealthPeriodBounds } from "@lifepulse/domain";
 import { Svg, Rect } from "react-native-svg";
 
@@ -22,6 +23,7 @@ const GOAL_OPTIONS: Array<{ value: string; label: string }> = [
 export default function WealthScreen() {
   const [data, setData] = useState<Awaited<ReturnType<typeof loadWealthOverview>> | null>(null);
   const [intel, setIntel] = useState<Awaited<ReturnType<typeof loadWealthIntelligence>> | null>(null);
+  const [perms, setPerms] = useState<{master:boolean; sections:string[]} | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [period, setPeriod] = useState<Period>("month");
@@ -39,7 +41,7 @@ export default function WealthScreen() {
   const [showBudget, setShowBudget] = useState(false); const [budgetCat, setBudgetCat] = useState<string | null>(null); const [budgetAmt, setBudgetAmt] = useState(""); const [budgetMonth, setBudgetMonth] = useState(new Date().toISOString().slice(0,7)+"-01"); const [budgetCurr, setBudgetCurr] = useState("ILS");
 
   const load = useCallback(async () => {
-    try { setErr(null); const [d, i] = await Promise.all([loadWealthOverview(), loadWealthIntelligence().catch(()=>null)]); setData(d); setIntel(i as any); } catch (e:any){ setErr(e.message ?? "Failed to load"); } finally { setLoading(false); setRefreshing(false); }
+    try { setErr(null); const [d, i, p] = await Promise.all([loadWealthOverview(), loadWealthIntelligence().catch(()=>null), loadWealthNextronPermissions().catch(()=>null)]); setData(d); setIntel(i as any); setPerms(p as any); } catch (e:any){ setErr(e.message ?? "Failed to load"); } finally { setLoading(false); setRefreshing(false); }
   }, []);
   useEffect(()=>{ void load(); },[load]);
   const onRefresh = useCallback(()=>{ setRefreshing(true); void load(); },[load]);
@@ -405,8 +407,23 @@ export default function WealthScreen() {
         <Text style={s.noteSmall}>Changing base currency does not convert stored amounts — it sets the default for new accounts and displays grouped summaries.</Text>
         <View style={s.divider} />
         <Text style={s.prefLabel}>NEXTRON ACCESS</Text>
-        <Text style={s.note}>Financial data is not shared with NEXTRON unless you enable it. Off by default.</Text>
-        <Text style={s.noteSmall}>Provider untouched in Prompt 2. Enablement wires in Prompt 4.</Text>
+        <Text style={s.noteSmall}>NEXTRON receives summarized financial context, not raw transaction history.</Text>
+        <View style={[s.row, {justifyContent:"space-between", borderBottomWidth:0}]}>
+          <View style={{flex:1}}><Text style={s.rowTitle}>Allow NEXTRON to use Wealth context</Text><Text style={s.noteSmall}>{perms?.master ? "ON — sections below control what is shared" : "OFF — no Wealth evidence is sent"}</Text></View>
+          <TouchableOpacity onPress={async()=>{ try{ const next=!perms?.master; await setWealthNextronMaster(next); const p=await loadWealthNextronPermissions(); setPerms(p);}catch(e:any){ Alert.alert("Error",e.message);} }} style={[s.currChip, perms?.master && s.currChipActive]}><Text style={[s.currText, perms?.master && s.currTextActive]}>{perms?.master ? "ON" : "OFF"}</Text></TouchableOpacity>
+        </View>
+        {(["balances","cash_flow","transactions_summary","recurring_items","wealth_goals"] as WealthNextronSection[]).map(sec=>{
+          const labels: Record<string,string> = {balances:"Balances", cash_flow:"Cash flow", transactions_summary:"Spending summary", recurring_items:"Recurring items", wealth_goals:"Wealth goals"};
+          const enabled = !!perms?.sections.includes(sec);
+          const disabled = !perms?.master;
+          return (
+            <View key={sec} style={[s.row, {opacity: disabled?0.45:1}]}>
+              <Text style={[s.rowMeta, {flex:1}]}>{labels[sec]}</Text>
+              <TouchableOpacity disabled={disabled} onPress={async()=>{ try{ await setWealthNextronSection(sec as any, !enabled); const p=await loadWealthNextronPermissions(); setPerms(p);}catch(e:any){ Alert.alert("Error",e.message);} }} style={[s.currChip, enabled && s.currChipActive]}><Text style={[s.currText, enabled && s.currTextActive]}>{enabled ? "ON" : "OFF"}</Text></TouchableOpacity>
+            </View>
+          );
+        })}
+        <Text style={s.noteSmall}>Effective: {perms?.master ? (perms.sections.length? perms.sections.join(", ") : "master ON but no sections") : "OFF"}. Permission changes take effect immediately; cached evidence is not retained.</Text>
       </View>
 
       <View style={s.card}>

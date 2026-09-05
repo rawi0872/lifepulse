@@ -227,6 +227,39 @@ export default function TodayScreen() {
   const _bodySignals = BODY_TODAY_SIGNALS_ENABLED
     ? deriveBodySignals({ dueBodyHabits: [], goalProgress: [], todaySteps: null, sleepMinutes: null })
     : [];
+  // Wealth strong signal — deterministic, at most ONE, not gated by NEXTRON permission
+  const [wealthToday, setWealthToday] = useState<{ title: string; rationale: string; dueDate?: string } | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!user) return;
+      const today = getLocalTodayDateString();
+      const { data } = await supabase.from("finance_recurring_items").select("name, next_due_date, kind").eq("user_id", user.id).eq("is_active", true).order("next_due_date").limit(10);
+      const items = (data ?? []) as Array<{ name: string; next_due_date: string; kind: string }>;
+      const strong = items.filter((it) => ["bill","subscription"].includes(it.kind) || it.kind==="bill");
+      // pick earliest due within 7 days, overdue wording: scheduled date has passed
+      const todayDate = new Date(today);
+      let candidate: typeof items[0] | null = null;
+      for (const it of strong) {
+        const due = new Date(it.next_due_date);
+        const diff = Math.ceil((due.getTime() - todayDate.getTime())/86400000);
+        if (diff >= -30 && diff <= 7) { candidate = it; break; }
+      }
+      if (!candidate) {
+        // also check task/habit due via wealth realm tasks? fallback to first bill
+        candidate = strong.find((it)=> it.next_due_date >= today) ?? null;
+      }
+      if (cancelled) return;
+      if (candidate) {
+        const due = new Date(candidate.next_due_date);
+        const diff = Math.ceil((due.getTime() - todayDate.getTime())/86400000);
+        const rationale = diff < 0 ? `Scheduled date for ${candidate.name} has passed` : `${candidate.name} scheduled in ${diff} days`;
+        // never include balance/amount, only name + date
+        setWealthToday({ title: candidate.name, rationale, dueDate: candidate.next_due_date });
+      } else setWealthToday(null);
+    })();
+    return () => { cancelled = true; };
+  }, [user]);
 
   const greeting = useMemo(() => {
     const h = new Date().getHours();
@@ -258,6 +291,13 @@ export default function TodayScreen() {
         <Text style={styles.date}>{model?.date.displayDate ?? "Today"}</Text>
       </View>
 
+      {wealthToday ? (
+        <View style={[styles.heroCard, {marginBottom: spacing.lg, borderColor: colors.accentBorder}]}>
+          <Text style={styles.heroType}>Wealth · scheduled</Text>
+          <Text style={styles.heroTitle}>{wealthToday.title}</Text>
+          <Text style={styles.heroReason}>{wealthToday.rationale}</Text>
+        </View>
+      ) : null}
       {/* Up Next — dense hero */}
       <View style={styles.upNextSection}>
         <Text style={styles.sectionLabelTextAlt}>UP NEXT</Text>

@@ -1,7 +1,7 @@
 import type { NextronEvidencePacket } from "@/lib/nextron/evidence";
 import type { NextronRichResponse } from "@/lib/nextron/rich-response";
 
-export type NextronEvidenceCategory = keyof Pick<NextronEvidencePacket, "today" | "tasks" | "habits" | "results" | "journal" | "eveningShutdown" | "weeklyReview" | "goals" | "projects" | "knowledge" | "calendar" | "profile" | "memory">;
+export type NextronEvidenceCategory = keyof Pick<NextronEvidencePacket, "today" | "tasks" | "habits" | "results" | "journal" | "eveningShutdown" | "weeklyReview" | "goals" | "projects" | "knowledge" | "calendar" | "profile" | "memory" | "wealth" | "body">;
 
 export interface NextronFact {
   category: NextronEvidenceCategory;
