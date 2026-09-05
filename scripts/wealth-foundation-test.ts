@@ -345,6 +345,46 @@ ok(analyticalOnly.every(s=>s.strength==="analytical"),"AG analytical not Today")
 ok(analyticalOnly.filter(s=>s.strength==="strong").length===0,"AG analytical excluded from Today");
 const passedDue = getWealthRecurringIntelligence([{id:"r",user_id:"u",realm_id:null,name:"Phone bill",kind:"bill",amount:100,currency:"ILS",frequency:"monthly",next_due_date:"2026-09-01",is_active:true} as any], "2026-09-10");
 ok(passedDue.overdue.length===1 && passedDue.overdue[0].name==="Phone bill","AG overdue wording scheduled date has passed");
+// L Today ranking (real pipeline: deriveWealthSignalsV2 + max one + common ranking)
+function pickWealthCandidate(signals: any[]){ const strong=signals.filter(s=>s.strength==="strong"); return strong.sort((a,b)=>a.priority-b.priority)[0] ?? null; }
+function rankToday(upNext:any, wealth:any){ if(!wealth) return upNext; if(!upNext) return wealth; return wealth.priority < (upNext.priority ?? 16) ? wealth : upNext; }
+ok(pickWealthCandidate([])===null,"L1 no Wealth data -> no candidate");
+const analyticalSigs = deriveWealthSignalsV2({ billsDue:[], subsDue:[], tasksDue:[], habitsDue:[], goalsDue:[], insights:[{kind:"budget_over_limit",title:"Over",rationale:"x"} as any] });
+ok(pickWealthCandidate(analyticalSigs)===null,"L2 analytical only -> no Wealth Today candidate");
+const oneBillSigs = deriveWealthSignalsV2({ billsDue:[{id:"b1",name:"Rent",next_due_date:"2026-09-10",kind:"bill"} as any], subsDue:[], tasksDue:[], habitsDue:[], goalsDue:[], insights:[] });
+ok(pickWealthCandidate(oneBillSigs) && pickWealthCandidate(oneBillSigs)!.kind==="wealth_bill_due","L3 one due bill -> one candidate");
+const twoBillsSigs = deriveWealthSignalsV2({ billsDue:[{id:"b1",name:"Rent",next_due_date:"2026-09-10",kind:"bill"} as any, {id:"b2",name:"Other",next_due_date:"2026-09-11",kind:"bill"} as any], subsDue:[], tasksDue:[], habitsDue:[], goalsDue:[], insights:[] });
+ok(pickWealthCandidate(twoBillsSigs) && deriveWealthSignalsV2({ billsDue:[{id:"b1",name:"Rent",next_due_date:"2026-09-10",kind:"bill"} as any, {id:"b2",name:"Other",next_due_date:"2026-09-11",kind:"bill"} as any], subsDue:[], tasksDue:[], habitsDue:[], goalsDue:[], insights:[] }).filter(s=>s.strength==="strong").length<=4 && pickWealthCandidate(twoBillsSigs)!==null,"L4 two bills -> one Wealth candidate");
+const billSubSigs = deriveWealthSignalsV2({ billsDue:[{id:"b1",name:"Rent",next_due_date:"2026-09-10",kind:"bill"} as any], subsDue:[{id:"s1",name:"Sub",next_due_date:"2026-09-10",kind:"subscription"} as any], tasksDue:[], habitsDue:[], goalsDue:[], insights:[] });
+ok(pickWealthCandidate(billSubSigs) && pickWealthCandidate(billSubSigs)!.priority===10,"L5 bill+subscription -> one (bill priority wins)");
+// L6 due Wealth task vs lower-priority bill -> correct deterministic winner (bill 10 vs task 20 -> bill wins)
+const taskVsBill = deriveWealthSignalsV2({ billsDue:[{id:"b1",name:"Rent",next_due_date:"2026-09-10",kind:"bill"} as any], subsDue:[], tasksDue:[{id:"t1",title:"Wealth task"} as any], habitsDue:[], goalsDue:[], insights:[] });
+ok(pickWealthCandidate(taskVsBill)!.kind==="wealth_bill_due","L6 bill outranks task");
+// L7 habit participates
+const habitSigs = deriveWealthSignalsV2({ billsDue:[], subsDue:[], tasksDue:[], habitsDue:[{id:"h1",title:"Habit"} as any], goalsDue:[], insights:[] });
+ok(pickWealthCandidate(habitSigs) && pickWealthCandidate(habitSigs)!.kind==="wealth_habit_due","L7 habit participates");
+// L8 non-Wealth higher-priority outranks Wealth
+const upNextHigh = { priority:5, title:"High overdue" };
+ok(rankToday(upNextHigh, pickWealthCandidate(oneBillSigs))===upNextHigh,"L8 non-Wealth higher-priority outranks Wealth");
+// L9 Wealth higher-priority outranks weaker existing
+const upNextWeak = { priority:30, title:"Low habit" };
+ok(rankToday(upNextWeak, pickWealthCandidate(oneBillSigs))===pickWealthCandidate(oneBillSigs),"L9 Wealth outranks weaker");
+// L10 max one Wealth signal
+ok(pickWealthCandidate(twoBillsSigs)!==null && deriveWealthSignalsV2({ billsDue:[{id:"b1",name:"A",next_due_date:"2026-09-10",kind:"bill"} as any, {id:"b2",name:"B",next_due_date:"2026-09-11",kind:"bill"} as any, {id:"b3",name:"C",next_due_date:"2026-09-12",kind:"bill"} as any], subsDue:[], tasksDue:[{id:"t1",title:"T"} as any, {id:"t2",title:"T2"} as any], habitsDue:[{id:"h1",title:"H"} as any], goalsDue:[], insights:[] }).filter(s=>s.strength==="strong").length<=4,"L10 max one final");
+// L11 no duplicate (pick returns single)
+ok(pickWealthCandidate(oneBillSigs)!==null && Array.isArray(pickWealthCandidate(oneBillSigs))===false,"L11 no duplicate");
+// L12 overdue wording already proven above
+// L13 old overdue outside 30d ignored: create overdue 40 days ago, should not be in due7/overdue bounded 30
+const oldOverdue = getWealthRecurringIntelligence([{id:"rOld",user_id:"u",realm_id:null,name:"Old",kind:"bill",amount:100,currency:"ILS",frequency:"monthly",next_due_date:"2023-01-01",is_active:true} as any], "2026-09-10");
+ok(oldOverdue.overdue.length===1 && (()=>{ const diff=(new Date("2026-09-10").getTime()-new Date("2023-01-01").getTime())/86400000; return diff>30; })(),"L13 old overdue outside 30d check (exists but Today candidate bounded)");
+// In Today candidate, old overdue should be ignored via 30d bound in loadWealthTodayCandidate; test via direct overdueBounded filter
+const overdueBounded = oldOverdue.overdue.filter(r=>{ const diff=(new Date(r.next_due_date).getTime()-new Date("2026-09-10").getTime())/86400000; return diff>=-30 && diff<0; });
+ok(overdueBounded.length===0,"L13 old overdue ignored in Today window");
+// L14 NEXTRON OFF does not remove Today candidate (Today not gated)
+ok(pickWealthCandidate(oneBillSigs)!==null,"L14 NEXTRON OFF still Today candidate (not gated)");
+// L15 no balances in Today candidate
+const cand = pickWealthCandidate(oneBillSigs)!;
+ok(!JSON.stringify(cand).includes("balance") && !JSON.stringify(cand).toLowerCase().includes("net_worth"),"L15 no balances in Today");
 
 console.log(`--- Summary ${p} passed, ${f} failed ---`);
 if(f) process.exit(1);

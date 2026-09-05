@@ -315,3 +315,40 @@ export async function loadWealthIntelligence(){
   const signals = deriveWealthSignalsV2({ billsDue: recurringIntel.due7.filter(r=>r.kind==="bill"), subsDue: recurringIntel.due7.filter(r=>r.kind==="subscription"), tasksDue: (tasksRes.data as any[])?.slice(0,1) ?? [], habitsDue: (habitsRes.data as any[])?.slice(0,1) ?? [], goalsDue: goalProgress.filter(g=>g.status==="behind"), insights });
   return { currencies, baseCurrency, monthStart, monthEnd, historyPerCurrency, trends, catSummaries, categoryChanges, budgetStatuses, goalProgress, freshness, recurringIntel, coverage, insights, signals, rawCounts: { tx12: txs.length } };
 }
+
+// ── Today candidate (bounded, deterministic, uses deriveWealthSignalsV2) ──
+export async function loadWealthTodayCandidate(): Promise<import("@lifepulse/domain").WealthSignalV2 | null> {
+  const { data: { user } } = await supabase.auth.getUser(); if(!user) return null;
+  const realm = await ensureWealthRealm(); if(!realm) return null;
+  const today = new Date().toISOString().slice(0,10);
+  // Bounded windows: upcoming 7d via recurring, overdue bounded 30d
+  const [recurRes, tasksRes, habitsRes] = await Promise.all([
+    supabase.from("finance_recurring_items").select("id, name, kind, amount, currency, next_due_date, is_active").eq("user_id", user.id).eq("is_active", true).order("next_due_date").limit(20),
+    // Wealth tasks: status todo, due within window, realm_id = Wealth (try realm_id, fallback to no filter if column missing)
+    supabase.from("tasks").select("id, title, due_date").eq("user_id", user.id).eq("status","todo").eq("realm_id", realm.id).limit(10).then(r=> (r as any).error ? supabase.from("tasks").select("id, title, due_date").eq("user_id", user.id).eq("status","todo").limit(10) : r as any),
+    supabase.from("habits").select("id, title").eq("user_id", user.id).eq("realm_id", realm.id).limit(10).then(r=> (r as any).error ? supabase.from("habits").select("id, title").eq("user_id", user.id).limit(10) : r as any),
+  ]);
+  const allRecur = (recurRes.data as any[]) ?? [];
+  const intel = getWealthRecurringIntelligence(allRecur as any, today);
+  // Filter overdue to bounded 30d (not 2 years)
+  const overdueBounded = intel.overdue.filter(r=>{
+    const diff = (new Date(r.next_due_date).getTime() - new Date(today).getTime())/86400000;
+    return diff >= -30 && diff < 0;
+  });
+  // Determine due tasks/habits within 7d window for Today (simplified: tasks due today)
+  const tasksDue = ((tasksRes as any)?.data ?? []).filter((t:any)=> t.due_date && t.due_date <= today && t.due_date >= new Date(new Date(today).getTime()-7*86400000).toISOString().slice(0,10)).slice(0,2) as any[];
+  // Habits due today (if isHabitDueOnDate not available, just take first)
+  const habitsDue = ((habitsRes as any)?.data ?? []).slice(0,1) as any[];
+  const signals = deriveWealthSignalsV2({ billsDue: intel.due7.filter(r=>r.kind==="bill"), subsDue: intel.due7.filter(r=>r.kind==="subscription"), tasksDue, habitsDue, goalsDue: [], insights: [] });
+  const strong = signals.filter(s=> s.strength==="strong");
+  if(strong.length===0) {
+    // also consider overdue as strong if no upcoming (overdue is strong via bill due that has passed? derive already handles due7 only, so check overdue)
+    if(overdueBounded.length>0){
+      const r=overdueBounded[0];
+      return { kind:"wealth_bill_due", priority:10, title:r.name, rationale:`Scheduled date for ${r.name} has passed`, dueDate:r.next_due_date, sourceId:r.id, strength:"strong" } as any;
+    }
+    return null;
+  }
+  // Max one: lowest priority (deterministic ordering already priority sorted)
+  return strong.sort((a,b)=> a.priority - b.priority || (a.dueDate??"").localeCompare(b.dueDate??""))[0] ?? null;
+}

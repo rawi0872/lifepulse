@@ -227,36 +227,15 @@ export default function TodayScreen() {
   const _bodySignals = BODY_TODAY_SIGNALS_ENABLED
     ? deriveBodySignals({ dueBodyHabits: [], goalProgress: [], todaySteps: null, sleepMinutes: null })
     : [];
-  // Wealth strong signal — deterministic, at most ONE, not gated by NEXTRON permission
-  const [wealthToday, setWealthToday] = useState<{ title: string; rationale: string; dueDate?: string } | null>(null);
+  // Wealth Today candidate — via deterministic domain (single source of truth)
+  const [wealthCandidate, setWealthCandidate] = useState<import("@lifepulse/domain").WealthSignalV2 | null>(null);
   useEffect(() => {
     let cancelled = false;
     (async () => {
       if (!user) return;
-      const today = getLocalTodayDateString();
-      const { data } = await supabase.from("finance_recurring_items").select("name, next_due_date, kind").eq("user_id", user.id).eq("is_active", true).order("next_due_date").limit(10);
-      const items = (data ?? []) as Array<{ name: string; next_due_date: string; kind: string }>;
-      const strong = items.filter((it) => ["bill","subscription"].includes(it.kind) || it.kind==="bill");
-      // pick earliest due within 7 days, overdue wording: scheduled date has passed
-      const todayDate = new Date(today);
-      let candidate: typeof items[0] | null = null;
-      for (const it of strong) {
-        const due = new Date(it.next_due_date);
-        const diff = Math.ceil((due.getTime() - todayDate.getTime())/86400000);
-        if (diff >= -30 && diff <= 7) { candidate = it; break; }
-      }
-      if (!candidate) {
-        // also check task/habit due via wealth realm tasks? fallback to first bill
-        candidate = strong.find((it)=> it.next_due_date >= today) ?? null;
-      }
-      if (cancelled) return;
-      if (candidate) {
-        const due = new Date(candidate.next_due_date);
-        const diff = Math.ceil((due.getTime() - todayDate.getTime())/86400000);
-        const rationale = diff < 0 ? `Scheduled date for ${candidate.name} has passed` : `${candidate.name} scheduled in ${diff} days`;
-        // never include balance/amount, only name + date
-        setWealthToday({ title: candidate.name, rationale, dueDate: candidate.next_due_date });
-      } else setWealthToday(null);
+      const { loadWealthTodayCandidate } = await import("../../lib/wealth-service");
+      const cand = await loadWealthTodayCandidate();
+      if (!cancelled) setWealthCandidate(cand);
     })();
     return () => { cancelled = true; };
   }, [user]);
@@ -291,43 +270,55 @@ export default function TodayScreen() {
         <Text style={styles.date}>{model?.date.displayDate ?? "Today"}</Text>
       </View>
 
-      {wealthToday ? (
-        <View style={[styles.heroCard, {marginBottom: spacing.lg, borderColor: colors.accentBorder}]}>
-          <Text style={styles.heroType}>Wealth · scheduled</Text>
-          <Text style={styles.heroTitle}>{wealthToday.title}</Text>
-          <Text style={styles.heroReason}>{wealthToday.rationale}</Text>
-        </View>
-      ) : null}
-      {/* Up Next — dense hero */}
-      <View style={styles.upNextSection}>
-        <Text style={styles.sectionLabelTextAlt}>UP NEXT</Text>
-        {upNext ? (
-          <View style={styles.heroCard}>
-            <View style={styles.heroTop}>
-              <Text style={styles.heroType}>
-                {upNext.type === "habit" ? "Habit · due today" : "Task · due today"}
-              </Text>
+      {/* Up Next — deterministic ranking: Wealth strong candidate vs existing habit/task via common priority */}
+      {(() => {
+        const wealthP = wealthCandidate?.priority ?? 999;
+        // Map UpNext to comparable priority: high-overdue 12, due-today-task 16, habit 19
+        let upNextP = 999;
+        if (upNext) upNextP = upNext.type === "task" ? 16 : 19;
+        const wealthWins = wealthCandidate && wealthP < upNextP;
+        if (wealthWins && wealthCandidate) {
+          return (
+            <View style={styles.upNextSection}>
+              <Text style={styles.sectionLabelTextAlt}>UP NEXT</Text>
+              <View style={styles.heroCard}>
+                <Text style={styles.heroType}>Wealth · scheduled</Text>
+                <Text style={styles.heroTitle}>{wealthCandidate.title}</Text>
+                <Text style={styles.heroReason}>{wealthCandidate.rationale}</Text>
+              </View>
             </View>
-            <Text style={styles.heroTitle}>{upNext.title}</Text>
-            <Text style={styles.heroReason}>{upNext.reason}</Text>
-            <TouchableOpacity
-              style={styles.heroAction}
-              activeOpacity={0.85}
-              onPress={() => (upNext.type === "task" ? void completeTask(upNext.id) : void completeHabit(upNext.id))}
-            >
-              <Text style={styles.heroActionText}>
-                {upNext.type === "task" ? "Complete task" : "Log habit"}
-              </Text>
-              <ChevronRight size={16} color={colors.onAccent} />
-            </TouchableOpacity>
+          );
+        }
+        return (
+          <View style={styles.upNextSection}>
+            <Text style={styles.sectionLabelTextAlt}>UP NEXT</Text>
+            {upNext ? (
+              <View style={styles.heroCard}>
+                <View style={styles.heroTop}>
+                  <Text style={styles.heroType}>{upNext.type === "habit" ? "Habit · due today" : "Task · due today"}</Text>
+                </View>
+                <Text style={styles.heroTitle}>{upNext.title}</Text>
+                <Text style={styles.heroReason}>{upNext.reason}</Text>
+                <TouchableOpacity style={styles.heroAction} activeOpacity={0.85} onPress={() => (upNext.type === "task" ? void completeTask(upNext.id) : void completeHabit(upNext.id))}>
+                  <Text style={styles.heroActionText}>{upNext.type === "task" ? "Complete task" : "Log habit"}</Text>
+                  <ChevronRight size={16} color={colors.onAccent} />
+                </TouchableOpacity>
+              </View>
+            ) : wealthCandidate ? (
+              <View style={styles.heroCard}>
+                <Text style={styles.heroType}>Wealth · scheduled</Text>
+                <Text style={styles.heroTitle}>{wealthCandidate.title}</Text>
+                <Text style={styles.heroReason}>{wealthCandidate.rationale}</Text>
+              </View>
+            ) : (
+              <View style={styles.heroEmpty}>
+                <Check size={20} color={colors.textMuted} />
+                <Text style={styles.heroEmptyText}>You&apos;re caught up</Text>
+              </View>
+            )}
           </View>
-        ) : (
-          <View style={styles.heroEmpty}>
-            <Check size={20} color={colors.textMuted} />
-            <Text style={styles.heroEmptyText}>You&apos;re caught up</Text>
-          </View>
-        )}
-      </View>
+        );
+      })()}
 
       {/* Today's Focus — compact, actionable */}
       <View style={styles.section}>
