@@ -1,5 +1,5 @@
 import { getWealthBalanceSummary, getWealthCashFlowSummary, getSavingsRate, getUpcomingWealthCommitments, formatWealth, formatWealthGrouped, parseWealthAmount, advanceWealthRecurrence, wealthPeriodBounds, isWealthNextronAllowed, formatWealthMinor, wealthMinorFromMajor, WEALTH_CURRENCIES } from "../packages/domain/wealth";
-import { getWealthMonthlyHistory, getWealthHistoryPerCurrency, getWealthTrends, getWealthCategorySummaries, getTopCategoryChanges, getWealthBudgetStatuses, getWealthGoalProgress, getWealthBalanceFreshness, getWealthRecurringIntelligence, getWealthDataCoverage, deriveWealthInsights, deriveWealthSignalsV2 } from "../packages/domain/wealth-intelligence";
+import { getWealthMonthlyHistory, getWealthHistoryPerCurrency, getWealthTrends, getWealthCategorySummaries, getTopCategoryChanges, getWealthBudgetStatuses, getWealthGoalProgress, getWealthBalanceFreshness, getWealthRecurringIntelligence, getWealthDataCoverage, deriveWealthInsights, deriveWealthSignalsV2, comparablePeriodBounds, getComparableTrend } from "../packages/domain/wealth-intelligence";
 import type { WealthAccount, WealthTransaction, WealthRecurringItem } from "../packages/domain/wealth";
 let p=0,f=0; const ok=(c:boolean,l:string)=>{ if(c){p++;console.log(`  PASS ${l}`);} else {f++;console.log(`  FAIL ${l}`);} };
 
@@ -183,14 +183,36 @@ ok(Math.abs((catSum.find(c=>c.categoryName==="Food")!.share - 50/60)) < 0.01,"11
 const prevCat = [{categoryName:"Food",amount:100, share:1, count:2, currency:"ILS", categoryId:"cat-food"} as any];
 const currCat = [{categoryName:"Food",amount:130, share:1, count:2, currency:"ILS", categoryId:"cat-food"} as any];
 ok(getTopCategoryChanges(currCat, prevCat, 0.15).length===1 && getTopCategoryChanges(currCat, [{categoryName:"Food",amount:120} as any],0.15).length===0,"12 threshold");
-// 13-15 budgets
-const budgets = [{id:"b1",category_id:"cat-food",month:"2026-09-01",amount:100}];
+// 13-15 budgets (explicit currency)
+const budgets = [{id:"b1",category_id:"cat-food",month:"2026-09-01",amount:100,currency:"ILS"}];
 const bUnder = getWealthBudgetStatuses(budgets, cats, [{categoryId:"cat-food",categoryName:"Food",amount:30,share:1,count:1,currency:"ILS"} as any], "ILS");
 ok(bUnder[0].status==="on_track","13 budget under");
 const bNear = getWealthBudgetStatuses(budgets, cats, [{categoryId:"cat-food",categoryName:"Food",amount:85,share:1,count:1,currency:"ILS"} as any], "ILS");
 ok(bNear[0].status==="near_limit","14 near");
 const bOver = getWealthBudgetStatuses(budgets, cats, [{categoryId:"cat-food",categoryName:"Food",amount:120,share:1,count:1,currency:"ILS"} as any], "ILS");
 ok(bOver[0].status==="over_budget","15 over");
+// M additional: legacy NULL currency → currency_unknown
+const legacyBud = [{id:"bL",category_id:"cat-food",month:"2026-09-01",amount:100} as any];
+const bLegacy = getWealthBudgetStatuses(legacyBud, cats, [{categoryId:"cat-food",categoryName:"Food",amount:50,share:1,count:1,currency:"ILS"} as any], "ILS");
+ok(bLegacy[0].status==="currency_unknown" && bLegacy[0].percentUsed===null && bLegacy[0].currency===null,"M legacy null→currency_unknown");
+// M2 ILS budget ignores USD expenses
+const bUSD = getWealthBudgetStatuses([{id:"bU",category_id:"cat-food",month:"2026-09-01",amount:100,currency:"ILS"} as any], cats, [{categoryId:"cat-food",categoryName:"Food",amount:999,share:1,count:1,currency:"USD"} as any], "ILS");
+ok(bUSD[0].actual===0 && bUSD[0].status==="no_activity","M2 ILS ignores USD");
+// M3 comparable-period helpers
+const cmpSep = comparablePeriodBounds("2026-09-04");
+ok(cmpSep.current.start==="2026-09-01" && cmpSep.current.end==="2026-09-04" && cmpSep.previous.start==="2026-08-01" && cmpSep.previous.end==="2026-08-04","N case Sep 4 MTD");
+const cmpMar = comparablePeriodBounds("2026-03-31");
+ok(cmpMar.current.start==="2026-03-01" && cmpMar.current.end==="2026-03-31" && cmpMar.previous.start==="2026-02-01" && cmpMar.previous.end==="2026-02-28","N clamp Feb");
+const cmpJan = comparablePeriodBounds("2026-01-05");
+ok(cmpJan.current.start==="2026-01-01" && cmpJan.current.end==="2026-01-05" && cmpJan.previous.start==="2025-12-01" && cmpJan.previous.end==="2025-12-05","N year boundary");
+// misleading trend regression
+const sepTx = [
+  {id:"s1",user_id:"u",account_id:"1",category_id:null,amount:100,currency:"ILS",type:"expense",title:"s",transaction_date:"2026-09-02"},
+  {id:"a1",user_id:"u",account_id:"1",category_id:null,amount:80,currency:"ILS",type:"expense",title:"a",transaction_date:"2026-08-02"},
+  {id:"a2",user_id:"u",account_id:"1",category_id:null,amount:1000,currency:"ILS",type:"expense",title:"a2",transaction_date:"2026-08-20"},
+] as WealthTransaction[];
+const trMis = getComparableTrend(sepTx, "ILS", "2026-09-04");
+ok(trMis.current.expenses===100 && trMis.previous && trMis.previous.expenses===80 && (trMis.expenseChangePct as number) > 0,"O MTD comparable not polluted by Aug 5-31");
 // 16 savings goal
 const accForGoal: WealthAccount[] = [
   {id:"a1",user_id:"u",realm_id:null,name:"Savings",type:"savings",starting_balance:600,currency:"ILS",is_archived:false,source_type:"manual"},

@@ -1,6 +1,6 @@
 import { supabase } from "./supabase";
 import { getWealthBalanceSummary, getWealthCashFlowSummary, getUpcomingWealthCommitments, type WealthAccount, type WealthTransaction, type WealthRecurringItem } from "@lifepulse/domain";
-import { getWealthMonthlyHistory, getWealthHistoryPerCurrency, getWealthTrends, getWealthCategorySummaries, getTopCategoryChanges, getWealthBudgetStatuses, getWealthGoalProgress, getWealthBalanceFreshness, getWealthRecurringIntelligence, getWealthDataCoverage, deriveWealthInsights, deriveWealthSignalsV2 } from "@lifepulse/domain";
+import { getWealthMonthlyHistory, getWealthHistoryPerCurrency, getComparableTrend, comparablePeriodBounds, getWealthCategorySummaries, getTopCategoryChanges, getWealthBudgetStatuses, getWealthGoalProgress, getWealthBalanceFreshness, getWealthRecurringIntelligence, getWealthDataCoverage, deriveWealthInsights, deriveWealthSignalsV2 } from "@lifepulse/domain";
 
 // ── Realm ──
 export async function ensureWealthRealm(): Promise<{ id: string; name: string } | null> {
@@ -207,12 +207,18 @@ export async function deleteWealthGoal(id:string){
 }
 
 // ── Budgets ──
-export async function createWealthBudget(input:{ category_id:string; month:string; amount:number }){
+export async function createWealthBudget(input:{ category_id:string; month:string; amount:number; currency:string }){
   const { data:{user}} = await supabase.auth.getUser(); if(!user) throw new Error("not authed");
   // month must be first of month YYYY-MM-01
   const m = input.month.slice(0,7)+"-01";
-  const { data, error } = await supabase.from("finance_budgets").insert({ user_id:user.id, category_id: input.category_id, month: m, amount: input.amount }).select("id").single();
+  const { data, error } = await supabase.from("finance_budgets").insert({ user_id:user.id, category_id: input.category_id, month: m, amount: input.amount, currency: input.currency }).select("id").single();
   if(error) throw error; return data;
+}
+export async function setWealthBudgetCurrency(id:string, currency:string){
+  if(!/^[A-Z]{3}$/.test(currency)) throw new Error("invalid currency");
+  const { data:{user}} = await supabase.auth.getUser(); if(!user) throw new Error("not authed");
+  const { error } = await supabase.from("finance_budgets").update({ currency }).eq("id", id).eq("user_id", user.id);
+  if(error) throw error;
 }
 export async function deleteWealthBudget(id:string){
   const { data:{user}} = await supabase.auth.getUser(); if(!user) throw new Error("not authed");
@@ -247,7 +253,7 @@ export async function loadWealthIntelligence(){
     supabase.from("finance_transactions").select("id, amount, type, transaction_date, currency:finance_accounts(currency), category_id, account_id, finance_accounts!inner(currency)").eq("user_id", user.id).gte("transaction_date", start12Str).lte("transaction_date", monthEnd).order("transaction_date",{ascending:true}),
     // fallback simple query for broad 12m if join inner fails: use non-inner
     supabase.from("finance_categories").select("id, name, type").eq("user_id", user.id),
-    supabase.from("finance_budgets").select("id, category_id, month, amount").eq("user_id", user.id).order("month",{ascending:false}).limit(20),
+    supabase.from("finance_budgets").select("id, category_id, month, amount, currency").eq("user_id", user.id).order("month",{ascending:false}).limit(20),
     supabase.from("finance_recurring_items").select("id, name, kind, amount, currency, frequency, next_due_date, is_active").eq("user_id", user.id).order("next_due_date"),
     supabase.from("goals").select("id, title, goal_type, target_value, baseline_value, target_metric").eq("user_id", user.id).eq("realm_id", realm.id),
     supabase.from("finance_preferences").select("base_currency").eq("user_id", user.id).maybeSingle(),
@@ -272,26 +278,29 @@ export async function loadWealthIntelligence(){
   const currencies = Array.from(new Set(accounts.filter(a=>!a.is_archived).map(a=>a.currency)));
   const baseCurrency = (prefsRes.data as any)?.base_currency ?? currencies[0] ?? "ILS";
   const todayStr = now.toISOString().slice(0,10);
-  // histories per currency
+  // histories per currency (calendar months, once per currency)
   const historyPerCurrency = getWealthHistoryPerCurrency(txs, 12, currencies, todayStr);
-  const history3PerCurrency: Record<string, any> = {};
-  for(const cur of currencies) history3PerCurrency[cur]=getWealthHistoryPerCurrency(txs, 3, [cur], todayStr)[cur];
-  const trends = currencies.map(cur=> getWealthTrends(historyPerCurrency[cur] ?? [])).filter(Boolean) as any[];
-  // category summaries for current month and previous
+  // trends: use comparable-period (MTD-aware) per currency
+  const { current: cmpCur, previous: cmpPrev } = comparablePeriodBounds(todayStr);
+  const trends = currencies.map(cur=> getComparableTrend(txs, cur, todayStr)).filter(Boolean) as any[];
+  // category summaries use comparable periods too (same rule as trend)
   const catSummaries: Record<string, any> = {};
   const catPrev: Record<string, any> = {};
   for(const cur of currencies){
-    catSummaries[cur]=getWealthCategorySummaries(txs, (catRes.data as any[]) ?? [], cur, { start: monthStart, end: monthEnd });
-    const prevStartObj = new Date(y, mm-2, 1); const py=prevStartObj.getFullYear(), pm=prevStartObj.getMonth()+1;
-    const prevStart = `${py}-${String(pm).padStart(2,'0')}-01`; const prevEnd = `${py}-${String(pm).padStart(2,'0')}-${String(new Date(py, pm, 0).getDate()).padStart(2,'0')}`;
-    catPrev[cur]=getWealthCategorySummaries(txs, (catRes.data as any[]) ?? [], cur, { start: prevStart, end: prevEnd });
+    catSummaries[cur]=getWealthCategorySummaries(txs, (catRes.data as any[]) ?? [], cur, { start: cmpCur.start, end: cmpCur.end });
+    catPrev[cur]=getWealthCategorySummaries(txs, (catRes.data as any[]) ?? [], cur, { start: cmpPrev.start, end: cmpPrev.end });
   }
   const categoryChanges: Record<string, any> = {};
   for(const cur of currencies) categoryChanges[cur]=getTopCategoryChanges(catSummaries[cur] ?? [], catPrev[cur] ?? []);
-  // budgets
+  // budgets: pass per-currency category summaries for budget currency matching
   const budgets = (budgetsRes.data as any[]) ?? [];
-  // filter budgets to current month for status? show all but compare to current month actual for same month string
-  const budgetStatuses = getWealthBudgetStatuses(budgets.filter(b=> b.month.slice(0,7)===monthStart.slice(0,7)), (catRes.data as any[]) ?? [], catSummaries[baseCurrency] ?? [], baseCurrency);
+  const currentBudgets = budgets.filter(b=> b.month.slice(0,7)===monthStart.slice(0,7));
+  const budgetStatuses = currentBudgets.flatMap((b:any)=>{
+    const budgetCur = b.currency ?? null;
+    // if budget has explicit currency, match that currency's summary; if null, currency_unknown
+    const summaryFor = budgetCur ? (catSummaries[budgetCur] ?? []) : [];
+    return getWealthBudgetStatuses([b], (catRes.data as any[]) ?? [], summaryFor, baseCurrency);
+  });
   // goals
   const goalProgress = getWealthGoalProgress((goalsRes.data as any[]) ?? [], accounts as WealthAccount[]);
   // freshness

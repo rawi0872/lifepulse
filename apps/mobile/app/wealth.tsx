@@ -5,7 +5,7 @@ import { colors, spacing, radii, type } from "../lib/theme";
 import { WealthIcon } from "../src/icons/WealthIcon";
 import { Plus } from "../src/icons/Plus";
 import { Close } from "../src/icons/Close";
-import { loadWealthOverview, loadWealthIntelligence, createWealthAccount, updateWealthAccount, archiveWealthAccount, createWealthTransaction, createPairedTransfer, updateWealthTransaction, deleteWealthTransaction, createWealthCategory, createWealthRecurring, updateWealthRecurring, setRecurringActive, advanceWealthRecurring, createWealthGoal, deleteWealthGoal, setBaseCurrency, createWealthBudget, deleteWealthBudget } from "../lib/wealth-service";
+import { loadWealthOverview, loadWealthIntelligence, createWealthAccount, updateWealthAccount, archiveWealthAccount, createWealthTransaction, createPairedTransfer, updateWealthTransaction, deleteWealthTransaction, createWealthCategory, createWealthRecurring, updateWealthRecurring, setRecurringActive, advanceWealthRecurring, createWealthGoal, deleteWealthGoal, setBaseCurrency, createWealthBudget, deleteWealthBudget, setWealthBudgetCurrency } from "../lib/wealth-service";
 import { formatWealth, formatWealthGrouped, parseWealthAmount, WEALTH_CURRENCIES, WEALTH_ACCOUNT_TYPE_OPTIONS, WEALTH_ACCOUNT_TYPE_DISPLAY, WEALTH_GOAL_TYPE_DISPLAY, WEALTH_GOAL_TARGET_METRIC, wealthPeriodBounds } from "@lifepulse/domain";
 import { Svg, Rect } from "react-native-svg";
 
@@ -36,7 +36,7 @@ export default function WealthScreen() {
   const [showTransfer, setShowTransfer] = useState(false); const [trFrom, setTrFrom] = useState<string>(""); const [trTo, setTrTo] = useState<string>(""); const [trAmt, setTrAmt] = useState(""); const [trDate, setTrDate] = useState(new Date().toISOString().slice(0,10));
   const [showRec, setShowRec] = useState(false); const [recName, setRecName] = useState(""); const [recKind, setRecKind] = useState("bill"); const [recAmt, setRecAmt] = useState(""); const [recCurr, setRecCurr] = useState("ILS"); const [recFreq, setRecFreq] = useState("monthly"); const [recDue, setRecDue] = useState(new Date(Date.now()+86400000*7).toISOString().slice(0,10)); const [editRecId, setEditRecId] = useState<string | null>(null);
   const [showGoal, setShowGoal] = useState(false); const [goalTitle, setGoalTitle] = useState(""); const [goalType, setGoalType] = useState("savings_target"); const [goalValue, setGoalValue] = useState(""); const [goalDate, setGoalDate] = useState("");
-  const [showBudget, setShowBudget] = useState(false); const [budgetCat, setBudgetCat] = useState<string | null>(null); const [budgetAmt, setBudgetAmt] = useState(""); const [budgetMonth, setBudgetMonth] = useState(new Date().toISOString().slice(0,7)+"-01");
+  const [showBudget, setShowBudget] = useState(false); const [budgetCat, setBudgetCat] = useState<string | null>(null); const [budgetAmt, setBudgetAmt] = useState(""); const [budgetMonth, setBudgetMonth] = useState(new Date().toISOString().slice(0,7)+"-01"); const [budgetCurr, setBudgetCurr] = useState("ILS");
 
   const load = useCallback(async () => {
     try { setErr(null); const [d, i] = await Promise.all([loadWealthOverview(), loadWealthIntelligence().catch(()=>null)]); setData(d); setIntel(i as any); } catch (e:any){ setErr(e.message ?? "Failed to load"); } finally { setLoading(false); setRefreshing(false); }
@@ -246,15 +246,31 @@ export default function WealthScreen() {
         </View>
       ) : null}
 
-      {/* Budgets — currency explicit, baseCurrency only */}
+      {/* Budgets — explicit currency, legacy NULL handled */}
       {intel ? (
         <View style={s.card}>
-          <View style={s.sectionHead}><Text style={s.cardLabel}>BUDGETS · {intel.budgetStatuses.length} · {intel.baseCurrency}</Text><TouchableOpacity style={s.addBtn} onPress={()=>{ setBudgetCat(data?.categories[0]?.id ?? null); setBudgetAmt(""); setBudgetMonth(new Date().toISOString().slice(0,7)+"-01"); setShowBudget(true); }}><Text style={s.addBtnText}>+ Add</Text></TouchableOpacity></View>
-          <Text style={s.noteSmall}>Budgets compared in base currency only — schema has no budget currency. Multi-currency budgets need currency column.</Text>
+          <View style={s.sectionHead}><Text style={s.cardLabel}>BUDGETS · {intel.budgetStatuses.length}</Text><TouchableOpacity style={s.addBtn} onPress={()=>{ setBudgetCat(data?.categories[0]?.id ?? null); setBudgetAmt(""); setBudgetMonth(new Date().toISOString().slice(0,7)+"-01"); setBudgetCurr(intel.baseCurrency); setShowBudget(true); }}><Text style={s.addBtnText}>+ Add</Text></TouchableOpacity></View>
+          <Text style={s.noteSmall}>Each budget has an explicit currency. Legacy budgets with no currency show “Currency not set”.</Text>
           {intel.budgetStatuses.length===0 ? <Text style={s.note}>No budgets for this month.</Text> : intel.budgetStatuses.map((b:any)=>(
             <View key={b.budgetId} style={s.row}>
-              <View style={{flex:1}}><Text style={s.rowTitle}>{b.categoryName}</Text><Text style={s.rowMeta}>Budget {formatWealthGrouped(b.budget,b.currency)} · Recorded {formatWealthGrouped(b.actual,b.currency)} · Remaining {formatWealthGrouped(b.remaining,b.currency)} · {Math.round(b.percentUsed*100)}% {b.status}</Text></View>
-              <TouchableOpacity onPress={async()=>{ try{ await deleteWealthBudget(b.budgetId); void load(); }catch(e:any){ Alert.alert("Error",e.message);} }}><Text style={s.dangerText}>Delete</Text></TouchableOpacity>
+              <View style={{flex:1}}>
+                <Text style={s.rowTitle}>{b.categoryName} {b.currency?`· ${b.currency}`:"· Currency not set"}</Text>
+                {b.status==="currency_unknown" ? (
+                  <Text style={s.rowMeta}>Set a currency to compare this budget with recorded spending.</Text>
+                ) : (
+                  <Text style={s.rowMeta}>Budget {formatWealthGrouped(b.budget,b.currency)} · Recorded {formatWealthGrouped(b.actual,b.currency)} · Remaining {formatWealthGrouped(b.remaining,b.currency)} · {Math.round((b.percentUsed ?? 0)*100)}% {b.status}</Text>
+                )}
+              </View>
+              <View style={{gap:6, alignItems:"flex-end"}}>
+                {b.status==="currency_unknown" ? (
+                  <View style={{flexDirection:"row", gap:4}}>
+                    {WEALTH_CURRENCIES.map(c=>(
+                      <TouchableOpacity key={c} style={[s.currChip, s.chip, {paddingVertical:4}]} onPress={async()=>{ try{ await setWealthBudgetCurrency(b.budgetId, c); void load(); }catch(e:any){ Alert.alert("Error",e.message);} }}><Text style={s.currText}>{c}</Text></TouchableOpacity>
+                    ))}
+                  </View>
+                ) : null}
+                <TouchableOpacity onPress={async()=>{ try{ await deleteWealthBudget(b.budgetId); void load(); }catch(e:any){ Alert.alert("Error",e.message);} }}><Text style={s.dangerText}>Delete</Text></TouchableOpacity>
+              </View>
             </View>
           ))}
         </View>
@@ -477,10 +493,12 @@ export default function WealthScreen() {
           <View style={s.modalHead}><Text style={s.modalTitle}>Add budget</Text><TouchableOpacity onPress={()=>setShowBudget(false)}><Close size={18} color={colors.textMuted} /></TouchableOpacity></View>
           <Text style={s.inputLabel}>Category (expense)</Text>
           <View style={s.chipRow}>{(data?.categories.filter((c:any)=>c.type==="expense").slice(0,8) ?? []).map((c:any)=>(<TouchableOpacity key={c.id} style={[s.chip, budgetCat===c.id && s.chipActive]} onPress={()=>setBudgetCat(c.id)}><Text style={[s.chipText, budgetCat===c.id && s.chipTextActive]}>{c.name}</Text></TouchableOpacity>))}</View>
-          <Text style={s.inputLabel}>Amount ({intel?.baseCurrency ?? baseCurrency})</Text><TextInput style={s.input} value={budgetAmt} onChangeText={setBudgetAmt} keyboardType="decimal-pad" placeholder="500.00" placeholderTextColor={colors.textFaint} />
+          <Text style={s.inputLabel}>Amount</Text><TextInput style={s.input} value={budgetAmt} onChangeText={setBudgetAmt} keyboardType="decimal-pad" placeholder="500.00" placeholderTextColor={colors.textFaint} />
+          <Text style={s.inputLabel}>Currency</Text>
+          <View style={s.chipRow}>{WEALTH_CURRENCIES.map(c=> (<TouchableOpacity key={c} style={[s.chip, budgetCurr===c && s.chipActive]} onPress={()=>setBudgetCurr(c)}><Text style={[s.chipText, budgetCurr===c && s.chipTextActive]}>{c}</Text></TouchableOpacity>))}</View>
           <Text style={s.inputLabel}>Month (YYYY-MM-01)</Text><TextInput style={s.input} value={budgetMonth} onChangeText={setBudgetMonth} placeholder="2026-09-01" placeholderTextColor={colors.textFaint} />
-          <Text style={s.noteSmall}>Budget compared in base currency only.</Text>
-          <TouchableOpacity style={s.primaryBtn} onPress={async()=>{ const amt=parseWealthAmount(budgetAmt); if(!budgetCat){ Alert.alert("Category required"); return;} if(amt===null){ Alert.alert("Valid amount"); return;} try{ await createWealthBudget({ category_id: budgetCat, month: budgetMonth, amount: amt}); setShowBudget(false); void load(); }catch(e:any){ Alert.alert("Error",e.message);} }}><Text style={s.primaryText}>Save budget</Text></TouchableOpacity>
+          <Text style={s.noteSmall}>Currency is persisted on the budget; changing base currency later does not alter it.</Text>
+          <TouchableOpacity style={s.primaryBtn} onPress={async()=>{ const amt=parseWealthAmount(budgetAmt); if(!budgetCat){ Alert.alert("Category required"); return;} if(amt===null){ Alert.alert("Valid amount"); return;} try{ await createWealthBudget({ category_id: budgetCat, month: budgetMonth, amount: amt, currency: budgetCurr}); setShowBudget(false); void load(); }catch(e:any){ Alert.alert("Error",e.message);} }}><Text style={s.primaryText}>Save budget</Text></TouchableOpacity>
         </View></View>
       </Modal>
 

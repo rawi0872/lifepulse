@@ -48,14 +48,66 @@ export function getWealthHistoryPerCurrency(transactions: WealthTransaction[], m
   return map;
 }
 
+// ── Comparable period helpers ──
+// Returns local date strings for a "comparable" window. For current partial month,
+// previous window is previous month through the SAME day-of-month (clamped to prev month length).
+export interface ComparablePeriod { start: string; end: string; mode: "full_month" | "month_to_date"; }
+export function comparablePeriodBounds(today: string): { current: ComparablePeriod; previous: ComparablePeriod } {
+  const [y, m, d] = today.split("-").map(Number);
+  const curStart = `${y}-${String(m).padStart(2,"0")}-01`;
+  const curLastDay = new Date(y, m, 0).getDate();
+  const isLastDayOfMonth = d === curLastDay;
+  // current window
+  const curEndDay = isLastDayOfMonth ? curLastDay : d;
+  const current = { start: curStart, end: `${y}-${String(m).padStart(2,"0")}-${String(curEndDay).padStart(2,"0")}`, mode: isLastDayOfMonth ? "full_month" as const : "month_to_date" as const };
+  // previous month: clamp to min(d, prevLastDay)
+  const prevDate = new Date(y, m-2, 1); // month index m-2 = previous month
+  const py = prevDate.getFullYear(), pm = prevDate.getMonth()+1;
+  const prevLastDay = new Date(py, pm, 0).getDate();
+  const prevEndDay = Math.min(d, prevLastDay);
+  const previous = { start: `${py}-${String(pm).padStart(2,"0")}-01`, end: `${py}-${String(pm).padStart(2,"0")}-${String(prevEndDay).padStart(2,"0")}`, mode: isLastDayOfMonth ? "full_month" as const : "month_to_date" as const };
+  return { current, previous };
+}
+
 // ── Trend ──
-export interface WealthTrend { currency: string; current: WealthPeriodSummary; previous: WealthPeriodSummary | null; netChange: number; expenseChangePct: number | null; incomeChangePct: number | null; direction: "up"|"down"|"flat"|"insufficient"; isSufficient: boolean; coverage: string; }
+export interface WealthTrend { currency: string; current: WealthPeriodSummary; previous: WealthPeriodSummary | null; netChange: number; expenseChangePct: number | null; incomeChangePct: number | null; direction: "up"|"down"|"flat"|"insufficient"; isSufficient: boolean; coverage: string; mode: "full_month"|"month_to_date"; }
+export function computeComparableTrend(current: WealthPeriodSummary | null, previous: WealthPeriodSummary | null, mode: "full_month"|"month_to_date"): Omit<WealthTrend,"current"|"previous"> & { current: WealthPeriodSummary|null; previous: WealthPeriodSummary|null } {
+  if(!current || !previous) return { currency:"", current:null, previous:null, netChange:0, expenseChangePct:null, incomeChangePct:null, direction:"insufficient", isSufficient:false, coverage:"insufficient", mode };
+  const isSufficient = current.hasData && previous.hasData && previous.expenses>0;
+  let expensePct: number|null = null; if(previous.expenses>0) expensePct=(current.expenses - previous.expenses)/previous.expenses;
+  let incomePct: number|null = null; if(previous.income>0) incomePct=(current.income - previous.income)/previous.income;
+  let dir: WealthTrend["direction"]="flat";
+  if(!isSufficient) dir="insufficient";
+  else if(current.net > previous.net) dir="up";
+  else if(current.net < previous.net) dir="down";
+  const coverage = mode==="month_to_date" ? "month-to-date vs comparable prior month" : "full month vs full prior month";
+  return { currency: current.currency, current, previous, netChange: current.net - previous.net, expenseChangePct: expensePct, incomeChangePct: incomePct, direction: dir, isSufficient, coverage, mode };
+}
+// Summary over an arbitrary bounded window (for MTD comparable), per currency
+export function summarizeWindow(transactions: WealthTransaction[], currency: string, start: string, end: string, isPartial: boolean): WealthPeriodSummary {
+  let income=0, expenses=0, count=0;
+  for(const t of transactions){
+    if(t.type==="transfer"||t.type==="adjustment") continue;
+    if(t.currency!==currency) continue;
+    if(t.transaction_date < start || t.transaction_date > end) continue;
+    if(t.type==="income") income+=t.amount; else if(t.type==="expense") expenses+=t.amount;
+    count++;
+  }
+  return { month: start.slice(0,7), currency, income, expenses, net: income-expenses, count, hasData: count>0, isPartial };
+}
+// Full trend using comparable periods (handles MTD correctly)
+export function getComparableTrend(transactions: WealthTransaction[], currency: string, today: string): WealthTrend {
+  const { current, previous } = comparablePeriodBounds(today);
+  const cur = summarizeWindow(transactions, currency, current.start, current.end, true);
+  const prev = summarizeWindow(transactions, currency, previous.start, previous.end, false);
+  const base = computeComparableTrend(cur, prev, current.mode);
+  return base as WealthTrend;
+}
 export function getWealthTrends(history: WealthPeriodSummary[]): WealthTrend | null {
   if(history.length<2) return null;
   const cur = history[history.length-1];
   const prev = history[history.length-2];
   const isPartial = cur.isPartial;
-  // insufficient if either has no data or previous count <3? Use count>0 and not both zero
   const isSufficient = cur.hasData && prev.hasData && prev.expenses>0;
   let expensePct: number|null = null; if(prev.expenses>0) expensePct=(cur.expenses - prev.expenses)/prev.expenses;
   let incomePct: number|null = null; if(prev.income>0) incomePct=(cur.income - prev.income)/prev.income;
@@ -63,7 +115,9 @@ export function getWealthTrends(history: WealthPeriodSummary[]): WealthTrend | n
   if(!isSufficient) dir="insufficient";
   else if(cur.net > prev.net) dir="up";
   else if(cur.net < prev.net) dir="down";
-  return { currency: cur.currency, current: cur, previous: prev, netChange: cur.net - prev.net, expenseChangePct: expensePct, incomeChangePct: incomePct, direction: dir, isSufficient, coverage: isPartial ? "current month partial" : "complete months" };
+  const coverage = isPartial ? "current month partial" : "complete months";
+  const mode = isPartial ? "month_to_date" as const : "full_month" as const;
+  return { currency: cur.currency, current: cur, previous: prev, netChange: cur.net - prev.net, expenseChangePct: expensePct, incomeChangePct: incomePct, direction: dir, isSufficient, coverage, mode };
 }
 
 // ── Category ──
@@ -100,21 +154,26 @@ export function getTopCategoryChanges(current: WealthCategorySummary[], previous
 }
 
 // ── Budget ──
-export interface WealthBudgetStatus { budgetId:string; categoryId:string; categoryName:string; month:string; budget:number; actual:number; remaining:number; percentUsed:number; status:"on_track"|"near_limit"|"over_budget"|"no_activity"|"insufficient"; currency:string; note?:string; }
-export function getWealthBudgetStatuses(budgets: Array<{id:string; category_id:string; month:string; amount:number}>, categories: Array<{id:string;name:string}>, expensesByCategory: WealthCategorySummary[], baseCurrency:string): WealthBudgetStatus[] {
+export interface WealthBudgetStatus { budgetId:string; categoryId:string; categoryName:string; month:string; budget:number; actual:number; remaining:number; percentUsed:number|null; status:"on_track"|"near_limit"|"over_budget"|"no_activity"|"insufficient"|"currency_unknown"; currency:string|null; note?:string; }
+export function getWealthBudgetStatuses(budgets: Array<{id:string; category_id:string; month:string; amount:number; currency?:string|null}>, categories: Array<{id:string;name:string}>, expensesByCategory: WealthCategorySummary[], baseCurrency:string): WealthBudgetStatus[] {
   const catName = new Map<string,string>(categories.map(c=>[c.id,c.name]));
-  // budget schema has no currency → treat as baseCurrency, compare only to that currency's expenses
   return budgets.map(b=>{
     const name=catName.get(b.category_id)??"Unknown";
-    const actualRow=expensesByCategory.find(c=>c.categoryId===b.category_id);
+    // currency_unknown: no percent, no actual comparison
+    if(!b.currency){
+      return { budgetId:b.id, categoryId:b.category_id, categoryName:name, month:b.month.slice(0,7), budget:Number(b.amount), actual:0, remaining:Number(b.amount), percentUsed: null, status:"currency_unknown" as const, currency: null, note:"Set a currency to compare this budget with recorded spending." };
+    }
+    const cur = b.currency;
+    // same-currency only: expensesByCategory should be pre-filtered to this currency by caller, but defensively match currency
+    const actualRow=expensesByCategory.find(c=>c.categoryId===b.category_id && c.currency===cur);
     const actual=actualRow?.amount ?? 0;
-    const percent = b.amount>0 ? actual / Number(b.amount) : 0;
+    const percent = Number(b.amount)>0 ? actual / Number(b.amount) : 0;
     let status: WealthBudgetStatus["status"]="on_track";
     if(!actualRow || actual===0) status="no_activity";
     else if(percent>=1) status="over_budget";
     else if(percent>=0.8) status="near_limit";
     else status="on_track";
-    return { budgetId:b.id, categoryId:b.category_id, categoryName:name, month:b.month.slice(0,7), budget:Number(b.amount), actual, remaining: Number(b.amount)-actual, percentUsed:percent, status, currency: baseCurrency, note: "Budget compared in base currency; multi-currency budgets require currency column." };
+    return { budgetId:b.id, categoryId:b.category_id, categoryName:name, month:b.month.slice(0,7), budget:Number(b.amount), actual, remaining: Number(b.amount)-actual, percentUsed:percent, status, currency: cur, note: undefined };
   });
 }
 
@@ -224,10 +283,10 @@ export function deriveWealthInsights(input:{
   const out: WealthInsight[]=[];
   // budget over
   for(const b of input.budgets.filter(b=>b.status==="over_budget").slice(0,1)){
-    out.push({ kind:"budget_over_limit", title:`${b.categoryName} over budget`, rationale:`Recorded ${b.actual} of ${b.budget} ${b.currency}`, currency:b.currency, priority:10, dataSufficiency:"sufficient", sourceIds:[b.budgetId] });
+    out.push({ kind:"budget_over_limit", title:`${b.categoryName} over budget`, rationale:`Recorded ${b.actual} of ${b.budget} ${b.currency}`, currency: b.currency ?? undefined, priority:10, dataSufficiency:"sufficient", sourceIds:[b.budgetId] });
   }
-  for(const b of input.budgets.filter(b=>b.status==="near_limit").slice(0,1)){
-    out.push({ kind:"budget_near_limit", title:`${b.categoryName} near limit`, rationale:`${Math.round(b.percentUsed*100)}% of ${b.budget} used`, currency:b.currency, priority:15, dataSufficiency:"sufficient" });
+  for(const b of input.budgets.filter(b=>b.status==="near_limit" && b.percentUsed!=null).slice(0,1)){
+    out.push({ kind:"budget_near_limit", title:`${b.categoryName} near limit`, rationale:`${Math.round((b.percentUsed as number)*100)}% of ${b.budget} used`, currency: b.currency ?? undefined, priority:15, dataSufficiency:"sufficient" });
   }
   // recurring due
   if(input.recurring.due7.length>0){
@@ -244,9 +303,10 @@ export function deriveWealthInsights(input:{
   // stale balance
   const stale=input.freshness.filter(f=>f.freshness==="stale").slice(0,1);
   if(stale.length) out.push({ kind:"balance_stale", title:`${stale[0].name} balance stale`, rationale:`Not updated in ${stale[0].daysSince} days — overview may be stale`, priority:18, dataSufficiency:"sufficient" });
-  // trend negative
-  for(const t of input.trends.filter(t=>t.isSufficient && t.direction==="down" && t.current.net <0).slice(0,1)){
-    out.push({ kind:"cash_flow_negative", title:`Recorded net negative this month`, rationale:`Net ${t.current.net} ${t.currency} vs ${t.previous?.net}`, currency:t.currency, priority:16, dataSufficiency:"sufficient" });
+  // trend negative (comparable period aware — MTD vs MTD)
+  for(const t of input.trends.filter(t=>t.isSufficient && t.direction==="down" && t.current && t.current.net <0).slice(0,1)){
+    const mtd = t.mode==="month_to_date";
+    out.push({ kind:"cash_flow_negative", title: mtd ? "Recorded net cash flow negative so far this month" : "Recorded net negative this month", rationale: `Net ${t.current!.net} ${t.currency} vs ${t.previous?.net}${mtd? " (month-to-date vs comparable prior period)":""}`, currency:t.currency, priority:16, dataSufficiency:"sufficient" });
   }
   // category change
   for(const ch of input.categoryChanges.slice(0,1)){
