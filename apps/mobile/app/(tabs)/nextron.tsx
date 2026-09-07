@@ -46,35 +46,36 @@ function formatTime(iso?: string): string {
 const STARTERS = ["What should I focus on today?", "Summarize my progress", "Help me plan tomorrow"];
 
 function ContextStrip({ compact = false }: { compact?: boolean }) {
-  // Truthful, privacy-safe context visibility — derived from real evidence categories, no raw data.
-  // Body and Wealth are private by default; Today/Tasks/Habits are core.
+  // Truthful, privacy-safe context visibility — categories only, no implication of permission or usage.
+  // Actual inclusion depends on granted permissions and evidence availability; Body & Wealth private by default.
   return (
     <View style={[styles.contextStrip, compact && styles.contextStripCompact]}>
+      <Text style={styles.contextLabel}>Context</Text>
       <View style={styles.contextPill}>
-        <View style={[styles.contextDot, styles.contextDotActive]} />
-        <Text style={styles.contextText}>Today</Text>
+        <View style={[styles.contextDot, styles.contextDotMuted]} />
+        <Text style={[styles.contextText, styles.contextTextMuted]}>Today</Text>
       </View>
       <Text style={styles.contextSep}>·</Text>
       <View style={styles.contextPill}>
-        <View style={[styles.contextDot, styles.contextDotActive]} />
-        <Text style={styles.contextText}>Tasks</Text>
+        <View style={[styles.contextDot, styles.contextDotMuted]} />
+        <Text style={[styles.contextText, styles.contextTextMuted]}>Tasks</Text>
       </View>
       <Text style={styles.contextSep}>·</Text>
       <View style={styles.contextPill}>
-        <View style={[styles.contextDot, styles.contextDotActive]} />
-        <Text style={styles.contextText}>Habits</Text>
+        <View style={[styles.contextDot, styles.contextDotMuted]} />
+        <Text style={[styles.contextText, styles.contextTextMuted]}>Habits</Text>
       </View>
       <Text style={styles.contextSep}>·</Text>
-      <View style={[styles.contextPill, styles.contextPillMuted]}>
+      <View style={styles.contextPill}>
         <View style={[styles.contextDot, styles.contextDotMuted]} />
         <Text style={[styles.contextText, styles.contextTextMuted]}>Body</Text>
       </View>
       <Text style={styles.contextSep}>·</Text>
-      <View style={[styles.contextPill, styles.contextPillMuted]}>
+      <View style={styles.contextPill}>
         <View style={[styles.contextDot, styles.contextDotMuted]} />
         <Text style={[styles.contextText, styles.contextTextMuted]}>Wealth</Text>
       </View>
-      <Text style={styles.contextHint}>{compact ? "" : "  private by default"}</Text>
+      <Text style={styles.contextHint}>{compact ? "" : "  included only when permitted"}</Text>
     </View>
   );
 }
@@ -200,12 +201,7 @@ export default function NextronScreen() {
             <NextronIcon size={28} variant="brand" />
           </View>
           <View>
-            <View style={styles.headerTitleRow}>
-              <Text style={styles.headerTitle}>NEXTRON</Text>
-              <View style={styles.headerBadge}>
-                <Text style={styles.headerBadgeText}>PREMIUM</Text>
-              </View>
-            </View>
+            <Text style={styles.headerTitle}>NEXTRON</Text>
             <Text style={styles.headerSub}>Life Pulse Intelligence  •  interprets, verifies, you authorize</Text>
           </View>
         </View>
@@ -264,7 +260,7 @@ export default function NextronScreen() {
               <NextronIcon size={44} variant="brand" />
             </View>
             <Text style={styles.emptyTitle}>What do you want to figure out?</Text>
-            <Text style={styles.emptyText}>Same memory and conversations as web. NEXTRON reads only what you allow — Today is always visible, Body and Wealth stay private until you enable them.</Text>
+            <Text style={styles.emptyText}>Same memory and conversations as web. NEXTRON reads only what you allow — included only when permitted; Body and Wealth stay private by default.</Text>
             <ContextStrip />
             <View style={styles.starters}>
               {STARTERS.map((s) => (
@@ -303,7 +299,7 @@ export default function NextronScreen() {
                         <Text style={styles.proposalSep}>·</Text>
                         <Text style={styles.proposalStatus}>requires your approval</Text>
                       </View>
-                      <Text style={styles.proposalHint}>Not yet executed. Review and authorize on web for full details.</Text>
+                      <Text style={styles.proposalHint}>Not yet executed. Your approval is required.</Text>
                     </View>
                   )}
                 </View>
@@ -382,17 +378,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  headerTitleRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   headerTitle: { color: colors.accentStrong, fontSize: 13, fontWeight: "700", letterSpacing: 1.6 },
-  headerBadge: {
-    backgroundColor: colors.accentSoft,
-    borderWidth: 1,
-    borderColor: colors.accentBorder,
-    borderRadius: radii.pill,
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-  },
-  headerBadgeText: { color: colors.accentStrong, fontSize: 8, fontWeight: "700", letterSpacing: 0.8 },
   headerSub: { color: colors.textMuted, fontSize: 10, marginTop: 2, lineHeight: 13 },
   newButton: {
     width: 36,
@@ -420,10 +406,9 @@ const styles = StyleSheet.create({
     borderRadius: radii.md,
   },
   contextStripCompact: { paddingVertical: 6, paddingHorizontal: spacing.sm, gap: 4 },
+  contextLabel: { color: colors.textFaint, fontSize: 10, fontWeight: "700", letterSpacing: 0.6, textTransform: "uppercase", marginRight: 2 },
   contextPill: { flexDirection: "row", alignItems: "center", gap: 5 },
-  contextPillMuted: { opacity: 0.55 },
   contextDot: { width: 6, height: 6, borderRadius: 3 },
-  contextDotActive: { backgroundColor: colors.accent },
   contextDotMuted: { backgroundColor: colors.textMuted },
   contextText: { color: colors.textSecondary, fontSize: 11, fontWeight: "600", letterSpacing: 0.2 },
   contextTextMuted: { color: colors.textMuted },
