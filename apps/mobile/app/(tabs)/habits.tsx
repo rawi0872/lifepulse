@@ -16,6 +16,7 @@ import {
   getCurrentStreak,
   getWeeklyProgress,
   buildHabitUpdatePayload,
+  normalizeHabitSchedule,
   removeDeletedById,
   createSingleFlight,
   MAX_ITEM_TITLE_LENGTH,
@@ -247,15 +248,16 @@ export default function HabitsScreen() {
             setFormError("Workspace initializing. Try again in a moment.");
             return;
           }
+          const schedule = normalizeHabitSchedule(formFrequency, formDaysOfWeek, formTimesPerWeek);
           const payload: Record<string, unknown> = {
             user_id: user.id,
             realm_id: realmId,
             title: formTitle.trim().slice(0, MAX_ITEM_TITLE_LENGTH),
-            frequency: formFrequency,
-            days_of_week: formDaysOfWeek,
+            frequency: schedule.frequency,
+            days_of_week: schedule.days_of_week,
           };
-          if (formFrequency === "weekly") {
-            payload.times_per_week = formTimesPerWeek;
+          if (schedule.frequency === "weekly") {
+            payload.times_per_week = schedule.times_per_week;
           }
           const { error } = await supabase.from("habits").insert(payload);
           if (error) {
@@ -401,7 +403,7 @@ export default function HabitsScreen() {
                 <TouchableOpacity
                   key={f}
                   style={[styles.frequencyChip, formFrequency === f && styles.frequencyChipActive]}
-                  onPress={() => { setFormFrequency(f); setFormDaysOfWeek([]); }}
+                  onPress={() => setFormFrequency(f)}
                   activeOpacity={0.8}
                   disabled={saving}
                 >
@@ -413,38 +415,38 @@ export default function HabitsScreen() {
             </View>
           </View>
           {formFrequency === "weekly" && (
-            <>
-              <View style={styles.createField}>
-                <Text style={styles.createLabel}>Times per week</Text>
-                <View style={styles.timesRow}>
-                  <TouchableOpacity style={styles.timesButton} onPress={() => setFormTimesPerWeek(Math.max(1, formTimesPerWeek - 1))} activeOpacity={0.8} disabled={saving}>
-                    <Text style={styles.timesButtonText}>−</Text>
-                  </TouchableOpacity>
-                  <Text style={styles.timesValue}>{formTimesPerWeek}</Text>
-                  <TouchableOpacity style={styles.timesButton} onPress={() => setFormTimesPerWeek(Math.min(7, formTimesPerWeek + 1))} activeOpacity={0.8} disabled={saving}>
-                    <Text style={styles.timesButtonText}>+</Text>
-                  </TouchableOpacity>
-                </View>
+            <View style={styles.createField}>
+              <Text style={styles.createLabel}>Times per week</Text>
+              <View style={styles.timesRow}>
+                <TouchableOpacity style={styles.timesButton} onPress={() => setFormTimesPerWeek(Math.max(1, formTimesPerWeek - 1))} activeOpacity={0.8} disabled={saving}>
+                  <Text style={styles.timesButtonText}>−</Text>
+                </TouchableOpacity>
+                <Text style={styles.timesValue}>{formTimesPerWeek}</Text>
+                <TouchableOpacity style={styles.timesButton} onPress={() => setFormTimesPerWeek(Math.min(7, formTimesPerWeek + 1))} activeOpacity={0.8} disabled={saving}>
+                  <Text style={styles.timesButtonText}>+</Text>
+                </TouchableOpacity>
               </View>
-              <View style={styles.createField}>
-                <Text style={styles.createLabel}>Days</Text>
-                <View style={styles.daysRow}>
-                  {[0, 1, 2, 3, 4, 5, 6].map((d) => (
-                    <TouchableOpacity
-                      key={d}
-                      style={[styles.dayChip, formDaysOfWeek.includes(d) && styles.dayChipActive]}
-                      onPress={() => toggleDays(d)}
-                      activeOpacity={0.8}
-                      disabled={saving}
-                    >
-                      <Text style={[styles.dayChipLabel, formDaysOfWeek.includes(d) && styles.dayChipLabelActive]}>
-                        {["S", "M", "T", "W", "T", "F", "S"][d]}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+            </View>
+          )}
+          {(formFrequency === "weekly" || formFrequency === "weekdays") && (
+            <View style={styles.createField}>
+              <Text style={styles.createLabel}>Days</Text>
+              <View style={styles.daysRow}>
+                {[0, 1, 2, 3, 4, 5, 6].map((d) => (
+                  <TouchableOpacity
+                    key={d}
+                    style={[styles.dayChip, formDaysOfWeek.includes(d) && styles.dayChipActive]}
+                    onPress={() => toggleDays(d)}
+                    activeOpacity={0.8}
+                    disabled={saving}
+                  >
+                    <Text style={[styles.dayChipLabel, formDaysOfWeek.includes(d) && styles.dayChipLabelActive]}>
+                      {["S", "M", "T", "W", "T", "F", "S"][d]}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
               </View>
-            </>
+            </View>
           )}
           {formError ? <Text style={styles.formError}>{formError}</Text> : null}
           <View style={styles.createActions}>

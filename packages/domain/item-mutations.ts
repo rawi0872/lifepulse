@@ -16,7 +16,6 @@ export type TaskPriority = "high" | "medium" | "low";
 export type HabitFrequency = "daily" | "weekdays" | "weekly";
 
 const TASK_PRIORITIES: readonly string[] = ["high", "medium", "low"];
-const HABIT_FREQUENCIES: readonly string[] = ["daily", "weekdays", "weekly"];
 
 export function normalizeItemTitle(title: string): string {
   return title.trim().slice(0, MAX_ITEM_TITLE_LENGTH);
@@ -79,12 +78,60 @@ export interface HabitEdits {
   timesPerWeek: number;
 }
 
+/** Monday–Friday; the plain meaning of the "weekdays" schedule mode. */
+export const WEEKDAY_DAYS: readonly number[] = [1, 2, 3, 4, 5];
+
 export interface HabitUpdate {
   title: string;
   frequency: HabitFrequency;
   days_of_week: number[];
   /** Only meaningful for weekly habits; null clears a stale target. */
   times_per_week: number | null;
+}
+
+export interface NormalizedHabitSchedule {
+  frequency: HabitFrequency;
+  days_of_week: number[];
+  /** Only meaningful for weekly habits; null elsewhere. */
+  times_per_week: number | null;
+}
+
+function sanitizeDaysOfWeek(days: number[]): number[] {
+  return [...new Set(days.filter((d) => Number.isInteger(d) && d >= 0 && d <= 6))].sort((a, b) => a - b);
+}
+
+/**
+ * Normalize a habit schedule when its frequency/mode changes.
+ * - daily: due every day, so selected weekdays and weekly targets are cleared.
+ * - weekdays: due exactly on the selected days; an empty set would mean the
+ *   habit is never due, so it falls back to Mon–Fri. Weekly targets cleared.
+ * - weekly: flexible N-times-a-week target (clamped 1–7); the selected days
+ *   are kept as entered (the form collects them for weekly).
+ * Unknown/legacy frequencies fall back to daily (cleared).
+ * Completion history is never part of a schedule — callers only write these
+ * definition columns, so habit_logs/streaks stay valid.
+ */
+export function normalizeHabitSchedule(
+  frequency: string,
+  daysOfWeek: number[],
+  timesPerWeek: number,
+): NormalizedHabitSchedule {
+  const cleanDays = sanitizeDaysOfWeek(daysOfWeek);
+  if (frequency === "weekdays") {
+    return {
+      frequency: "weekdays",
+      days_of_week: cleanDays.length > 0 ? cleanDays : [...WEEKDAY_DAYS],
+      times_per_week: null,
+    };
+  }
+  if (frequency === "weekly") {
+    return {
+      frequency: "weekly",
+      days_of_week: cleanDays,
+      times_per_week: Math.min(7, Math.max(1, Math.floor(timesPerWeek) || 1)),
+    };
+  }
+  return { frequency: "daily", days_of_week: [], times_per_week: null };
 }
 
 /**
@@ -100,15 +147,10 @@ export function buildHabitUpdatePayload(
     return { ok: false, error: "Enter a name to save this habit." };
   }
   const title = normalizeItemTitle(edits.title);
-  const frequency: HabitFrequency = (HABIT_FREQUENCIES as readonly string[]).includes(edits.frequency)
-    ? (edits.frequency as HabitFrequency)
-    : "daily";
-  const days_of_week = [...new Set(edits.daysOfWeek.filter((d) => Number.isInteger(d) && d >= 0 && d <= 6))].sort();
-  const times_per_week =
-    frequency === "weekly" ? Math.min(7, Math.max(1, Math.floor(edits.timesPerWeek) || 1)) : null;
+  const schedule = normalizeHabitSchedule(edits.frequency, edits.daysOfWeek, edits.timesPerWeek);
 
-  const payload: HabitUpdate = { title, frequency, days_of_week, times_per_week };
-  const currentDays = [...(current.days_of_week ?? [])].sort();
+  const payload: HabitUpdate = { title, ...schedule };
+  const currentDays = [...(current.days_of_week ?? [])].sort((a, b) => a - b);
   const changed =
     payload.title !== current.title ||
     payload.frequency !== current.frequency ||

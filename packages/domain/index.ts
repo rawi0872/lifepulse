@@ -13,15 +13,17 @@ export type { TaskLike, TaskGroups } from "./tasks";
 
 export {
   MAX_ITEM_TITLE_LENGTH,
+  WEEKDAY_DAYS,
   normalizeItemTitle,
   isValidItemTitle,
+  normalizeHabitSchedule,
   buildTaskUpdatePayload,
   buildHabitUpdatePayload,
   removeDeletedById,
   isDeletedEverywhere,
   createSingleFlight,
 } from "./item-mutations";
-export type { TaskPriority, HabitFrequency, TaskEdits, TaskUpdate, HabitEdits, HabitUpdate, SingleFlight } from "./item-mutations";
+export type { TaskPriority, HabitFrequency, TaskEdits, TaskUpdate, HabitEdits, HabitUpdate, NormalizedHabitSchedule, SingleFlight } from "./item-mutations";
 
 export {
   dateToLocalDateString,

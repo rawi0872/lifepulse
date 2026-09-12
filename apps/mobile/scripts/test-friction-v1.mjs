@@ -12,6 +12,8 @@ import path from "node:path";
 import {
   buildTaskUpdatePayload,
   buildHabitUpdatePayload,
+  normalizeHabitSchedule,
+  WEEKDAY_DAYS,
   removeDeletedById,
   isDeletedEverywhere,
   createSingleFlight,
@@ -251,8 +253,86 @@ describe("habits — interaction safety", () => {
   });
 });
 
-// -------------------------------------------------------------- more nav ---
+// --------------------------------------- habit schedule normalization ---
 
+describe("habits — schedule normalization across mode switches", () => {
+  it("weekly -> daily clears weekly-only values, keeps the same identity", () => {
+    const current = { id: "h1", title: "Run", frequency: "weekly", days_of_week: [1, 3], times_per_week: 3 };
+    const built = buildHabitUpdatePayload(current, {
+      title: "Run",
+      frequency: "daily",
+      daysOfWeek: [1, 3],
+      timesPerWeek: 3,
+    });
+    assert.ok(built.ok);
+    assert.deepEqual(built.payload, { title: "Run", frequency: "daily", days_of_week: [], times_per_week: null });
+    assert.ok(!("id" in built.payload), "id is carried by the caller scope, never the payload");
+    assert.ok(!("completedDates" in built.payload), "history untouched");
+    assert.equal(built.changed, true);
+  });
+
+  it("daily with stale days normalizes them away on save", () => {
+    const schedule = normalizeHabitSchedule("daily", [0, 6], 4);
+    assert.deepEqual(schedule, { frequency: "daily", days_of_week: [], times_per_week: null });
+  });
+
+  it("daily/weekly -> weekdays with no days falls back to Mon-Fri (never a dead habit)", () => {
+    const schedule = normalizeHabitSchedule("weekdays", [], 3);
+    assert.equal(schedule.frequency, "weekdays");
+    assert.deepEqual(schedule.days_of_week, [1, 2, 3, 4, 5]);
+    assert.deepEqual([...WEEKDAY_DAYS], [1, 2, 3, 4, 5]);
+    assert.equal(schedule.times_per_week, null);
+  });
+
+  it("weekly -> weekdays keeps explicitly selected days", () => {
+    const built = buildHabitUpdatePayload(
+      { title: "Gym", frequency: "weekly", days_of_week: [2, 4], times_per_week: 2 },
+      { title: "Gym", frequency: "weekdays", daysOfWeek: [2, 4], timesPerWeek: 2 },
+    );
+    assert.ok(built.ok);
+    assert.deepEqual(built.payload.days_of_week, [2, 4]);
+    assert.equal(built.payload.times_per_week, null);
+  });
+
+  it("weekdays keeps valid days and clears weekly targets", () => {
+    const schedule = normalizeHabitSchedule("weekdays", [6, 0, 6, 9, -1], 5);
+    assert.deepEqual(schedule.days_of_week, [0, 6], "only valid days survive, deduped and sorted");
+    assert.equal(schedule.times_per_week, null);
+  });
+
+  it("weekly keeps entered days and clamps the target", () => {
+    const schedule = normalizeHabitSchedule("weekly", [1, 3], 9);
+    assert.deepEqual(schedule.days_of_week, [1, 3]);
+    assert.equal(schedule.times_per_week, 7);
+  });
+
+  it("normalized schedules stay completable (due logic honors the mode)", () => {
+    // Monday 2026-09-14, Sunday 2026-09-13.
+    const monday = "2026-09-14";
+    const sunday = "2026-09-13";
+    const daily = normalizeHabitSchedule("daily", [0, 6], 3);
+    assert.equal(isHabitDueOnDate({ ...daily }, monday, []), true);
+    const weekdays = normalizeHabitSchedule("weekdays", [], 3);
+    assert.equal(isHabitDueOnDate({ ...weekdays }, monday, []), true, "Mon-Fri default is due Monday");
+    assert.equal(isHabitDueOnDate({ ...weekdays }, sunday, []), false, "Mon-Fri default is not due Sunday");
+    const emptyWeekdaysInert = { frequency: "weekdays", days_of_week: [] };
+    assert.equal(isHabitDueOnDate(emptyWeekdaysInert, monday, []), false, "empty days would be a dead habit");
+    const weekly = normalizeHabitSchedule("weekly", [], 2);
+    assert.equal(isHabitDueOnDate({ ...weekly, times_per_week: 2 }, monday, []), true);
+    assert.equal(isHabitDueOnDate({ ...weekly, times_per_week: 2 }, monday, [monday]), false, "weekly target met for the week");
+  });
+
+  it("edit form offers day selection for weekdays and re-opens normalized state", () => {
+    const src = mobileSrc("app/(tabs)/habits.tsx");
+    assert.ok(
+      src.includes('(formFrequency === "weekly" || formFrequency === "weekdays")'),
+      "day picker is available for weekdays, not just weekly",
+    );
+    assert.ok(src.includes("normalizeHabitSchedule(formFrequency"), "create path normalizes too (no dead weekdays creates)");
+  });
+});
+
+// -------------------------------------------------------------- more nav ---
 describe("more navigation — five tabs, hub, hidden children", () => {
   const layout = mobileSrc("app/(tabs)/_layout.tsx");
 
