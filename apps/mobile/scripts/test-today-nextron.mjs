@@ -208,6 +208,11 @@ describe("today + nextron screens — experience wiring, ranking untouched", () 
   const today = read("app/(tabs)/today.tsx");
   const nextron = read("app/(tabs)/nextron.tsx");
 
+  it("today reloads on focus (no stale rows or hero after edits elsewhere)", () => {
+    assert.ok(today.includes("useFocusEffect"), "today missing focus reload");
+    assert.ok(today.includes("void loadData();"), "focus reload does not re-read data");
+  });
+
   it("ranking imports and selection call are intact (no logic change)", () => {
     assert.ok(today.includes("selectTodayPrimaryCandidate"), "ranking selector missing");
     assert.ok(today.includes("selectMorningPlanFirstAction"), "morning-plan selector missing");

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity, Alert } from "react-native";
-import { Link } from "expo-router";
+import { Link, useFocusEffect } from "expo-router";
 import { supabase } from "../../lib/supabase";
 import { useAuth } from "../../lib/auth";
 import { colors, spacing, radii, type, shadow } from "../../lib/theme";
@@ -124,6 +124,12 @@ export default function TodayScreen() {
     void loadData();
     return () => { mountedRef.current = false; };
   }, [loadData]);
+
+  // Re-read on focus so completions, edits, and deletes made in Tasks,
+  // Habits, or elsewhere never present stale rows or a stale Up Next hero.
+  useFocusEffect(useCallback(() => {
+    void loadData();
+  }, [loadData]));
 
   const onRefresh = async () => {
     setRefreshing(true);
