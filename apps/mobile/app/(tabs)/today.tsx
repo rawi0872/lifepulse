@@ -3,7 +3,10 @@ import { View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity, A
 import { Link, useFocusEffect } from "expo-router";
 import { supabase } from "../../lib/supabase";
 import { useAuth } from "../../lib/auth";
-import { colors, spacing, radii, type, shadow } from "../../lib/theme";
+import { spacing, radii, type } from "../../lib/theme";
+import type { ThemeColors, ThemeShadow } from "../../lib/theme";
+import { useLifePulseTheme } from "../../lib/theme-provider";
+import { TodayHeroArt } from "../../src/components/TodayHeroArt";
 import { Pulse, ChecklistIcon, Habits as HabitsIcon, Check, Close, ChevronRight, NextronIcon } from "../../src/icons";
 import { FieldInput } from "../../src/components/ui";
 import { BODY_TODAY_SIGNALS_ENABLED } from "../../lib/featureFlags";
@@ -38,6 +41,8 @@ export default function TodayScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const mountedRef = useRef(true);
+  const { colors, shadow } = useLifePulseTheme();
+  const styles = useMemo(() => makeStyles(colors, shadow), [colors, shadow]);
 
   const buildDateContext = useCallback((): TodayDateContext => {
     const localDate = getLocalTodayDateString();
@@ -269,6 +274,7 @@ export default function TodayScreen() {
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />}
     >
+      <TodayHeroArt />
       {/* Header — compact */}
       <View style={styles.header}>
         <Link href="/realms" asChild>
@@ -484,6 +490,8 @@ export default function TodayScreen() {
 }
 
 function CompactEmpty({ icon, text }: { icon: React.ReactNode; text: string }) {
+  const { colors, shadow } = useLifePulseTheme();
+  const styles = useMemo(() => makeStyles(colors, shadow), [colors, shadow]);
   return (
     <View style={styles.compactEmpty}>
       {icon}
@@ -492,7 +500,8 @@ function CompactEmpty({ icon, text }: { icon: React.ReactNode; text: string }) {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: ThemeColors, shadow: ThemeShadow) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   content: { paddingHorizontal: spacing.xl, paddingTop: 56, paddingBottom: 24 },
 
@@ -671,4 +680,5 @@ const styles = StyleSheet.create({
 
   emptyText: { ...type.meta, color: colors.textMuted },
   footer: { ...type.caption, color: colors.textFaint, textAlign: "center", marginTop: spacing.lg },
-});
+  });
+}

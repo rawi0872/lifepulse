@@ -1,16 +1,20 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState, useMemo } from "react";
 import { View, Text, ScrollView, StyleSheet, ActivityIndicator, TouchableOpacity, Alert, TextInput, RefreshControl } from "react-native";
 import { Link, Stack } from "expo-router";
 import { Svg, Polyline, Line, Path } from "react-native-svg";
-import { colors, spacing, radii, type } from "../lib/theme";
+import { spacing, radii, type } from "../lib/theme";
+import type { ThemeColors } from "../lib/theme";
+import { useLifePulseTheme } from "../lib/theme-provider";
 import { loadBodyOverview, type BodyOverview } from "../lib/body-service";
 import { formatBodyMetricValue, type BodyMetricKey } from "@lifepulse/domain";
 import { supabase } from "../lib/supabase";
 import { getLocalTodayDateString } from "@lifepulse/domain";
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-function Sparkline({ points, width = 120, height = 36, color = colors.accent }: { points: Array<{ date: string; value: number }>; width?: number; height?: number; color?: string }) {
+function Sparkline({ points, width = 120, height = 36, color }: { points: Array<{ date: string; value: number }>; width?: number; height?: number; color?: string }) {
+  const { colors } = useLifePulseTheme();
+  const stroke = color ?? colors.accent;
   if (points.length < 2) return <View style={{ width, height, justifyContent: "center" }}><Text style={{ fontSize: 11, color: colors.textMuted }}>—</Text></View>;
   const vals = points.map((p) => p.value);
   const min = Math.min(...vals);
@@ -27,20 +31,24 @@ function Sparkline({ points, width = 120, height = 36, color = colors.accent }: 
   return (
     <Svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
       <Line x1={0} y1={height - 1} x2={width} y2={height - 1} stroke={colors.border} strokeWidth={0.7} opacity={0.6} />
-      <Polyline points={coords} fill="none" stroke={color} strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" />
+      <Polyline points={coords} fill="none" stroke={stroke} strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" />
     </Svg>
   );
 }
 
-function BodyIcon({ size = 22, color = colors.accent }: { size?: number; color?: string }) {
+function BodyIcon({ size = 22, color }: { size?: number; color?: string }) {
+  const { colors } = useLifePulseTheme();
+  const stroke = color ?? colors.accent;
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Path d="M12 13a3 3 0 100-6 3 3 0 000 6Z M7 19a5 5 0 0110 0" stroke={color} strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" />
+      <Path d="M12 13a3 3 0 100-6 3 3 0 000 6Z M7 19a5 5 0 0110 0" stroke={stroke} strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" />
     </Svg>
   );
 }
 
 export default function BodyScreen() {
+  const { colors } = useLifePulseTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const [overview, setOverview] = useState<BodyOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<7 | 30>(7);
@@ -312,7 +320,8 @@ export default function BodyScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   content: { paddingHorizontal: spacing.xl, paddingTop: 56, paddingBottom: 24 },
   header: { flexDirection: "row", alignItems: "center", gap: spacing.md, marginBottom: spacing.lg },
@@ -375,3 +384,4 @@ const styles = StyleSheet.create({
   back: { marginTop: spacing.lg, alignItems: "center", minHeight: 44, justifyContent: "center" },
   backText: { color: colors.accent, fontSize: 14, fontWeight: "600" },
 });
+}

@@ -1,15 +1,18 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { View, Text, TouchableOpacity, Pressable, TextInput, StyleSheet } from "react-native";
 import type { TextInputProps } from "react-native";
-import { colors, spacing, radii, type } from "../../lib/theme";
+import { spacing, radii, type } from "../../lib/theme";
+import type { ThemeColors } from "../../lib/theme";
+import { useLifePulseTheme } from "../../lib/theme-provider";
 
 // ---------------------------------------------------------------------------
-// Life Pulse shared interface kit (Prompt 2 visual system).
-// Small, token-driven primitives: headers, labels, rows, buttons, fields,
-// states. Screens compose these instead of redefining one-off styles.
+// Life Pulse shared interface kit — theme-aware via useLifePulseTheme().
+// Screens compose these instead of redefining one-off styles.
 // ---------------------------------------------------------------------------
 
 export function ScreenHeader({ title, sub }: { title: string; sub?: string }) {
+  const { colors } = useLifePulseTheme();
+  const kit = useMemo(() => makeKit(colors), [colors]);
   return (
     <View style={kit.header}>
       <Text style={kit.title}>{title}</Text>
@@ -19,12 +22,16 @@ export function ScreenHeader({ title, sub }: { title: string; sub?: string }) {
 }
 
 export function SectionLabel({ children, tone = "accent" }: { children: React.ReactNode; tone?: "accent" | "muted" | "danger" }) {
+  const { colors } = useLifePulseTheme();
+  const kit = useMemo(() => makeKit(colors), [colors]);
   return (
     <Text style={[kit.sectionLabel, tone === "muted" && kit.sectionLabelMuted, tone === "danger" && kit.sectionLabelDanger]}>{children}</Text>
   );
 }
 
 export function BackLink({ label, onPress }: { label: string; onPress: () => void }) {
+  const { colors } = useLifePulseTheme();
+  const kit = useMemo(() => makeKit(colors), [colors]);
   return (
     <TouchableOpacity
       style={kit.back}
@@ -48,6 +55,8 @@ interface MenuRowProps {
 }
 
 export function MenuRow({ icon, title, meta, chevron, onPress, accessibilityLabel }: MenuRowProps) {
+  const { colors } = useLifePulseTheme();
+  const kit = useMemo(() => makeKit(colors), [colors]);
   const body = (
     <>
       {icon ? <View style={kit.rowIcon}>{icon}</View> : null}
@@ -88,6 +97,8 @@ interface ButtonProps {
 }
 
 export function PrimaryButton({ label, onPress, disabled, pending, pendingLabel, accessibilityLabel }: ButtonProps) {
+  const { colors } = useLifePulseTheme();
+  const kit = useMemo(() => makeKit(colors), [colors]);
   const off = disabled || pending;
   return (
     <Pressable
@@ -103,6 +114,8 @@ export function PrimaryButton({ label, onPress, disabled, pending, pendingLabel,
 }
 
 export function SecondaryButton({ label, onPress, disabled, accessibilityLabel }: Omit<ButtonProps, "pending" | "pendingLabel">) {
+  const { colors } = useLifePulseTheme();
+  const kit = useMemo(() => makeKit(colors), [colors]);
   return (
     <Pressable
       style={({ pressed }) => [kit.secondary, pressed && !disabled && kit.pressed, disabled && kit.disabled]}
@@ -117,10 +130,14 @@ export function SecondaryButton({ label, onPress, disabled, accessibilityLabel }
 }
 
 export function FieldLabel({ children }: { children: React.ReactNode }) {
+  const { colors } = useLifePulseTheme();
+  const kit = useMemo(() => makeKit(colors), [colors]);
   return <Text style={kit.fieldLabel}>{children}</Text>;
 }
 
 export function FieldInput(props: TextInputProps) {
+  const { colors } = useLifePulseTheme();
+  const kit = useMemo(() => makeKit(colors), [colors]);
   const [focused, setFocused] = useState(false);
   return (
     <TextInput
@@ -134,6 +151,8 @@ export function FieldInput(props: TextInputProps) {
 }
 
 export function FieldError({ children }: { children: React.ReactNode }) {
+  const { colors } = useLifePulseTheme();
+  const kit = useMemo(() => makeKit(colors), [colors]);
   if (!children) return null;
   return <Text style={kit.fieldError}>{children as string}</Text>;
 }
@@ -151,6 +170,8 @@ export function EmptyState({
   actionLabel?: string;
   onAction?: () => void;
 }) {
+  const { colors } = useLifePulseTheme();
+  const kit = useMemo(() => makeKit(colors), [colors]);
   return (
     <View style={kit.emptyState}>
       {icon}
@@ -166,6 +187,8 @@ export function EmptyState({
 }
 
 export function ErrorBanner({ message, onRetry }: { message: string; onRetry: () => void }) {
+  const { colors } = useLifePulseTheme();
+  const kit = useMemo(() => makeKit(colors), [colors]);
   return (
     <View style={kit.errorBanner}>
       <Text style={kit.errorText}>{message}</Text>
@@ -177,122 +200,126 @@ export function ErrorBanner({ message, onRetry }: { message: string; onRetry: ()
 }
 
 export function FooterNote({ children }: { children: React.ReactNode }) {
+  const { colors } = useLifePulseTheme();
+  const kit = useMemo(() => makeKit(colors), [colors]);
   return <Text style={kit.footer}>{children}</Text>;
 }
 
-const kit = StyleSheet.create({
-  header: { paddingTop: spacing.sm, marginBottom: spacing.md },
-  title: { ...type.hero, color: colors.textPrimary },
-  sub: { ...type.meta, color: colors.textSecondary, marginTop: spacing.xs },
+function makeKit(colors: ThemeColors) {
+  return StyleSheet.create({
+    header: { paddingTop: spacing.sm, marginBottom: spacing.md },
+    title: { ...type.hero, color: colors.textPrimary },
+    sub: { ...type.meta, color: colors.textSecondary, marginTop: spacing.xs },
 
-  sectionLabel: {
-    ...type.caption,
-    color: colors.accent,
-    fontWeight: "700",
-    letterSpacing: 1.4,
-    textTransform: "uppercase",
-    marginTop: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  sectionLabelMuted: { color: colors.textMuted },
-  sectionLabelDanger: { color: colors.danger },
+    sectionLabel: {
+      ...type.caption,
+      color: colors.accent,
+      fontWeight: "700",
+      letterSpacing: 1.4,
+      textTransform: "uppercase",
+      marginTop: spacing.sm,
+      marginBottom: spacing.md,
+    },
+    sectionLabelMuted: { color: colors.textMuted },
+    sectionLabelDanger: { color: colors.danger },
 
-  back: { alignSelf: "flex-start", paddingVertical: spacing.sm, paddingRight: spacing.lg, marginBottom: spacing.sm },
-  backText: { color: colors.accent, fontSize: 14, fontWeight: "600" },
+    back: { alignSelf: "flex-start", paddingVertical: spacing.sm, paddingRight: spacing.lg, marginBottom: spacing.sm },
+    backText: { color: colors.accent, fontSize: 14, fontWeight: "600" },
 
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.md,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.md,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.md,
-    marginBottom: spacing.sm,
-    minHeight: 60,
-  },
-  rowIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: radii.sm,
-    backgroundColor: colors.accentSoft,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  rowBody: { flex: 1 },
-  rowTitle: { ...type.item, color: colors.textPrimary },
-  rowMeta: { ...type.meta, color: colors.textMuted, marginTop: 2 },
+    row: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.md,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: radii.md,
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.md,
+      marginBottom: spacing.sm,
+      minHeight: 60,
+    },
+    rowIcon: {
+      width: 36,
+      height: 36,
+      borderRadius: radii.sm,
+      backgroundColor: colors.accentSoft,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    rowBody: { flex: 1 },
+    rowTitle: { ...type.item, color: colors.textPrimary },
+    rowMeta: { ...type.meta, color: colors.textMuted, marginTop: 2 },
 
-  primary: {
-    backgroundColor: colors.accent,
-    borderRadius: radii.md,
-    minHeight: 52,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.xl,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  primaryLabel: { ...type.item, color: colors.onAccent, fontWeight: "700" },
-  secondary: {
-    backgroundColor: colors.surfaceElevated,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.md,
-    minHeight: 48,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.xl,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  secondaryLabel: { ...type.item, color: colors.textSecondary, fontWeight: "600" },
-  pressed: { opacity: 0.85 },
-  disabled: { opacity: 0.5 },
+    primary: {
+      backgroundColor: colors.accent,
+      borderRadius: radii.md,
+      minHeight: 52,
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.xl,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    primaryLabel: { ...type.item, color: colors.onAccent, fontWeight: "700" },
+    secondary: {
+      backgroundColor: colors.surfaceElevated,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: radii.md,
+      minHeight: 48,
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.xl,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    secondaryLabel: { ...type.item, color: colors.textSecondary, fontWeight: "600" },
+    pressed: { opacity: 0.85 },
+    disabled: { opacity: 0.5 },
 
-  fieldLabel: { ...type.caption, color: colors.textSecondary },
-  fieldInput: {
-    backgroundColor: colors.surfaceElevated,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.md,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: 12,
-    color: colors.textPrimary,
-    fontSize: 15,
-    minHeight: 48,
-  },
-  fieldInputFocused: { borderColor: colors.accentBorder },
-  fieldError: { ...type.meta, color: colors.danger },
+    fieldLabel: { ...type.caption, color: colors.textSecondary },
+    fieldInput: {
+      backgroundColor: colors.surfaceElevated,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: radii.md,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: 12,
+      color: colors.textPrimary,
+      fontSize: 15,
+      minHeight: 48,
+    },
+    fieldInputFocused: { borderColor: colors.accentBorder },
+    fieldError: { ...type.meta, color: colors.danger },
 
-  emptyState: { alignItems: "center", paddingVertical: spacing.xl, gap: spacing.sm },
-  emptyTitle: { ...type.item, color: colors.textSecondary, marginTop: spacing.sm },
-  emptySub: { ...type.meta, color: colors.textMuted, textAlign: "center" },
-  emptyAction: {
-    marginTop: spacing.md,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.lg,
-    borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: colors.accentBorder,
-    backgroundColor: colors.accentSoft,
-  },
-  emptyActionText: { ...type.caption, color: colors.accentStrong, fontWeight: "600" },
+    emptyState: { alignItems: "center", paddingVertical: spacing.xl, gap: spacing.sm },
+    emptyTitle: { ...type.item, color: colors.textSecondary, marginTop: spacing.sm },
+    emptySub: { ...type.meta, color: colors.textMuted, textAlign: "center" },
+    emptyAction: {
+      marginTop: spacing.md,
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.lg,
+      borderRadius: radii.md,
+      borderWidth: 1,
+      borderColor: colors.accentBorder,
+      backgroundColor: colors.accentSoft,
+    },
+    emptyActionText: { ...type.caption, color: colors.accentStrong, fontWeight: "600" },
 
-  errorBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: colors.dangerSoft,
-    borderWidth: 1,
-    borderColor: colors.dangerBorder,
-    borderRadius: radii.md,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    marginBottom: spacing.lg,
-  },
-  errorText: { ...type.caption, color: colors.danger, fontWeight: "600" },
-  errorRetry: { ...type.caption, color: colors.textPrimary, fontWeight: "700" },
+    errorBanner: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      backgroundColor: colors.dangerSoft,
+      borderWidth: 1,
+      borderColor: colors.dangerBorder,
+      borderRadius: radii.md,
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.md,
+      marginBottom: spacing.lg,
+    },
+    errorText: { ...type.caption, color: colors.danger, fontWeight: "600" },
+    errorRetry: { ...type.caption, color: colors.textPrimary, fontWeight: "700" },
 
-  footer: { ...type.caption, color: colors.textFaint, textAlign: "center", marginTop: spacing.lg },
-});
+    footer: { ...type.caption, color: colors.textFaint, textAlign: "center", marginTop: spacing.lg },
+  });
+}

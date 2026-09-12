@@ -1,9 +1,11 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { ScrollView, StyleSheet } from "react-native";
 import { Link } from "expo-router";
 import Constants from "expo-constants";
 import { useAuth } from "../../lib/auth";
-import { colors, spacing } from "../../lib/theme";
+import { spacing } from "../../lib/theme";
+import type { ThemeColors } from "../../lib/theme";
+import { useLifePulseTheme } from "../../lib/theme-provider";
 import { ChevronRight, Settings, Account, Pulse } from "../../src/icons";
 import { ScreenHeader, SectionLabel, MenuRow, FooterNote } from "../../src/components/ui";
 
@@ -12,6 +14,8 @@ import { ScreenHeader, SectionLabel, MenuRow, FooterNote } from "../../src/compo
  * Permanent tabs stay at five; Realms, Settings, and Account live here.
  */
 export default function MoreScreen() {
+  const { colors } = useLifePulseTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { user } = useAuth();
   const version = (Constants.expoConfig?.version as string) ?? "0.1.7";
 
@@ -57,7 +61,9 @@ export default function MoreScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   content: { paddingHorizontal: spacing.xl, paddingTop: 56, paddingBottom: 24 },
 });
+}

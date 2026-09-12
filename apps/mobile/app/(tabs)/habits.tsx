@@ -1,10 +1,12 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import { View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity, Pressable, Alert } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "expo-router";
 import { supabase } from "../../lib/supabase";
 import { useAuth } from "../../lib/auth";
-import { colors, spacing, radii, type } from "../../lib/theme";
+import { spacing, radii, type } from "../../lib/theme";
+import type { ThemeColors } from "../../lib/theme";
+import { useLifePulseTheme } from "../../lib/theme-provider";
 import { Plus, Check } from "../../src/icons";
 import { ItemActionSheet } from "../../src/components/ItemActionSheet";
 import { ConfirmDeleteDialog } from "../../src/components/ConfirmDeleteDialog";
@@ -31,6 +33,8 @@ interface HabitWithLogs extends TodayHabit {
 const ROW_ACTIONS_HINT_KEY = "lifepulse:friction-v1:row-actions-hint-seen";
 
 export default function HabitsScreen() {
+  const { colors } = useLifePulseTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { user } = useAuth();
   const [habits, setHabits] = useState<HabitWithLogs[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -636,6 +640,9 @@ export default function HabitsScreen() {
 }
 
 function Section({ title, count, children }: { title: string; count: number; children: React.ReactNode }) {
+  const { colors } = useLifePulseTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+  void colors;
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
@@ -672,6 +679,8 @@ function HabitRow({
   onEdit: (habit: HabitWithLogs) => void;
   onDelete: (habit: HabitWithLogs) => void;
 }) {
+  const { colors } = useLifePulseTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   return (
     <Pressable
       style={[styles.row, isCompleted && styles.rowCompleted, disabled && styles.rowDisabled]}
@@ -718,7 +727,8 @@ function HabitRow({
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   content: { paddingHorizontal: spacing.xl, paddingTop: 56, paddingBottom: 24 },
 
@@ -864,3 +874,4 @@ const styles = StyleSheet.create({
 
   emptyText: { ...type.meta, color: colors.textMuted, paddingVertical: spacing.sm },
 });
+}

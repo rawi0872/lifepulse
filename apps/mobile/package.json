@@ -13,6 +13,7 @@
     "test:friction-v1": "node --loader ./scripts/ts-extension-loader.mjs --test scripts/test-friction-v1.mjs",
     "test:visual-v1": "node --test scripts/test-visual-v1.mjs",
     "test:today-nextron": "node --loader ./scripts/ts-extension-loader.mjs --test scripts/test-today-nextron.mjs",
+    "test:theme-v1": "node --loader ./scripts/ts-extension-loader.mjs --test scripts/test-theme-v1.mjs",
     "test:auth": "node scripts/test-auth.mjs",
     "test:rls": "node scripts/test-rls.mjs"
   },

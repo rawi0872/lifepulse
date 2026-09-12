@@ -1,7 +1,9 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { View, Text, Modal, Pressable, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { colors, spacing, radii, type } from "../../lib/theme";
+import { spacing, radii, type } from "../../lib/theme";
+import type { ThemeColors } from "../../lib/theme";
+import { useLifePulseTheme } from "../../lib/theme-provider";
 import { Edit, Close } from "../icons";
 
 interface ItemActionSheetProps {
@@ -18,9 +20,12 @@ interface ItemActionSheetProps {
 /**
  * Polished cross-platform contextual sheet for long-press row actions.
  * Tap-outside dismisses, Android back dismisses via onRequestClose.
+ * Theme-aware: deep navy in dark, warm ivory in light.
  */
 export function ItemActionSheet({ visible, title, kind, onEdit, onDelete, onClose }: ItemActionSheetProps) {
   const insets = useSafeAreaInsets();
+  const { colors } = useLifePulseTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
       <View style={styles.root}>
@@ -67,65 +72,67 @@ export function ItemActionSheet({ visible, title, kind, onEdit, onDelete, onClos
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, justifyContent: "flex-end" },
-  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: colors.backdrop },
-  sheet: {
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: radii.xl,
-    borderTopRightRadius: radii.xl,
-    borderTopWidth: 1,
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
-    borderColor: colors.borderStrong,
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing.sm,
-  },
-  handle: {
-    width: 40,
-    height: 4,
-    borderRadius: radii.pill,
-    backgroundColor: colors.borderStrong,
-    alignSelf: "center",
-    marginBottom: spacing.md,
-  },
-  kind: {
-    ...type.caption,
-    color: colors.textMuted,
-    fontWeight: "700",
-    letterSpacing: 1.4,
-    textTransform: "uppercase",
-  },
-  title: { ...type.item, color: colors.textPrimary, fontSize: 17, marginTop: 4, marginBottom: spacing.lg },
-  action: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.md,
-    minHeight: 56,
-    paddingHorizontal: spacing.sm,
-    borderRadius: radii.md,
-  },
-  actionPressed: { backgroundColor: colors.surfaceElevated },
-  actionIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: radii.md,
-    backgroundColor: colors.accentSoft,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  actionIconDanger: { backgroundColor: colors.dangerSoft },
-  actionLabel: { ...type.item, color: colors.textPrimary },
-  actionLabelDanger: { color: colors.danger },
-  cancel: {
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: 52,
-    marginTop: spacing.sm,
-    borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surfaceElevated,
-  },
-  cancelLabel: { ...type.item, color: colors.textSecondary, fontWeight: "600" },
-});
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    root: { flex: 1, justifyContent: "flex-end" },
+    backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: colors.backdrop },
+    sheet: {
+      backgroundColor: colors.surface,
+      borderTopLeftRadius: radii.xl,
+      borderTopRightRadius: radii.xl,
+      borderTopWidth: 1,
+      borderLeftWidth: 1,
+      borderRightWidth: 1,
+      borderColor: colors.borderStrong,
+      paddingHorizontal: spacing.xl,
+      paddingTop: spacing.sm,
+    },
+    handle: {
+      width: 40,
+      height: 4,
+      borderRadius: radii.pill,
+      backgroundColor: colors.borderStrong,
+      alignSelf: "center",
+      marginBottom: spacing.md,
+    },
+    kind: {
+      ...type.caption,
+      color: colors.textMuted,
+      fontWeight: "700",
+      letterSpacing: 1.4,
+      textTransform: "uppercase",
+    },
+    title: { ...type.item, color: colors.textPrimary, fontSize: 17, marginTop: 4, marginBottom: spacing.lg },
+    action: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.md,
+      minHeight: 56,
+      paddingHorizontal: spacing.sm,
+      borderRadius: radii.md,
+    },
+    actionPressed: { backgroundColor: colors.surfaceElevated },
+    actionIcon: {
+      width: 38,
+      height: 38,
+      borderRadius: radii.md,
+      backgroundColor: colors.accentSoft,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    actionIconDanger: { backgroundColor: colors.dangerSoft },
+    actionLabel: { ...type.item, color: colors.textPrimary },
+    actionLabelDanger: { color: colors.danger },
+    cancel: {
+      alignItems: "center",
+      justifyContent: "center",
+      minHeight: 52,
+      marginTop: spacing.sm,
+      borderRadius: radii.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surfaceElevated,
+    },
+    cancelLabel: { ...type.item, color: colors.textSecondary, fontWeight: "600" },
+  });
+}

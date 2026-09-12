@@ -1,11 +1,14 @@
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { AuthProvider, useAuth } from "../lib/auth";
+import { ThemeProvider, useLifePulseTheme } from "../lib/theme-provider";
 import { View, ActivityIndicator, StyleSheet } from "react-native";
-import { colors } from "../lib/theme";
+import { useMemo } from "react";
 
 function RootLayoutInner() {
   const { loading } = useAuth();
+  const { colors } = useLifePulseTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
 
   if (loading) {
     return (
@@ -27,20 +30,31 @@ function RootLayoutInner() {
   );
 }
 
+function ThemedStatusBar() {
+  const { resolvedMode } = useLifePulseTheme();
+  return <StatusBar style={resolvedMode === "light" ? "dark" : "light"} />;
+}
+
 export default function RootLayout() {
   return (
-    <AuthProvider>
-      <StatusBar style="light" />
-      <RootLayoutInner />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <ThemedStatusBar />
+        <RootLayoutInner />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 
-const styles = StyleSheet.create({
-  loading: {
-    flex: 1,
-    backgroundColor: colors.bg,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-});
+import type { ThemeColors } from "../lib/theme";
+
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    loading: {
+      flex: 1,
+      backgroundColor: colors.bg,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+  });
+}

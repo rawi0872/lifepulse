@@ -1,6 +1,9 @@
+import { useMemo } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Link, Stack } from "expo-router";
-import { colors, spacing, radii, type } from "../lib/theme";
+import { spacing, radii, type } from "../lib/theme";
+import type { ThemeColors } from "../lib/theme";
+import { useLifePulseTheme } from "../lib/theme-provider";
 import { WealthIcon } from "../src/icons/WealthIcon";
 import { Pulse, ChevronRight } from "../src/icons";
 
@@ -10,6 +13,8 @@ function BodyGlyph({ color }: { color: string }) {
 }
 
 export default function RealmsScreen() {
+  const { colors } = useLifePulseTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   return (
     <View style={styles.container}>
       <Stack.Screen options={{ title: "Realms", headerStyle: { backgroundColor: colors.bg }, headerTintColor: colors.textPrimary }} />
@@ -42,7 +47,8 @@ export default function RealmsScreen() {
     </View>
   );
 }
-const styles = StyleSheet.create({
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg, paddingHorizontal: spacing.xl, paddingTop: 56, paddingBottom: 24 },
   eyebrow: { ...type.caption, color: colors.textMuted, letterSpacing: 1.6, fontWeight: "700" },
   title: { ...type.screen, color: colors.textPrimary, marginTop: spacing.sm },
@@ -58,3 +64,4 @@ const styles = StyleSheet.create({
   back: { marginTop: spacing.lg, alignItems: "center", minHeight: 44, justifyContent: "center" },
   backText: { color: colors.accent, fontSize: 14, fontWeight: "600" },
 });
+}

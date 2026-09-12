@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -12,7 +12,9 @@ import {
 import { Link, Redirect } from "expo-router";
 import { useAuth } from "../lib/auth";
 import { supabase } from "../lib/supabase";
-import { colors, spacing, radii, type } from "../lib/theme";
+import { spacing, radii, type } from "../lib/theme";
+import type { ThemeColors } from "../lib/theme";
+import { useLifePulseTheme } from "../lib/theme-provider";
 
 function friendlyError(msg: string): string {
   const m = msg.toLowerCase();
@@ -26,6 +28,8 @@ function friendlyError(msg: string): string {
 }
 
 export default function SignupScreen() {
+  const { colors } = useLifePulseTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { session } = useAuth();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -158,7 +162,8 @@ export default function SignupScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   scrollContent: { flexGrow: 1, justifyContent: "center", paddingHorizontal: spacing.xl, paddingTop: 48, paddingBottom: 32 },
   header: { alignItems: "center", marginBottom: spacing.xxl },
@@ -182,3 +187,4 @@ const styles = StyleSheet.create({
   footerText: { ...type.caption, color: colors.textMuted, textAlign: "center" },
   footerLink: { color: colors.accent, fontWeight: "600" },
 });
+}

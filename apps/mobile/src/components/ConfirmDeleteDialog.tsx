@@ -1,7 +1,9 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { View, Text, Modal, Pressable, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { colors, spacing, radii, type } from "../../lib/theme";
+import { spacing, radii, type } from "../../lib/theme";
+import type { ThemeColors } from "../../lib/theme";
+import { useLifePulseTheme } from "../../lib/theme-provider";
 
 interface ConfirmDeleteDialogProps {
   visible: boolean;
@@ -18,6 +20,7 @@ interface ConfirmDeleteDialogProps {
 /**
  * Explicit destructive confirmation. Never deletes on first tap — the caller
  * only runs the delete after onConfirm. Backdrop/back dismisses cancel.
+ * Theme-aware surface, fields, and buttons in both modes.
  */
 export function ConfirmDeleteDialog({
   visible,
@@ -29,6 +32,8 @@ export function ConfirmDeleteDialog({
   onConfirm,
 }: ConfirmDeleteDialogProps) {
   const insets = useSafeAreaInsets();
+  const { colors } = useLifePulseTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   return (
     <Modal
       visible={visible}
@@ -78,41 +83,43 @@ export function ConfirmDeleteDialog({
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, justifyContent: "flex-end", paddingHorizontal: spacing.xl },
-  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: colors.backdrop },
-  card: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.borderStrong,
-    borderRadius: radii.lg,
-    padding: spacing.xl,
-    gap: spacing.sm,
-  },
-  title: { ...type.item, color: colors.textPrimary, fontSize: 17 },
-  message: { ...type.body, color: colors.textSecondary },
-  actions: { flexDirection: "row", gap: spacing.sm, marginTop: spacing.md },
-  cancel: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: 52,
-    borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surfaceElevated,
-  },
-  pressed: { opacity: 0.7 },
-  cancelLabel: { ...type.item, color: colors.textSecondary, fontWeight: "600" },
-  confirm: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: 52,
-    borderRadius: radii.md,
-    backgroundColor: colors.danger,
-  },
-  confirmPressed: { opacity: 0.85 },
-  disabled: { opacity: 0.6 },
-  confirmLabel: { ...type.item, color: colors.textPrimary, fontWeight: "700" },
-});
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    root: { flex: 1, justifyContent: "flex-end", paddingHorizontal: spacing.xl },
+    backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: colors.backdrop },
+    card: {
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.borderStrong,
+      borderRadius: radii.lg,
+      padding: spacing.xl,
+      gap: spacing.sm,
+    },
+    title: { ...type.item, color: colors.textPrimary, fontSize: 17 },
+    message: { ...type.body, color: colors.textSecondary },
+    actions: { flexDirection: "row", gap: spacing.sm, marginTop: spacing.md },
+    cancel: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      minHeight: 52,
+      borderRadius: radii.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surfaceElevated,
+    },
+    pressed: { opacity: 0.7 },
+    cancelLabel: { ...type.item, color: colors.textSecondary, fontWeight: "600" },
+    confirm: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      minHeight: 52,
+      borderRadius: radii.md,
+      backgroundColor: colors.danger,
+    },
+    confirmPressed: { opacity: 0.85 },
+    disabled: { opacity: 0.6 },
+    confirmLabel: { ...type.item, color: colors.onDanger, fontWeight: "700" },
+  });
+}

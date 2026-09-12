@@ -2,8 +2,11 @@ import { Tabs, Redirect } from "expo-router";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useMemo } from "react";
 import { useAuth } from "../../lib/auth";
-import { colors, spacing, radii } from "../../lib/theme";
+import { spacing, radii } from "../../lib/theme";
+import type { ThemeColors } from "../../lib/theme";
+import { useLifePulseTheme } from "../../lib/theme-provider";
 import { Home, NextronIcon, ChecklistIcon, Habits, More } from "../../src/icons";
 
 // Single source of truth — screens use NAV_BAR_HEIGHT for spacing when needed.
@@ -28,6 +31,8 @@ const MORE_CHILD_ROUTES = new Set(["account", "settings"]);
 
 function LifePulseTabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
+  const { colors } = useLifePulseTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const activeRoute = state.routes[state.index]?.name ?? "today";
   const focusedKey: TabKey = (TAB_KEYS as string[]).includes(activeRoute)
     ? (activeRoute as TabKey)
@@ -89,47 +94,48 @@ export default function TabLayout() {
   );
 }
 
-const styles = StyleSheet.create({
-  bar: {
-    backgroundColor: colors.surface,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-  divider: {
-    // subtle top divider already via borderTop; no extra view needed but kept for visual stack clarity
-    height: 0,
-  },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    height: NAV_BAR_HEIGHT,
-    paddingHorizontal: spacing.sm,
-  },
-  item: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 2,
-    minHeight: 44,
-  },
-  iconWrap: {
-    width: 36,
-    height: 28,
-    borderRadius: radii.sm,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  iconWrapActive: {
-    backgroundColor: colors.accentSoft,
-  },
-  label: {
-    fontSize: 10,
-    fontWeight: "500",
-    letterSpacing: 0.2,
-    color: colors.textMuted,
-  },
-  labelActive: {
-    color: colors.accentStrong,
-    fontWeight: "600",
-  },
-});
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    bar: {
+      backgroundColor: colors.navSurface,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+    },
+    divider: {
+      height: 0,
+    },
+    row: {
+      flexDirection: "row",
+      alignItems: "center",
+      height: NAV_BAR_HEIGHT,
+      paddingHorizontal: spacing.sm,
+    },
+    item: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 2,
+      minHeight: 44,
+    },
+    iconWrap: {
+      width: 36,
+      height: 28,
+      borderRadius: radii.sm,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    iconWrapActive: {
+      backgroundColor: colors.accentSoft,
+    },
+    label: {
+      fontSize: 10,
+      fontWeight: "500",
+      letterSpacing: 0.2,
+      color: colors.textMuted,
+    },
+    labelActive: {
+      color: colors.accentStrong,
+      fontWeight: "600",
+    },
+  });
+}

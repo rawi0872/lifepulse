@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState, useMemo } from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Platform } from "react-native";
 import { Link, Stack } from "expo-router";
 import { healthStatusLabel } from "../lib/health";
@@ -11,7 +11,9 @@ import {
 import { getStorageConsent, setMetricConsent, syncSelectedHealthMetrics } from "../lib/health-sync";
 import { loadNextronHealthPermissions, setNextronHealthMetricPermission } from "../lib/nextron-health-permissions";
 import { useAuth } from "../lib/auth";
-import { colors, spacing, radii, type } from "../lib/theme";
+import { spacing, radii, type } from "../lib/theme";
+import type { ThemeColors } from "../lib/theme";
+import { useLifePulseTheme } from "../lib/theme-provider";
 import type { HealthMetricType } from "@lifepulse/domain";
 
 type Availability = "available" | "unavailable" | "not_configured";
@@ -23,6 +25,8 @@ const GROUPS: Array<{ title: string; metrics: Array<{ key: HealthMetricType; lab
 ];
 
 export default function HealthScreen() {
+  const { colors } = useLifePulseTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [availability, setAvailability] = useState<Availability>("unavailable");
@@ -194,7 +198,8 @@ export default function HealthScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   content: { paddingHorizontal: spacing.xl, paddingTop: 56, paddingBottom: 24 },
   title: { ...type.screen, color: colors.textPrimary },
@@ -218,3 +223,4 @@ const styles = StyleSheet.create({
   syncMessage: { fontSize: 12, marginTop: spacing.sm, textAlign: "center", color: colors.textSecondary },
   backLink: { color: colors.accent, fontSize: 14, fontWeight: "600", textAlign: "center", marginTop: spacing.lg, minHeight: 44 },
 });
+}

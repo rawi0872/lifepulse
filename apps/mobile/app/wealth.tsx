@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { View, Text, ScrollView, StyleSheet, ActivityIndicator, TouchableOpacity, Modal, TextInput, Alert, RefreshControl } from "react-native";
 import { Stack, Link } from "expo-router";
-import { colors, spacing, radii, type } from "../lib/theme";
+import { spacing, radii, type } from "../lib/theme";
+import type { ThemeColors } from "../lib/theme";
+import { useLifePulseTheme } from "../lib/theme-provider";
 import { WealthIcon } from "../src/icons/WealthIcon";
 import { Plus } from "../src/icons/Plus";
 import { Close } from "../src/icons/Close";
@@ -21,6 +23,8 @@ const GOAL_OPTIONS: Array<{ value: string; label: string }> = [
 ];
 
 export default function WealthScreen() {
+  const { colors } = useLifePulseTheme();
+  const s = useMemo(() => makeStyles(colors), [colors]);
   const [data, setData] = useState<Awaited<ReturnType<typeof loadWealthOverview>> | null>(null);
   const [intel, setIntel] = useState<Awaited<ReturnType<typeof loadWealthIntelligence>> | null>(null);
   const [perms, setPerms] = useState<{master:boolean; sections:string[]} | null>(null);
@@ -526,7 +530,8 @@ export default function WealthScreen() {
   );
 }
 
-const s = StyleSheet.create({
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
   container:{flex:1, backgroundColor: colors.bg}, content:{paddingHorizontal: spacing.xl, paddingTop: 56, paddingBottom: 24},
   center:{flex:1, backgroundColor:colors.bg, alignItems:"center", justifyContent:"center", padding: spacing.xl},
   err:{color:colors.danger, fontSize:13}, note:{color:colors.textSecondary, fontSize:12, marginTop:6, lineHeight:16},
@@ -606,3 +611,4 @@ const s = StyleSheet.create({
   chipText:{fontSize:12, fontWeight:"600", color: colors.textMuted},
   chipTextActive:{color: colors.accentStrong},
 });
+}

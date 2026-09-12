@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -17,7 +17,9 @@ import { getNextronConversation, listNextronConversations, nextronAsk } from "..
 import { loadWealthNextronPermissions, getEffectiveWealthNextronSections } from "../../lib/nextron-wealth-permissions";
 import { loadNextronHealthPermissions, effectiveNextronMetrics } from "../../lib/nextron-health-permissions";
 import { toCalmNextronError, buildNextronContextSummary } from "../../lib/nextron-ui";
-import { colors, spacing, radii, type } from "../../lib/theme";
+import { spacing, radii, type } from "../../lib/theme";
+import type { ThemeColors } from "../../lib/theme";
+import { useLifePulseTheme } from "../../lib/theme-provider";
 import { NextronIcon, Plus, ChevronRight } from "../../src/icons";
 
 type Message = {
@@ -39,6 +41,8 @@ function extractAssistantText(msg: Message): string {
 const STARTERS = ["What should I focus on today?", "Summarize my progress", "Help me plan tomorrow"];
 
 export default function NextronScreen() {
+  const { colors } = useLifePulseTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const [conversationId, setConversationId] = useState<string | null>(null);
@@ -304,7 +308,8 @@ export default function NextronScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   header: {
     paddingTop: 56,
@@ -436,3 +441,4 @@ const styles = StyleSheet.create({
   },
   sendButtonDisabled: { opacity: 0.5 },
 });
+}

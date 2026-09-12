@@ -1,10 +1,12 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import { View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity, Pressable, Alert } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "expo-router";
 import { supabase } from "../../lib/supabase";
 import { useAuth } from "../../lib/auth";
-import { colors, spacing, radii, type } from "../../lib/theme";
+import { spacing, radii, type } from "../../lib/theme";
+import type { ThemeColors } from "../../lib/theme";
+import { useLifePulseTheme } from "../../lib/theme-provider";
 import { Plus, Check } from "../../src/icons";
 import { ItemActionSheet } from "../../src/components/ItemActionSheet";
 import { ConfirmDeleteDialog } from "../../src/components/ConfirmDeleteDialog";
@@ -24,6 +26,8 @@ import type { TodayTask } from "@lifepulse/domain";
 const ROW_ACTIONS_HINT_KEY = "lifepulse:friction-v1:row-actions-hint-seen";
 
 export default function TasksScreen() {
+  const { colors } = useLifePulseTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { user } = useAuth();
   const [tasks, setTasks] = useState<TodayTask[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -519,6 +523,9 @@ export default function TasksScreen() {
 }
 
 function Section({ title, count, tone, children }: { title: string; count: number; tone?: "danger"; children: React.ReactNode }) {
+  const { colors } = useLifePulseTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+  void colors;
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
@@ -549,6 +556,8 @@ function TaskRow({
   onEdit: (task: TodayTask) => void;
   onDelete: (task: TodayTask) => void;
 }) {
+  const { colors } = useLifePulseTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const status = formatTaskDueStatus(task.due_date, localDate, task.status === "done");
   return (
     <Pressable
@@ -594,7 +603,8 @@ function TaskRow({
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   content: { paddingHorizontal: spacing.xl, paddingTop: 56, paddingBottom: 24 },
 
@@ -707,3 +717,4 @@ const styles = StyleSheet.create({
   rowMeta: { ...type.meta, color: colors.textMuted, marginTop: 2 },
   emptyText: { ...type.meta, color: colors.textMuted, paddingVertical: spacing.sm },
 });
+}

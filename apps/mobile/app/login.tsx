@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -12,10 +12,15 @@ import {
 } from "react-native";
 import { Link, Redirect } from "expo-router";
 import { useAuth } from "../lib/auth";
-import { colors, spacing, radii, type } from "../lib/theme";
+import { spacing, radii, type } from "../lib/theme";
+import type { ThemeColors } from "../lib/theme";
+import { useLifePulseTheme } from "../lib/theme-provider";
 import { getRememberedEmail, setRememberedEmail, normalizeEmail } from "../lib/remembered-email";
 
 function EyeIcon({ open }: { open: boolean }) {
+  const { colors } = useLifePulseTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+  void colors;
   return (
     <View style={styles.eyeOuter}>
       <View style={styles.eyeInner}>
@@ -27,6 +32,8 @@ function EyeIcon({ open }: { open: boolean }) {
 }
 
 export default function LoginScreen() {
+  const { colors } = useLifePulseTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { signIn, session } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -183,7 +190,8 @@ placeholder="••••••••"
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.bg,
@@ -376,3 +384,4 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 });
+}

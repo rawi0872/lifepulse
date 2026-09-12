@@ -1,14 +1,18 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, Share } from "react-native";
 import { useRouter } from "expo-router";
 import Constants from "expo-constants";
 import { supabase } from "../../lib/supabase";
 import { useAuth } from "../../lib/auth";
-import { colors, spacing, radii, type } from "../../lib/theme";
+import { spacing, radii, type } from "../../lib/theme";
+import type { ThemeColors } from "../../lib/theme";
+import { useLifePulseTheme } from "../../lib/theme-provider";
 import { Logout, Send } from "../../src/icons";
 import { SectionLabel, MenuRow, BackLink, FooterNote } from "../../src/components/ui";
 
 export default function AccountScreen() {
+  const { colors } = useLifePulseTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { user, signOut } = useAuth();
   const router = useRouter();
   const version = (Constants.expoConfig?.version as string) ?? "0.1.7";
@@ -76,7 +80,8 @@ export default function AccountScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   content: { paddingHorizontal: spacing.xl, paddingTop: 56, paddingBottom: 24 },
 
@@ -118,3 +123,4 @@ const styles = StyleSheet.create({
   },
   signOutText: { ...type.item, color: colors.danger, fontWeight: "600" },
 });
+}
