@@ -1,7 +1,7 @@
 // Life Pulse Body Realm V1 — Foundation + Product Architecture
 // Pure domain, no I/O, no Supabase imports.
 
-import type { HealthMetricType } from "./health";
+import type { HealthMetricType } from "./health.ts";
 
 // ── Units ──
 export type BodyMetricUnit = "count" | "minutes" | "hours" | "bpm" | "kg" | "lb";

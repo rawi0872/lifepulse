@@ -1,4 +1,4 @@
-import type { IntendedUse } from "../intendedUse";
+import type { IntendedUse } from "../intendedUse.ts";
 
 export interface TodayRealmInfo {
   name: string;

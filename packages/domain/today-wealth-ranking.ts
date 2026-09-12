@@ -1,5 +1,5 @@
-import type { MorningPlanFirstAction } from "./today/morning-plan";
-import type { WealthSignalV2 } from "./wealth-intelligence";
+import type { MorningPlanFirstAction } from "./today/morning-plan.ts";
+import type { WealthSignalV2 } from "./wealth-intelligence.ts";
 
 // Maps ordinary Up Next to deterministic priority preserving urgency
 export function ordinaryPriority(upNext: MorningPlanFirstAction | null): number | null {

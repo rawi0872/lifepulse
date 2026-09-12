@@ -1,4 +1,4 @@
-import type { TodayHabit, TodayModel, TodayTask, TodayTaskExecutionContext } from "./types";
+import type { TodayHabit, TodayModel, TodayTask, TodayTaskExecutionContext } from "./types.ts";
 
 export interface TodayLocalPriority {
   id: string;

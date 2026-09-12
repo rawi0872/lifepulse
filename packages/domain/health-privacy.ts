@@ -1,7 +1,7 @@
 // Health Privacy Model — three explicit consent layers
 // SOURCE ACCESS → LIFE PULSE STORAGE → NEXTRON ACCESS are independent.
 
-import type { HealthMetricType } from "./health";
+import type { HealthMetricType } from "./health.ts";
 
 export type HealthScope = HealthMetricType;
 

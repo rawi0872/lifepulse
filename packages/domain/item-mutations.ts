@@ -7,8 +7,8 @@
 // repeated taps. Tested in apps/mobile/scripts/test-friction-v1.mjs.
 // ---------------------------------------------------------------------------
 
-import { isValidLocalDateString } from "./tasks";
-import type { TodayHabit, TodayTask } from "./today/types";
+import { isValidLocalDateString } from "./tasks.ts";
+import type { TodayHabit, TodayTask } from "./today/types.ts";
 
 export const MAX_ITEM_TITLE_LENGTH = 120;
 

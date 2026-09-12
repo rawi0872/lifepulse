@@ -1,6 +1,6 @@
 // Wealth Intelligence — deterministic, bounded, per-currency, no AI
-import type { WealthAccount, WealthTransaction, WealthRecurringItem } from "./wealth";
-import { isLiabilityAccount, getWealthBalanceSummary } from "./wealth";
+import type { WealthAccount, WealthTransaction, WealthRecurringItem } from "./wealth.ts";
+import { isLiabilityAccount, getWealthBalanceSummary } from "./wealth.ts";
 
 // ── Data contract (what can be inferred) ──
 export const WEALTH_DATA_CONTRACT = `

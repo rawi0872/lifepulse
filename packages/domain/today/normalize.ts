@@ -1,5 +1,5 @@
-import { getWeeklyProgress, isHabitDueOnDate, normalizeCompletedDates } from "../streaks";
-import { groupTasksByDate, isValidLocalDateString, priorityRank, timestampToLocalDateString } from "../tasks";
+import { getWeeklyProgress, isHabitDueOnDate, normalizeCompletedDates } from "../streaks.ts";
+import { groupTasksByDate, isValidLocalDateString, priorityRank, timestampToLocalDateString } from "../tasks.ts";
 import type {
   TodayDataSnapshot,
   TodayDateContext,
@@ -8,7 +8,7 @@ import type {
   TodayModel,
   TodayTask,
   TodayTaskExecutionContext,
-} from "./types";
+} from "./types.ts";
 
 function isCompletedToday(completedAt: string | null, localDate: string): boolean {
   return timestampToLocalDateString(completedAt) === localDate;

@@ -1,5 +1,5 @@
 // Provider Adapter Interface — pure contract, no NEXTRON logic
-import type { HealthRecord, HealthMetricType, HealthSource } from "./health";
+import type { HealthRecord, HealthMetricType, HealthSource } from "./health.ts";
 
 export type HealthAvailability = "available" | "unavailable" | "not_configured";
 

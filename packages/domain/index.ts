@@ -1,5 +1,5 @@
-export { resolveIntendedUse, INTENDED_USE_VALUES } from "./intendedUse";
-export type { IntendedUse } from "./intendedUse";
+export { resolveIntendedUse, INTENDED_USE_VALUES } from "./intendedUse.ts";
+export type { IntendedUse } from "./intendedUse.ts";
 
 export {
   isValidLocalDateString,
@@ -8,8 +8,8 @@ export {
   priorityRank,
   groupTasksByDate,
   formatTaskDueStatus,
-} from "./tasks";
-export type { TaskLike, TaskGroups } from "./tasks";
+} from "./tasks.ts";
+export type { TaskLike, TaskGroups } from "./tasks.ts";
 
 export {
   MAX_ITEM_TITLE_LENGTH,
@@ -22,8 +22,8 @@ export {
   removeDeletedById,
   isDeletedEverywhere,
   createSingleFlight,
-} from "./item-mutations";
-export type { TaskPriority, HabitFrequency, TaskEdits, TaskUpdate, HabitEdits, HabitUpdate, NormalizedHabitSchedule, SingleFlight } from "./item-mutations";
+} from "./item-mutations.ts";
+export type { TaskPriority, HabitFrequency, TaskEdits, TaskUpdate, HabitEdits, HabitUpdate, NormalizedHabitSchedule, SingleFlight } from "./item-mutations.ts";
 
 export {
   dateToLocalDateString,
@@ -36,12 +36,12 @@ export {
   getCurrentStreak,
   getBestStreak,
   getWeeklyProgress,
-} from "./streaks";
-export type { HabitSchedule, HabitWeeklyProgress } from "./streaks";
+} from "./streaks.ts";
+export type { HabitSchedule, HabitWeeklyProgress } from "./streaks.ts";
 
-export { normalizeTodayData } from "./today/normalize";
-export { selectMorningPlanFirstAction, getMorningPlanAttentionItems } from "./today/morning-plan";
-export type { TodayLocalPriority, MorningPlanFirstAction } from "./today/morning-plan";
+export { normalizeTodayData } from "./today/normalize.ts";
+export { selectMorningPlanFirstAction, getMorningPlanAttentionItems } from "./today/morning-plan.ts";
+export type { TodayLocalPriority, MorningPlanFirstAction } from "./today/morning-plan.ts";
 export {
   buildEveningShutdownSummary,
   normalizeEveningShutdownReflection,
@@ -49,8 +49,8 @@ export {
   removeEveningShutdownBlock,
   mergeEveningShutdownBlock,
   parseEveningShutdownReflection,
-} from "./today/evening-shutdown";
-export type { EveningShutdownReflection, EveningShutdownSummary } from "./today/evening-shutdown";
+} from "./today/evening-shutdown.ts";
+export type { EveningShutdownReflection, EveningShutdownSummary } from "./today/evening-shutdown.ts";
 
 export type {
   TodayRealmInfo,
@@ -73,15 +73,15 @@ export type {
   TodayGoalPreviewLink,
   TodayLinkedGoal,
   TodayGoalMilestone,
-} from "./today/types";
+} from "./today/types.ts";
 
 export {
   toLocalPriority,
   isValidPosition,
   isValidPriorityText,
   MAX_PRIORITIES_PER_DAY,
-} from "./today-priorities";
-export type { TodayPriority, TodayPriorityInput } from "./today-priorities";
+} from "./today-priorities.ts";
+export type { TodayPriority, TodayPriorityInput } from "./today-priorities.ts";
 
 export {
   HEALTH_METRIC_META,
@@ -92,8 +92,8 @@ export {
   buildDailyHealthAggregateDedupeKey,
   isValidHealthValue,
   isValidHealthNumericValue,
-} from "./health";
-export type { HealthSource, HealthMetricType, HealthUnit, HealthRecord, HealthSourceConnection, HealthProvenance } from "./health";
+} from "./health.ts";
+export type { HealthSource, HealthMetricType, HealthUnit, HealthRecord, HealthSourceConnection, HealthProvenance } from "./health.ts";
 
 export {
   DEFAULT_HEALTH_PRIVACY,
@@ -101,12 +101,12 @@ export {
   isNextronAllowed,
   nextronHealthRequiresExplicitConsent,
   filterForNextron,
-} from "./health-privacy";
-export type { HealthPrivacyState, HealthScope } from "./health-privacy";
+} from "./health-privacy.ts";
+export type { HealthPrivacyState, HealthScope } from "./health-privacy.ts";
 
-export type { HealthSourceAdapter, HealthAvailability, HealthPermissionStatus, HealthSyncResult } from "./health-adapter";
+export type { HealthSourceAdapter, HealthAvailability, HealthPermissionStatus, HealthSyncResult } from "./health-adapter.ts";
 
-export * from "./body";
-export * from "./wealth";
-export * from "./wealth-intelligence";
-export * from "./today-wealth-ranking";
+export * from "./body.ts";
+export * from "./wealth.ts";
+export * from "./wealth-intelligence.ts";
+export * from "./today-wealth-ranking.ts";
