@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { Link } from "expo-router";
 import { supabase } from "../lib/supabase";
+import { colors, spacing, radii, type } from "../lib/theme";
 
 export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState("");
@@ -69,7 +70,7 @@ export default function ForgotPasswordScreen() {
               <TextInput
                 style={styles.input}
                 placeholder="you@example.com"
-                placeholderTextColor="rgba(240,244,248,0.35)"
+                placeholderTextColor={colors.textMuted}
                 value={email}
                 onChangeText={(t) => {
                   setEmail(t);
@@ -116,59 +117,59 @@ export default function ForgotPasswordScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#080c12" },
-  scrollContent: { flexGrow: 1, justifyContent: "center", paddingHorizontal: 24, paddingTop: 48, paddingBottom: 32 },
-  header: { alignItems: "center", marginBottom: 32 },
-  title: { fontSize: 22, fontWeight: "700", color: "#f0f4f8", textAlign: "center" },
-  subtitle: { fontSize: 13, color: "#6b7280", textAlign: "center", marginTop: 8, lineHeight: 18 },
-  form: { gap: 16 },
-  field: { gap: 8 },
-  label: { fontSize: 12, fontWeight: "600", color: "#9ca3af", letterSpacing: 0.3, textTransform: "uppercase" },
+  container: { flex: 1, backgroundColor: colors.bg },
+  scrollContent: { flexGrow: 1, justifyContent: "center", paddingHorizontal: spacing.xl, paddingTop: 48, paddingBottom: 32 },
+  header: { alignItems: "center", marginBottom: spacing.xxl },
+  title: { ...type.screen, color: colors.textPrimary, textAlign: "center" },
+  subtitle: { ...type.body, color: colors.textSecondary, textAlign: "center", marginTop: spacing.sm, lineHeight: 18 },
+  form: { gap: spacing.lg },
+  field: { gap: spacing.sm },
+  label: { ...type.caption, color: colors.textSecondary, letterSpacing: 0.3 },
   input: {
-    backgroundColor: "rgba(255,255,255,0.04)",
+    backgroundColor: colors.surfaceElevated,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    color: "#f0f4f8",
+    borderColor: colors.border,
+    borderRadius: radii.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: 12,
+    color: colors.textPrimary,
     fontSize: 15,
     minHeight: 48,
   },
   errorBox: {
-    backgroundColor: "rgba(239,68,68,0.08)",
+    backgroundColor: colors.dangerSoft,
     borderWidth: 1,
-    borderColor: "rgba(239,68,68,0.15)",
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    borderColor: colors.dangerBorder,
+    borderRadius: radii.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
   },
-  errorText: { color: "#fca5a5", fontSize: 13, textAlign: "center", lineHeight: 18 },
+  errorText: { color: colors.danger, fontSize: 13, textAlign: "center", lineHeight: 18 },
   button: {
-    backgroundColor: "#7aa2c4",
-    borderRadius: 12,
-    paddingVertical: 15,
+    backgroundColor: colors.accent,
+    borderRadius: radii.md,
+    paddingVertical: spacing.sm,
     alignItems: "center",
-    minHeight: 48,
+    minHeight: 52,
     justifyContent: "center",
-    marginTop: 4,
+    marginTop: spacing.xs,
   },
-  buttonDisabled: { opacity: 0.55 },
-  buttonText: { color: "#071018", fontSize: 15, fontWeight: "700" },
-  sentBox: { gap: 16 },
+  buttonDisabled: { opacity: 0.5 },
+  buttonText: { color: colors.onAccent, fontSize: 15, fontWeight: "700" },
+  sentBox: { gap: spacing.lg },
   sentText: {
-    backgroundColor: "rgba(122,162,196,0.08)",
+    backgroundColor: colors.accentSoft,
     borderWidth: 1,
-    borderColor: "rgba(122,162,196,0.15)",
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 14,
-    color: "#9ca3af",
+    borderColor: colors.accentBorder,
+    borderRadius: radii.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.lg,
+    color: colors.textSecondary,
     fontSize: 13,
     textAlign: "center",
     lineHeight: 18,
   },
-  footer: { alignItems: "center", marginTop: 28 },
-  footerText: { color: "#6b7280", fontSize: 12, textAlign: "center" },
-  footerLink: { color: "#7aa2c4", fontWeight: "600" },
+  footer: { alignItems: "center", marginTop: spacing.xl },
+  footerText: { ...type.caption, color: colors.textMuted, textAlign: "center" },
+  footerLink: { color: colors.accent, fontWeight: "600" },
 });

@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { View, Text, ScrollView, StyleSheet, ActivityIndicator, TouchableOpacity, Alert, TextInput, RefreshControl } from "react-native";
 import { Link, Stack } from "expo-router";
 import { Svg, Polyline, Line, Path } from "react-native-svg";
-import { colors, spacing, radii } from "../lib/theme";
+import { colors, spacing, radii, type } from "../lib/theme";
 import { loadBodyOverview, type BodyOverview } from "../lib/body-service";
 import { formatBodyMetricValue, type BodyMetricKey } from "@lifepulse/domain";
 import { supabase } from "../lib/supabase";
@@ -128,7 +128,7 @@ export default function BodyScreen() {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerMark}>
-          <BodyIcon size={20} color={colors.accent} />
+          <BodyIcon size={20} color={colors.realmBody} />
         </View>
         <View style={{ flex: 1 }}>
           <Text style={styles.headerTitle}>BODY</Text>
@@ -314,10 +314,10 @@ export default function BodyScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
-  content: { padding: spacing.xl, paddingTop: 56, paddingBottom: 24 },
+  content: { paddingHorizontal: spacing.xl, paddingTop: 56, paddingBottom: 24 },
   header: { flexDirection: "row", alignItems: "center", gap: spacing.md, marginBottom: spacing.lg },
-  headerMark: { width: 32, height: 32, borderRadius: radii.md, backgroundColor: colors.accentSoft, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: colors.accentBorder },
-  headerTitle: { fontSize: 13, fontWeight: "700", color: colors.accent, letterSpacing: 1.2 },
+  headerMark: { width: 32, height: 32, borderRadius: radii.md, backgroundColor: colors.realmBodySoft, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: colors.realmBodyBorder },
+  headerTitle: { fontSize: 13, fontWeight: "700", color: colors.realmBody, letterSpacing: 1.2 },
   headerDate: { fontSize: 11, color: colors.textMuted, marginLeft: "auto" },
   headerSub: { fontSize: 11, color: colors.textMuted },
   hero: { backgroundColor: colors.surfaceElevated, borderWidth: 1, borderColor: colors.accentBorder, borderRadius: radii.lg, padding: spacing.lg, marginBottom: spacing.lg },
@@ -325,21 +325,21 @@ const styles = StyleSheet.create({
   heroValue: { fontSize: 15, fontWeight: "700", color: colors.textPrimary, marginTop: 6 },
   heroMeta: { fontSize: 12, color: colors.textMuted, marginTop: 4 },
   section: { marginTop: spacing.lg },
-  sectionTitle: { fontSize: 11, fontWeight: "700", color: colors.textMuted, letterSpacing: 1.1, textTransform: "uppercase" },
-  metricsGrid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm, marginTop: 10 },
-  metricCard: { width: "48%", backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radii.md, padding: 10 },
+  sectionTitle: { ...type.caption, fontWeight: "700", color: colors.textMuted, letterSpacing: 1.4, textTransform: "uppercase" },
+  metricsGrid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm, marginTop: spacing.sm },
+  metricCard: { width: "48%", backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radii.md, padding: spacing.md },
   metricMissing: { backgroundColor: colors.surface, borderStyle: "dashed" },
   metricKey: { fontSize: 11, color: colors.textMuted, textTransform: "uppercase", letterSpacing: 0.6 },
   metricValue: { fontSize: 15, fontWeight: "700", color: colors.textPrimary, marginTop: 4 },
   metricMeta: { fontSize: 11, color: colors.textMuted, marginTop: 4 },
   metricMissingText: { fontSize: 12, color: colors.textMuted, marginTop: 4 },
   trendHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  periodToggle: { flexDirection: "row", gap: 6 },
-  periodBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: radii.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
+  periodToggle: { flexDirection: "row", gap: spacing.sm },
+  periodBtn: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radii.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
   periodBtnActive: { backgroundColor: colors.accentSoft, borderColor: colors.accentBorder },
   periodText: { fontSize: 11, fontWeight: "600", color: colors.textMuted },
   periodTextActive: { color: colors.accentStrong },
-  trendCard: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radii.md, padding: 10, marginTop: 8 },
+  trendCard: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radii.md, padding: spacing.md, marginTop: spacing.sm },
   trendKey: { fontSize: 11, color: colors.textMuted, textTransform: "uppercase", letterSpacing: 0.6 },
   trendTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   trendDir: { fontSize: 12, fontWeight: "700" },
@@ -348,30 +348,30 @@ const styles = StyleSheet.create({
   trendMeta: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
   trendEmpty: { fontSize: 12, color: colors.textMuted, marginTop: 6 },
   trendHint: { fontSize: 11, color: colors.textFaint, marginTop: 4 },
-  rowCard: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radii.md, padding: 10, marginTop: 8 },
+  rowCard: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radii.md, padding: spacing.md, marginTop: spacing.sm },
   rowTitle: { fontSize: 14, fontWeight: "600", color: colors.textPrimary },
-  rowMeta: { fontSize: 11, color: colors.textMuted, marginTop: 4 },
+  rowMeta: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
   rowHint: { fontSize: 11, color: colors.textFaint, marginTop: 4 },
   emptyText: { fontSize: 12, color: colors.textMuted, marginTop: 8 },
-  chip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: radii.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
+  chip: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radii.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
   chipActive: { backgroundColor: colors.accentSoft, borderColor: colors.accentBorder },
   chipText: { fontSize: 11, fontWeight: "600", color: colors.textMuted },
   chipTextActive: { color: colors.accentStrong },
-  inlineAdd: { flexDirection: "row", gap: 8, marginTop: 8, alignItems: "center" },
-  inlineInput: { flex: 1, backgroundColor: colors.surfaceElevated, borderWidth: 1, borderColor: colors.border, borderRadius: radii.md, paddingHorizontal: 10, paddingVertical: 8, color: colors.textPrimary, fontSize: 13 },
+  inlineAdd: { flexDirection: "row", gap: spacing.sm, marginTop: spacing.sm, alignItems: "center" },
+  inlineInput: { flex: 1, backgroundColor: colors.surfaceElevated, borderWidth: 1, borderColor: colors.border, borderRadius: radii.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, color: colors.textPrimary, fontSize: 13 },
   inlineBtn: { backgroundColor: colors.accent, borderRadius: radii.md, paddingHorizontal: 12, paddingVertical: 8 },
   inlineBtnDisabled: { opacity: 0.45 },
   inlineBtnText: { color: colors.onAccent, fontSize: 12, fontWeight: "700" },
-  healthCard: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radii.md, padding: 12, marginTop: 8 },
+  healthCard: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radii.md, padding: spacing.md, marginTop: spacing.sm },
   healthTitle: { fontSize: 13, fontWeight: "700", color: colors.textPrimary },
   healthMeta: { fontSize: 11, color: colors.textMuted, marginTop: 4 },
   healthLink: { marginTop: 8, alignSelf: "flex-start", paddingHorizontal: 10, paddingVertical: 6, borderRadius: radii.pill, backgroundColor: colors.accentSoft, borderWidth: 1, borderColor: colors.accentBorder },
   healthLinkText: { fontSize: 11, fontWeight: "600", color: colors.accentStrong },
-  emptyHero: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radii.lg, padding: 16, marginTop: 16, alignItems: "center" },
+  emptyHero: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radii.lg, padding: spacing.lg, marginTop: spacing.lg, alignItems: "center" },
   emptyTitle: { fontSize: 15, fontWeight: "700", color: colors.textPrimary },
-  emptyActions: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 12, justifyContent: "center" },
+  emptyActions: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm, marginTop: spacing.md, justifyContent: "center" },
   emptyBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: radii.pill, backgroundColor: colors.surfaceElevated, borderWidth: 1, borderColor: colors.border },
   emptyBtnText: { fontSize: 12, fontWeight: "600", color: colors.accentStrong },
-  back: { marginTop: 16, alignItems: "center" },
-  backText: { color: colors.accent, fontSize: 13 },
+  back: { marginTop: spacing.lg, alignItems: "center", minHeight: 44, justifyContent: "center" },
+  backText: { color: colors.accent, fontSize: 14, fontWeight: "600" },
 });

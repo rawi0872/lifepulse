@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../../lib/auth";
-import { colors, spacing } from "../../lib/theme";
+import { colors, spacing, radii } from "../../lib/theme";
 import { Home, NextronIcon, ChecklistIcon, Habits, More } from "../../src/icons";
 
 // Single source of truth — screens use NAV_BAR_HEIGHT for spacing when needed.
@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
   iconWrap: {
     width: 36,
     height: 28,
-    borderRadius: 8,
+    borderRadius: radii.sm,
     alignItems: "center",
     justifyContent: "center",
   },

@@ -80,7 +80,7 @@ export function ConfirmDeleteDialog({
 
 const styles = StyleSheet.create({
   root: { flex: 1, justifyContent: "flex-end", paddingHorizontal: spacing.xl },
-  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0, 0, 0, 0.6)" },
+  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: colors.backdrop },
   card: {
     backgroundColor: colors.surface,
     borderWidth: 1,
@@ -114,5 +114,5 @@ const styles = StyleSheet.create({
   },
   confirmPressed: { opacity: 0.85 },
   disabled: { opacity: 0.6 },
-  confirmLabel: { ...type.item, color: "#fff", fontWeight: "700" },
+  confirmLabel: { ...type.item, color: colors.textPrimary, fontWeight: "700" },
 });

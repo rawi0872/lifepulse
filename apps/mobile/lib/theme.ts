@@ -29,8 +29,23 @@ export const colors = {
   successSoft: "rgba(52, 211, 153, 0.12)",
   danger: "#ef4444",
   dangerSoft: "rgba(239, 68, 68, 0.12)",
+  dangerBorder: "rgba(239, 68, 68, 0.25)",
   warning: "#f59e0b",
   warningSoft: "rgba(245, 158, 11, 0.12)",
+
+  // Realm identity — confined to Realm iconography, never general UI.
+  realmBody: "#ef4444",
+  realmBodySoft: "rgba(239, 68, 68, 0.12)",
+  realmBodyBorder: "rgba(239, 68, 68, 0.22)",
+  realmWealth: "#0ea5e9",
+  realmWealthSoft: "rgba(14, 165, 233, 0.12)",
+  realmWealthBorder: "rgba(14, 165, 233, 0.22)",
+
+  // Muted fills for dots/badges/tracks.
+  mutedSoft: "rgba(148, 163, 184, 0.12)",
+
+  // Overlays
+  backdrop: "rgba(0, 0, 0, 0.6)",
 
   // On-accent (text on filled accent buttons)
   onAccent: "#071018",

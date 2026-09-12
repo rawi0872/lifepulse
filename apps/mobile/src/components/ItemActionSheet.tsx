@@ -69,7 +69,7 @@ export function ItemActionSheet({ visible, title, kind, onEdit, onDelete, onClos
 
 const styles = StyleSheet.create({
   root: { flex: 1, justifyContent: "flex-end" },
-  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0, 0, 0, 0.6)" },
+  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: colors.backdrop },
   sheet: {
     backgroundColor: colors.surface,
     borderTopLeftRadius: radii.xl,
@@ -84,7 +84,7 @@ const styles = StyleSheet.create({
   handle: {
     width: 40,
     height: 4,
-    borderRadius: 2,
+    borderRadius: radii.pill,
     backgroundColor: colors.borderStrong,
     alignSelf: "center",
     marginBottom: spacing.md,

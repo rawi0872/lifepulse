@@ -249,12 +249,12 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   input: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceElevated,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radii.md,
     paddingHorizontal: spacing.lg,
-    paddingVertical: 14,
+    paddingVertical: 12,
     color: colors.textPrimary,
     fontSize: 15,
     minHeight: 48,
@@ -289,7 +289,7 @@ const styles = StyleSheet.create({
   eyeOuter: {
     width: 22,
     height: 14,
-    borderRadius: 7,
+    borderRadius: radii.pill,
     borderWidth: 1.5,
     borderColor: colors.textMuted,
     justifyContent: "center",
@@ -299,7 +299,7 @@ const styles = StyleSheet.create({
   eyeInner: {
     width: 14,
     height: 14,
-    borderRadius: 7,
+    borderRadius: radii.pill,
     borderWidth: 1.5,
     borderColor: colors.textMuted,
     justifyContent: "center",
@@ -308,7 +308,7 @@ const styles = StyleSheet.create({
   eyePupil: {
     width: 6,
     height: 6,
-    borderRadius: 3,
+    borderRadius: radii.pill,
     backgroundColor: colors.textMuted,
   },
   eyeSlash: {
@@ -321,10 +321,10 @@ const styles = StyleSheet.create({
   errorBox: {
     backgroundColor: colors.dangerSoft,
     borderWidth: 1,
-    borderColor: "rgba(239,68,68,0.15)",
+    borderColor: colors.dangerBorder,
     borderRadius: radii.md,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
   },
   errorText: {
     color: colors.danger,
@@ -335,14 +335,14 @@ const styles = StyleSheet.create({
   button: {
     backgroundColor: colors.accent,
     borderRadius: radii.md,
-    paddingVertical: 15,
+    paddingVertical: spacing.sm,
     alignItems: "center",
-    minHeight: 48,
+    minHeight: 52,
     justifyContent: "center",
     marginTop: spacing.sm,
   },
   buttonDisabled: {
-    opacity: 0.55,
+    opacity: 0.5,
   },
   buttonText: {
     color: colors.onAccent,

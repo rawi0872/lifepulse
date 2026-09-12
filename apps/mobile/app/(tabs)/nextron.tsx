@@ -292,8 +292,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  headerTitle: { color: colors.accentStrong, fontSize: 13, fontWeight: "700", letterSpacing: 1.5 },
-  headerSub: { color: colors.textMuted, fontSize: 10, marginTop: 1 },
+  headerTitle: { ...type.caption, color: colors.accentStrong, fontWeight: "700", letterSpacing: 1.5 },
+  headerSub: { ...type.caption, fontSize: 10, color: colors.textMuted, marginTop: 1 },
   headerActions: { flexDirection: "row", alignItems: "center" },
   newButton: {
     width: 36,
@@ -393,7 +393,7 @@ const styles = StyleSheet.create({
   sendButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: radii.pill,
     backgroundColor: colors.accent,
     alignItems: "center",
     justifyContent: "center",

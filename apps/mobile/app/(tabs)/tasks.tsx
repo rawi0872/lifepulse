@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity, Pressable, Alert, TextInput } from "react-native";
+import { View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity, Pressable, Alert } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "expo-router";
 import { supabase } from "../../lib/supabase";
@@ -8,6 +8,7 @@ import { colors, spacing, radii, type } from "../../lib/theme";
 import { Plus, Check } from "../../src/icons";
 import { ItemActionSheet } from "../../src/components/ItemActionSheet";
 import { ConfirmDeleteDialog } from "../../src/components/ConfirmDeleteDialog";
+import { ScreenHeader, SectionLabel, EmptyState, ErrorBanner, FieldLabel, FieldInput } from "../../src/components/ui";
 import {
   getLocalTodayDateString,
   formatTaskDueStatus,
@@ -259,14 +260,13 @@ export default function TasksScreen() {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />}
     >
       {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerRow}>
-          <Text style={styles.greeting}>Tasks</Text>
-          <TouchableOpacity style={styles.createButton} onPress={openCreate} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel="Create task">
-            <Plus size={18} color={colors.accentStrong} />
-          </TouchableOpacity>
+      <View style={styles.headerRow}>
+        <View style={styles.headerTitle}>
+          <ScreenHeader title="Tasks" sub="Focus on what&apos;s due" />
         </View>
-        <Text style={styles.date}>Focus on what&apos;s due</Text>
+        <TouchableOpacity style={styles.createButton} onPress={openCreate} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel="Create task">
+          <Plus size={18} color={colors.accentStrong} />
+        </TouchableOpacity>
       </View>
 
       {/* Filter tabs */}
@@ -293,12 +293,7 @@ export default function TasksScreen() {
       ) : null}
 
       {loadError && !loading ? (
-        <View style={styles.errorBanner}>
-          <Text style={styles.errorText}>Couldn&apos;t load tasks.</Text>
-          <TouchableOpacity onPress={() => void loadTasks()} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel="Retry loading tasks">
-            <Text style={styles.errorRetry}>Retry</Text>
-          </TouchableOpacity>
-        </View>
+        <ErrorBanner message="Couldn&apos;t load tasks." onRetry={() => void loadTasks()} />
       ) : null}
 
       {/* Create / edit form */}
@@ -306,13 +301,11 @@ export default function TasksScreen() {
         <View style={styles.createForm}>
           <Text style={styles.formTitle}>{editingTask ? "Edit task" : "New task"}</Text>
           <View style={styles.createField}>
-            <Text style={styles.createLabel}>Title</Text>
-            <TextInput
-              style={styles.createInput}
+            <FieldLabel>Title</FieldLabel>
+            <FieldInput
               value={formTitle}
               onChangeText={(v) => { setFormTitle(v); if (formError) setFormError(null); }}
               placeholder="What needs to be done?"
-              placeholderTextColor={colors.textMuted}
               autoFocus
               returnKeyType="next"
               maxLength={MAX_ITEM_TITLE_LENGTH}
@@ -321,8 +314,7 @@ export default function TasksScreen() {
             />
           </View>
           <View style={styles.createField}>
-            <Text style={styles.createLabel}>Priority</Text>
-            <View style={styles.priorityRow}>
+            <FieldLabel>Priority</FieldLabel>            <View style={styles.priorityRow}>
               {(["high", "medium", "low"] as const).map((p) => (
                 <TouchableOpacity
                   key={p}
@@ -339,13 +331,11 @@ export default function TasksScreen() {
             </View>
           </View>
           <View style={styles.createField}>
-            <Text style={styles.createLabel}>Due date (optional)</Text>
-            <TextInput
-              style={styles.createInput}
+            <FieldLabel>Due date (optional)</FieldLabel>
+            <FieldInput
               value={formDue}
               onChangeText={(v) => { setFormDue(v); if (formError) setFormError(null); }}
               placeholder="YYYY-MM-DD"
-              placeholderTextColor={colors.textMuted}
               keyboardType="numeric"
               returnKeyType="done"
               maxLength={10}
@@ -531,8 +521,8 @@ export default function TasksScreen() {
 function Section({ title, count, tone, children }: { title: string; count: number; tone?: "danger"; children: React.ReactNode }) {
   return (
     <View style={styles.section}>
-      <View style={styles.sectionLabel}>
-        <Text style={[styles.sectionTitle, tone === "danger" && styles.sectionTitleDanger]}>{title}</Text>
+      <View style={styles.sectionHeader}>
+        <SectionLabel tone={tone === "danger" ? "danger" : "accent"}>{title}</SectionLabel>
         <Text style={styles.sectionCount}>{count}</Text>
       </View>
       {children}
@@ -604,29 +594,12 @@ function TaskRow({
   );
 }
 
-function EmptyState({ icon, title, sub, actionLabel, onAction }: { icon: React.ReactNode; title: string; sub: string; actionLabel?: string; onAction?: () => void }) {
-  return (
-    <View style={styles.emptyState}>
-      {icon}
-      <Text style={styles.emptyTitle}>{title}</Text>
-      <Text style={styles.emptySub}>{sub}</Text>
-      {actionLabel && onAction && (
-        <TouchableOpacity style={styles.emptyAction} onPress={onAction} activeOpacity={0.8}>
-          <Text style={styles.emptyActionText}>{actionLabel}</Text>
-        </TouchableOpacity>
-      )}
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   content: { paddingHorizontal: spacing.xl, paddingTop: 56, paddingBottom: 24 },
 
-  header: { marginBottom: spacing.md, paddingTop: spacing.sm },
-  headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: spacing.xs },
-  greeting: { ...type.hero, color: colors.textPrimary },
-  date: { ...type.meta, color: colors.textSecondary, marginTop: spacing.xs },
+  headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spacing.md },
+  headerTitle: { flex: 1 },
   createButton: {
     width: 36,
     height: 36,
@@ -658,21 +631,6 @@ const styles = StyleSheet.create({
 
   hint: { ...type.meta, color: colors.textMuted, marginBottom: spacing.md },
 
-  errorBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: colors.dangerSoft,
-    borderWidth: 1,
-    borderColor: "rgba(239,68,68,0.25)",
-    borderRadius: radii.md,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    marginBottom: spacing.lg,
-  },
-  errorText: { ...type.caption, color: colors.danger, fontWeight: "600" },
-  errorRetry: { ...type.caption, color: colors.textPrimary, fontWeight: "700" },
-
   createForm: {
     backgroundColor: colors.surface,
     borderWidth: 1,
@@ -684,18 +642,6 @@ const styles = StyleSheet.create({
   },
   formTitle: { ...type.item, color: colors.textPrimary },
   createField: { gap: spacing.sm },
-  createLabel: { ...type.caption, color: colors.textSecondary },
-  createInput: {
-    backgroundColor: colors.surfaceElevated,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.md,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: 12,
-    color: colors.textPrimary,
-    fontSize: 15,
-    minHeight: 48,
-  },
   fieldHint: { ...type.meta, color: colors.danger },
   formError: { ...type.meta, color: colors.danger },
   priorityRow: { flexDirection: "row", gap: spacing.sm },
@@ -719,6 +665,7 @@ const styles = StyleSheet.create({
   createSubmit: {
     backgroundColor: colors.accent,
     borderRadius: radii.md,
+    minHeight: 52,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.xl,
     alignItems: "center",
@@ -727,11 +674,9 @@ const styles = StyleSheet.create({
   createSubmitDisabled: { opacity: 0.5 },
   createSubmitText: { ...type.item, color: colors.onAccent, fontWeight: "700" },
 
-  section: { marginBottom: spacing.xl },
-  sectionLabel: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: spacing.md },
-  sectionTitle: { ...type.caption, color: colors.accent, fontWeight: "700", letterSpacing: 1.4, textTransform: "uppercase" },
-  sectionTitleDanger: { color: colors.danger },
-  sectionCount: { ...type.caption, color: colors.textMuted },
+  section: { marginBottom: spacing.lg },
+  sectionHeader: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between" },
+  sectionCount: { ...type.caption, color: colors.textMuted, marginBottom: spacing.md },
 
   row: {
     flexDirection: "row",
@@ -741,38 +686,24 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radii.md,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
     marginBottom: spacing.sm,
-    minHeight: 52,
+    minHeight: 48,
   },
   rowCompleted: { opacity: 0.55 },
-  check: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
+  check: { width: 40, height: 40, borderRadius: radii.pill, alignItems: "center", justifyContent: "center" },
   checkDone: { backgroundColor: colors.successSoft },
   checkCircle: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 22,
+    height: 22,
+    borderRadius: radii.pill,
     borderWidth: 1.5,
-    borderColor: colors.accent,
+    borderColor: colors.textMuted,
   },
   rowBody: { flex: 1 },
   rowTitle: { ...type.item, color: colors.textPrimary },
   rowTitleDone: { textDecorationLine: "line-through", color: colors.textMuted },
   rowMeta: { ...type.meta, color: colors.textMuted, marginTop: 2 },
-
-  emptyState: { alignItems: "center", paddingVertical: spacing.xl, gap: spacing.sm },
-  emptyTitle: { ...type.item, color: colors.textSecondary, marginTop: spacing.sm },
-  emptySub: { ...type.meta, color: colors.textMuted, textAlign: "center" },
-  emptyAction: {
-    marginTop: spacing.md,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.lg,
-    borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: colors.accentBorder,
-    backgroundColor: colors.accentSoft,
-  },
-  emptyActionText: { ...type.caption, color: colors.accentStrong, fontWeight: "600" },
   emptyText: { ...type.meta, color: colors.textMuted, paddingVertical: spacing.sm },
 });

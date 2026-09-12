@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity, Pressable, Alert, TextInput } from "react-native";
+import { View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity, Pressable, Alert } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "expo-router";
 import { supabase } from "../../lib/supabase";
@@ -8,6 +8,7 @@ import { colors, spacing, radii, type } from "../../lib/theme";
 import { Plus, Check } from "../../src/icons";
 import { ItemActionSheet } from "../../src/components/ItemActionSheet";
 import { ConfirmDeleteDialog } from "../../src/components/ConfirmDeleteDialog";
+import { ScreenHeader, SectionLabel, EmptyState, ErrorBanner, FieldLabel, FieldInput } from "../../src/components/ui";
 import {
   getLocalTodayDateString,
   getWeekStartForDate,
@@ -336,16 +337,13 @@ export default function HabitsScreen() {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />}
     >
       {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerRow}>
-          <Text style={styles.greeting}>Habits</Text>
-          <TouchableOpacity style={styles.createButton} onPress={openCreate} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel="Create habit">
-            <Plus size={18} color={colors.accentStrong} />
-          </TouchableOpacity>
+      <View style={styles.headerRow}>
+        <View style={styles.headerTitle}>
+          <ScreenHeader title="Habits" sub={totalTarget > 0 ? `${completedToday.length} of ${totalTarget} targets done today` : "Build your rhythm"} />
         </View>
-        <Text style={styles.date}>
-          {totalTarget > 0 ? `${completedToday.length} of ${totalTarget} targets done today` : "Build your rhythm"}
-        </Text>
+        <TouchableOpacity style={styles.createButton} onPress={openCreate} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel="Create habit">
+          <Plus size={18} color={colors.accentStrong} />
+        </TouchableOpacity>
       </View>
 
       {/* Status summary */}
@@ -369,12 +367,7 @@ export default function HabitsScreen() {
       ) : null}
 
       {loadError && !loading ? (
-        <View style={styles.errorBanner}>
-          <Text style={styles.errorText}>Couldn&apos;t load habits.</Text>
-          <TouchableOpacity onPress={() => void loadHabits()} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel="Retry loading habits">
-            <Text style={styles.errorRetry}>Retry</Text>
-          </TouchableOpacity>
-        </View>
+        <ErrorBanner message="Couldn&apos;t load habits." onRetry={() => void loadHabits()} />
       ) : null}
 
       {/* Create / edit form */}
@@ -382,13 +375,11 @@ export default function HabitsScreen() {
         <View style={styles.createForm}>
           <Text style={styles.formTitle}>{editingHabit ? "Edit habit" : "New habit"}</Text>
           <View style={styles.createField}>
-            <Text style={styles.createLabel}>Title</Text>
-            <TextInput
-              style={styles.createInput}
+            <FieldLabel>Title</FieldLabel>
+            <FieldInput
               value={formTitle}
               onChangeText={(v) => { setFormTitle(v); if (formError) setFormError(null); }}
               placeholder="What's the habit?"
-              placeholderTextColor={colors.textMuted}
               autoFocus
               returnKeyType="next"
               maxLength={MAX_ITEM_TITLE_LENGTH}
@@ -397,7 +388,7 @@ export default function HabitsScreen() {
             />
           </View>
           <View style={styles.createField}>
-            <Text style={styles.createLabel}>Frequency</Text>
+            <FieldLabel>Frequency</FieldLabel>
             <View style={styles.frequencyRow}>
               {(["daily", "weekdays", "weekly"] as const).map((f) => (
                 <TouchableOpacity
@@ -415,8 +406,8 @@ export default function HabitsScreen() {
             </View>
           </View>
           {formFrequency === "weekly" && (
-            <View style={styles.createField}>
-              <Text style={styles.createLabel}>Times per week</Text>
+              <View style={styles.createField}>
+                <FieldLabel>Times per week</FieldLabel>
               <View style={styles.timesRow}>
                 <TouchableOpacity style={styles.timesButton} onPress={() => setFormTimesPerWeek(Math.max(1, formTimesPerWeek - 1))} activeOpacity={0.8} disabled={saving}>
                   <Text style={styles.timesButtonText}>−</Text>
@@ -429,8 +420,8 @@ export default function HabitsScreen() {
             </View>
           )}
           {(formFrequency === "weekly" || formFrequency === "weekdays") && (
-            <View style={styles.createField}>
-              <Text style={styles.createLabel}>Days</Text>
+              <View style={styles.createField}>
+                <FieldLabel>Days</FieldLabel>
               <View style={styles.daysRow}>
                 {[0, 1, 2, 3, 4, 5, 6].map((d) => (
                   <TouchableOpacity
@@ -647,8 +638,8 @@ export default function HabitsScreen() {
 function Section({ title, count, children }: { title: string; count: number; children: React.ReactNode }) {
   return (
     <View style={styles.section}>
-      <View style={styles.sectionLabel}>
-        <Text style={styles.sectionTitle}>{title}</Text>
+      <View style={styles.sectionHeader}>
+        <SectionLabel>{title}</SectionLabel>
         <Text style={styles.sectionCount}>{count}</Text>
       </View>
       {children}
@@ -727,29 +718,12 @@ function HabitRow({
   );
 }
 
-function EmptyState({ icon, title, sub, actionLabel, onAction }: { icon: React.ReactNode; title: string; sub: string; actionLabel?: string; onAction?: () => void }) {
-  return (
-    <View style={styles.emptyState}>
-      {icon}
-      <Text style={styles.emptyTitle}>{title}</Text>
-      <Text style={styles.emptySub}>{sub}</Text>
-      {actionLabel && onAction && (
-        <TouchableOpacity style={styles.emptyAction} onPress={onAction} activeOpacity={0.8}>
-          <Text style={styles.emptyActionText}>{actionLabel}</Text>
-        </TouchableOpacity>
-      )}
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   content: { paddingHorizontal: spacing.xl, paddingTop: 56, paddingBottom: 24 },
 
-  header: { marginBottom: spacing.md, paddingTop: spacing.sm },
-  headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: spacing.xs },
-  greeting: { ...type.hero, color: colors.textPrimary },
-  date: { ...type.meta, color: colors.textSecondary, marginTop: spacing.xs },
+  headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spacing.md },
+  headerTitle: { flex: 1 },
   createButton: {
     width: 36,
     height: 36,
@@ -766,21 +740,6 @@ const styles = StyleSheet.create({
 
   hint: { ...type.meta, color: colors.textMuted, marginBottom: spacing.md },
 
-  errorBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: colors.dangerSoft,
-    borderWidth: 1,
-    borderColor: "rgba(239,68,68,0.25)",
-    borderRadius: radii.md,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    marginBottom: spacing.lg,
-  },
-  errorText: { ...type.caption, color: colors.danger, fontWeight: "600" },
-  errorRetry: { ...type.caption, color: colors.textPrimary, fontWeight: "700" },
-
   createForm: {
     backgroundColor: colors.surface,
     borderWidth: 1,
@@ -792,18 +751,6 @@ const styles = StyleSheet.create({
   },
   formTitle: { ...type.item, color: colors.textPrimary },
   createField: { gap: spacing.sm },
-  createLabel: { ...type.caption, color: colors.textSecondary },
-  createInput: {
-    backgroundColor: colors.surfaceElevated,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.md,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: 12,
-    color: colors.textPrimary,
-    fontSize: 15,
-    minHeight: 48,
-  },
   formError: { ...type.meta, color: colors.danger },
   frequencyRow: { flexDirection: "row", gap: spacing.sm },
   frequencyChip: {
@@ -853,6 +800,7 @@ const styles = StyleSheet.create({
   createSubmit: {
     backgroundColor: colors.accent,
     borderRadius: radii.md,
+    minHeight: 52,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.xl,
     alignItems: "center",
@@ -881,10 +829,9 @@ const styles = StyleSheet.create({
   filterTabCount: { ...type.caption, color: colors.textMuted, fontWeight: "500" },
   filterTabCountActive: { color: colors.accentStrong },
 
-  section: { marginBottom: spacing.xl },
-  sectionLabel: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: spacing.md },
-  sectionTitle: { ...type.caption, color: colors.accent, fontWeight: "700", letterSpacing: 1.4, textTransform: "uppercase" },
-  sectionCount: { ...type.caption, color: colors.textMuted },
+  section: { marginBottom: spacing.lg },
+  sectionHeader: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between" },
+  sectionCount: { ...type.caption, color: colors.textMuted, marginBottom: spacing.md },
 
   row: {
     flexDirection: "row",
@@ -894,39 +841,26 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radii.md,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
     marginBottom: spacing.sm,
-    minHeight: 52,
+    minHeight: 48,
   },
   rowCompleted: { borderColor: colors.successSoft, backgroundColor: colors.surface },
   rowDisabled: { opacity: 0.45 },
-  check: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
+  check: { width: 40, height: 40, borderRadius: radii.pill, alignItems: "center", justifyContent: "center" },
   checkDone: { backgroundColor: colors.successSoft },
   checkCircle: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 22,
+    height: 22,
+    borderRadius: radii.pill,
     borderWidth: 1.5,
-    borderColor: colors.accent,
+    borderColor: colors.textMuted,
   },
   rowBody: { flex: 1 },
   rowTitle: { ...type.item, color: colors.textPrimary },
   rowTitleDone: { textDecorationLine: "line-through", color: colors.textMuted },
   rowMeta: { ...type.meta, color: colors.textMuted, marginTop: 2 },
 
-  emptyState: { alignItems: "center", paddingVertical: spacing.xl, gap: spacing.sm },
-  emptyTitle: { ...type.item, color: colors.textSecondary, marginTop: spacing.sm },
-  emptySub: { ...type.meta, color: colors.textMuted, textAlign: "center" },
-  emptyAction: {
-    marginTop: spacing.md,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.lg,
-    borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: colors.accentBorder,
-    backgroundColor: colors.accentSoft,
-  },
-  emptyActionText: { ...type.caption, color: colors.accentStrong, fontWeight: "600" },
   emptyText: { ...type.meta, color: colors.textMuted, paddingVertical: spacing.sm },
 });

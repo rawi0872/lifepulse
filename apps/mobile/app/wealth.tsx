@@ -130,7 +130,7 @@ export default function WealthScreen() {
 
       {/* Header */}
       <View style={s.headerRow}>
-        <View style={s.headerIcon}><WealthIcon size={18} color="#0ea5e9" /></View>
+        <View style={s.headerIcon}><WealthIcon size={18} color={colors.realmWealth} /></View>
         <View style={{flex:1}}>
           <Text style={s.eyebrow}>WEALTH</Text>
           <Text style={s.title}>Your financial picture</Text>
@@ -230,8 +230,8 @@ export default function WealthScreen() {
                   {slice.map((h:any)=>(
                     <View key={h.month} style={{flex:1, alignItems:"center", gap:2}}>
                       <View style={{flexDirection:"row", gap:2, alignItems:"flex-end", height:32}}>
-                        <View style={{width:8, height: (h.income/max)*28+2, backgroundColor: colors.accentSoft, borderWidth:1, borderColor: colors.accentBorder, borderRadius:3}} />
-                        <View style={{width:8, height: (h.expenses/max)*28+2, backgroundColor: "rgba(239,68,68,0.16)", borderWidth:1, borderColor:"rgba(239,68,68,0.22)", borderRadius:3}} />
+                        <View style={{width:8, height: (h.income/max)*28+2, backgroundColor: colors.accentSoft, borderWidth:1, borderColor: colors.accentBorder, borderRadius: radii.sm}} />
+                        <View style={{width:8, height: (h.expenses/max)*28+2, backgroundColor: colors.dangerSoft, borderWidth:1, borderColor: colors.dangerBorder, borderRadius: radii.sm}} />
                       </View>
                       <Text style={{fontSize:9, color: h.isPartial? colors.warning : colors.textFaint}}>{h.month.slice(5)}</Text>
                     </View>
@@ -291,7 +291,7 @@ export default function WealthScreen() {
                   {g.target!=null && g.currency?`Target ${formatWealthGrouped(g.target, g.currency)}`:"No target"} {g.current!=null && g.currency?`· Current ${formatWealthGrouped(g.current, g.currency)}`:`· ${g.sourceDescription ?? "Insufficient tracked data"}`}
                   {g.progressPct!=null?` · ${Math.round(g.progressPct*100)}%`:""} · {g.status} {g.direction==="down"?"(lower is toward target)":""}
                 </Text>
-                {g.progressPct!=null ? <View style={{height:6, backgroundColor: colors.surfaceElevated, borderRadius:3, marginTop:6, overflow:"hidden"}}><View style={{width: `${Math.min(100, Math.round(g.progressPct*100))}%`, height:6, backgroundColor: g.status==="achieved"? colors.success : colors.accent}} /></View> : <Text style={s.noteSmall}>{g.sourceDescription}</Text>}
+                {g.progressPct!=null ? <View style={{height:6, backgroundColor: colors.surfaceElevated, borderRadius: radii.pill, marginTop: spacing.sm, overflow:"hidden"}}><View style={{width: `${Math.min(100, Math.round(g.progressPct*100))}%`, height:6, backgroundColor: g.status==="achieved"? colors.success : colors.accent}} /></View> : <Text style={s.noteSmall}>{g.sourceDescription}</Text>}
               </View>
             </View>
           ))}
@@ -351,7 +351,7 @@ export default function WealthScreen() {
             if(t.type==="transfer"){ Alert.alert("Transfer","Transfers are linked pairs — delete to recreate."); return; }
             setEditTxId(t.id); setTxType(t.type); setTxTitle(t.title); setTxAmt(String(t.amount)); setTxDate(t.transaction_date); setTxAcc(t.account_id); setTxCat(t.category_id); setTxNote(t.note ?? ""); setShowTx(true);
           }}>
-            <View style={[s.txDot, t.type==="income" ? {backgroundColor: colors.accentSoft, borderColor: colors.accentBorder} : t.type==="transfer" ? {backgroundColor:"rgba(148,163,184,0.12)", borderColor: colors.border} : {backgroundColor: colors.surfaceOverlay} ]} />
+            <View style={[s.txDot, t.type==="income" ? {backgroundColor: colors.accentSoft, borderColor: colors.accentBorder} : t.type==="transfer" ? {backgroundColor: colors.mutedSoft, borderColor: colors.border} : {backgroundColor: colors.surfaceOverlay} ]} />
             <View style={{flex:1}}>
               <Text style={s.txTitle}>{t.title} {t.type==="transfer" ? "· transfer" : t.type==="adjustment" ? "· adjustment" : ""}</Text>
               <Text style={s.txMeta}>{t.transaction_date} · {(t as any).raw?.finance_accounts?.name ?? activeAccs.find(a=>a.id===t.account_id)?.name ?? "—"} {(t as any).raw?.finance_categories?.name ? `· ${(t as any).raw.finance_categories.name}` : ""} · {(t as any).currency}</Text>
@@ -527,24 +527,24 @@ export default function WealthScreen() {
 }
 
 const s = StyleSheet.create({
-  container:{flex:1, backgroundColor: colors.bg}, content:{padding: spacing.xl, paddingTop: 56, paddingBottom: 32},
+  container:{flex:1, backgroundColor: colors.bg}, content:{paddingHorizontal: spacing.xl, paddingTop: 56, paddingBottom: 24},
   center:{flex:1, backgroundColor:colors.bg, alignItems:"center", justifyContent:"center", padding: spacing.xl},
   err:{color:colors.danger, fontSize:13}, note:{color:colors.textSecondary, fontSize:12, marginTop:6, lineHeight:16},
   noteSmall:{color:colors.textMuted, fontSize:11, marginTop:6, lineHeight:14},
-  headerRow:{flexDirection:"row", alignItems:"center", gap: spacing.md, marginBottom: 8},
-  headerIcon:{width:32, height:32, borderRadius:9, backgroundColor:"rgba(14,165,233,0.14)", borderWidth:1, borderColor:"rgba(14,165,233,0.22)", alignItems:"center", justifyContent:"center"},
+  headerRow:{flexDirection:"row", alignItems:"center", gap: spacing.md, marginBottom: spacing.sm},
+  headerIcon:{width:32, height:32, borderRadius: radii.sm, backgroundColor: colors.realmWealthSoft, borderWidth:1, borderColor: colors.realmWealthBorder, alignItems:"center", justifyContent:"center"},
   eyebrow:{...type.caption, color: colors.textMuted, fontWeight:"700", letterSpacing:1.6},
   title:{...type.screen, color: colors.textPrimary, marginTop:2},
   sub:{...type.meta, color: colors.textSecondary, marginTop:4},
-  back:{alignSelf:"flex-start", marginTop:6, paddingVertical:4}, backText:{color:colors.accent, fontSize:12, fontWeight:"600"},
+  back:{alignSelf:"flex-start", marginTop: spacing.sm, paddingVertical: spacing.sm, paddingRight: spacing.lg}, backText:{color:colors.accent, fontSize:14, fontWeight:"600"},
   card:{backgroundColor: colors.surface, borderWidth:1, borderColor: colors.border, borderRadius: radii.lg, padding: spacing.lg, marginTop: spacing.lg},
-  cardLabel:{...type.caption, color: colors.textMuted, fontWeight:"700", letterSpacing:1.2},
+  cardLabel:{...type.caption, color: colors.textMuted, fontWeight:"700", letterSpacing:1.4},
   sectionHead:{flexDirection:"row", alignItems:"center", justifyContent:"space-between", marginBottom: spacing.sm},
-  addBtn:{flexDirection:"row", gap:6, backgroundColor: colors.accent, paddingHorizontal:12, paddingVertical:8, borderRadius: radii.pill, alignItems:"center"},
+  addBtn:{flexDirection:"row", gap: spacing.sm, backgroundColor: colors.accent, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radii.pill, alignItems:"center"},
   addBtnText:{color: colors.onAccent, fontSize:12, fontWeight:"700"},
-  addBtnSecondary:{backgroundColor: colors.surfaceElevated, borderWidth:1, borderColor: colors.border, paddingHorizontal:12, paddingVertical:8, borderRadius: radii.pill},
+  addBtnSecondary:{backgroundColor: colors.surfaceElevated, borderWidth:1, borderColor: colors.border, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radii.pill},
   addBtnSecondaryText:{color: colors.textSecondary, fontSize:12, fontWeight:"600"},
-  row:{flexDirection:"row", alignItems:"center", gap: spacing.md, paddingVertical:10, borderBottomWidth:1, borderBottomColor: colors.border},
+  row:{flexDirection:"row", alignItems:"center", gap: spacing.md, paddingVertical: spacing.sm, borderBottomWidth:1, borderBottomColor: colors.border},
   rowTitle:{...type.item, color: colors.textPrimary, fontSize:14},
   rowMeta:{color: colors.textMuted, fontWeight:"400", fontSize:12},
   rowSub:{...type.meta, color: colors.textSecondary, marginTop:2},
@@ -552,56 +552,56 @@ const s = StyleSheet.create({
   emptyHero:{backgroundColor: colors.surface, borderWidth:1, borderColor: colors.accentBorder, borderRadius: radii.lg, padding: spacing.xl, marginTop: spacing.lg, alignItems:"center", gap: spacing.sm},
   emptyTitle:{...type.item, color: colors.textPrimary, marginTop:4},
   emptySub:{...type.meta, color: colors.textSecondary, textAlign:"center"},
-  primaryBtn:{backgroundColor: colors.accent, paddingVertical:12, paddingHorizontal:16, borderRadius: radii.md, alignItems:"center", marginTop:8},
+  primaryBtn:{backgroundColor: colors.accent, minHeight:52, paddingVertical: spacing.sm, paddingHorizontal: spacing.lg, borderRadius: radii.md, alignItems:"center", justifyContent:"center", marginTop: spacing.sm},
   primaryText:{color: colors.onAccent, fontWeight:"700", fontSize:14},
-  emptySecondaryRow:{flexDirection:"row", gap:8, marginTop:4},
-  secondaryBtn:{backgroundColor: colors.surfaceElevated, borderWidth:1, borderColor: colors.border, paddingVertical:10, paddingHorizontal:14, borderRadius: radii.md, alignItems:"center"},
+  emptySecondaryRow:{flexDirection:"row", gap: spacing.sm, marginTop:4},
+  secondaryBtn:{backgroundColor: colors.surfaceElevated, borderWidth:1, borderColor: colors.border, minHeight:48, paddingVertical: spacing.sm, paddingHorizontal: spacing.lg, borderRadius: radii.md, alignItems:"center", justifyContent:"center"},
   secondaryText:{color: colors.textSecondary, fontWeight:"600", fontSize:13},
-  netRow:{marginTop:10},
+  netRow:{marginTop: spacing.sm},
   netCurr:{...type.caption, color: colors.accentStrong, fontWeight:"700"},
   netValue:{fontSize:18, fontWeight:"800", color: colors.textPrimary, marginTop:2},
   netMeta:{...type.meta, color: colors.textSecondary, marginTop:2},
   metaWarn:{...type.meta, color: colors.textMuted, marginTop:8, fontStyle:"italic"},
-  periodRow:{flexDirection:"row", gap:8, alignItems:"center", marginTop:8, flexWrap:"wrap"},
-  periodBtn:{paddingHorizontal:10, paddingVertical:6, borderRadius: radii.pill, borderWidth:1, borderColor: colors.border, backgroundColor: colors.surfaceElevated},
+  periodRow:{flexDirection:"row", gap: spacing.sm, alignItems:"center", marginTop: spacing.sm, flexWrap:"wrap"},
+  periodBtn:{paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radii.pill, borderWidth:1, borderColor: colors.border, backgroundColor: colors.surfaceElevated},
   periodActive:{backgroundColor: colors.accentSoft, borderColor: colors.accentBorder},
   periodText:{fontSize:11, fontWeight:"700", color: colors.textMuted, letterSpacing:0.6},
   periodActiveText:{color: colors.accentStrong},
   periodRange:{...type.meta, color: colors.textFaint, marginLeft:4},
-  cashRow:{marginTop:10, paddingTop:10, borderTopWidth:1, borderTopColor: colors.border},
+  cashRow:{marginTop: spacing.sm, paddingTop: spacing.sm, borderTopWidth:1, borderTopColor: colors.border},
   cashCurr:{...type.caption, color: colors.textSecondary, fontWeight:"700"},
   cashGrid:{flexDirection:"row", gap: spacing.md, marginTop:6},
   cashCell:{flex:1},
   cashLabel:{...type.caption, color: colors.textMuted, fontSize:10, letterSpacing:0.6},
   cashValue:{fontSize:14, fontWeight:"700", color: colors.textPrimary, marginTop:2},
-  txRow:{flexDirection:"row", alignItems:"center", gap: spacing.md, paddingVertical:10, borderBottomWidth:1, borderBottomColor: colors.border},
-  txDot:{width:8, height:8, borderRadius:4, borderWidth:1, borderColor:"transparent"},
+  txRow:{flexDirection:"row", alignItems:"center", gap: spacing.md, paddingVertical: spacing.sm, borderBottomWidth:1, borderBottomColor: colors.border},
+  txDot:{width:8, height:8, borderRadius: radii.pill, borderWidth:1, borderColor:"transparent"},
   txTitle:{...type.item, color: colors.textPrimary, fontSize:14},
   txMeta:{...type.meta, color: colors.textMuted, marginTop:2},
   txAmt:{fontSize:13, fontWeight:"700", color: colors.textSecondary},
   subLabel:{...type.caption, color: colors.textMuted, marginTop:6},
-  badge:{...type.caption, fontSize:10, backgroundColor:"rgba(148,163,184,0.14)", color: colors.textMuted, paddingHorizontal:6, paddingVertical:2, borderRadius:6, overflow:"hidden"},
-  smallBtn:{backgroundColor: colors.surfaceElevated, borderWidth:1, borderColor: colors.border, paddingHorizontal:10, paddingVertical:6, borderRadius:8},
+  badge:{...type.caption, fontSize:10, backgroundColor: colors.mutedSoft, color: colors.textMuted, paddingHorizontal: spacing.sm, paddingVertical:2, borderRadius: radii.sm, overflow:"hidden"},
+  smallBtn:{backgroundColor: colors.surfaceElevated, borderWidth:1, borderColor: colors.border, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radii.sm},
   smallBtnText:{fontSize:11, fontWeight:"700", color: colors.textSecondary},
-  smallBtnSecondary:{backgroundColor:"transparent", borderWidth:1, borderColor: colors.border, paddingHorizontal:10, paddingVertical:6, borderRadius:8, marginLeft:6},
+  smallBtnSecondary:{backgroundColor:"transparent", borderWidth:1, borderColor: colors.border, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radii.sm, marginLeft: spacing.sm},
   smallBtnSecondaryText:{fontSize:11, fontWeight:"600", color: colors.textMuted},
   dangerText:{color: colors.danger, fontSize:12, fontWeight:"700"},
-  prefRow:{marginTop:8},
-  prefLabel:{...type.caption, color: colors.textSecondary, fontWeight:"700", letterSpacing:0.6, marginTop:6},
-  currencyRow:{flexDirection:"row", gap:8, marginTop:8},
-  currChip:{paddingHorizontal:12, paddingVertical:7, borderRadius: radii.pill, borderWidth:1, borderColor: colors.border, backgroundColor: colors.surfaceElevated},
+  prefRow:{marginTop: spacing.sm},
+  prefLabel:{...type.caption, color: colors.textSecondary, fontWeight:"700", letterSpacing:0.6, marginTop: spacing.sm},
+  currencyRow:{flexDirection:"row", gap: spacing.sm, marginTop: spacing.sm},
+  currChip:{paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radii.pill, borderWidth:1, borderColor: colors.border, backgroundColor: colors.surfaceElevated},
   currChipActive:{backgroundColor: colors.accentSoft, borderColor: colors.accentBorder},
   currText:{fontSize:12, fontWeight:"700", color: colors.textMuted},
   currTextActive:{color: colors.accentStrong},
   divider:{height:1, backgroundColor: colors.border, marginVertical: spacing.md},
-  modalBg:{flex:1, backgroundColor:"rgba(0,0,0,0.55)", justifyContent:"flex-end"},
-  modal:{backgroundColor: colors.surface, borderTopLeftRadius:20, borderTopRightRadius:20, padding: spacing.xl, maxHeight:"88%", borderWidth:1, borderColor: colors.border},
+  modalBg:{flex:1, backgroundColor: colors.backdrop, justifyContent:"flex-end"},
+  modal:{backgroundColor: colors.surface, borderTopLeftRadius: radii.xl, borderTopRightRadius: radii.xl, padding: spacing.xl, maxHeight:"88%", borderWidth:1, borderColor: colors.border},
   modalHead:{flexDirection:"row", justifyContent:"space-between", alignItems:"center", marginBottom: spacing.md},
   modalTitle:{...type.item, color: colors.textPrimary},
-  inputLabel:{...type.caption, color: colors.textSecondary, fontWeight:"600", marginTop:10, marginBottom:4},
-  input:{backgroundColor: colors.surfaceElevated, borderWidth:1, borderColor: colors.border, borderRadius: radii.md, paddingHorizontal:12, paddingVertical:10, color: colors.textPrimary, fontSize:14},
-  chipRow:{flexDirection:"row", flexWrap:"wrap", gap:6},
-  chip:{paddingHorizontal:10, paddingVertical:7, borderRadius: radii.pill, borderWidth:1, borderColor: colors.border, backgroundColor: colors.surfaceElevated},
+  inputLabel:{...type.caption, color: colors.textSecondary, fontWeight:"600", marginTop: spacing.sm, marginBottom: spacing.xs},
+  input:{backgroundColor: colors.surfaceElevated, borderWidth:1, borderColor: colors.border, borderRadius: radii.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, color: colors.textPrimary, fontSize:14, minHeight:48},
+  chipRow:{flexDirection:"row", flexWrap:"wrap", gap: spacing.sm},
+  chip:{paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radii.pill, borderWidth:1, borderColor: colors.border, backgroundColor: colors.surfaceElevated},
   chipActive:{backgroundColor: colors.accentSoft, borderColor: colors.accentBorder},
   chipText:{fontSize:12, fontWeight:"600", color: colors.textMuted},
   chipTextActive:{color: colors.accentStrong},

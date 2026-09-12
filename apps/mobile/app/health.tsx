@@ -11,7 +11,7 @@ import {
 import { getStorageConsent, setMetricConsent, syncSelectedHealthMetrics } from "../lib/health-sync";
 import { loadNextronHealthPermissions, setNextronHealthMetricPermission } from "../lib/nextron-health-permissions";
 import { useAuth } from "../lib/auth";
-import { colors, spacing, radii } from "../lib/theme";
+import { colors, spacing, radii, type } from "../lib/theme";
 import type { HealthMetricType } from "@lifepulse/domain";
 
 type Availability = "available" | "unavailable" | "not_configured";
@@ -196,25 +196,25 @@ export default function HealthScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
-  content: { padding: spacing.xl, paddingTop: 56, paddingBottom: 24 },
-  title: { fontSize: 26, fontWeight: "700", color: colors.textPrimary },
-  subtitle: { fontSize: 13, color: colors.textSecondary, marginTop: 6, lineHeight: 18 },
+  content: { paddingHorizontal: spacing.xl, paddingTop: 56, paddingBottom: 24 },
+  title: { ...type.screen, color: colors.textPrimary },
+  subtitle: { ...type.body, fontSize: 13, color: colors.textSecondary, marginTop: spacing.sm, lineHeight: 18 },
   card: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radii.lg, padding: spacing.lg, marginTop: spacing.lg },
-  cardTitle: { fontSize: 13, fontWeight: "600", color: colors.accent, textTransform: "uppercase", letterSpacing: 0.5 },
-  cardStatus: { fontSize: 14, fontWeight: "600", color: colors.textPrimary, marginTop: 6 },
-  cardDetail: { fontSize: 12, color: colors.textSecondary, marginTop: 6, lineHeight: 16 },
-  metricRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 12, gap: 12 },
+  cardTitle: { ...type.caption, fontWeight: "700", color: colors.textMuted, textTransform: "uppercase", letterSpacing: 1.4 },
+  cardStatus: { fontSize: 14, fontWeight: "600", color: colors.textPrimary, marginTop: spacing.sm },
+  cardDetail: { fontSize: 12, color: colors.textSecondary, marginTop: spacing.sm, lineHeight: 16 },
+  metricRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: spacing.md, gap: spacing.md },
   metricSub: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
   detailLabel: { fontSize: 13, color: colors.textPrimary, fontWeight: "500" },
-  actionButton: { backgroundColor: colors.surfaceElevated, borderWidth: 1, borderColor: colors.border, borderRadius: radii.md, paddingVertical: 10, alignItems: "center", marginTop: 10 },
+  actionButton: { backgroundColor: colors.surfaceElevated, borderWidth: 1, borderColor: colors.border, borderRadius: radii.md, paddingVertical: spacing.sm, alignItems: "center", justifyContent: "center", minHeight: 48, marginTop: spacing.sm },
   actionButtonText: { color: colors.textPrimary, fontSize: 13, fontWeight: "600" },
-  toggleButton: { borderRadius: radii.pill, paddingHorizontal: 16, paddingVertical: 8, minWidth: 56, minHeight: 36, justifyContent: "center", alignItems: "center" },
-  toggleOn: { backgroundColor: colors.success },
-  toggleOff: { backgroundColor: colors.surfaceElevated },
+  toggleButton: { borderRadius: radii.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surfaceElevated, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, minWidth: 56, minHeight: 36, justifyContent: "center", alignItems: "center" },
+  toggleOn: { backgroundColor: colors.successSoft, borderColor: colors.success },
+  toggleOff: {},
   toggleText: { color: colors.textPrimary, fontSize: 13, fontWeight: "600" },
-  syncButton: { backgroundColor: colors.accent, borderRadius: radii.md, paddingVertical: 12, alignItems: "center", marginTop: 14, minHeight: 44, justifyContent: "center" },
-  buttonDisabled: { opacity: 0.45 },
-  syncButtonText: { color: colors.onAccent, fontSize: 13, fontWeight: "700" },
-  syncMessage: { fontSize: 12, marginTop: 10, textAlign: "center", color: colors.textSecondary },
-  backLink: { color: colors.accent, fontSize: 13, textAlign: "center", marginTop: 16 },
+  syncButton: { backgroundColor: colors.accent, borderRadius: radii.md, paddingVertical: spacing.sm, alignItems: "center", marginTop: spacing.lg, minHeight: 52, justifyContent: "center" },
+  buttonDisabled: { opacity: 0.5 },
+  syncButtonText: { color: colors.onAccent, fontSize: 14, fontWeight: "700" },
+  syncMessage: { fontSize: 12, marginTop: spacing.sm, textAlign: "center", color: colors.textSecondary },
+  backLink: { color: colors.accent, fontSize: 14, fontWeight: "600", textAlign: "center", marginTop: spacing.lg, minHeight: 44 },
 });
