@@ -4,31 +4,46 @@ import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../../lib/auth";
 import { colors, spacing } from "../../lib/theme";
-import { Home, NextronIcon, ChecklistIcon, Habits, Account } from "../../src/icons";
+import { Home, NextronIcon, ChecklistIcon, Habits, More } from "../../src/icons";
 
 // Single source of truth — screens use NAV_BAR_HEIGHT for spacing when needed.
 export const NAV_BAR_HEIGHT = 60;
 
-type TabKey = "today" | "nextron" | "tasks" | "habits" | "account";
+type TabKey = "today" | "nextron" | "tasks" | "habits" | "more";
 
+// Account and Settings live under the More hub; they are real routes but
+// never permanent tabs, so the bar renders exactly these five entries.
 const TABS: Record<TabKey, { Icon: React.FC<{ size?: number; color?: string }>; label: string }> = {
   today: { Icon: Home, label: "Today" },
   nextron: { Icon: NextronIcon, label: "NEXTRON" },
   tasks: { Icon: ChecklistIcon, label: "Tasks" },
   habits: { Icon: Habits, label: "Habits" },
-  account: { Icon: Account, label: "Account" },
+  more: { Icon: More, label: "More" },
 };
+
+const TAB_KEYS = Object.keys(TABS) as TabKey[];
+
+// Hidden routes parented under More — visiting one keeps More highlighted.
+const MORE_CHILD_ROUTES = new Set(["account", "settings"]);
 
 function LifePulseTabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
+  const activeRoute = state.routes[state.index]?.name ?? "today";
+  const focusedKey: TabKey = (TAB_KEYS as string[]).includes(activeRoute)
+    ? (activeRoute as TabKey)
+    : MORE_CHILD_ROUTES.has(activeRoute)
+      ? "more"
+      : "today";
 
   return (
     <View style={[styles.bar, { paddingBottom: insets.bottom }]}>
       <View style={styles.divider} />
       <View style={styles.row}>
-        {state.routes.map((route, index) => {
-          const isFocused = state.index === index;
-          const tab = TABS[route.name as TabKey] ?? TABS.today;
+        {TAB_KEYS.map((key) => {
+          const route = state.routes.find((r) => r.name === key);
+          if (!route) return null;
+          const isFocused = focusedKey === key;
+          const tab = TABS[key];
           const onPress = () => {
             const event = navigation.emit({ type: "tabPress", target: route.key, canPreventDefault: true });
             if (!isFocused && !event.defaultPrevented) navigation.navigate(route.name, route.params);
@@ -66,7 +81,10 @@ export default function TabLayout() {
       <Tabs.Screen name="nextron" />
       <Tabs.Screen name="tasks" />
       <Tabs.Screen name="habits" />
-      <Tabs.Screen name="account" />
+      <Tabs.Screen name="more" />
+      {/* More-hub children: reachable, never permanent tabs. */}
+      <Tabs.Screen name="account" options={{ href: null }} />
+      <Tabs.Screen name="settings" options={{ href: null }} />
     </Tabs>
   );
 }

@@ -1,9 +1,13 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity, Alert, TextInput } from "react-native";
+import { View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity, Pressable, Alert, TextInput } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFocusEffect } from "expo-router";
 import { supabase } from "../../lib/supabase";
 import { useAuth } from "../../lib/auth";
 import { colors, spacing, radii, type } from "../../lib/theme";
 import { Plus, Check } from "../../src/icons";
+import { ItemActionSheet } from "../../src/components/ItemActionSheet";
+import { ConfirmDeleteDialog } from "../../src/components/ConfirmDeleteDialog";
 import {
   getLocalTodayDateString,
   getWeekStartForDate,
@@ -11,6 +15,10 @@ import {
   normalizeCompletedDates,
   getCurrentStreak,
   getWeeklyProgress,
+  buildHabitUpdatePayload,
+  removeDeletedById,
+  createSingleFlight,
+  MAX_ITEM_TITLE_LENGTH,
 } from "@lifepulse/domain";
 import type { TodayHabit } from "@lifepulse/domain";
 
@@ -18,20 +26,35 @@ interface HabitWithLogs extends TodayHabit {
   completedDates: string[];
 }
 
+const ROW_ACTIONS_HINT_KEY = "lifepulse:friction-v1:row-actions-hint-seen";
+
 export default function HabitsScreen() {
   const { user } = useAuth();
   const [habits, setHabits] = useState<HabitWithLogs[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [showCreate, setShowCreate] = useState(false);
-  const [newHabitTitle, setNewHabitTitle] = useState("");
-  const [newHabitFrequency, setNewHabitFrequency] = useState<"daily" | "weekdays" | "weekly">("daily");
-  const [newHabitTimesPerWeek, setNewHabitTimesPerWeek] = useState(3);
-  const [newHabitDaysOfWeek, setNewHabitDaysOfWeek] = useState<number[]>([]);
+  const [loadError, setLoadError] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [editingHabit, setEditingHabit] = useState<HabitWithLogs | null>(null);
+  const [formTitle, setFormTitle] = useState("");
+  const [formFrequency, setFormFrequency] = useState<"daily" | "weekdays" | "weekly">("daily");
+  const [formTimesPerWeek, setFormTimesPerWeek] = useState(3);
+  const [formDaysOfWeek, setFormDaysOfWeek] = useState<number[]>([]);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [actionHabit, setActionHabit] = useState<HabitWithLogs | null>(null);
+  const [deleteHabit, setDeleteHabit] = useState<HabitWithLogs | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [togglingIds, setTogglingIds] = useState<string[]>([]);
+  const [showRowHint, setShowRowHint] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<"due" | "completed" | "all">("due");
   const mountedRef = useRef(true);
+  const saveGuardRef = useRef(createSingleFlight());
+  const deleteGuardRef = useRef(createSingleFlight());
 
   const loadHabits = useCallback(async () => {
     if (!user) return;
+    setLoadError(false);
     const today = getLocalTodayDateString();
     const weekStart = getWeekStartForDate(today);
 
@@ -48,6 +71,12 @@ export default function HabitsScreen() {
     ]);
 
     if (!mountedRef.current) return;
+
+    if (habitsRes.error || logsRes.error) {
+      setLoadError(true);
+      setLoading(false);
+      return;
+    }
 
     const rawHabits = (habitsRes.data ?? []) as TodayHabit[];
     const logs = (logsRes.data ?? []) as { habit_id: string; completed_date: string }[];
@@ -70,8 +99,16 @@ export default function HabitsScreen() {
   useEffect(() => {
     mountedRef.current = true;
     void loadHabits();
+    AsyncStorage.getItem(ROW_ACTIONS_HINT_KEY).then((seen) => {
+      if (mountedRef.current && seen !== "1") setShowRowHint(true);
+    }).catch(() => {});
     return () => { mountedRef.current = false; };
   }, [loadHabits]);
+
+  // Re-read on focus so deletes/completions never present stale rows.
+  useFocusEffect(useCallback(() => {
+    void loadHabits();
+  }, [loadHabits]));
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -79,8 +116,12 @@ export default function HabitsScreen() {
     setRefreshing(false);
   };
 
+  const markToggling = (id: string, pending: boolean) =>
+    setTogglingIds((prev) => (pending ? [...prev, id] : prev.filter((x) => x !== id)));
+
   const completeHabit = async (habitId: string) => {
-    if (!user) return;
+    if (!user || togglingIds.includes(habitId)) return;
+    markToggling(habitId, true);
     const today = getLocalTodayDateString();
     const { data: existing } = await supabase
       .from("habit_logs")
@@ -89,21 +130,21 @@ export default function HabitsScreen() {
       .eq("habit_id", habitId)
       .eq("completed_date", today)
       .maybeSingle();
-    if (existing) return;
-    const { error } = await supabase.from("habit_logs").insert({
-      user_id: user.id,
-      habit_id: habitId,
-      completed_date: today,
-    });
-    if (error) {
-      Alert.alert("Error", "Could not log habit.");
-      return;
+    if (!existing) {
+      const { error } = await supabase.from("habit_logs").insert({
+        user_id: user.id,
+        habit_id: habitId,
+        completed_date: today,
+      });
+      if (error) Alert.alert("Error", "Could not log habit.");
     }
+    if (mountedRef.current) markToggling(habitId, false);
     void loadHabits();
   };
 
   const uncompleteHabit = async (habitId: string) => {
-    if (!user) return;
+    if (!user || togglingIds.includes(habitId)) return;
+    markToggling(habitId, true);
     const today = getLocalTodayDateString();
     const { data: logs } = await supabase
       .from("habit_logs")
@@ -111,54 +152,154 @@ export default function HabitsScreen() {
       .eq("user_id", user.id)
       .eq("habit_id", habitId)
       .eq("completed_date", today);
-    if (!logs || logs.length === 0) return;
-    const { error } = await supabase
-      .from("habit_logs")
-      .delete()
-      .eq("id", logs[0].id)
-      .eq("user_id", user.id);
-    if (error) {
-      Alert.alert("Error", "Could not remove habit log.");
-      return;
+    if (logs && logs.length > 0) {
+      const { error } = await supabase
+        .from("habit_logs")
+        .delete()
+        .eq("id", logs[0].id)
+        .eq("user_id", user.id);
+      if (error) Alert.alert("Error", "Could not remove habit log.");
     }
+    if (mountedRef.current) markToggling(habitId, false);
     void loadHabits();
   };
 
-  const createHabit = async () => {
-    if (!user || !newHabitTitle.trim()) return;
-    // habits.realm_id is NOT NULL — ensure default realm exists
-    let realmId: string | null = null;
-    try {
-      const { data: realm } = await supabase.from("realms").select("id").eq("user_id", user.id).limit(1).maybeSingle();
-      realmId = (realm as { id: string } | null)?.id ?? null;
-      if (!realmId) {
-        const { data: created, error: realmErr } = await supabase.from("realms").insert({ user_id: user.id, name: "Personal", color: "#6366f1", icon: "◉" }).select("id").single();
-        if (!realmErr && created) realmId = (created as { id: string }).id;
+  const openCreate = () => {
+    setEditingHabit(null);
+    setFormTitle("");
+    setFormFrequency("daily");
+    setFormTimesPerWeek(3);
+    setFormDaysOfWeek([]);
+    setFormError(null);
+    setShowForm(true);
+  };
+
+  const openEdit = (habit: HabitWithLogs) => {
+    setActionHabit(null);
+    setEditingHabit(habit);
+    setFormTitle(habit.title);
+    setFormFrequency(habit.frequency === "weekly" || habit.frequency === "weekdays" ? habit.frequency : "daily");
+    setFormTimesPerWeek(habit.times_per_week ?? 3);
+    setFormDaysOfWeek(habit.days_of_week ?? []);
+    setFormError(null);
+    setShowForm(true);
+  };
+
+  const closeForm = () => {
+    if (saving) return;
+    setShowForm(false);
+    setEditingHabit(null);
+    setFormError(null);
+  };
+
+  const saveForm = async () => {
+    if (!user || saving) return;
+    const outcome = await saveGuardRef.current.run(async () => {
+      setSaving(true);
+      setFormError(null);
+      try {
+        if (editingHabit) {
+          // Edit definition only — habit_logs history is never touched here.
+          const built = buildHabitUpdatePayload(editingHabit, {
+            title: formTitle,
+            frequency: formFrequency,
+            daysOfWeek: formDaysOfWeek,
+            timesPerWeek: formTimesPerWeek,
+          });
+          if (!built.ok) {
+            setFormError(built.error);
+            return;
+          }
+          if (!built.changed) {
+            setShowForm(false);
+            setEditingHabit(null);
+            return;
+          }
+          const { error } = await supabase
+            .from("habits")
+            .update(built.payload)
+            .eq("id", editingHabit.id)
+            .eq("user_id", user.id);
+          if (error) {
+            setFormError("Could not save changes. Try again.");
+            return;
+          }
+          // Preserve local completion history; only definition fields change.
+          setHabits((prev) =>
+            prev.map((h) => (h.id === editingHabit.id ? { ...h, ...built.payload } : h)),
+          );
+          setShowForm(false);
+          setEditingHabit(null);
+          void loadHabits();
+        } else {
+          if (!formTitle.trim()) return;
+          // habits.realm_id is NOT NULL — ensure default realm exists
+          let realmId: string | null = null;
+          try {
+            const { data: realm } = await supabase.from("realms").select("id").eq("user_id", user.id).limit(1).maybeSingle();
+            realmId = (realm as { id: string } | null)?.id ?? null;
+            if (!realmId) {
+              const { data: created, error: realmErr } = await supabase.from("realms").insert({ user_id: user.id, name: "Personal", color: "#6366f1", icon: "◉" }).select("id").single();
+              if (!realmErr && created) realmId = (created as { id: string }).id;
+            }
+          } catch { /* handled below */ }
+          if (!realmId) {
+            setFormError("Workspace initializing. Try again in a moment.");
+            return;
+          }
+          const payload: Record<string, unknown> = {
+            user_id: user.id,
+            realm_id: realmId,
+            title: formTitle.trim().slice(0, MAX_ITEM_TITLE_LENGTH),
+            frequency: formFrequency,
+            days_of_week: formDaysOfWeek,
+          };
+          if (formFrequency === "weekly") {
+            payload.times_per_week = formTimesPerWeek;
+          }
+          const { error } = await supabase.from("habits").insert(payload);
+          if (error) {
+            setFormError(error.message.includes("realm_id") ? "Workspace not ready. Complete onboarding." : "Could not create habit. Try again.");
+            return;
+          }
+          setFormTitle("");
+          setShowForm(false);
+          void loadHabits();
+        }
+      } finally {
+        if (mountedRef.current) setSaving(false);
       }
-    } catch { /* handled below */ }
-    if (!realmId) {
-      Alert.alert("Setup needed", "Workspace initializing. Try again in a moment.");
-      return;
+    });
+    if (!outcome.started) return;
+  };
+
+  const openActions = (habit: HabitWithLogs) => {
+    setActionHabit(habit);
+    if (showRowHint) {
+      setShowRowHint(false);
+      AsyncStorage.setItem(ROW_ACTIONS_HINT_KEY, "1").catch(() => {});
     }
-    const payload: Record<string, unknown> = {
-      user_id: user.id,
-      realm_id: realmId,
-      title: newHabitTitle.trim(),
-      frequency: newHabitFrequency,
-      days_of_week: newHabitDaysOfWeek,
-    };
-    if (newHabitFrequency === "weekly") {
-      payload.times_per_week = newHabitTimesPerWeek;
-    }
-    const { error } = await supabase.from("habits").insert(payload);
-    if (error) {
-      console.error("[habits] insert failed", error.message);
-      Alert.alert("Error", error.message.includes("realm_id") ? "Workspace not ready. Complete onboarding." : "Could not create habit.");
-      return;
-    }
-    setNewHabitTitle("");
-    setShowCreate(false);
-    void loadHabits();
+  };
+
+  const confirmDeleteHabit = async () => {
+    if (!user || !deleteHabit || deleting) return;
+    const target = deleteHabit;
+    const outcome = await deleteGuardRef.current.run(async () => {
+      setDeleting(true);
+      // Optimistic removal so the row (and its Today presence) disappears now.
+      // habit_logs rows cascade-delete in the backend; no orphans remain.
+      setHabits((prev) => removeDeletedById(prev, target.id));
+      const { error } = await supabase.from("habits").delete().eq("id", target.id).eq("user_id", user.id);
+      if (mountedRef.current) setDeleting(false);
+      if (error) {
+        void loadHabits();
+        Alert.alert("Error", "Could not delete habit. Try again.");
+        return;
+      }
+      if (mountedRef.current) setDeleteHabit(null);
+      void loadHabits();
+    });
+    if (!outcome.started) return;
   };
 
   const today = getLocalTodayDateString();
@@ -174,25 +315,29 @@ export default function HabitsScreen() {
   const notDueToday = habits.filter((habit) => !dueToday.some((h) => h.id === habit.id));
 
   const totalTarget = habits.reduce((sum, h) => sum + (h.times_per_week ?? 0), 0);
+  const canSave = formTitle.trim().length > 0 && !saving;
 
   const filterTabs = [
     { key: "due", label: "Due today", count: incompleteToday.length },
     { key: "completed", label: "Completed", count: completedToday.length },
     { key: "all", label: "All", count: habits.length },
   ] as const;
-  const [activeFilter, setActiveFilter] = useState<"due" | "completed" | "all">("due");
+
+  const toggleDays = (d: number) =>
+    setFormDaysOfWeek((prev) => (prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d]));
 
   return (
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
+      keyboardShouldPersistTaps="handled"
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />}
     >
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerRow}>
           <Text style={styles.greeting}>Habits</Text>
-          <TouchableOpacity style={styles.createButton} onPress={() => setShowCreate(true)} activeOpacity={0.8}>
+          <TouchableOpacity style={styles.createButton} onPress={openCreate} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel="Create habit">
             <Plus size={18} color={colors.accentStrong} />
           </TouchableOpacity>
         </View>
@@ -217,19 +362,36 @@ export default function HabitsScreen() {
         </View>
       </View>
 
-      {/* Create habit form */}
-      {showCreate && (
+      {showRowHint && habits.length > 0 && !loading ? (
+        <Text style={styles.hint}>Tip: long-press a habit to edit or delete it.</Text>
+      ) : null}
+
+      {loadError && !loading ? (
+        <View style={styles.errorBanner}>
+          <Text style={styles.errorText}>Couldn&apos;t load habits.</Text>
+          <TouchableOpacity onPress={() => void loadHabits()} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel="Retry loading habits">
+            <Text style={styles.errorRetry}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
+
+      {/* Create / edit form */}
+      {showForm && (
         <View style={styles.createForm}>
+          <Text style={styles.formTitle}>{editingHabit ? "Edit habit" : "New habit"}</Text>
           <View style={styles.createField}>
             <Text style={styles.createLabel}>Title</Text>
             <TextInput
               style={styles.createInput}
-              value={newHabitTitle}
-              onChangeText={setNewHabitTitle}
-              placeholder="What&apos;s the habit?"
+              value={formTitle}
+              onChangeText={(v) => { setFormTitle(v); if (formError) setFormError(null); }}
+              placeholder="What's the habit?"
               placeholderTextColor={colors.textMuted}
               autoFocus
               returnKeyType="next"
+              maxLength={MAX_ITEM_TITLE_LENGTH}
+              editable={!saving}
+              onSubmitEditing={saveForm}
             />
           </View>
           <View style={styles.createField}>
@@ -238,27 +400,28 @@ export default function HabitsScreen() {
               {(["daily", "weekdays", "weekly"] as const).map((f) => (
                 <TouchableOpacity
                   key={f}
-                  style={[styles.frequencyChip, newHabitFrequency === f && styles.frequencyChipActive]}
-                  onPress={() => { setNewHabitFrequency(f); setNewHabitDaysOfWeek([]); }}
+                  style={[styles.frequencyChip, formFrequency === f && styles.frequencyChipActive]}
+                  onPress={() => { setFormFrequency(f); setFormDaysOfWeek([]); }}
                   activeOpacity={0.8}
+                  disabled={saving}
                 >
-                  <Text style={[styles.frequencyChipLabel, newHabitFrequency === f && styles.frequencyChipLabelActive]}>
+                  <Text style={[styles.frequencyChipLabel, formFrequency === f && styles.frequencyChipLabelActive]}>
                     {f.charAt(0).toUpperCase() + f.slice(1)}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
           </View>
-          {newHabitFrequency === "weekly" && (
+          {formFrequency === "weekly" && (
             <>
               <View style={styles.createField}>
                 <Text style={styles.createLabel}>Times per week</Text>
                 <View style={styles.timesRow}>
-                  <TouchableOpacity style={styles.timesButton} onPress={() => setNewHabitTimesPerWeek(Math.max(1, newHabitTimesPerWeek - 1))} activeOpacity={0.8}>
+                  <TouchableOpacity style={styles.timesButton} onPress={() => setFormTimesPerWeek(Math.max(1, formTimesPerWeek - 1))} activeOpacity={0.8} disabled={saving}>
                     <Text style={styles.timesButtonText}>−</Text>
                   </TouchableOpacity>
-                  <Text style={styles.timesValue}>{newHabitTimesPerWeek}</Text>
-                  <TouchableOpacity style={styles.timesButton} onPress={() => setNewHabitTimesPerWeek(Math.min(7, newHabitTimesPerWeek + 1))} activeOpacity={0.8}>
+                  <Text style={styles.timesValue}>{formTimesPerWeek}</Text>
+                  <TouchableOpacity style={styles.timesButton} onPress={() => setFormTimesPerWeek(Math.min(7, formTimesPerWeek + 1))} activeOpacity={0.8} disabled={saving}>
                     <Text style={styles.timesButtonText}>+</Text>
                   </TouchableOpacity>
                 </View>
@@ -269,15 +432,12 @@ export default function HabitsScreen() {
                   {[0, 1, 2, 3, 4, 5, 6].map((d) => (
                     <TouchableOpacity
                       key={d}
-                      style={[styles.dayChip, newHabitDaysOfWeek.includes(d) && styles.dayChipActive]}
-                      onPress={() => setNewHabitDaysOfWeek(
-                        newHabitDaysOfWeek.includes(d)
-                          ? newHabitDaysOfWeek.filter((x) => x !== d)
-                          : [...newHabitDaysOfWeek, d]
-                      )}
+                      style={[styles.dayChip, formDaysOfWeek.includes(d) && styles.dayChipActive]}
+                      onPress={() => toggleDays(d)}
                       activeOpacity={0.8}
+                      disabled={saving}
                     >
-                      <Text style={[styles.dayChipLabel, newHabitDaysOfWeek.includes(d) && styles.dayChipLabelActive]}>
+                      <Text style={[styles.dayChipLabel, formDaysOfWeek.includes(d) && styles.dayChipLabelActive]}>
                         {["S", "M", "T", "W", "T", "F", "S"][d]}
                       </Text>
                     </TouchableOpacity>
@@ -286,17 +446,20 @@ export default function HabitsScreen() {
               </View>
             </>
           )}
+          {formError ? <Text style={styles.formError}>{formError}</Text> : null}
           <View style={styles.createActions}>
-            <TouchableOpacity style={styles.createCancel} onPress={() => { setShowCreate(false); setNewHabitTitle(""); }} activeOpacity={0.8}>
+            <TouchableOpacity style={styles.createCancel} onPress={closeForm} activeOpacity={0.8} disabled={saving}>
               <Text style={styles.createCancelText}>Cancel</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.createSubmit, !newHabitTitle.trim() && styles.createSubmitDisabled]}
-              onPress={createHabit}
-              disabled={!newHabitTitle.trim()}
+              style={[styles.createSubmit, !canSave && styles.createSubmitDisabled]}
+              onPress={saveForm}
+              disabled={!canSave}
               activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel={editingHabit ? "Save habit changes" : "Create habit"}
             >
-              <Text style={styles.createSubmitText}>Create habit</Text>
+              <Text style={styles.createSubmitText}>{saving ? "Saving…" : editingHabit ? "Save changes" : "Create habit"}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -322,13 +485,15 @@ export default function HabitsScreen() {
       </View>
 
       {/* Habit list */}
-      {!loading && habits.length === 0 ? (
+      {loading ? (
+        <Text style={styles.emptyText}>Loading habits…</Text>
+      ) : habits.length === 0 && !loadError ? (
         <EmptyState
           icon={<Check size={28} color={colors.textMuted} />}
           title="No habits yet"
           sub="Add a habit to start building consistency."
           actionLabel="+ Create habit"
-          onAction={() => setShowCreate(true)}
+          onAction={openCreate}
         />
       ) : (
         <>
@@ -344,8 +509,12 @@ export default function HabitsScreen() {
                     isCompleted={false}
                     streak={streak}
                     weeklyProgress={weekly}
+                    pending={togglingIds.includes(habit.id)}
                     onComplete={completeHabit}
                     onUndo={uncompleteHabit}
+                    onOpenActions={openActions}
+                    onEdit={openEdit}
+                    onDelete={(h) => { setActionHabit(null); setDeleteHabit(h); }}
                   />
                 );
               })}
@@ -358,48 +527,117 @@ export default function HabitsScreen() {
               title="All caught up"
               sub="Nothing due right now."
               actionLabel="+ Create habit"
-              onAction={() => setShowCreate(true)}
+              onAction={openCreate}
             />
           )}
 
-          {activeFilter === "completed" && completedToday.length > 0 && (
+          {activeFilter === "completed" && (
             <Section title="Completed" count={completedToday.length}>
-              {completedToday.map((habit) => {
-                const streak = getCurrentStreak(habit.completedDates, habit.frequency, habit.days_of_week);
-                return (
-                  <HabitRow
-                    key={habit.id}
-                    habit={habit}
-                    isCompleted
-                    streak={streak}
-                    onComplete={completeHabit}
-                    onUndo={uncompleteHabit}
-                  />
-                );
-              })}
+              {completedToday.length === 0 ? (
+                <EmptyState
+                  icon={<Check size={20} color={colors.textMuted} />}
+                  title="Nothing completed yet"
+                  sub="Complete a habit to see it here."
+                />
+              ) : (
+                completedToday.map((habit) => {
+                  const streak = getCurrentStreak(habit.completedDates, habit.frequency, habit.days_of_week);
+                  return (
+                    <HabitRow
+                      key={habit.id}
+                      habit={habit}
+                      isCompleted
+                      streak={streak}
+                      pending={togglingIds.includes(habit.id)}
+                      onComplete={completeHabit}
+                      onUndo={uncompleteHabit}
+                      onOpenActions={openActions}
+                      onEdit={openEdit}
+                      onDelete={(h) => { setActionHabit(null); setDeleteHabit(h); }}
+                    />
+                  );
+                })
+              )}
             </Section>
           )}
 
-          {activeFilter === "all" && notDueToday.length > 0 && (
-            <Section title="Not Due Today" count={notDueToday.length}>
-              {notDueToday.map((habit) => {
-                const streak = getCurrentStreak(habit.completedDates, habit.frequency, habit.days_of_week);
-                return (
-                  <HabitRow
-                    key={habit.id}
-                    habit={habit}
-                    isCompleted={false}
-                    streak={streak}
-                    onComplete={completeHabit}
-                    onUndo={uncompleteHabit}
-                    disabled
-                  />
-                );
-              })}
-            </Section>
+          {activeFilter === "all" && (
+            <>
+              {dueToday.length > 0 && (
+                <Section title="Due Today" count={dueToday.length}>
+                  {dueToday.map((habit) => {
+                    const completed = habit.completedDates.some((d) => d === today);
+                    const streak = getCurrentStreak(habit.completedDates, habit.frequency, habit.days_of_week);
+                    return (
+                      <HabitRow
+                        key={habit.id}
+                        habit={habit}
+                        isCompleted={completed}
+                        streak={streak}
+                        pending={togglingIds.includes(habit.id)}
+                        onComplete={completeHabit}
+                        onUndo={uncompleteHabit}
+                        onOpenActions={openActions}
+                        onEdit={openEdit}
+                        onDelete={(h) => { setActionHabit(null); setDeleteHabit(h); }}
+                      />
+                    );
+                  })}
+                </Section>
+              )}
+              {notDueToday.length > 0 && (
+                <Section title="Not Due Today" count={notDueToday.length}>
+                  {notDueToday.map((habit) => {
+                    const streak = getCurrentStreak(habit.completedDates, habit.frequency, habit.days_of_week);
+                    return (
+                      <HabitRow
+                        key={habit.id}
+                        habit={habit}
+                        isCompleted={false}
+                        streak={streak}
+                        pending={togglingIds.includes(habit.id)}
+                        onComplete={completeHabit}
+                        onUndo={uncompleteHabit}
+                        onOpenActions={openActions}
+                        onEdit={openEdit}
+                        onDelete={(h) => { setActionHabit(null); setDeleteHabit(h); }}
+                        disabled
+                      />
+                    );
+                  })}
+                </Section>
+              )}
+              {dueToday.length === 0 && notDueToday.length === 0 && (
+                <EmptyState
+                  icon={<Check size={28} color={colors.textMuted} />}
+                  title="No habits yet"
+                  sub="Add a habit to start building consistency."
+                  actionLabel="+ Create habit"
+                  onAction={openCreate}
+                />
+              )}
+            </>
           )}
         </>
       )}
+
+      <ItemActionSheet
+        visible={actionHabit !== null}
+        title={actionHabit?.title ?? ""}
+        kind="Habit"
+        onEdit={() => { if (actionHabit) openEdit(actionHabit); }}
+        onDelete={() => { if (actionHabit) { const h = actionHabit; setActionHabit(null); setDeleteHabit(h); } }}
+        onClose={() => setActionHabit(null)}
+      />
+      <ConfirmDeleteDialog
+        visible={deleteHabit !== null}
+        itemTitle={deleteHabit?.title ?? ""}
+        kind="Habit"
+        detail="Its completion history will also be removed."
+        pending={deleting}
+        onCancel={() => { if (!deleting) setDeleteHabit(null); }}
+        onConfirm={() => void confirmDeleteHabit()}
+      />
     </ScrollView>
   );
 }
@@ -421,25 +659,51 @@ function HabitRow({
   isCompleted,
   streak,
   weeklyProgress,
+  pending,
   onComplete,
   onUndo,
   disabled,
+  onOpenActions,
+  onEdit,
+  onDelete,
 }: {
   habit: HabitWithLogs;
   isCompleted: boolean;
   streak: number;
   weeklyProgress?: { completed: number; target: number } | null;
+  pending: boolean;
   onComplete: (id: string) => void;
   onUndo: (id: string) => void;
   disabled?: boolean;
+  onOpenActions: (habit: HabitWithLogs) => void;
+  onEdit: (habit: HabitWithLogs) => void;
+  onDelete: (habit: HabitWithLogs) => void;
 }) {
   return (
-    <View style={[styles.row, isCompleted && styles.rowCompleted, disabled && styles.rowDisabled]}>
+    <Pressable
+      style={[styles.row, isCompleted && styles.rowCompleted, disabled && styles.rowDisabled]}
+      onLongPress={() => onOpenActions(habit)}
+      delayLongPress={350}
+      accessibilityRole="button"
+      accessibilityLabel={habit.title}
+      accessibilityHint="Long press for edit and delete options"
+      accessibilityActions={[
+        { name: "edit", label: "Edit habit" },
+        { name: "delete", label: "Delete habit" },
+      ]}
+      onAccessibilityAction={(event) => {
+        if (event.nativeEvent.actionName === "edit") onEdit(habit);
+        else if (event.nativeEvent.actionName === "delete") onDelete(habit);
+      }}
+    >
       <TouchableOpacity
         style={[styles.check, isCompleted && styles.checkDone]}
         onPress={() => (isCompleted ? onUndo(habit.id) : onComplete(habit.id))}
-        disabled={disabled}
+        disabled={disabled || pending}
         activeOpacity={0.7}
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: isCompleted, busy: pending }}
+        accessibilityLabel={isCompleted ? `Uncomplete ${habit.title}` : `Complete ${habit.title}`}
       >
         {isCompleted ? (
           <Check size={20} color={colors.success} />
@@ -457,7 +721,7 @@ function HabitRow({
           {weeklyProgress ? ` · ${weeklyProgress.completed}/${weeklyProgress.target} this week` : ""}
         </Text>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -498,6 +762,23 @@ const styles = StyleSheet.create({
   statValue: { fontSize: 24, fontWeight: "700", color: colors.textPrimary },
   statLabel: { ...type.caption, color: colors.textMuted, marginTop: spacing.xs },
 
+  hint: { ...type.meta, color: colors.textMuted, marginBottom: spacing.md },
+
+  errorBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: colors.dangerSoft,
+    borderWidth: 1,
+    borderColor: "rgba(239,68,68,0.25)",
+    borderRadius: radii.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  errorText: { ...type.caption, color: colors.danger, fontWeight: "600" },
+  errorRetry: { ...type.caption, color: colors.textPrimary, fontWeight: "700" },
+
   createForm: {
     backgroundColor: colors.surface,
     borderWidth: 1,
@@ -507,6 +788,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
     gap: spacing.md,
   },
+  formTitle: { ...type.item, color: colors.textPrimary },
   createField: { gap: spacing.sm },
   createLabel: { ...type.caption, color: colors.textSecondary },
   createInput: {
@@ -520,6 +802,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     minHeight: 48,
   },
+  formError: { ...type.meta, color: colors.danger },
   frequencyRow: { flexDirection: "row", gap: spacing.sm },
   frequencyChip: {
     flex: 1,
@@ -643,4 +926,5 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accentSoft,
   },
   emptyActionText: { ...type.caption, color: colors.accentStrong, fontWeight: "600" },
+  emptyText: { ...type.meta, color: colors.textMuted, paddingVertical: spacing.sm },
 });

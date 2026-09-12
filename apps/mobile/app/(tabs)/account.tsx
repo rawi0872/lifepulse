@@ -1,14 +1,15 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, Share } from "react-native";
-import { Link } from "expo-router";
+import { useRouter } from "expo-router";
 import Constants from "expo-constants";
 import { supabase } from "../../lib/supabase";
 import { useAuth } from "../../lib/auth";
 import { colors, spacing, radii, type } from "../../lib/theme";
-import { ChevronRight, Logout, BellIcon, MoonIcon, HealthIcon, Send } from "../../src/icons";
+import { Logout, Send } from "../../src/icons";
 
 export default function AccountScreen() {
   const { user, signOut } = useAuth();
+  const router = useRouter();
   const [profile, setProfile] = useState<{ first_name: string | null; last_name: string | null } | null>(null);
 
   useEffect(() => {
@@ -42,6 +43,16 @@ export default function AccountScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <TouchableOpacity
+        style={styles.back}
+        onPress={() => router.back()}
+        activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel="Back to More"
+      >
+        <Text style={styles.backText}>‹ More</Text>
+      </TouchableOpacity>
+
       <View style={styles.profileCard}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>{displayName?.[0]?.toUpperCase() || "L"}</Text>
@@ -50,43 +61,6 @@ export default function AccountScreen() {
           <Text style={styles.profileTitle}>{displayName || "Life Pulse member"}</Text>
           <Text style={styles.profileEmail}>{user?.email ?? "—"}</Text>
         </View>
-      </View>
-
-      <Text style={styles.sectionTitle}>CONNECTIONS</Text>
-      <Link href="/health" asChild>
-        <TouchableOpacity style={styles.row} activeOpacity={0.7}>
-          <View style={styles.rowIcon}>
-            <HealthIcon size={20} color={colors.accent} />
-          </View>
-          <View style={styles.rowBody}>
-            <Text style={styles.rowTitle}>Health Connections</Text>
-            <Text style={styles.rowMeta}>Manage connected health sources</Text>
-          </View>
-          <ChevronRight size={18} color={colors.textMuted} />
-        </TouchableOpacity>
-      </Link>
-
-      <Text style={styles.sectionTitle}>PREFERENCES</Text>
-      <View style={styles.row}>
-        <View style={styles.rowIcon}>
-          <BellIcon size={20} color={colors.accent} />
-        </View>
-        <View style={styles.rowBody}>
-          <Text style={styles.rowTitle}>Notifications</Text>
-          <Text style={styles.rowMeta}>Manage notification preferences</Text>
-        </View>
-        <ChevronRight size={18} color={colors.textMuted} />
-      </View>
-
-      <View style={styles.row}>
-        <View style={styles.rowIcon}>
-          <MoonIcon size={20} color={colors.accent} />
-        </View>
-        <View style={styles.rowBody}>
-          <Text style={styles.rowTitle}>Appearance</Text>
-          <Text style={styles.rowMeta}>Dark mode (system default)</Text>
-        </View>
-        <ChevronRight size={18} color={colors.textMuted} />
       </View>
 
       <Text style={styles.sectionTitle}>SUPPORT</Text>
@@ -98,7 +72,6 @@ export default function AccountScreen() {
           <Text style={styles.rowTitle}>Send Alpha feedback</Text>
           <Text style={styles.rowMeta}>Share via WhatsApp, email, etc. — your choice</Text>
         </View>
-        <ChevronRight size={18} color={colors.textMuted} />
       </TouchableOpacity>
 
       <Text style={styles.sectionTitle}>ACCOUNT</Text>
@@ -115,6 +88,9 @@ export default function AccountScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   content: { paddingHorizontal: spacing.xl, paddingTop: 56, paddingBottom: 24 },
+
+  back: { alignSelf: "flex-start", paddingVertical: spacing.sm, paddingRight: spacing.lg, marginBottom: spacing.sm },
+  backText: { color: colors.accent, fontSize: 14, fontWeight: "600" },
 
   profileCard: {
     flexDirection: "row",

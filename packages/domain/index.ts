@@ -12,6 +12,18 @@ export {
 export type { TaskLike, TaskGroups } from "./tasks";
 
 export {
+  MAX_ITEM_TITLE_LENGTH,
+  normalizeItemTitle,
+  isValidItemTitle,
+  buildTaskUpdatePayload,
+  buildHabitUpdatePayload,
+  removeDeletedById,
+  isDeletedEverywhere,
+  createSingleFlight,
+} from "./item-mutations";
+export type { TaskPriority, HabitFrequency, TaskEdits, TaskUpdate, HabitEdits, HabitUpdate, SingleFlight } from "./item-mutations";
+
+export {
   dateToLocalDateString,
   getLocalTodayDateString,
   getWeekStartForDate,
