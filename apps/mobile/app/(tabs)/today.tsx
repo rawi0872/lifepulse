@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity, Alert, TextInput } from "react-native";
+import { View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity, Alert } from "react-native";
 import { Link } from "expo-router";
 import { supabase } from "../../lib/supabase";
 import { useAuth } from "../../lib/auth";
 import { colors, spacing, radii, type, shadow } from "../../lib/theme";
-import { Pulse, ChecklistIcon, Habits as HabitsIcon, Check, Close, ChevronRight } from "../../src/icons";
+import { Pulse, ChecklistIcon, Habits as HabitsIcon, Check, Close, ChevronRight, NextronIcon } from "../../src/icons";
+import { FieldInput } from "../../src/components/ui";
 import { BODY_TODAY_SIGNALS_ENABLED } from "../../lib/featureFlags";
 import {
   normalizeTodayData,
@@ -12,7 +13,6 @@ import {
   getLocalTodayDateString,
   getWeekStartForDate,
   resolveIntendedUse,
-  getCurrentStreak,
   toLocalPriority,
   MAX_PRIORITIES_PER_DAY,
   deriveBodySignals,
@@ -33,6 +33,8 @@ export default function TodayScreen() {
   const [model, setModel] = useState<TodayModel | null>(null);
   const [priorities, setPriorities] = useState<TodayPriority[]>([]);
   const [priorityInput, setPriorityInput] = useState("");
+  const [showPriorityInput, setShowPriorityInput] = useState(false);
+  const [addingPriority, setAddingPriority] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const mountedRef = useRef(true);
@@ -168,7 +170,8 @@ export default function TodayScreen() {
   };
 
   const addPriority = async () => {
-    if (!user || !priorityInput.trim() || priorities.length >= MAX_PRIORITIES_PER_DAY) return;
+    if (!user || !priorityInput.trim() || priorities.length >= MAX_PRIORITIES_PER_DAY || addingPriority) return;
+    setAddingPriority(true);
     const today = getLocalTodayDateString();
     const input: TodayPriorityInput = { text: priorityInput.trim() };
     const { data, error } = await supabase
@@ -183,6 +186,7 @@ export default function TodayScreen() {
       })
       .select("*")
       .single();
+    if (mountedRef.current) setAddingPriority(false);
     if (error) {
       Alert.alert("Error", "Could not add priority.");
       return;
@@ -282,6 +286,11 @@ export default function TodayScreen() {
               <Text style={styles.heroType}>Wealth · scheduled</Text>
               <Text style={styles.heroTitle}>{(ranking.chosen as any).title}</Text>
               <Text style={styles.heroReason}>{(ranking.chosen as any).rationale}</Text>
+              <Link href="/wealth" asChild>
+                <TouchableOpacity style={styles.heroLink} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel="Review in Wealth">
+                  <Text style={styles.heroLinkText}>Review in Wealth ›</Text>
+                </TouchableOpacity>
+              </Link>
             </View>
           ) : upNext ? (
             <View style={styles.heroCard}>
@@ -302,6 +311,12 @@ export default function TodayScreen() {
             <Text style={styles.heroEmptyText}>You&apos;re caught up</Text>
           </View>
         )}
+        <Link href="/(tabs)/nextron" asChild>
+          <TouchableOpacity style={styles.askNextron} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel="Ask NEXTRON about today">
+            <NextronIcon size={14} variant="mono" color={colors.accentStrong} />
+            <Text style={styles.askNextronText}>Ask NEXTRON about today</Text>
+          </TouchableOpacity>
+        </Link>
       </View>
 
       {/* Today's Focus — compact, actionable */}
@@ -355,30 +370,31 @@ export default function TodayScreen() {
             <Text style={styles.focusEmptySub}>
               Choose up to three things that matter today.
             </Text>
-            <TouchableOpacity style={styles.addPriorityButton} onPress={() => setPriorityInput(" ")}>
+            <TouchableOpacity style={styles.addPriorityButton} onPress={() => setShowPriorityInput(true)} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel="Add priority">
               <Text style={styles.addPriorityButtonText}>+ Add priority</Text>
             </TouchableOpacity>
           </View>
         )}
 
-        {focusRemaining > 0 && priorities.length > 0 && (
+        {focusRemaining > 0 && (priorities.length > 0 || showPriorityInput) && (
           <View style={styles.addPriorityRow}>
-            <TextInput
-              style={styles.addPriorityInput}
+            <FieldInput
               value={priorityInput}
               onChangeText={(text) => setPriorityInput(text.slice(0, 80))}
               placeholder="Add a priority…"
-              placeholderTextColor={colors.textMuted}
               onSubmitEditing={() => void addPriority()}
               returnKeyType="done"
+              editable={!addingPriority}
             />
             <TouchableOpacity
-              style={[styles.addButton, !priorityInput.trim() && styles.addButtonDisabled]}
+              style={[styles.addButton, (!priorityInput.trim() || addingPriority) && styles.addButtonDisabled]}
               onPress={() => void addPriority()}
-              disabled={!priorityInput.trim()}
+              disabled={!priorityInput.trim() || addingPriority}
               activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel="Add priority"
             >
-              <Text style={styles.addButtonText}>Add</Text>
+              <Text style={styles.addButtonText}>{addingPriority ? "Adding…" : "Add"}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -430,7 +446,6 @@ export default function TodayScreen() {
         ) : (
           <View style={styles.list}>
             {model?.habits.incompleteToday.map((habit) => {
-              const streak = getCurrentStreak([], habit.frequency, habit.days_of_week);
               return (
                 <View key={habit.id} style={styles.listRow}>
                   <TouchableOpacity
@@ -445,7 +460,7 @@ export default function TodayScreen() {
                       {habit.title}
                     </Text>
                     <Text style={styles.listMeta}>
-                      {habit.frequency}{streak > 0 ? ` · ${streak}-day streak` : ""}
+                      {habit.frequency}
                     </Text>
                   </View>
                 </View>
@@ -491,7 +506,7 @@ const styles = StyleSheet.create({
 
   upNextSection: { marginBottom: spacing.lg },
   sectionLabel: { flexDirection: "row", alignItems: "center", gap: spacing.sm, marginBottom: spacing.md },
-  sectionLabelRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm, marginBottom: spacing.md },
+  sectionLabelRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   sectionLabelText: { ...type.caption, color: colors.accent, fontWeight: "700", letterSpacing: 1.4 },
   sectionLabelTextAlt: { ...type.caption, color: colors.textSecondary, fontWeight: "700", letterSpacing: 1.4, marginBottom: spacing.md },
   heroCard: {
@@ -499,7 +514,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.accentBorder,
     borderRadius: radii.lg,
-    padding: spacing.md,
+    padding: spacing.lg,
     ...shadow.card,
   },
   heroTop: { flexDirection: "row", alignItems: "center", gap: spacing.sm, marginBottom: spacing.sm },
@@ -512,7 +527,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   heroType: { ...type.caption, color: colors.accentStrong, fontWeight: "600", letterSpacing: 0.6, textTransform: "uppercase" },
-  heroTitle: { ...type.item, color: colors.textPrimary, marginBottom: spacing.xs },
+  heroTitle: { ...type.item, fontSize: 17, lineHeight: 22, color: colors.textPrimary, marginBottom: spacing.xs },
   heroReason: { ...type.body, color: colors.textSecondary, marginBottom: spacing.md },
   heroAction: {
     flexDirection: "row",
@@ -527,6 +542,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   heroActionText: { ...type.item, color: colors.onAccent, fontWeight: "700" },
+  heroLink: { alignSelf: "flex-start", justifyContent: "center", minHeight: 44, marginTop: spacing.sm },
+  heroLinkText: { color: colors.accent, fontSize: 13, fontWeight: "600" },
+  askNextron: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.sm,
+    minHeight: 44,
+    marginTop: spacing.sm,
+  },
+  askNextronText: { color: colors.accentStrong, fontSize: 13, fontWeight: "600" },
   heroEmpty: {
     backgroundColor: colors.surface,
     borderWidth: 1,
@@ -594,18 +620,6 @@ const styles = StyleSheet.create({
   addPriorityButtonText: { ...type.caption, color: colors.accentStrong, fontWeight: "600" },
 
   addPriorityRow: { flexDirection: "row", alignItems: "center", marginTop: spacing.md, gap: spacing.sm },
-  addPriorityInput: {
-    flex: 1,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.md,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: 12,
-    color: colors.textPrimary,
-    fontSize: 14,
-    minHeight: 48,
-  },
   addButton: {
     backgroundColor: colors.accent,
     borderRadius: radii.md,

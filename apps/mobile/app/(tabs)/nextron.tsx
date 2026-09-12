@@ -14,6 +14,9 @@ import {
 import { useAuth } from "../../lib/auth";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getNextronConversation, listNextronConversations, nextronAsk } from "../../lib/nextron";
+import { loadWealthNextronPermissions, getEffectiveWealthNextronSections } from "../../lib/nextron-wealth-permissions";
+import { loadNextronHealthPermissions, effectiveNextronMetrics } from "../../lib/nextron-health-permissions";
+import { toCalmNextronError, buildNextronContextSummary } from "../../lib/nextron-ui";
 import { colors, spacing, radii, type } from "../../lib/theme";
 import { NextronIcon, Plus, ChevronRight } from "../../src/icons";
 
@@ -45,6 +48,7 @@ export default function NextronScreen() {
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [contextSummary, setContextSummary] = useState<string | null>(null);
   const scrollRef = useRef<ScrollView>(null);
 
   const loadConversations = useCallback(async () => {
@@ -53,7 +57,7 @@ export default function NextronScreen() {
     setError(null);
     const res = await listNextronConversations();
     if (!res.ok) {
-      setError(res.error);
+      setError(toCalmNextronError(undefined, res.status));
       setLoading(false);
       return;
     }
@@ -74,10 +78,39 @@ export default function NextronScreen() {
     void loadConversations();
   }, [loadConversations]);
 
+  useEffect(() => {
+    // Truthful context line: only what permission state actually grants.
+    // Fail-closed — if evidence can't load, no context is claimed.
+    let cancelled = false;
+    (async () => {
+      if (!user) return;
+      try {
+        const [wealth, health] = await Promise.all([
+          loadWealthNextronPermissions(),
+          loadNextronHealthPermissions(),
+        ]);
+        if (cancelled) return;
+        setContextSummary(
+          buildNextronContextSummary({
+            wealthMaster: wealth.master,
+            wealthSections: getEffectiveWealthNextronSections(wealth),
+            bodyMetrics: effectiveNextronMetrics(health.allowed, health.nextronAllowed),
+          }),
+        );
+      } catch {
+        if (!cancelled) setContextSummary(null);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [user]);
+
   const refreshConversation = useCallback(
     async (id: string) => {
       const conv = await getNextronConversation(id);
-      if (conv.ok) setMessages((conv.messages as Message[]) ?? []);
+      if (conv.ok) {
+        setMessages((conv.messages as Message[]) ?? []);
+        setTimeout(() => scrollRef.current?.scrollToEnd({ animated: false }), 100);
+      }
     },
     [],
   );
@@ -97,14 +130,14 @@ export default function NextronScreen() {
       setMessages((prev) => [...prev, optimistic]);
       setPrompt("");
 
-      const res = await nextronAsk({
-        prompt: text,
-        conversationId,
-        clientMessageId,
-      });
+    const res = await nextronAsk({
+      prompt: text,
+      conversationId,
+      clientMessageId,
+    });
 
       if (!res.ok) {
-        setError(res.code === "AUTH_REQUIRED" ? "Sign in again to continue." : res.error);
+        setError(toCalmNextronError(res.code, res.status));
         setSending(false);
         return;
       }
@@ -202,8 +235,9 @@ export default function NextronScreen() {
             <NextronIcon size={40} variant="brand" />
             <Text style={styles.emptyTitle}>What do you want to figure out?</Text>
             <Text style={styles.emptyText}>
-              Same memory and conversations as web. Ask anything about your tasks, habits, and goals.
+              Ask about your tasks, habits, and goals. NEXTRON only uses data you&apos;ve allowed.
             </Text>
+            {contextSummary ? <Text style={styles.contextText}>{contextSummary}</Text> : null}
             <View style={styles.starters}>
               {STARTERS.map((s) => (
                 <TouchableOpacity key={s} style={styles.starter} onPress={() => void handleSend(s)}>
@@ -224,8 +258,8 @@ export default function NextronScreen() {
                   <Text style={[styles.bubbleText, isUser ? styles.bubbleTextUser : styles.bubbleTextAssistant]}>{text}</Text>
                   {hasProposal && (
                     <View style={styles.proposalCard}>
-                      <Text style={styles.proposalLabel}>Action proposed</Text>
-                      <Text style={styles.proposalHint}>Review on web for details</Text>
+                      <Text style={styles.proposalLabel}>Suggested action · needs approval</Text>
+                      <Text style={styles.proposalHint}>Nothing has run yet — review and approve on web.</Text>
                     </View>
                   )}
                 </View>
@@ -236,7 +270,7 @@ export default function NextronScreen() {
         {sending && (
           <View style={[styles.bubbleWrap, styles.bubbleWrapAssistant]}>
             <View style={[styles.bubble, styles.bubbleAssistant]}>
-              <Text style={styles.bubbleTextAssistant}>NEXTRON is thinking…</Text>
+              <Text style={styles.bubbleTextAssistant}>Preparing a response…</Text>
             </View>
           </View>
         )}
@@ -336,7 +370,7 @@ const styles = StyleSheet.create({
     padding: spacing.sm,
     backgroundColor: colors.warningSoft,
     borderWidth: 1,
-    borderColor: "rgba(245, 158, 11, 0.3)",
+    borderColor: colors.warningBorder,
     borderRadius: radii.sm,
   },
   proposalLabel: { ...type.caption, color: colors.warning, fontWeight: "700", letterSpacing: 0.5 },
@@ -355,6 +389,7 @@ const styles = StyleSheet.create({
   },
   emptyTitle: { ...type.screen, color: colors.textPrimary, textAlign: "center" },
   emptyText: { ...type.body, color: colors.textSecondary, textAlign: "center", lineHeight: 22 },
+  contextText: { ...type.caption, color: colors.textMuted, textAlign: "center" },
   starters: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm, marginTop: spacing.sm, justifyContent: "center" },
   starter: {
     backgroundColor: colors.accentSoft,
@@ -399,5 +434,5 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     flexShrink: 0,
   },
-  sendButtonDisabled: { opacity: 0.45 },
+  sendButtonDisabled: { opacity: 0.5 },
 });

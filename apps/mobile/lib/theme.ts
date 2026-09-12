@@ -32,6 +32,7 @@ export const colors = {
   dangerBorder: "rgba(239, 68, 68, 0.25)",
   warning: "#f59e0b",
   warningSoft: "rgba(245, 158, 11, 0.12)",
+  warningBorder: "rgba(245, 158, 11, 0.3)",
 
   // Realm identity — confined to Realm iconography, never general UI.
   realmBody: "#ef4444",
