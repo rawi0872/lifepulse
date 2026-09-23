@@ -35,6 +35,75 @@
   --focus-ring: rgba(155,195,230,0.72);
   --radius-surface: 1.5rem;
   --ease-premium: cubic-bezier(0.16, 1, 0.3, 1);
+  /* Shared semantic tokens (converged with mobile theme.ts) */
+  --text-faint: #3a4656;
+  --accent-border: rgba(122,162,199,0.28);
+  --danger-border: rgba(224,111,111,0.25);
+  --warning-border: rgba(210,168,95,0.3);
+  --muted-soft: rgba(148,163,184,0.12);
+  --backdrop: rgba(0,0,0,0.6);
+  --on-accent: #071018;
+  --on-danger: #ffffff;
+  --surface-overlay: #171d2b;
+  --nav-surface: #0a0e15;
+  --realm-body: #ef4444;
+  --realm-body-soft: rgba(239,68,68,0.12);
+  --realm-body-border: rgba(239,68,68,0.22);
+  --realm-wealth: #38bdf8;
+  --realm-wealth-soft: rgba(56,189,248,0.12);
+  --realm-wealth-border: rgba(56,189,248,0.22);
+}
+
+/*
+ * Warm Human Premium — light theme (converged with mobile lightColors).
+ * Applied via data-theme="light" on <html> by ThemeProvider.
+ * Pages built on var(--*) tokens follow automatically; per-page polish
+ * (hardcoded dark utilities) is Prompt 2 owned.
+ */
+:root[data-theme="light"] {
+  --bg: #fbf8f2;
+  --bg-elevated: #fffdf8;
+  --surface: #fffdf8;
+  --surface-soft: #f6f1e8;
+  --surface-raised: #ffffff;
+  --surface-active: #f1eadd;
+  --border: rgba(75,100,140,0.10);
+  --border-strong: rgba(75,100,140,0.20);
+  --text: #0b1930;
+  --text-secondary: #4a5d75;
+  --text-muted: #7d8ea6;
+  --accent: #4f83b8;
+  --accent-soft: rgba(79,131,184,0.12);
+  --accent-strong: #3a6a99;
+  --accent-ghost: rgba(79,131,184,0.07);
+  --success: #0e9f6e;
+  --success-soft: rgba(14,159,110,0.12);
+  --warning: #d97706;
+  --warning-soft: rgba(217,119,6,0.10);
+  --attention: #0284c7;
+  --attention-soft: rgba(2,132,199,0.10);
+  --danger: #dc2626;
+  --danger-soft: rgba(220,38,38,0.08);
+  --critical: #dc2626;
+  --critical-soft: rgba(220,38,38,0.08);
+  --glow: rgba(118,183,239,0.20);
+  --focus-ring: rgba(79,131,184,0.55);
+  --text-faint: #a9b8cc;
+  --accent-border: rgba(79,131,184,0.30);
+  --danger-border: rgba(220,38,38,0.25);
+  --warning-border: rgba(217,119,6,0.28);
+  --muted-soft: rgba(75,100,140,0.10);
+  --backdrop: rgba(11,25,48,0.45);
+  --on-accent: #ffffff;
+  --on-danger: #ffffff;
+  --surface-overlay: #ffffff;
+  --nav-surface: #fffdf8;
+  --realm-body: #dc2626;
+  --realm-body-soft: rgba(220,38,38,0.08);
+  --realm-body-border: rgba(220,38,38,0.22);
+  --realm-wealth: #0284c7;
+  --realm-wealth-soft: rgba(2,132,199,0.10);
+  --realm-wealth-border: rgba(2,132,199,0.22);
 }
 
 html {

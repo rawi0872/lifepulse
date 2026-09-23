@@ -1,11 +1,22 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { getTodayDateString } from "@/lib/utils";
-import { groupTasksByDate, hasInvalidTaskDueDate, isValidLocalDateString, timestampToLocalDateString } from "@lifepulse/domain";
+import {
+  groupTasksByDate,
+  hasInvalidTaskDueDate,
+  isValidLocalDateString,
+  timestampToLocalDateString,
+  buildTaskUpdatePayload,
+  normalizeItemTitle,
+  isValidItemTitle,
+  MAX_ITEM_TITLE_LENGTH,
+  createSingleFlight,
+  removeDeletedById,
+} from "@lifepulse/domain";
 import { DashboardNav } from "@/components/DashboardNav";
 import { DailyLoopConnector } from "@/components/DailyLoopConnector";
 import { RealmPicker } from "@/components/RealmPicker";
@@ -103,6 +114,12 @@ export default function TasksPage() {
   const [saving, setSaving] = useState(false);
   const [quickSaving, setQuickSaving] = useState(false);
   const [togglingTaskId, setTogglingTaskId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  // Single-flight guards (shared semantics with mobile saveGuardRef/deleteGuardRef).
+  const saveGuardRef = useRef(createSingleFlight());
+  const deleteGuardRef = useRef(createSingleFlight());
   const { toast } = useToast();
   const router = useRouter();
   const [supabase] = useState(() => createClient());
@@ -147,12 +164,17 @@ export default function TasksPage() {
       ]);
 
       if (cancelled) return;
-      if (tasksRes.data) setTasks(tasksRes.data as unknown as Task[]);
-      if (realmsRes.data) setRealms(realmsRes.data as Realm[]);
-      if (projectsRes.data) setProjects(projectsRes.data as Project[]);
-      if (taskProjectsRes.data) setTaskProjects(taskProjectsRes.data as TaskProjectContext[]);
-      if (goalLinksRes.data) setGoalLinks(goalLinksRes.data as GoalLink[]);
-      if (goalsRes.data) setLinkedGoals(goalsRes.data as LinkedGoal[]);
+      if (tasksRes.error || realmsRes.error || projectsRes.error || taskProjectsRes.error || goalLinksRes.error || goalsRes.error) {
+        setLoadError("Couldn't load tasks.");
+      } else {
+        if (tasksRes.data) setTasks(tasksRes.data as unknown as Task[]);
+        if (realmsRes.data) setRealms(realmsRes.data as Realm[]);
+        if (projectsRes.data) setProjects(projectsRes.data as Project[]);
+        if (taskProjectsRes.data) setTaskProjects(taskProjectsRes.data as TaskProjectContext[]);
+        if (goalLinksRes.data) setGoalLinks(goalLinksRes.data as GoalLink[]);
+        if (goalsRes.data) setLinkedGoals(goalsRes.data as LinkedGoal[]);
+        setLoadError(null);
+      }
       setLoading(false);
     }
 
@@ -183,11 +205,13 @@ export default function TasksPage() {
     setDueDate("");
     setEditingId(null);
     setConfirmingDeleteId(null);
+    setFormError(null);
   }
 
   function openEdit(t: Task) {
     setEditingId(t.id);
     setConfirmingDeleteId(null);
+    setFormError(null);
     setTitle(t.title);
     setRealmId(t.realm_id ?? realms[0]?.id ?? "");
     setProjectId(t.project_id ?? "");
@@ -204,56 +228,81 @@ export default function TasksPage() {
   async function save() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    if (!title.trim()) {
-      toast({ type: "error", title: "Title is required." });
+    // Shared write contract: title/priority/date validated by domain,
+    // same rules as mobile buildTaskUpdatePayload.
+    if (!isValidItemTitle(title)) {
+      setFormError(
+        title.trim().length === 0
+          ? "Enter a title to save this task."
+          : `Keep titles under ${MAX_ITEM_TITLE_LENGTH} characters.`,
+      );
       return;
     }
-
-    setSaving(true);
-
-    const payload = {
-      user_id: user.id,
-      realm_id: realmId || null,
-      project_id: projectId || null,
-      title: title.trim(),
-      priority,
-      due_date: dueDate || null,
-    };
-
-    if (editingId) {
-      const { data: updatedTask, error: err } = await supabase
-        .from("tasks")
-        .update(payload)
-        .eq("id", editingId)
-        .eq("user_id", user.id)
-        .select("id")
-        .maybeSingle();
-
-      if (err || !updatedTask) {
-        toast({ type: "error", title: "Failed to update task." });
-        setSaving(false);
-        return;
-      }
-    } else {
-      const { error: err } = await supabase.from("tasks").insert({ ...payload, status: "todo" });
-
-      if (err) {
-        toast({ type: "error", title: "Failed to create task." });
-        setSaving(false);
-        return;
-      }
+    const current = editingId
+      ? (tasks.find((t) => t.id === editingId) ?? { title: "", priority: "medium", due_date: null })
+      : { title: "", priority: "medium", due_date: null };
+    const built = buildTaskUpdatePayload(
+      { title: current.title, priority: current.priority, due_date: current.due_date ?? null },
+      { title, priority, dueDate },
+    );
+    if (!built.ok) {
+      setFormError(built.error);
+      return;
     }
+    if (editingId && !built.changed) {
+      cancelEdit();
+      return;
+    }
+    const outcome = await saveGuardRef.current.run(async () => {
+      setSaving(true);
+      setFormError(null);
+      try {
+        // Definition columns come from the shared payload; realm/project
+        // links are presentation-owned and merged alongside.
+        const base = {
+          realm_id: realmId || null,
+          project_id: projectId || null,
+          title: built.payload.title,
+          priority: built.payload.priority,
+          due_date: built.payload.due_date,
+        };
+        if (editingId) {
+          const { data: updatedTask, error: err } = await supabase
+            .from("tasks")
+            .update(base)
+            .eq("id", editingId)
+            .eq("user_id", user.id)
+            .select("id")
+            .maybeSingle();
+          if (err || !updatedTask) {
+            setFormError("Failed to update task.");
+            return false;
+          }
+        } else {
+          const { error: err } = await supabase.from("tasks").insert({ ...base, user_id: user.id, status: "todo" });
+          if (err) {
+            setFormError("Failed to create task.");
+            return false;
+          }
+        }
+        return true;
+      } finally {
+        setSaving(false);
+      }
+    });
+    if (!outcome.started) return;
+    if (!outcome.result) return;
 
+    const wasEditing = editingId;
     resetForm();
     setShowForm(false);
-    setSaving(false);
-    toast({ type: "success", title: editingId ? "Task updated." : "Task created." });
+    toast({ type: "success", title: wasEditing ? "Task updated." : "Task created." });
     reloadTasks();
   }
 
   async function quickCreate() {
-    const nextTitle = quickTitle.trim();
-    if (!nextTitle || quickSaving) return;
+    const nextTitle = normalizeItemTitle(quickTitle);
+    if (!isValidItemTitle(nextTitle) || quickSaving) return;
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
@@ -304,21 +353,51 @@ export default function TasksPage() {
     if (tasksRes.data) setTasks(tasksRes.data as unknown as Task[]);
     if (goalLinksRes.data) setGoalLinks(goalLinksRes.data as GoalLink[]);
     if (goalsRes.data) setLinkedGoals(goalsRes.data as LinkedGoal[]);
+    if (tasksRes.error || goalLinksRes.error || goalsRes.error) {
+      setLoadError("Couldn't refresh tasks.");
+    } else {
+      setLoadError(null);
+    }
   }
 
   async function remove(id: string) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { data: deletedTask, error } = await supabase
-      .from("tasks")
-      .delete()
-      .eq("id", id)
-      .eq("user_id", user.id)
-      .select("id")
-      .maybeSingle();
-    if (error || !deletedTask) {
+    const outcome = await deleteGuardRef.current.run(async () => {
+      setDeletingId(id);
+      // Optimistic removal so the row disappears immediately (mobile parity).
+      const previous = tasks;
+      setTasks(removeDeletedById(previous, id));
+      try {
+        const { data: deletedTask, error } = await supabase
+          .from("tasks")
+          .delete()
+          .eq("id", id)
+          .eq("user_id", user.id)
+          .select("id")
+          .maybeSingle();
+        if (error || !deletedTask) throw error ?? new Error("delete failed");
+        // Clean up XP this client created on completion — otherwise the
+        // xp_events row orphans (toggle path inserts +25 per task).
+        await supabase
+          .from("xp_events")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("source_type", "task")
+          .eq("source_id", id);
+        return true;
+      } catch {
+        setTasks(previous);
+        return false;
+      } finally {
+        setDeletingId(null);
+      }
+    });
+    if (!outcome.started) return;
+    if (!outcome.result) {
       toast({ type: "error", title: "Failed to delete task." });
+      await reloadTasks();
       return;
     }
     if (editingId === id) cancelEdit();
@@ -401,12 +480,17 @@ export default function TasksPage() {
 
   const taskFormFields = (
     <>
+      {formError && (
+        <p role="alert" className="rounded-lg border border-[var(--danger)]/30 bg-[var(--danger)]/10 px-3 py-2 text-xs text-[var(--danger)]">
+          {formError}
+        </p>
+      )}
       <Input
         label="Title"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         placeholder="Task title"
-        maxLength={200}
+        maxLength={MAX_ITEM_TITLE_LENGTH}
       />
 
       <div>
@@ -563,8 +647,8 @@ export default function TasksPage() {
             <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">This removes the task from your list.</p>
             <div className="mt-3 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
               <Button variant="secondary" onClick={() => setConfirmingDeleteId(null)}>Cancel</Button>
-              <button type="button" onClick={() => remove(task.id)} className="inline-flex min-h-10 items-center justify-center rounded-lg border border-[var(--danger)]/30 bg-[var(--danger-soft)] px-3 py-2 text-sm font-medium text-[var(--danger)] transition-colors hover:border-[var(--danger)]/50 sm:min-h-0 sm:py-1.5">
-                Delete
+              <button type="button" onClick={() => remove(task.id)} disabled={deletingId === task.id} className="inline-flex min-h-10 items-center justify-center rounded-lg border border-[var(--danger)]/30 bg-[var(--danger-soft)] px-3 py-2 text-sm font-medium text-[var(--danger)] transition-colors hover:border-[var(--danger)]/50 disabled:opacity-60 sm:min-h-0 sm:py-1.5">
+                {deletingId === task.id ? "Deleting..." : "Delete"}
               </button>
             </div>
           </div>
@@ -651,7 +735,7 @@ export default function TasksPage() {
                 onChange={(e) => setQuickTitle(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") void quickCreate(); }}
                 placeholder="Task to finish today"
-                maxLength={200}
+                maxLength={MAX_ITEM_TITLE_LENGTH}
                 className="min-h-11 flex-1 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)] outline-none transition-colors placeholder:text-[var(--text-muted)] focus:border-[var(--accent)]/50"
               />
               <Button onClick={quickCreate} disabled={quickSaving || !quickTitle.trim()} className="w-full sm:w-auto">
@@ -683,6 +767,19 @@ export default function TasksPage() {
               </div>
             </div>
           </Card>
+        )}
+
+        {loadError && (
+          <div className="mb-4 flex flex-col gap-2 rounded-xl border border-[var(--danger)]/30 bg-[var(--danger)]/10 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs text-[var(--danger)]">{loadError}</p>
+            <button
+              type="button"
+              onClick={() => { setLoadError(null); void reloadTasks(); }}
+              className="inline-flex min-h-10 shrink-0 items-center justify-center rounded-lg border border-[var(--danger)]/30 px-3 py-2 text-xs font-semibold text-[var(--danger)]"
+            >
+              Retry
+            </button>
+          </div>
         )}
 
         {tasks.length > 0 && (

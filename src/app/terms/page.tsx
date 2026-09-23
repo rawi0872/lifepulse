@@ -67,11 +67,11 @@ export default function TermsPage() {
             </p>
           </section>
 
-          {/* Finance disclaimer */}
+            {/* Wealth disclaimer */}
           <section>
-            <h2 className="mb-2 text-base font-semibold text-[var(--text)]">Finance disclaimer</h2>
+              <h2 className="mb-2 text-base font-semibold text-[var(--text)]">Wealth disclaimer</h2>
             <p>
-              Finance features are manual tracking tools only. Life Pulse does not connect to banks, does not provide
+              Wealth features are manual tracking tools only. Life Pulse does not connect to banks, does not provide
               investment recommendations, and does not guarantee the accuracy of manually entered data. You should not
               rely on Life Pulse as your primary financial record or for tax purposes without verifying entries
               yourself.

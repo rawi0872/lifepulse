@@ -110,3 +110,13 @@ export * from "./body.ts";
 export * from "./wealth.ts";
 export * from "./wealth-intelligence.ts";
 export * from "./today-wealth-ranking.ts";
+export {
+  REALM_NAMES,
+  HABIT_FREQUENCY_LABELS,
+  HABIT_FREQUENCY_DESCRIPTIONS,
+  TODAY_LABELS,
+  THEME_LABELS,
+  APPEARANCE_STORAGE_KEY,
+  isThemePreference,
+} from "./copy.ts";
+export type { CanonicalRealmKey, ThemePreference } from "./copy.ts";

@@ -42,6 +42,6 @@ export const KNOWLEDGE_TYPES = [
 
 export const KNOWLEDGE_CATEGORIES = [
   "Mind & Learning", "Health & Fitness", "Career & Work",
-  "Finance & Money", "Relationships", "Spirituality & Faith",
+  "Wealth & Money", "Relationships", "Spirituality & Faith",
   "Creativity", "Technology", "Philosophy", "Other",
 ] as const;

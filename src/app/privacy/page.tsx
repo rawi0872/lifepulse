@@ -60,7 +60,7 @@ export default function PrivacyPage() {
               <li>Habits and habit logs</li>
               <li>Projects and their status</li>
               <li>Journal entries — your personal reflections</li>
-              <li>Finance data — accounts, categories, transactions, and budgets you enter manually</li>
+              <li>Wealth data — accounts, categories, transactions, and budgets you enter manually</li>
               <li>App settings and preferences</li>
             </ul>
           </section>
@@ -80,11 +80,11 @@ export default function PrivacyPage() {
             </ul>
           </section>
 
-          {/* Finance data */}
+            {/* Wealth data */}
           <section>
-            <h2 className="mb-2 text-base font-semibold text-[var(--text)]">Finance data</h2>
+              <h2 className="mb-2 text-base font-semibold text-[var(--text)]">Wealth data</h2>
             <p>
-              Finance tracking in Life Pulse is entirely manual. You enter your own income, expenses, account balances,
+              Wealth tracking in Life Pulse is entirely manual. You enter your own income, expenses, account balances,
               and budgets. Life Pulse does not connect to banks, does not request bank passwords, and does not pull
               financial data from any external institution.
             </p>

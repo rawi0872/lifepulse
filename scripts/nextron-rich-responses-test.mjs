@@ -39,7 +39,7 @@ assert(!coachPage.includes("dangerouslySetInnerHTML") && !coachPage.includes("cr
 assert(!rich.includes("from(\"") && !askRoute.includes("actions/approve") && !askRoute.includes("actions/cancel"), "Rich responses must not introduce domain mutations or action execution shortcuts.");
 assert(actions.includes("requiresApproval: true") && actions.includes("idempotencyKey"), "Prompt 3 action safety contract must remain present while adding rich UI.");
 
-assert(habitsPage.includes("realm_id: string | null") && habitsPage.includes("setRealmId(h.realm_id ?? \"\")") && habitsPage.includes("realm_id: realmId || null"), "Habits UI must handle Prompt 3 null realm habits without rendering or edit crashes.");
+assert(habitsPage.includes("realm_id: string | null") && habitsPage.includes("setRealmId(h.realm_id ?? \"\")") && habitsPage.includes("normalizeHabitSchedule"), "Habits UI must handle Prompt 3 null realm habits without rendering or edit crashes.");
 assert(insightsPage.includes("Record<string, string | null>") && insightsPage.includes("realmId && realmMap[realmId] !== undefined"), "Insights realm analytics must ignore null-realm habits without inventing a null realm bucket.");
 
 console.log("NEXTRON Rich Response v1 contract checks passed.");

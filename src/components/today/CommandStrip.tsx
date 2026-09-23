@@ -31,7 +31,7 @@ export function CommandStrip({
         <InstrumentCell label="Tasks" value={`${doneTaskCount}/${tasksLength}`} active={doneTaskCount > 0 && doneTaskCount === tasksLength && tasksLength > 0} />
         <InstrumentCell label="Reflect" value={hasJournal ? "Done" : "\u2014"} active={hasJournal} />
         <InstrumentCell label="XP Today" value={`+${todayXp}`} active={todayXp > 0} />
-        <Link href="/finance" className="min-w-0 transition-colors hover:bg-white/[0.035]">
+        <Link href="/wealth" className="min-w-0 transition-colors hover:bg-white/[0.035]">
           <InstrumentCell label="Money" value={financeHasTx && financeNet !== null ? formatMoney(financeNet) : "\u2014"} active={financeHasTx} />
         </Link>
       </div>

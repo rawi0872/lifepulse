@@ -1,4 +1,4 @@
-export default function FinanceLoading() {
+export default function WealthLoading() {
   return (
     <div className="animate-fade-in p-4 md:p-6">
       <div className="mx-auto max-w-6xl">

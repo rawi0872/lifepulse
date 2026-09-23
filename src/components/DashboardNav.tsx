@@ -58,6 +58,14 @@ const navGroups: NavGroup[] = [
     ],
   },
   {
+    label: "Life areas",
+    items: [
+      { label: "Realms", href: "/realms", icon: icons.lifeMap },
+      { label: "Body", href: "/body", icon: icons.body },
+      { label: "Wealth", href: "/wealth", icon: icons.finance },
+    ],
+  },
+  {
     label: "Plan",
     items: [
       { label: "Goals", href: "/goals", icon: icons.goals },
@@ -98,8 +106,10 @@ const mobileMoreGroups: NavGroup[] = [
   {
     label: "Optional Context",
     items: [
+      { label: "Realms", href: "/realms", icon: icons.lifeMap },
       { label: "Mind", href: "/mind", icon: icons.mind },
       { label: "Body", href: "/body", icon: icons.body },
+      { label: "Wealth", href: "/wealth", icon: icons.finance },
     ],
   },
   {

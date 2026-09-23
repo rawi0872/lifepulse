@@ -82,7 +82,7 @@ const features = [
   },
   {
     icon: <IconFinance />,
-    title: "Finance",
+    title: "Wealth",
     desc: "Log money manually when it matters. No bank connections, no advice, just the numbers you choose to enter.",
   },
   {
@@ -374,7 +374,7 @@ export default function Home() {
                     <text x="200" y="345" textAnchor="middle" fill="currentColor" fontSize="9" fontWeight="600" opacity="0.35">Body</text>
                     <text x="332" y="140" textAnchor="start" fill="currentColor" fontSize="9" fontWeight="600" opacity="0.35">Career</text>
                     <text x="68" y="140" textAnchor="end" fill="currentColor" fontSize="9" fontWeight="600" opacity="0.35">Faith</text>
-                    <text x="302" y="210" textAnchor="start" fill="currentColor" fontSize="9" fontWeight="600" opacity="0.35">Finance</text>
+                    <text x="302" y="210" textAnchor="start" fill="currentColor" fontSize="9" fontWeight="600" opacity="0.35">Wealth</text>
                     <text x="98" y="210" textAnchor="end" fill="currentColor" fontSize="9" fontWeight="600" opacity="0.35">Relationships</text>
                     {/* Data polygon (sample shape) */}
                     <path d="M200 130l72 42v72l-72 42-72-42V172z" fill="url(#hp-grad)" opacity="0.3" />
@@ -384,7 +384,7 @@ export default function Home() {
                   </svg>
                 </div>
                 <div className="space-y-2 text-center text-xs text-[var(--text-muted)]">
-                  <p>Mind · Body · Career · Relationships · Finance · Faith</p>
+                  <p>Mind · Body · Career · Relationships · Wealth · Faith</p>
                 </div>
               </div>
             </div>

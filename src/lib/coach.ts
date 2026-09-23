@@ -57,7 +57,7 @@ const CATEGORY_LABELS: Record<CoachCategory, string> = {
   passions: "Passions",
   knowledge: "Knowledge",
   weekly_review: "Weekly Review",
-  finance: "Finance",
+  finance: "Wealth",
   general: "General",
 };
 
@@ -314,7 +314,7 @@ export function getCoachInsights(data: CoachData): CoachInsight[] {
         "low",
         "Open Weekly Review",
         "/weekly-review",
-        "Finance transactions logged this week",
+        "Wealth transactions logged this week",
         "weekly_finance_activity_review"
       )
     );
@@ -343,11 +343,11 @@ export function getCoachInsights(data: CoachData): CoachInsight[] {
     results.push(
       mk(
         "Add your first transaction",
-        "If you want a manual money record, Finance can store one transaction or category.",
+        "If you want a manual money record, Wealth can store one transaction or category.",
         "finance",
         "low",
-        "Open Finance",
-        "/finance",
+        "Open Wealth",
+        "/wealth",
         "No finance data found",
         "no_finance_data"
       )

@@ -15,7 +15,22 @@ import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useToast } from "@/hooks/use-toast";
 import { getTodayDateString, getWeekStartDate } from "@/lib/utils";
-import { getCurrentStreak, getBestStreak, getTimesPerWeekTarget, getWeeklyProgress, isHabitDueOnDate, normalizeCompletedDates } from "@lifepulse/domain";
+import {
+  getCurrentStreak,
+  getBestStreak,
+  getTimesPerWeekTarget,
+  getWeeklyProgress,
+  isHabitDueOnDate,
+  normalizeCompletedDates,
+  normalizeHabitSchedule,
+  buildHabitUpdatePayload,
+  isValidItemTitle,
+  MAX_ITEM_TITLE_LENGTH,
+  createSingleFlight,
+  removeDeletedById,
+  HABIT_FREQUENCY_LABELS,
+  HABIT_FREQUENCY_DESCRIPTIONS,
+} from "@lifepulse/domain";
 import { recordProductLearningEvent } from "@/lib/product-learning/client";
 
 interface Realm {
@@ -80,6 +95,12 @@ export default function HabitsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [togglingHabitId, setTogglingHabitId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  // Single-flight guards (shared semantics with mobile saveGuardRef/deleteGuardRef).
+  const saveGuardRef = useRef(createSingleFlight());
+  const deleteGuardRef = useRef(createSingleFlight());
   const { toast } = useToast();
   const router = useRouter();
   const [supabase] = useState(() => createClient());
@@ -135,6 +156,11 @@ export default function HabitsPage() {
     ]);
 
     if (cancelledRef.current) return;
+    if (habitsRes.error || realmsRes.error || logsRes.error || goalLinksRes.error || goalsRes.error) {
+      setLoadError("Couldn't load habits.");
+      return;
+    }
+    setLoadError(null);
     if (habitsRes.data) {
       const habits = habitsRes.data as unknown as Habit[];
       setHabits(habits);
@@ -184,6 +210,7 @@ export default function HabitsPage() {
     setTpw(3);
     setEditingId(null);
     setConfirmingDeleteId(null);
+    setFormError(null);
   }
 
   function applyTemplate(template: string) {
@@ -195,11 +222,23 @@ export default function HabitsPage() {
   function openEdit(h: Habit) {
     setEditingId(h.id);
     setConfirmingDeleteId(null);
+    setFormError(null);
     setTitle(h.title);
     setRealmId(h.realm_id ?? "");
-    setFrequency(h.frequency);
-    setDaysOfWeek(h.days_of_week ?? []);
-    setTpw(h.times_per_week ?? 3);
+    // Canonical schedule model (shared with mobile): daily/weekdays/weekly.
+    // Legacy web rows stored as "times_per_week" coerce to weekly,
+    // preserving their target; other legacy values fall back to daily.
+    if (h.frequency === "weekly" || h.frequency === "times_per_week") {
+      setFrequency("weekly");
+      setTpw(h.times_per_week ?? 3);
+      setDaysOfWeek(h.days_of_week ?? []);
+    } else if (h.frequency === "weekdays") {
+      setFrequency("weekdays");
+      setDaysOfWeek(h.days_of_week ?? []);
+    } else {
+      setFrequency("daily");
+      setDaysOfWeek([]);
+    }
     setShowForm(false);
   }
 
@@ -210,47 +249,116 @@ export default function HabitsPage() {
 
   async function save() {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user || !title.trim()) return;
-
-    setSaving(true);
-
-    const payload = {
-      user_id: user.id,
-      realm_id: realmId || null,
-      title: title.trim(),
-      frequency,
-      days_of_week: frequency === "weekdays" ? daysOfWeek : null,
-      times_per_week: frequency === "times_per_week" ? tpw : null,
-    };
-
-    if (editingId) {
-      const { data: updatedHabit, error: err } = await supabase
-        .from("habits")
-        .update(payload)
-        .eq("id", editingId)
-        .eq("user_id", user.id)
-        .select("id")
-        .maybeSingle();
-
-      if (err || !updatedHabit) {
-        toast({ type: "error", title: "Failed to update habit." });
-        setSaving(false);
-        return;
-      }
-    } else {
-      const { error: err } = await supabase.from("habits").insert(payload);
-
-      if (err) {
-        toast({ type: "error", title: "Failed to create habit." });
-        setSaving(false);
-        return;
-      }
+    if (!user) return;
+    // Shared write contract (same as mobile buildHabitUpdatePayload):
+    // title validated + sliced, schedule normalized, history untouched.
+    if (!isValidItemTitle(title)) {
+      setFormError(
+        title.trim().length === 0
+          ? "Enter a name to save this habit."
+          : `Keep habit names under ${MAX_ITEM_TITLE_LENGTH} characters.`,
+      );
+      return;
+    }
+    const current = editingId
+      ? (habits.find((h) => h.id === editingId) ?? {
+          title: "",
+          frequency: "daily",
+          days_of_week: [] as number[],
+          times_per_week: null as number | null,
+        })
+      : { title: "", frequency: "daily", days_of_week: [] as number[], times_per_week: null as number | null };
+    const built = buildHabitUpdatePayload(
+      {
+        title: current.title,
+        frequency: current.frequency,
+        days_of_week: current.days_of_week ?? [],
+        times_per_week: current.times_per_week ?? null,
+      },
+      { title, frequency, daysOfWeek, timesPerWeek: tpw },
+    );
+    if (!built.ok) {
+      setFormError(built.error);
+      return;
+    }
+    if (editingId && !built.changed) {
+      cancelEdit();
+      return;
     }
 
+    const outcome = await saveGuardRef.current.run(async () => {
+      setSaving(true);
+      setFormError(null);
+      try {
+        if (editingId) {
+          // Definition columns only — habit_logs history is preserved.
+          const { data: updatedHabit, error: err } = await supabase
+            .from("habits")
+            .update({
+              title: built.payload.title,
+              frequency: built.payload.frequency,
+              days_of_week: built.payload.days_of_week,
+              times_per_week: built.payload.times_per_week,
+            })
+            .eq("id", editingId)
+            .eq("user_id", user.id)
+            .select("id")
+            .maybeSingle();
+          if (err || !updatedHabit) {
+            setFormError("Failed to update habit.");
+            return false;
+          }
+        } else {
+          // habits.realm_id is NOT NULL — bootstrap a Personal realm like mobile.
+          let targetRealmId = realmId || null;
+          if (!targetRealmId) {
+            const { data: existingRealm } = await supabase
+              .from("realms")
+              .select("id")
+              .eq("user_id", user.id)
+              .limit(1)
+              .maybeSingle();
+            targetRealmId = (existingRealm as { id: string } | null)?.id ?? null;
+            if (!targetRealmId) {
+              const { data: created, error: realmErr } = await supabase
+                .from("realms")
+                .insert({ user_id: user.id, name: "Personal", color: "#6366f1", icon: "◉" })
+                .select("id")
+                .single();
+              if (!realmErr && created) targetRealmId = (created as { id: string }).id;
+            }
+          }
+          if (!targetRealmId) {
+            setFormError("Workspace initializing. Try again in a moment.");
+            return false;
+          }
+          const schedule = normalizeHabitSchedule(frequency, daysOfWeek, tpw);
+          const insertPayload: Record<string, unknown> = {
+            user_id: user.id,
+            realm_id: targetRealmId,
+            title: built.payload.title,
+            frequency: schedule.frequency,
+            days_of_week: schedule.days_of_week,
+          };
+          if (schedule.frequency === "weekly") insertPayload.times_per_week = schedule.times_per_week;
+          const { error: err } = await supabase.from("habits").insert(insertPayload);
+          if (err) {
+            setFormError("Failed to create habit.");
+            return false;
+          }
+        }
+        return true;
+      } finally {
+        setSaving(false);
+      }
+    });
+    if (!outcome.started) return;
+    if (!outcome.result) return;
+
+    const wasEditing = editingId;
     resetForm();
     setShowForm(false);
-    setSaving(false);
-    toast({ type: "success", title: editingId ? "Habit updated." : "Habit created." });
+    toast({ type: "success", title: wasEditing ? "Habit updated." : "Habit created." });
     await load();
   }
 
@@ -258,48 +366,56 @@ export default function HabitsPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { data: logs, error: loadLogErr } = await supabase
-      .from("habit_logs")
-      .select("id")
-      .eq("user_id", user.id)
-      .eq("habit_id", id);
-    if (loadLogErr) {
-      toast({ type: "error", title: "Failed to remove habit data." });
-      return;
-    }
+    const outcome = await deleteGuardRef.current.run(async () => {
+      setDeletingId(id);
+      // Optimistic removal so the row disappears immediately (mobile parity).
+      const previous = habits;
+      setHabits(removeDeletedById(previous, id));
+      try {
+        const { data: logs, error: loadLogErr } = await supabase
+          .from("habit_logs")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("habit_id", id);
+        if (loadLogErr) throw loadLogErr;
 
-    const logIds = (logs ?? []).map((log) => log.id).filter(Boolean);
-    if (logIds.length > 0) {
-      const { error: xpErr } = await supabase
-        .from("xp_events")
-        .delete()
-        .eq("user_id", user.id)
-        .eq("source_type", "habit")
-        .in("source_id", logIds);
-      if (xpErr) {
-        toast({ type: "error", title: "Failed to remove habit data." });
-        return;
+        const logIds = (logs ?? []).map((log) => log.id).filter(Boolean);
+        if (logIds.length > 0) {
+          const { error: xpErr } = await supabase
+            .from("xp_events")
+            .delete()
+            .eq("user_id", user.id)
+            .eq("source_type", "habit")
+            .in("source_id", logIds);
+          if (xpErr) throw xpErr;
+        }
+
+        const { error: logErr } = await supabase
+          .from("habit_logs")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("habit_id", id);
+        if (logErr) throw logErr;
+        const { data: deletedHabit, error } = await supabase
+          .from("habits")
+          .delete()
+          .eq("id", id)
+          .eq("user_id", user.id)
+          .select("id")
+          .maybeSingle();
+        if (error || !deletedHabit) throw error ?? new Error("delete failed");
+        return true;
+      } catch {
+        setHabits(previous);
+        return false;
+      } finally {
+        setDeletingId(null);
       }
-    }
-
-    const { error: logErr } = await supabase
-      .from("habit_logs")
-      .delete()
-      .eq("user_id", user.id)
-      .eq("habit_id", id);
-    if (logErr) {
-      toast({ type: "error", title: "Failed to remove habit data." });
-      return;
-    }
-    const { data: deletedHabit, error } = await supabase
-      .from("habits")
-      .delete()
-      .eq("id", id)
-      .eq("user_id", user.id)
-      .select("id")
-      .maybeSingle();
-    if (error || !deletedHabit) {
+    });
+    if (!outcome.started) return;
+    if (!outcome.result) {
       toast({ type: "error", title: "Failed to delete habit." });
+      await load();
       return;
     }
     if (editingId === id) cancelEdit();
@@ -495,12 +611,17 @@ export default function HabitsPage() {
 
   const habitFormFields = (
     <>
+      {formError && (
+        <p role="alert" className="rounded-lg border border-[var(--danger)]/30 bg-[var(--danger)]/10 px-3 py-2 text-xs text-[var(--danger)]">
+          {formError}
+        </p>
+      )}
       <Input
         label="Title"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         placeholder="Habit title"
-        maxLength={100}
+        maxLength={MAX_ITEM_TITLE_LENGTH}
       />
 
       <div>
@@ -516,16 +637,19 @@ export default function HabitsPage() {
         <label className="mb-1.5 block text-xs font-medium text-[var(--text-muted)]">Frequency</label>
         <SelectPicker
           options={[
-            { value: "daily", label: "Daily" },
-            { value: "weekdays", label: "Specific days" },
-            { value: "times_per_week", label: "Times per week" },
+            { value: "daily", label: HABIT_FREQUENCY_LABELS.daily },
+            { value: "weekdays", label: HABIT_FREQUENCY_LABELS.weekdays },
+            { value: "weekly", label: HABIT_FREQUENCY_LABELS.weekly },
           ]}
           value={frequency}
           onChange={setFrequency}
         />
+        <p className="mt-1 text-[11px] text-[var(--text-muted)]">
+          {HABIT_FREQUENCY_DESCRIPTIONS[frequency] ?? HABIT_FREQUENCY_DESCRIPTIONS.daily}
+        </p>
       </div>
 
-      {frequency === "weekdays" && (
+      {(frequency === "weekdays" || frequency === "weekly") && (
         <div>
           <label className="mb-1.5 block text-xs font-medium text-[var(--text-muted)]">Days of week</label>
           <div className="flex flex-wrap gap-1.5">
@@ -546,7 +670,7 @@ export default function HabitsPage() {
         </div>
       )}
 
-      {frequency === "times_per_week" && (
+      {frequency === "weekly" && (
         <div>
           <label className="mb-1.5 block text-xs font-medium text-[var(--text-muted)]">
             Times per week: {tpw}
@@ -695,8 +819,8 @@ export default function HabitsPage() {
               <Button variant="secondary" onClick={() => setConfirmingDeleteId(null)}>
                 Cancel
               </Button>
-              <button type="button" onClick={() => remove(habit.id)} className="inline-flex min-h-10 items-center justify-center rounded-lg border border-[var(--danger)]/30 bg-[var(--danger-soft)] px-3 py-2 text-sm font-medium text-[var(--danger)] transition-colors hover:border-[var(--danger)]/50 sm:min-h-0 sm:py-1.5">
-                Delete
+              <button type="button" onClick={() => remove(habit.id)} disabled={deletingId === habit.id} className="inline-flex min-h-10 items-center justify-center rounded-lg border border-[var(--danger)]/30 bg-[var(--danger-soft)] px-3 py-2 text-sm font-medium text-[var(--danger)] transition-colors hover:border-[var(--danger)]/50 disabled:opacity-60 sm:min-h-0 sm:py-1.5">
+                {deletingId === habit.id ? "Deleting..." : "Delete"}
               </button>
             </div>
           </div>
@@ -775,6 +899,19 @@ export default function HabitsPage() {
               </div>
             </div>
           </Card>
+        )}
+
+        {loadError && (
+          <div className="mb-4 flex flex-col gap-2 rounded-xl border border-[var(--danger)]/30 bg-[var(--danger)]/10 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs text-[var(--danger)]">{loadError}</p>
+            <button
+              type="button"
+              onClick={() => { setLoadError(null); void load(); }}
+              className="inline-flex min-h-10 shrink-0 items-center justify-center rounded-lg border border-[var(--danger)]/30 px-3 py-2 text-xs font-semibold text-[var(--danger)]"
+            >
+              Retry
+            </button>
+          </div>
         )}
 
         {habits.length > 0 && (

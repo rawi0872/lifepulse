@@ -136,10 +136,10 @@ export const MODULE_REGISTRY: readonly LifePulseModule[] = [
   },
   {
     key: "finance",
-    label: "Finance",
+    label: "Wealth",
     category: "personal",
     status: "available",
-    href: "/finance",
+    href: "/wealth",
     description: "Track accounts, transactions, budgets, and cashflow.",
   },
   {
@@ -212,7 +212,7 @@ export const MODULE_REGISTRY: readonly LifePulseModule[] = [
   },
   {
     key: "businessFinance",
-    label: "Business Finance",
+    label: "Business Wealth",
     category: "business",
     status: "planned",
     description: "Future business-specific financial context.",

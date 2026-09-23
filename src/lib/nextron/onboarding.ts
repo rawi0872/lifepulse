@@ -305,7 +305,7 @@ export function buildLifeSetupDraft(understanding: NextronOnboardingUnderstandin
     { item: "Large tracker library", reason: "A first setup should prove the rhythm before adding many trackers." },
     { item: "Sensitive personal details", reason: "NEXTRON only needs what you choose to share and what changes the plan." },
   ];
-  if (!understanding.goals.some((goal) => /finance|money/i.test(goal))) deliberatelyLeftOut.push({ item: "Finance goal", reason: "You did not make money management a clear current priority." });
+  if (!understanding.goals.some((goal) => /finance|money/i.test(goal))) deliberatelyLeftOut.push({ item: "Wealth goal", reason: "You did not make money management a clear current priority." });
   return { currentFocus: fallbackFocus.slice(0, MAX_FOCUS), goals, starterHabits: starterHabits.slice(0, MAX_HABITS), initialTasks: initialTasks.slice(0, MAX_TASKS), projects, routines: routines.slice(0, MAX_ROUTINES), importantDates, deliberatelyLeftOut: deliberatelyLeftOut.slice(0, MAX_LEFT_OUT) };
 }
 

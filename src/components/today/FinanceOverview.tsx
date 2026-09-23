@@ -12,7 +12,7 @@ export function FinanceOverview({ financeNet, financeHasTx }: FinanceOverviewPro
   if (financeHasTx && financeNet !== null) {
     return (
       <Link
-        href="/finance"
+        href="/wealth"
         className="flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2.5 transition-colors hover:bg-[var(--surface)]"
       >
         <span className="text-xs font-medium text-[var(--text-muted)]">Money this month</span>

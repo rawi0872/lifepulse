@@ -13,6 +13,8 @@ import { HelpPopover } from "@/components/HelpPopover";
 import { FeedbackButton } from "@/components/feedback/FeedbackButton";
 import { useToast } from "@/hooks/use-toast";
 import { INTENDED_USE_OPTIONS, resolveIntendedUse, type IntendedUse } from "@/lib/intendedUse";
+import { useLifePulseWebTheme } from "@/components/theme-provider";
+import { THEME_LABELS, type ThemePreference } from "@lifepulse/domain";
 import {
   getModulesByCategory,
   getModuleCategoryLabel,
@@ -83,7 +85,11 @@ export default function SettingsPage() {
   const [driveStatus, setDriveStatus] = useState<GoogleDriveStatus | null>(null);
   const [driveLoading, setDriveLoading] = useState(true);
   const [driveSaving, setDriveSaving] = useState(false);
+  const [wealthNextronMaster, setWealthNextronMasterState] = useState<boolean | null>(null);
+  const [wealthNextronLoading, setWealthNextronLoading] = useState(true);
+  const [wealthNextronSaving, setWealthNextronSaving] = useState(false);
   const { toast } = useToast();
+  const { mode: appearanceMode, setMode: setAppearanceMode } = useLifePulseWebTheme();
 
   const calendarReconnectRequired = calendarStatus?.status === "revoked" || calendarStatus?.lastErrorCode === "RECONNECT_REQUIRED";
   const driveReconnectRequired = driveStatus?.status === "revoked" || driveStatus?.lastErrorCode === "RECONNECT_REQUIRED";
@@ -163,6 +169,20 @@ export default function SettingsPage() {
         }
       } catch {}
       setDriveLoading(false);
+
+      try {
+        const { data: wealthPrefs } = await supabase
+          .from("finance_preferences")
+          .select("nextron_access_enabled")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        if (!cancelled) {
+          setWealthNextronMasterState(
+            wealthPrefs ? Boolean((wealthPrefs as { nextron_access_enabled: boolean | null }).nextron_access_enabled) : false,
+          );
+        }
+      } catch {}
+      if (!cancelled) setWealthNextronLoading(false);
 
       setLoading(false);
     }
@@ -472,8 +492,35 @@ export default function SettingsPage() {
     toast({ type: "success", title: allow ? "NEXTRON Drive reads enabled." : "NEXTRON Drive reads disabled." });
   }
 
-  async function disconnectDrive() {
-    setDriveSaving(true);
+  async function saveWealthNextronMaster(enabled: boolean) {
+    // Same fail-closed semantics as mobile setWealthNextronMaster:
+    // upsert the master flag, preserve existing sections.
+    setWealthNextronSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: current } = await supabase
+        .from("finance_preferences")
+        .select("nextron_allowed_sections")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      const sections = ((current as { nextron_allowed_sections: string[] | null } | null)?.nextron_allowed_sections ?? []).filter(
+        (s) => ["balances", "cash_flow", "transactions_summary", "recurring_items", "wealth_goals"].includes(s),
+      );
+      const { error } = await supabase
+        .from("finance_preferences")
+        .upsert({ user_id: user.id, nextron_access_enabled: enabled, nextron_allowed_sections: sections }, { onConflict: "user_id" });
+      if (error) throw error;
+      setWealthNextronMasterState(enabled);
+      toast({ type: "success", title: enabled ? "NEXTRON Wealth reads enabled." : "NEXTRON Wealth reads disabled." });
+    } catch {
+      toast({ type: "error", title: "Failed to update Wealth permission." });
+    } finally {
+      setWealthNextronSaving(false);
+    }
+  }
+
+  async function disconnectDrive() {    setDriveSaving(true);
     const response = await fetch("/api/integrations/google/drive", { method: "DELETE" });
     setDriveSaving(false);
     if (!response.ok) {
@@ -523,9 +570,10 @@ export default function SettingsPage() {
           <p className="mt-1 max-w-xl text-sm leading-relaxed text-[var(--text-secondary)]">Manage your profile, NEXTRON access, connections, and Life Pulse preferences.</p>
         </div>
 
-        <nav aria-label="Settings sections" className="mb-4 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
+        <nav aria-label="Settings sections" className="mb-4 grid grid-cols-2 gap-2 text-xs sm:grid-cols-5">
           <a href="#settings-account" className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2 text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/25 hover:text-[var(--accent)]">Account</a>
           <a href="#settings-personalization" className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2 text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/25 hover:text-[var(--accent)]">Personalization</a>
+          <a href="#settings-appearance" className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2 text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/25 hover:text-[var(--accent)]">Appearance</a>
           <a href="#settings-nextron" className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2 text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/25 hover:text-[var(--accent)]">NEXTRON</a>
           <a href="#settings-connections" className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2 text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/25 hover:text-[var(--accent)]">Connections</a>
         </nav>
@@ -632,6 +680,50 @@ export default function SettingsPage() {
               <Button size="sm" onClick={saveSetupPreference} disabled={savingSetup}>
                 {savingSetup ? "Saving..." : "Save setup"}
               </Button>
+            </div>
+          </div>
+        </Card>
+
+        {/* Appearance — System / Light / Dark (parity with mobile Settings) */}
+        <Card id="settings-appearance" className="mb-4 scroll-mt-24 border-[var(--border-strong)]">
+          <div className="p-5">
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Preferences</p>
+            <h3 className="mb-1 text-sm font-semibold text-[var(--text)]">Appearance</h3>
+            <p className="mb-4 text-xs leading-relaxed text-[var(--text-muted)]">
+              {appearanceMode === "system"
+                ? "Following your device."
+                : appearanceMode === "light"
+                  ? "Light · Warm Human."
+                  : "Dark · Signature Pulse."}{" "}
+              Applies immediately and is remembered on this device.
+            </p>
+            <div role="radiogroup" aria-label="Appearance" className="grid grid-cols-3 gap-2">
+              {(["system", "light", "dark"] as ThemePreference[]).map((option) => {
+                const selected = appearanceMode === option;
+                const label = option === "system" ? THEME_LABELS.system : option === "light" ? THEME_LABELS.light : THEME_LABELS.dark;
+                const hint = option === "system" ? THEME_LABELS.systemHint : option === "light" ? THEME_LABELS.lightHint : THEME_LABELS.darkHint;
+                return (
+                  <button
+                    key={option}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    aria-label={`Appearance ${label}`}
+                    onClick={() => setAppearanceMode(option)}
+                    className={`flex min-h-14 flex-col items-start gap-1 rounded-xl border px-3 py-2 text-left transition-colors ${
+                      selected
+                        ? "border-[var(--accent)]/40 bg-[var(--accent-soft)]"
+                        : "border-[var(--border)] bg-[var(--surface-soft)] hover:border-[var(--accent)]/25"
+                    }`}
+                  >
+                    <span className="flex items-center gap-1.5 text-xs font-bold text-[var(--text)]">
+                      <span className={`h-2.5 w-2.5 rounded-full border ${selected ? "border-[var(--accent)] bg-[var(--accent)]" : "border-[var(--text-muted)]"}`} aria-hidden="true" />
+                      {label}
+                    </span>
+                    <span className="text-[11px] text-[var(--text-muted)]">{hint}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         </Card>
@@ -771,6 +863,58 @@ export default function SettingsPage() {
                   </span>
                 </label>
               </div>
+            )}
+          </div>
+        </Card>
+
+        {/* Health Connections — mobile-managed ingestion, web shows status */}
+        <Card className="mb-4 border-[var(--border-strong)]">
+          <div className="p-5">
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Integrations</p>
+            <h3 className="mb-1 text-sm font-semibold text-[var(--text)]">Health Connections</h3>
+            <p className="mb-4 text-xs leading-relaxed text-[var(--text-muted)]">
+              Device health sync (Apple Health / Health Connect) is managed in the Life Pulse mobile app,
+              where you grant per-metric storage and NEXTRON permissions. The web shows synced data only
+              and never reads your devices directly.
+            </p>
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+              <p className="text-xs font-semibold text-[var(--text)]">NEXTRON Body access</p>
+              <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
+                NEXTRON only summarizes Body metrics you explicitly allowed on mobile. Nothing is shared
+                without that separate permission.
+              </p>
+            </div>
+          </div>
+        </Card>
+
+        {/* Wealth NEXTRON master switch — same fail-closed gate as mobile */}
+        <Card className="mb-4 border-[var(--border-strong)]">
+          <div className="p-5">
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Integrations</p>
+            <h3 className="mb-1 text-sm font-semibold text-[var(--text)]">Wealth for NEXTRON</h3>
+            <p className="mb-4 text-xs leading-relaxed text-[var(--text-muted)]">
+              Master switch for Wealth evidence. Individual sections (balances, cash flow, transactions,
+              recurring, goals) stay off unless enabled; NEXTRON still needs your approval for any action.
+            </p>
+            {wealthNextronLoading ? (
+              <p className="text-xs text-[var(--text-muted)]">Checking Wealth permission...</p>
+            ) : (
+              <label className="flex items-start gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+                <input
+                  type="checkbox"
+                  checked={Boolean(wealthNextronMaster)}
+                  disabled={wealthNextronSaving}
+                  onChange={(event) => void saveWealthNextronMaster(event.target.checked)}
+                  className="mt-1 h-4 w-4 rounded border-[var(--border-strong)] bg-[var(--surface-soft)]"
+                />
+                <span>
+                  <span className="block text-xs font-semibold text-[var(--text)]">Allow NEXTRON to use Wealth summaries</span>
+                  <span className="mt-1 block text-xs leading-relaxed text-[var(--text-muted)]">
+                    Bounded summaries only — never raw account lists. Turn off anytime; NEXTRON immediately
+                    loses access.
+                  </span>
+                </span>
+              </label>
             )}
           </div>
         </Card>
@@ -970,7 +1114,7 @@ export default function SettingsPage() {
               Life areas
               <HelpPopover title="What are life areas?">
                 <p>Life areas are the main parts of your life that you want to grow. Habits, tasks, projects, and XP can connect to them.</p>
-                <p className="mt-1.5 text-[var(--text-muted)]">Examples: Mind, Body, Career, Relationships, Finance, Faith, Music</p>
+                <p className="mt-1.5 text-[var(--text-muted)]">Examples: Mind, Body, Career, Relationships, Wealth, Faith, Music</p>
               </HelpPopover>
             </h3>
             <p className="mb-4 text-xs text-[var(--text-muted)]">
@@ -979,7 +1123,7 @@ export default function SettingsPage() {
 
             <InfoTip id="settings-life-areas" title="What are life areas?" className="mb-4">
               <p>Life areas are the main parts of your life that you want to grow. Habits, tasks, projects, and XP can be connected to them.</p>
-              <p className="mt-1.5 text-[var(--text-muted)]">Examples: Mind, Body, Career, Relationships, Finance, Faith, Music</p>
+              <p className="mt-1.5 text-[var(--text-muted)]">Examples: Mind, Body, Career, Relationships, Wealth, Faith, Music</p>
             </InfoTip>
 
             {/* Fun → Faith suggestion */}

@@ -100,7 +100,7 @@ export function formatDomainLabel(domain: ResultDomain): string {
   const labels: Record<ResultDomain, string> = {
     body: "Body",
     mind: "Mind",
-    finance: "Finance",
+    finance: "Wealth",
     business: "Business",
     learning: "Learning",
     skills: "Skills",

@@ -19,7 +19,7 @@ const DOMAIN_FILTERS: Array<{ value: ResultDomain | "all"; label: string }> = [
   { value: "all", label: "All" },
   { value: "body", label: "Body" },
   { value: "mind", label: "Mind" },
-  { value: "finance", label: "Finance" },
+  { value: "finance", label: "Wealth" },
   { value: "business", label: "Business" },
   { value: "learning", label: "Learning" },
   { value: "skills", label: "Skills" },

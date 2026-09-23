@@ -14,9 +14,10 @@ import { useToast } from "@/hooks/use-toast";
 import { EveningShutdown } from "@/components/today/EveningShutdown";
 import { useTodayData } from "@/hooks/use-today-data";
 import { recordProductLearningEvent } from "@/lib/product-learning/client";
-import { selectMorningPlanFirstAction, type MorningPlanFirstAction } from "@lifepulse/domain";
+import { selectMorningPlanFirstAction, selectTodayPrimaryCandidate, type MorningPlanFirstAction, type WealthSignalV2 } from "@lifepulse/domain";
 import { loadPriorities, addPriority, togglePriority, deletePriority } from "@/lib/priorities";
 import { executePriorityMigration } from "@/lib/priority-migration";
+import { loadWebWealthTodayCandidate } from "@/lib/wealth-today";
 
 type TodayTimePeriod = "morning" | "day" | "evening";
 type AttentionSeverity = "info" | "attention" | "important";
@@ -73,6 +74,7 @@ function TodayContent() {
   const [priorities, setPriorities] = useState<TodayPriority[]>([]);
   const [priorityInput, setPriorityInput] = useState("");
   const [planningOpen, setPlanningOpen] = useState(false);
+  const [wealthCandidate, setWealthCandidate] = useState<WealthSignalV2 | null>(null);
   const [timePeriod, setTimePeriod] = useState<TodayTimePeriod>(() => getTodayTimePeriod());
   const [attention, setAttention] = useState<NextronAttentionSummary | null>(null);
   const [attentionStatus, setAttentionStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
@@ -335,6 +337,22 @@ function TodayContent() {
   }
 
   const nextAction = todayModel ? selectMorningPlanFirstAction(todayModel, priorities.map(toLocalPriority)) : null;
+  // Max-one-hero competition (shared with mobile): ordinary Up Next vs a
+  // bounded deterministic wealth candidate. Body signals stay off on both.
+  useEffect(() => {
+    if (!todayUserId) return;
+    let cancelled = false;
+    void loadWebWealthTodayCandidate(supabase, today).then((candidate) => {
+      if (!cancelled) setWealthCandidate(candidate);
+    });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [todayUserId, today]);
+  const ranking = useMemo(
+    () => selectTodayPrimaryCandidate({ ordinaryUpNext: nextAction, wealthCandidate, todayStr: today }),
+    [nextAction, wealthCandidate, today],
+  );
+  const heroWealth = ranking.source === "wealth" ? ranking.wealth : null;
   const openTasks = tasks.filter((task) => task.status !== "done").filter((task) => task.id !== nextAction?.id).slice(0, 5);
   const openHabits = dueHabits.filter((habit) => !completedHabitIds.has(habit.id)).slice(0, 5);
   const showEvening = timePeriod === "evening" || hasJournal;
@@ -369,6 +387,7 @@ function TodayContent() {
         <section id="daily-execution" className="min-w-0 space-y-8" aria-labelledby="up-next-heading">
           <UpNextAction
             action={nextAction}
+            wealth={heroWealth}
             loading={openingToday}
             hasTodayPlan={priorities.length > 0}
             completedTodayCount={doneTaskCount + completedHabitCount}
@@ -378,7 +397,10 @@ function TodayContent() {
           />
 
           <section id="daily-focus" className="min-w-0 border-b border-white/[0.08] pb-6" aria-labelledby="today-focus-heading">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">Today&apos;s focus</p>
+            <div className="flex items-baseline justify-between gap-3">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">Today&apos;s focus</p>
+              <p className="text-xs text-[var(--text-muted)]">{priorities.filter((p) => p.done).length}/{priorities.length} done</p>
+            </div>
             <h2 id="today-focus-heading" className="sr-only">Today&apos;s focus</h2>
             {priorities.length > 0 ? (
               <ol className="mt-4 space-y-3">
@@ -508,9 +530,10 @@ type TodayHabit = {
   title: string;
 };
 
-function UpNextAction({ action, loading, hasTodayPlan, completedTodayCount, streakMap, onPlan, onComplete }: { action: MorningPlanFirstAction | null; loading: boolean; hasTodayPlan: boolean; completedTodayCount: number; streakMap: Record<string, number>; onPlan: () => void; onComplete: (action: MorningPlanFirstAction) => void }) {
-  const reason = loading ? "Loading current Today data." : action ? upNextReason(action, streakMap) : hasTodayPlan || completedTodayCount > 0 ? "Nothing urgent right now." : "No Today plan yet.";
-  const detail = loading ? "Your daily structure is ready; current tasks and habits are resolving." : action ? upNextDetail(action) : hasTodayPlan || completedTodayCount > 0 ? "Your planned work is clear for the moment." : "Set one priority to give Today a clear first move.";
+function UpNextAction({ action, wealth, loading, hasTodayPlan, completedTodayCount, streakMap, onPlan, onComplete }: { action: MorningPlanFirstAction | null; wealth: WealthSignalV2 | null; loading: boolean; hasTodayPlan: boolean; completedTodayCount: number; streakMap: Record<string, number>; onPlan: () => void; onComplete: (action: MorningPlanFirstAction) => void }) {
+  const showWealth = !loading && wealth !== null;
+  const reason = loading ? "Loading current Today data." : showWealth ? "Wealth · scheduled" : action ? upNextReason(action, streakMap) : hasTodayPlan || completedTodayCount > 0 ? "Nothing urgent right now." : "No Today plan yet.";
+  const detail = loading ? "Your daily structure is ready; current tasks and habits are resolving." : showWealth && wealth ? wealth.rationale : action ? upNextDetail(action) : hasTodayPlan || completedTodayCount > 0 ? "Your planned work is clear for the moment." : "Set one priority to give Today a clear first move.";
 
   return (
     <section aria-labelledby="up-next-heading" className="border-y border-white/[0.08] py-5 sm:py-6">
@@ -518,15 +541,19 @@ function UpNextAction({ action, loading, hasTodayPlan, completedTodayCount, stre
         <div className="min-w-0">
           <div className="mb-3 flex items-center gap-3">
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">Up next</p>
-            <span className={`h-1.5 w-1.5 rounded-full ${action?.reason === "Overdue" ? "bg-[var(--warning)]" : "bg-[var(--accent)]"}`} aria-hidden="true" />
+            <span className={`h-1.5 w-1.5 rounded-full ${!showWealth && action?.reason === "Overdue" ? "bg-[var(--warning)]" : "bg-[var(--accent)]"}`} aria-hidden="true" />
           </div>
           <h2 id="up-next-heading" className="break-words text-2xl font-semibold tracking-[-0.04em] text-[var(--text)] sm:text-[1.7rem]">
-            {loading ? "Preparing next action..." : action?.title ?? (completedTodayCount > 0 ? "Next action complete." : "Nothing urgent right now.")}
+            {loading ? "Preparing next action..." : showWealth && wealth ? wealth.title : action?.title ?? (completedTodayCount > 0 ? "Next action complete." : "Nothing urgent right now.")}
           </h2>
           <p className="mt-2 break-words text-sm leading-relaxed text-[var(--text-secondary)]">{detail}</p>
           <p className="mt-2 text-xs text-[var(--text-muted)]">{reason}</p>
         </div>
-        {loading ? null : action ? (
+        {loading ? null : showWealth ? (
+          <Link href="/wealth" prefetch className="inline-flex min-h-10 w-fit shrink-0 items-center rounded-lg bg-[var(--accent)] px-4 text-sm font-semibold text-[#071018] transition-colors hover:bg-[var(--accent-strong)]">
+            Review in Wealth
+          </Link>
+        ) : action ? (
           <button type="button" onClick={() => onComplete(action)} className="inline-flex min-h-10 w-fit shrink-0 items-center rounded-lg bg-[var(--accent)] px-4 text-sm font-semibold text-[#071018] transition-colors hover:bg-[var(--accent-strong)]">
             Complete
           </button>

@@ -571,11 +571,11 @@ export default function InsightsPage() {
           </>
         )}
 
-        {/* Finance */}
+        {/* Wealth */}
         {financeHasData && (
           <>
             <h2 className="mb-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">
-              Finance signal
+              Wealth signal
             </h2>
             <div className="mb-6 grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-4">
               <Card variant="default" className="flex min-h-[100px] min-w-0 flex-col p-3.5 sm:p-4">
@@ -584,7 +584,7 @@ export default function InsightsPage() {
                   {formatFinanceSignalAmount(financeIncome, financeCurrency, financeHasMixedCurrencies)}
                 </p>
                 <p className="mt-auto break-words pt-2 text-[10px] leading-snug text-[var(--text-muted)]">
-                  {financeHasMixedCurrencies ? "Review detailed amounts in Finance" : "This month"}
+                  {financeHasMixedCurrencies ? "Review detailed amounts in Wealth" : "This month"}
                 </p>
               </Card>
               <Card variant="default" className="flex min-h-[100px] min-w-0 flex-col p-3.5 sm:p-4">
@@ -593,7 +593,7 @@ export default function InsightsPage() {
                   {formatFinanceSignalAmount(financeExpense, financeCurrency, financeHasMixedCurrencies)}
                 </p>
                 <p className="mt-auto break-words pt-2 text-[10px] leading-snug text-[var(--text-muted)]">
-                  {financeHasMixedCurrencies ? "Review detailed amounts in Finance" : "This month"}
+                  {financeHasMixedCurrencies ? "Review detailed amounts in Wealth" : "This month"}
                 </p>
               </Card>
               <Card variant="default" className="flex min-h-[100px] min-w-0 flex-col p-3.5 sm:p-4">
@@ -602,7 +602,7 @@ export default function InsightsPage() {
                   {formatFinanceSignalAmount(financeNet, financeCurrency, financeHasMixedCurrencies)}
                 </p>
                 <p className="mt-auto break-words pt-2 text-[10px] leading-snug text-[var(--text-muted)]">
-                  {financeHasMixedCurrencies ? "Review detailed amounts in Finance" : "This month"}
+                  {financeHasMixedCurrencies ? "Review detailed amounts in Wealth" : "This month"}
                 </p>
               </Card>
               <Card variant="default" className="flex min-h-[100px] min-w-0 flex-col p-3.5 sm:p-4">
@@ -1004,7 +1004,7 @@ function buildQuietAreas(
   if (trendData.reflections === 0) areas.push("Reflections");
   if (trendData.mindCheckins === 0) areas.push("Mind check-ins");
   if (trendData.bodyNutritionCheckins === 0) areas.push("Body or nutrition");
-  if (trendData.financeEntries === 0 && !context.financeHasData) areas.push("Finance entries");
+  if (trendData.financeEntries === 0 && !context.financeHasData) areas.push("Wealth entries");
   if (context.activeProjectCount === 0) areas.push("Active projects");
   if (context.activeGoalsCount === 0) areas.push("Active goals");
   if (context.journalEntriesThisMonth === 0 && context.knowledgeItemsThisMonth === 0) areas.push("Memory activity");

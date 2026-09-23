@@ -148,6 +148,16 @@ export const DEFAULT_REALM_TITLES: Record<string, TitleEntry[]> = {
     { minLevel: 13, title: "Portfolio Master" },
     { minLevel: 18, title: "Financial Sage" },
   ],
+  // Canonical realm name (convergence with mobile). Kept in sync with Finance
+  // so realms named either way resolve the same titles.
+  Wealth: [
+    { minLevel: 1, title: "Money Aware" },
+    { minLevel: 3, title: "Budget Builder" },
+    { minLevel: 5, title: "Wealth Planner" },
+    { minLevel: 8, title: "Capital Allocator" },
+    { minLevel: 13, title: "Portfolio Master" },
+    { minLevel: 18, title: "Financial Sage" },
+  ],
   Faith: [
     { minLevel: 1, title: "Grounded Seeker" },
     { minLevel: 3, title: "Steady Believer" },
