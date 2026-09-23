@@ -115,7 +115,7 @@ export function GoalLinks({ links, projects, tasks, habits, saving, onAdd, onRem
               setLinkId("");
             }}
             disabled={saving || !linkId}
-            className="min-h-10 rounded bg-[var(--accent)] px-2 py-1.5 text-[10px] font-medium text-white disabled:opacity-40 sm:min-h-0 sm:py-0.5"
+            className="min-h-10 rounded bg-[var(--accent)] px-2 py-1.5 text-[10px] font-medium text-[var(--on-accent)] disabled:opacity-40 sm:min-h-0 sm:py-0.5"
           >
             Add
           </button>

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createActionProposal, parseNextronActionIntent } from "@/lib/nextron/actions";
-import { createClient } from "@/lib/supabase/server";
+import { resolveNextronAuth } from "@/lib/supabase/nextron-auth";
 
 export const runtime = "nodejs";
 
@@ -20,9 +20,10 @@ function validId(value: unknown): string | null {
 export async function POST(request: Request) {
   const body = await readBody(request);
   if (!body || typeof body.prompt !== "string") return NextResponse.json({ error: "Invalid action proposal request." }, { status: 400 });
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Sign in to propose a NEXTRON action." }, { status: 401 });
+  // Same auth contract as /api/nextron/ask: Bearer (mobile) or cookie (web).
+  const auth = await resolveNextronAuth(request);
+  if (!auth.user || !auth.supabase) return NextResponse.json({ error: "Sign in to propose a NEXTRON action." }, { status: 401 });
+  const supabase = auth.supabase;
 
   const parsed = parseNextronActionIntent(body.prompt);
   if (!parsed.ok) return NextResponse.json({ error: parsed.message, reason: parsed.reason }, { status: parsed.reason === "NO_ACTION" ? 404 : 400 });

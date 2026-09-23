@@ -45,7 +45,7 @@ assert(actions.includes('"life_pulse.task.create"') && actions.includes('"life_p
 assert(actions.includes('UNSUPPORTED_ACTION') && actions.includes('ACTION_TYPE_SET'), "B unsupported action types are rejected by server-owned allowlist");
 assert(actions.includes('Due date must be YYYY-MM-DD') && actions.includes('A title is required'), "C malformed parameters are rejected");
 assert(actions.includes('unsupported fields'), "D unknown fields are rejected");
-assert(!propose.includes('user_id') && propose.includes('supabase.auth.getUser()'), "E user cannot forge owner through proposal API body");
+assert(!propose.includes('user_id') && (propose.includes('supabase.auth.getUser()') || propose.includes('resolveNextronAuth')), "E user cannot forge owner through proposal API body");
 assert(migration.includes('auth.uid() = user_id') && migration.includes('PROPOSAL_NOT_FOUND'), "F cross-user proposal access is owner-scoped");
 assert(coach.includes('Requires approval') && coach.includes('onApprove'), "G explicit approval UI is required");
 assert(migration.includes("where id = p_proposal_id and user_id = v_user_id and status = 'pending'"), "H canceled proposal cannot later approve because only pending transitions are allowed");

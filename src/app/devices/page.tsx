@@ -48,7 +48,7 @@ function DevicesContent() {
               <div className="mt-4 flex flex-wrap gap-2">
                 <Link
                   href="/body"
-                  className="inline-flex items-center gap-1 rounded-lg bg-[var(--accent)] px-3 py-1.5 text-[10px] font-medium text-white transition-opacity hover:opacity-90"
+                  className="inline-flex items-center gap-1 rounded-lg bg-[var(--accent)] px-3 py-1.5 text-[10px] font-medium text-[var(--on-accent)] transition-opacity hover:opacity-90"
                 >
                   Log Body Pulse &rarr;
                 </Link>

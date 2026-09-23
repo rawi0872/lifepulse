@@ -14,7 +14,7 @@ import { FeedbackButton } from "@/components/feedback/FeedbackButton";
 import { useToast } from "@/hooks/use-toast";
 import { INTENDED_USE_OPTIONS, resolveIntendedUse, type IntendedUse } from "@/lib/intendedUse";
 import { useLifePulseWebTheme } from "@/components/theme-provider";
-import { THEME_LABELS, type ThemePreference } from "@lifepulse/domain";
+import { THEME_LABELS, WEALTH_NEXTRON_SECTIONS, type ThemePreference } from "@lifepulse/domain";
 import {
   getModulesByCategory,
   getModuleCategoryLabel,
@@ -86,6 +86,7 @@ export default function SettingsPage() {
   const [driveLoading, setDriveLoading] = useState(true);
   const [driveSaving, setDriveSaving] = useState(false);
   const [wealthNextronMaster, setWealthNextronMasterState] = useState<boolean | null>(null);
+  const [wealthNextronSections, setWealthNextronSections] = useState<string[]>([]);
   const [wealthNextronLoading, setWealthNextronLoading] = useState(true);
   const [wealthNextronSaving, setWealthNextronSaving] = useState(false);
   const { toast } = useToast();
@@ -173,12 +174,16 @@ export default function SettingsPage() {
       try {
         const { data: wealthPrefs } = await supabase
           .from("finance_preferences")
-          .select("nextron_access_enabled")
+          .select("nextron_access_enabled, nextron_allowed_sections")
           .eq("user_id", user.id)
           .maybeSingle();
         if (!cancelled) {
-          setWealthNextronMasterState(
-            wealthPrefs ? Boolean((wealthPrefs as { nextron_access_enabled: boolean | null }).nextron_access_enabled) : false,
+          const prefs = wealthPrefs as { nextron_access_enabled?: boolean | null; nextron_allowed_sections?: string[] | null } | null;
+          setWealthNextronMasterState(prefs ? Boolean(prefs.nextron_access_enabled) : false);
+          setWealthNextronSections(
+            (prefs?.nextron_allowed_sections ?? []).filter((s): s is (typeof WEALTH_NEXTRON_SECTIONS)[number] =>
+              (WEALTH_NEXTRON_SECTIONS as readonly string[]).includes(s),
+            ),
           );
         }
       } catch {}
@@ -505,7 +510,7 @@ export default function SettingsPage() {
         .eq("user_id", user.id)
         .maybeSingle();
       const sections = ((current as { nextron_allowed_sections: string[] | null } | null)?.nextron_allowed_sections ?? []).filter(
-        (s) => ["balances", "cash_flow", "transactions_summary", "recurring_items", "wealth_goals"].includes(s),
+        (s): s is (typeof WEALTH_NEXTRON_SECTIONS)[number] => (WEALTH_NEXTRON_SECTIONS as readonly string[]).includes(s),
       );
       const { error } = await supabase
         .from("finance_preferences")
@@ -513,6 +518,29 @@ export default function SettingsPage() {
       if (error) throw error;
       setWealthNextronMasterState(enabled);
       toast({ type: "success", title: enabled ? "NEXTRON Wealth reads enabled." : "NEXTRON Wealth reads disabled." });
+    } catch {
+      toast({ type: "error", title: "Failed to update Wealth permission." });
+    } finally {
+      setWealthNextronSaving(false);
+    }
+  }
+
+  async function saveWealthNextronSection(section: (typeof WEALTH_NEXTRON_SECTIONS)[number], enabled: boolean) {
+    setWealthNextronSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const next = enabled
+        ? [...wealthNextronSections, section]
+        : wealthNextronSections.filter((s) => s !== section);
+      const deduped = next.filter((s, i) => next.indexOf(s) === i).filter((s) =>
+        (WEALTH_NEXTRON_SECTIONS as readonly string[]).includes(s),
+      );
+      const { error } = await supabase
+        .from("finance_preferences")
+        .upsert({ user_id: user.id, nextron_allowed_sections: deduped }, { onConflict: "user_id" });
+      if (error) throw error;
+      setWealthNextronSections(deduped);
     } catch {
       toast({ type: "error", title: "Failed to update Wealth permission." });
     } finally {
@@ -627,7 +655,7 @@ export default function SettingsPage() {
                   type="date"
                   value={birthDate}
                   onChange={(e) => setBirthDate(e.target.value)}
-                  className="w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface-soft)] px-3 py-2 text-sm text-[var(--text)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none [color-scheme:dark]"
+                  className="w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface-soft)] px-3 py-2 text-sm text-[var(--text)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none [color-scheme:light_dark]"
                 />
                 <p className="mt-1.5 text-xs leading-relaxed text-[var(--text-muted)]">
                   Used to personalize your Life Pulse setup. It is not shown publicly.
@@ -899,6 +927,7 @@ export default function SettingsPage() {
             {wealthNextronLoading ? (
               <p className="text-xs text-[var(--text-muted)]">Checking Wealth permission...</p>
             ) : (
+              <div className="space-y-3">
               <label className="flex items-start gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
                 <input
                   type="checkbox"
@@ -915,6 +944,26 @@ export default function SettingsPage() {
                   </span>
                 </span>
               </label>
+              {wealthNextronMaster && (
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">Sections</p>
+                  <div className="space-y-2">
+                    {WEALTH_NEXTRON_SECTIONS.map((section) => (
+                      <label key={section} className="flex items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3">
+                        <input
+                          type="checkbox"
+                          checked={wealthNextronSections.includes(section)}
+                          disabled={wealthNextronSaving}
+                          onChange={(event) => void saveWealthNextronSection(section, event.target.checked)}
+                          className="h-4 w-4 rounded border-[var(--border-strong)] bg-[var(--surface-soft)]"
+                        />
+                        <span className="text-xs font-medium text-[var(--text)]">{section.replace(/_/g, " ")}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+              </div>
             )}
           </div>
         </Card>
@@ -1285,6 +1334,19 @@ export default function SettingsPage() {
             >
               Sign out
             </Button>
+          </div>
+        </Card>
+
+        {/* Notifications + About (parity with mobile Settings rows) */}
+        <Card className="border-[var(--border-strong)]">
+          <div className="p-5">
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">App</p>
+            <h3 className="mb-1 text-sm font-semibold text-[var(--text)]">Notifications</h3>
+            <p className="mb-4 text-xs leading-relaxed text-[var(--text-muted)]">
+              Life Pulse notifications are managed in your browser and system settings.
+            </p>
+            <h3 className="mb-1 text-sm font-semibold text-[var(--text)]">Life Pulse</h3>
+            <p className="text-xs text-[var(--text-muted)]">Web · Alpha</p>
           </div>
         </Card>
       </div>

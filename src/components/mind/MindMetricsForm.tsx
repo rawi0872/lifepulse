@@ -39,7 +39,7 @@ function RatingRow({ label, hint, value, onChange, max = 5 }: { label: string; h
             className={cn(
               "flex h-10 w-10 items-center justify-center rounded-md text-xs font-medium transition-all sm:h-7 sm:w-7",
               value !== null && n <= value
-                ? "bg-[var(--accent)] text-white"
+                ? "bg-[var(--accent)] text-[var(--on-accent)]"
                 : "bg-[var(--surface)] text-[var(--text-muted)] hover:bg-[var(--surface-active)]",
             )}
           >

@@ -120,3 +120,13 @@ export {
   isThemePreference,
 } from "./copy.ts";
 export type { CanonicalRealmKey, ThemePreference } from "./copy.ts";
+export {
+  DEFAULT_WEALTH_NEXTRON_PERMISSIONS,
+  WEALTH_NEXTRON_SECTIONS,
+  getEffectiveWealthNextronSections,
+  isWealthSectionEffective,
+  sanitizeWealthNextronSections,
+  effectiveNextronMetrics,
+  hasNextronBodyAccess,
+} from "./nextron-permissions.ts";
+export type { WealthNextronSection, WealthNextronPermissions } from "./nextron-permissions.ts";

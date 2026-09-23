@@ -15,7 +15,7 @@ export default function GoalsError({ error, reset }: { error: Error; reset: () =
         </p>
         <button
           onClick={reset}
-          className="rounded-lg bg-[var(--accent)] px-4 py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90"
+          className="rounded-lg bg-[var(--accent)] px-4 py-2 text-xs font-semibold text-[var(--on-accent)] transition-opacity hover:opacity-90"
         >
           Try again
         </button>

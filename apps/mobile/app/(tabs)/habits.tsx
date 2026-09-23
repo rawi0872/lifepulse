@@ -62,7 +62,11 @@ export default function HabitsScreen() {
     if (!user) return;
     setLoadError(false);
     const today = getLocalTodayDateString();
-    const weekStart = getWeekStartForDate(today);
+    // Full completion history bounded to 365 days (parity with web):
+    // streaks and weekly progress share identical inputs on both clients.
+    const yearAgo = new Date(`${today}T12:00:00`);
+    yearAgo.setFullYear(yearAgo.getFullYear() - 1);
+    const historyFloor = yearAgo.toISOString().slice(0, 10);
 
     const [habitsRes, logsRes] = await Promise.all([
       supabase
@@ -73,7 +77,9 @@ export default function HabitsScreen() {
         .from("habit_logs")
         .select("habit_id, completed_date")
         .eq("user_id", user.id)
-        .gte("completed_date", weekStart),
+        .gte("completed_date", historyFloor)
+        .order("completed_date", { ascending: false })
+        .limit(5000),
     ]);
 
     if (!mountedRef.current) return;

@@ -740,7 +740,7 @@ function WeeklyReviewContent() {
       />
 
       {isSparseWeek && (
-        <Card variant="subtle" className="mb-6 border-dashed border-[var(--border)] bg-black/10">
+        <Card variant="subtle" className="mb-6 border-dashed border-[var(--border)] bg-[var(--muted-soft)]">
           <div className="p-4 sm:p-5">
             <p className="text-sm font-semibold text-[var(--text)]">There is not much recorded for this week yet.</p>
             <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">You can still review what mattered. Zeroes below are factual, not a score.</p>
@@ -836,7 +836,7 @@ function WeeklyReviewContent() {
       </Card>
 
       {isSparseWeek && (
-        <Card variant="subtle" className="mb-8 border-dashed border-[var(--border)] bg-black/10">
+        <Card variant="subtle" className="mb-8 border-dashed border-[var(--border)] bg-[var(--muted-soft)]">
           <div className="p-4 text-center sm:p-5">
             <p className="text-sm font-semibold text-[var(--text)]">Your weekly picture is still forming.</p>
             <p className="mx-auto mt-1 max-w-xl text-xs leading-relaxed text-[var(--text-muted)]">
@@ -1125,7 +1125,7 @@ function WeeklyReviewContent() {
                 <button
                   onClick={handleSaveReflection}
                   disabled={savingReflection || !hasWeeklyReviewContent(reflection)}
-                  className="min-h-11 w-full shrink-0 rounded-lg bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-40 sm:w-auto"
+                  className="min-h-11 w-full shrink-0 rounded-lg bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-[var(--on-accent)] transition-opacity hover:opacity-90 disabled:opacity-40 sm:w-auto"
                 >
                   {savingReflection ? "Saving..." : "Save to Journal"}
                 </button>
@@ -1154,7 +1154,7 @@ function WeeklyReviewContent() {
               )}
             </div>
 
-            <div className="min-w-0 rounded-2xl border border-dashed border-[var(--border)] bg-black/[0.08] p-3.5 sm:p-4">
+            <div className="min-w-0 rounded-2xl border border-dashed border-[var(--border)] bg-[var(--muted-soft)] p-3.5 sm:p-4">
               <p className="mb-2 text-xs font-medium text-[var(--text)]">Optional follow-up paths</p>
               <div className="space-y-1.5">
                 {nextActions.map((action, i) => (
@@ -1267,7 +1267,7 @@ function WeeklyChangeSummary({ summary }: { summary: WeeklyChangeSummaryData | n
   return (
     <Card className="min-w-0 overflow-hidden border-[var(--border)] bg-[linear-gradient(180deg,rgba(244,247,251,0.035),rgba(244,247,251,0.01)),var(--surface)]">
       {summary.isQuiet && (
-        <div className="border-b border-[var(--border)] bg-black/[0.08] px-4 py-3 sm:px-5">
+        <div className="border-b border-[var(--border)] bg-[var(--muted-soft)] px-4 py-3 sm:px-5">
           <p className="text-sm font-semibold text-[var(--text)]">This week is still quiet.</p>
           <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
             A few tasks, habits, or reflections will make this review clearer. No judgment - quiet weeks still count.
@@ -1305,7 +1305,7 @@ function WeeklyComparison({ summary, loading }: { summary: WeeklyComparisonData 
 
   if (!summary) {
     return (
-      <Card className="min-w-0 border-dashed border-[var(--border)] bg-black/[0.08] p-4 text-center sm:p-5">
+      <Card className="min-w-0 border-dashed border-[var(--border)] bg-[var(--muted-soft)] p-4 text-center sm:p-5">
         <p className="text-sm font-semibold text-[var(--text)]">Comparison becomes clearer after another logged week.</p>
         <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">No judgment - quiet weeks still count.</p>
       </Card>
@@ -1315,7 +1315,7 @@ function WeeklyComparison({ summary, loading }: { summary: WeeklyComparisonData 
   return (
     <Card className="min-w-0 overflow-hidden border-[var(--border)] bg-[var(--surface)]">
       {summary.isSparse && (
-        <div className="border-b border-[var(--border)] bg-black/[0.08] px-4 py-3 sm:px-5">
+        <div className="border-b border-[var(--border)] bg-[var(--muted-soft)] px-4 py-3 sm:px-5">
           <p className="text-sm font-semibold text-[var(--text)]">Comparison becomes clearer after another logged week.</p>
           <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">No judgment - quiet weeks still count.</p>
         </div>
@@ -1660,7 +1660,7 @@ function TrendMetricRow({
 
 function TrendEmptyState() {
   return (
-    <div className="rounded-xl border border-dashed border-[var(--border)] bg-black/[0.08] px-4 py-5 text-center">
+    <div className="rounded-xl border border-dashed border-[var(--border)] bg-[var(--muted-soft)] px-4 py-5 text-center">
       <p className="text-sm font-medium text-[var(--text)]">This becomes clearer after a few logged days.</p>
       <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">No judgment - quiet weeks still count.</p>
     </div>

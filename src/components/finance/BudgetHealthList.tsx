@@ -56,6 +56,7 @@ export function BudgetHealthList({ budgetUsage, formatCurrency, onDelete, onRequ
               </div>
               <span className="break-words text-xs text-[var(--text-muted)] sm:shrink-0 sm:text-right">
                 {formatCurrency(b.spent)} / {formatCurrency(b.budgetAmount)}
+                <span className="ml-1.5 text-[10px]">{b.currency ?? "currency unknown"}</span>
               </span>
             </div>
             <div className="h-2 w-full overflow-hidden rounded-full bg-[var(--surface)]">

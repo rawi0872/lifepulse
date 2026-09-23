@@ -26,6 +26,7 @@
   --warning: #d2a85f;
   --warning-soft: rgba(210,168,95,0.14);
   --attention: #67d4e8;
+  --attention-strong: #8fe3f5;
   --attention-soft: rgba(103,212,232,0.13);
   --danger: #e06f6f;
   --danger-soft: rgba(224,111,111,0.14);
@@ -81,6 +82,7 @@
   --warning: #d97706;
   --warning-soft: rgba(217,119,6,0.10);
   --attention: #0284c7;
+  --attention-strong: #0369a1;
   --attention-soft: rgba(2,132,199,0.10);
   --danger: #dc2626;
   --danger-soft: rgba(220,38,38,0.08);

@@ -49,9 +49,9 @@ export function MorningPlan({
 
   return (
     <section id="morning-plan" className="mb-5 scroll-mt-24 sm:mb-6" aria-labelledby="morning-plan-heading">
-      <Card className={`overflow-hidden ${isMorning ? "border-[var(--accent)]/24 bg-[linear-gradient(135deg,rgba(122,162,199,0.10),rgba(244,247,251,0.025)),var(--surface)]" : "border-white/[0.08] bg-[linear-gradient(180deg,rgba(244,247,251,0.022),rgba(244,247,251,0.004)),var(--surface)]"}`}>
+      <Card className={`overflow-hidden ${isMorning ? "border-[var(--accent)]/24 bg-[linear-gradient(135deg,rgba(122,162,199,0.10),rgba(244,247,251,0.025)),var(--surface)]" : "border-[var(--border)] bg-[linear-gradient(180deg,rgba(244,247,251,0.022),rgba(244,247,251,0.004)),var(--surface)]"}`}>
         <div className="px-4 py-4 sm:px-5">
-          <div className="flex min-w-0 flex-col gap-2 border-b border-white/[0.06] pb-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex min-w-0 flex-col gap-2 border-b border-[var(--border)] pb-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
               <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--accent)]">
                 Start here
@@ -99,7 +99,7 @@ export function MorningPlan({
                     onClick={completeFirstAction}
                     disabled={Boolean(pendingActionId)}
                     aria-label={`Mark "${firstAction.title}" as complete`}
-                    className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl border border-[var(--accent)]/35 bg-[var(--accent)] px-4 text-sm font-semibold text-[#071018] transition-all hover:bg-[var(--accent-strong)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/25 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl border border-[var(--accent)]/35 bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--on-accent)] transition-all hover:bg-[var(--accent-strong)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/25 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {pendingActionId ? "Saving..." : "Mark complete"}
                   </button>
@@ -129,7 +129,7 @@ export function MorningPlan({
                 maxLength={160}
                 placeholder="One sentence for this device, today only."
                 aria-describedby="morning-intent-note"
-                className="mt-2 min-h-11 w-full rounded-xl border border-white/[0.09] bg-[rgba(8,11,15,0.72)] px-3.5 py-3 text-sm text-[var(--text)] placeholder:text-[var(--text-muted)]/80 shadow-inner shadow-black/20 transition-all focus:border-[var(--accent-strong)]/50 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/12"
+                className="mt-2 min-h-11 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--surface)] px-3.5 py-3 text-sm text-[var(--text)] placeholder:text-[var(--text-muted)]/80 shadow-inner shadow-black/20 transition-all focus:border-[var(--accent-strong)]/50 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/12"
               />
               <p id="morning-intent-note" className="mt-1.5 text-[10px] text-[var(--text-muted)]">
                 Saved here for today.
@@ -146,7 +146,7 @@ export function MorningPlan({
               {activePriorities.length > 0 ? (
                 <div className="mt-3 space-y-2">
                   {activePriorities.map((priority) => (
-                    <div key={priority.id} className="min-w-0 border-b border-white/[0.06] py-2.5 last:border-b-0">
+                    <div key={priority.id} className="min-w-0 border-b border-[var(--border)] py-2.5 last:border-b-0">
                       <p className={`break-words text-sm font-medium ${priority.done ? "text-[var(--text-muted)] line-through" : "text-[var(--text)]"}`}>
                         {priority.text}
                       </p>

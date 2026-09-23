@@ -4,6 +4,8 @@ export interface FinanceAccount {
   type: string;
   starting_balance: number;
   currency: string;
+  is_archived?: boolean | null;
+  institution_name?: string | null;
 }
 
 export interface FinanceCategory {
@@ -19,10 +21,11 @@ export interface FinanceTransaction {
   account_id: string | null;
   category_id: string | null;
   amount: number;
-  type: "income" | "expense";
+  type: "income" | "expense" | "transfer" | "adjustment";
   title: string;
   note: string | null;
   transaction_date: string;
+  linked_transaction_id?: string | null;
   finance_accounts: Pick<FinanceAccount, "name" | "type" | "currency"> | null;
   finance_categories: Pick<FinanceCategory, "name" | "type" | "color"> | null;
 }
@@ -32,6 +35,7 @@ export interface FinanceBudget {
   category_id: string;
   month: string;
   amount: number;
+  currency?: string | null;
   finance_categories: Pick<FinanceCategory, "name" | "type" | "color"> | null;
 }
 
@@ -59,6 +63,8 @@ export interface BudgetUsage {
   budgetAmount: number;
   percentage: number;
   status: "on_track" | "near_limit" | "over_budget";
+  /** Legacy NULL means unknown currency (canonical unknown semantics). */
+  currency: string | null;
 }
 
 export interface FinanceInsight {
@@ -100,4 +106,8 @@ export interface FinanceAnalytics {
   totalAccountBalance: number;
   accountBalances: AccountBalance[];
   hasMixedCurrencies: boolean;
+  /** Canonical currency honesty: txs outside the base currency or with unknown currency. */
+  baseCurrency: string;
+  unknownCurrencyCount: number;
+  excludedForeignCount: number;
 }

@@ -611,7 +611,7 @@ export default function TasksPage() {
               onClick={() => toggleDone(task)}
               disabled={pending}
               aria-label={`${isDone ? "Reopen" : "Complete"} task ${task.title}`}
-              className={`inline-flex min-h-11 items-center justify-center rounded-lg px-3 py-2 text-sm font-medium transition-colors disabled:opacity-60 ${isDone ? "border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:bg-[var(--surface-raised)]" : "bg-[var(--accent)] text-white hover:bg-[var(--accent-strong)]"}`}
+              className={`inline-flex min-h-11 items-center justify-center rounded-lg px-3 py-2 text-sm font-medium transition-colors disabled:opacity-60 ${isDone ? "border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:bg-[var(--surface-raised)]" : "bg-[var(--accent)] text-[var(--on-accent)] hover:bg-[var(--accent-strong)]"}`}
             >
               {pending ? "Saving..." : isDone ? "Reopen" : "Complete"}
             </button>

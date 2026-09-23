@@ -3,16 +3,18 @@ import { buildNextronAttentionSummary } from "@/lib/nextron/attention";
 import { normalizeNextronPreferences, type NextronPreferenceRow } from "@/lib/nextron/context";
 import { buildNextronEvidencePacket } from "@/lib/nextron/evidence";
 import { buildNextronSignalEvidence, deriveNextronSignals, NEXTRON_SIGNAL_LIMITS } from "@/lib/nextron/signals";
-import { createClient } from "@/lib/supabase/server";
+import { resolveNextronAuth } from "@/lib/supabase/nextron-auth";
 
 export const runtime = "nodejs";
 
 const PREFERENCE_COLUMNS = "permission_version, allow_profile, allow_today, allow_tasks, allow_task_actions, allow_goal_actions, allow_habit_actions, allow_project_actions, allow_habits, allow_results, allow_goals, allow_projects, allow_knowledge, allow_drive, allow_calendar, allow_journal, allow_evening_shutdown, allow_weekly_review";
 
-export async function GET() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Sign in to load NEXTRON signals." }, { status: 401 });
+export async function GET(request: Request) {
+  // Same auth contract as /api/nextron/ask: Bearer (mobile) or cookie (web).
+  const auth = await resolveNextronAuth(request);
+  if (!auth.user || !auth.supabase) return NextResponse.json({ error: "Sign in to load NEXTRON signals." }, { status: 401 });
+  const supabase = auth.supabase;
+  const user = auth.user;
 
   try {
     const { data } = await supabase

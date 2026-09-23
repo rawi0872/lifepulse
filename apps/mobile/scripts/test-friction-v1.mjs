@@ -319,7 +319,8 @@ describe("habits — schedule normalization across mode switches", () => {
     assert.equal(isHabitDueOnDate(emptyWeekdaysInert, monday, []), false, "empty days would be a dead habit");
     const weekly = normalizeHabitSchedule("weekly", [], 2);
     assert.equal(isHabitDueOnDate({ ...weekly, times_per_week: 2 }, monday, []), true);
-    assert.equal(isHabitDueOnDate({ ...weekly, times_per_week: 2 }, monday, [monday]), false, "weekly target met for the week");
+    assert.equal(isHabitDueOnDate({ ...weekly, times_per_week: 2 }, monday, [monday]), true, "weekly target 2/week is not met by one completion");
+    assert.equal(isHabitDueOnDate({ ...weekly, times_per_week: 2 }, "2026-09-15", [monday, "2026-09-15"]), false, "weekly target met for the week");
   });
 
   it("edit form offers day selection for weekdays and re-opens normalized state", () => {

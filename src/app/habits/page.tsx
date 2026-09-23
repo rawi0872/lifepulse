@@ -128,6 +128,11 @@ export default function HabitsPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { router.push("/login"); return; }
     if (cancelledRef.current) return;
+    // Full completion history bounded to 365 days (parity with mobile):
+    // streaks and weekly progress share identical inputs on both clients.
+    const yearAgo = new Date(getTodayDateString() + "T12:00:00");
+    yearAgo.setFullYear(yearAgo.getFullYear() - 1);
+    const yearAgoStr = yearAgo.toISOString().slice(0, 10);
 
     const [habitsRes, realmsRes, logsRes, goalLinksRes, goalsRes] = await Promise.all([
       supabase
@@ -143,7 +148,10 @@ export default function HabitsPage() {
       supabase
         .from("habit_logs")
         .select("habit_id, completed_date")
-        .eq("user_id", user.id),
+        .eq("user_id", user.id)
+        .gte("completed_date", yearAgoStr)
+        .order("completed_date", { ascending: false })
+        .limit(5000),
       supabase
         .from("goal_links")
         .select("goal_id, linked_type, linked_id")
@@ -765,7 +773,7 @@ export default function HabitsPage() {
               onClick={() => toggleHabit(habit.id, !doneToday)}
               disabled={pending}
               aria-label={`${doneToday ? "Undo check-in for" : "Check in"} ${habit.title}`}
-              className={`inline-flex min-h-11 items-center justify-center rounded-lg px-3 py-2 text-sm font-medium transition-colors disabled:opacity-60 ${doneToday ? "border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:bg-[var(--surface-raised)]" : "bg-[var(--accent)] text-white hover:bg-[var(--accent-strong)]"}`}
+              className={`inline-flex min-h-11 items-center justify-center rounded-lg px-3 py-2 text-sm font-medium transition-colors disabled:opacity-60 ${doneToday ? "border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:bg-[var(--surface-raised)]" : "bg-[var(--accent)] text-[var(--on-accent)] hover:bg-[var(--accent-strong)]"}`}
             >
               {pending ? "Saving..." : doneToday ? "Undo" : "Check in"}
             </button>
@@ -875,10 +883,10 @@ export default function HabitsPage() {
         <div className="premium-surface mb-5 rounded-2xl p-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-100/65">NEXTRON context</p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--attention-strong)]">NEXTRON context</p>
               <p className="mt-1 text-sm text-[var(--text-secondary)]">Ask how today&apos;s habits fit your tasks, goals, and current rhythm.</p>
             </div>
-            <Link href="/nextron?subject=habits" className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl border border-cyan-300/20 bg-cyan-300/10 px-4 py-2 text-sm font-semibold text-cyan-50/85 transition-all hover:-translate-y-0.5 hover:border-cyan-200/35">
+            <Link href="/nextron?subject=habits" className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl border border-[var(--attention)]/25 bg-[var(--attention)]/10 px-4 py-2 text-sm font-semibold text-[var(--attention-strong)] transition-all hover:-translate-y-0.5 hover:border-[var(--attention-strong)]">
               Ask NEXTRON about habits
             </Link>
           </div>

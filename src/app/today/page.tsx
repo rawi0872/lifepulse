@@ -368,7 +368,7 @@ function TodayContent() {
           <p className="mt-1 text-sm text-[var(--text-muted)]">{formattedDate}</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button type="button" onClick={() => setPlanningOpen(true)} className="inline-flex min-h-10 items-center rounded-full border border-white/[0.10] px-3 py-2 text-xs font-semibold text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/30 hover:text-[var(--accent)]">
+          <button type="button" onClick={() => setPlanningOpen(true)} className="inline-flex min-h-10 items-center rounded-full border border-[var(--border-strong)] px-3 py-2 text-xs font-semibold text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/30 hover:text-[var(--accent)]">
             Plan day
           </button>
           <Link href="/nextron?subject=today" prefetch className="inline-flex min-h-10 w-fit items-center rounded-full border border-[var(--accent)]/20 px-3 py-2 text-xs font-semibold text-[var(--accent)] transition-colors hover:border-[var(--accent)]/40 hover:text-[var(--accent-strong)]">
@@ -396,7 +396,7 @@ function TodayContent() {
             onComplete={(action) => action.type === "task" ? void toggleTask(action.id, true) : void toggleHabit(action.id, true)}
           />
 
-          <section id="daily-focus" className="min-w-0 border-b border-white/[0.08] pb-6" aria-labelledby="today-focus-heading">
+          <section id="daily-focus" className="min-w-0 border-b border-[var(--border)] pb-6" aria-labelledby="today-focus-heading">
             <div className="flex items-baseline justify-between gap-3">
               <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">Today&apos;s focus</p>
               <p className="text-xs text-[var(--text-muted)]">{priorities.filter((p) => p.done).length}/{priorities.length} done</p>
@@ -429,7 +429,7 @@ function TodayContent() {
         <aside className="min-w-0 space-y-8 xl:pt-1">
           <TodayHabitList habits={openHabits} completedCount={completedHabitCount} totalCount={dueHabits.length} weeklyProgressMap={weeklyProgressMap} loading={openingToday} onToggle={toggleHabit} />
 
-          <section aria-labelledby="today-nextron-attention" data-today-nextron-attention="true" className="min-w-0 border-t border-white/[0.08] pt-6">
+          <section aria-labelledby="today-nextron-attention" data-today-nextron-attention="true" className="min-w-0 border-t border-[var(--border)] pt-6">
             <div className="flex items-center justify-between gap-3">
               <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">NEXTRON</p>
               <button type="button" onClick={() => void loadNextronAttention()} disabled={attentionStatus === "loading"} className="text-[10px] font-medium text-[var(--text-muted)] hover:text-[var(--accent)]">{attentionStatus === "loading" ? "Checking" : "Refresh"}</button>
@@ -443,20 +443,20 @@ function TodayContent() {
 
       {planningOpen && (
         <div className="fixed inset-0 z-[70]">
-          <div className="absolute inset-0 bg-black/55 backdrop-blur-sm" onClick={() => setPlanningOpen(false)} />
-          <section className="absolute right-0 top-0 h-full w-full max-w-md overflow-y-auto border-l border-white/[0.08] bg-[linear-gradient(180deg,rgba(244,247,251,0.035),rgba(244,247,251,0)),var(--bg-elevated)] p-5 shadow-2xl shadow-black/40 sm:p-6" aria-labelledby="plan-day-heading">
+          <div className="absolute inset-0 bg-[var(--backdrop)] backdrop-blur-sm" onClick={() => setPlanningOpen(false)} />
+          <section className="absolute right-0 top-0 h-full w-full max-w-md overflow-y-auto border-l border-[var(--border)] bg-[linear-gradient(180deg,rgba(244,247,251,0.035),rgba(244,247,251,0)),var(--bg-elevated)] p-5 shadow-2xl shadow-black/40 sm:p-6" aria-labelledby="plan-day-heading">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">Plan mode</p>
                 <h2 id="plan-day-heading" className="mt-1 text-2xl font-semibold tracking-[-0.04em] text-[var(--text)]">Plan day</h2>
                 <p className="mt-2 text-sm leading-relaxed text-[var(--text-muted)]">Set up to three priorities. Close this when you are ready to use Today.</p>
               </div>
-              <button type="button" onClick={() => setPlanningOpen(false)} className="rounded-full border border-white/[0.10] px-3 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text)]">Close</button>
+              <button type="button" onClick={() => setPlanningOpen(false)} className="rounded-full border border-[var(--border-strong)] px-3 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text)]">Close</button>
             </div>
 
             <div className="mt-6 space-y-3">
               {priorities.length > 0 ? priorities.map((priority, index) => (
-                <div key={priority.id} className="flex min-w-0 items-center gap-3 border-b border-white/[0.06] pb-3">
+                <div key={priority.id} className="flex min-w-0 items-center gap-3 border-b border-[var(--border)] pb-3">
                   <span className="text-xs text-[var(--text-muted)]">{index + 1}</span>
                   <span className="min-w-0 flex-1 break-words text-sm font-medium text-[var(--text)]">{priority.text}</span>
                   <button type="button" onClick={() => removePriorityItem(priority.id)} className="text-xs text-[var(--text-muted)] hover:text-[var(--danger)]">Remove</button>
@@ -466,8 +466,8 @@ function TodayContent() {
 
             {priorities.length < 3 && (
               <div className="mt-5 flex gap-2">
-                <input value={priorityInput} onChange={(event) => setPriorityInput(event.target.value.slice(0, 80))} onKeyDown={(event) => { if (event.key === "Enter") addPriorityItem(); }} autoFocus placeholder="Add one priority" className="min-h-11 min-w-0 flex-1 rounded-xl border border-white/[0.10] bg-black/20 px-3 text-sm text-[var(--text)] outline-none focus:border-[var(--accent)]/50" />
-                <button type="button" onClick={addPriorityItem} className="rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-[#071018]">Add</button>
+                <input value={priorityInput} onChange={(event) => setPriorityInput(event.target.value.slice(0, 80))} onKeyDown={(event) => { if (event.key === "Enter") addPriorityItem(); }} autoFocus placeholder="Add one priority" className="min-h-11 min-w-0 flex-1 rounded-xl border border-[var(--border-strong)] bg-[var(--surface-soft)] px-3 text-sm text-[var(--text)] outline-none focus:border-[var(--accent)]/50" />
+                <button type="button" onClick={addPriorityItem} className="rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--on-accent)]">Add</button>
               </div>
             )}
           </section>
@@ -536,7 +536,7 @@ function UpNextAction({ action, wealth, loading, hasTodayPlan, completedTodayCou
   const detail = loading ? "Your daily structure is ready; current tasks and habits are resolving." : showWealth && wealth ? wealth.rationale : action ? upNextDetail(action) : hasTodayPlan || completedTodayCount > 0 ? "Your planned work is clear for the moment." : "Set one priority to give Today a clear first move.";
 
   return (
-    <section aria-labelledby="up-next-heading" className="border-y border-white/[0.08] py-5 sm:py-6">
+    <section aria-labelledby="up-next-heading" className="border-y border-[var(--border)] py-5 sm:py-6">
       <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <div className="mb-3 flex items-center gap-3">
@@ -550,15 +550,15 @@ function UpNextAction({ action, wealth, loading, hasTodayPlan, completedTodayCou
           <p className="mt-2 text-xs text-[var(--text-muted)]">{reason}</p>
         </div>
         {loading ? null : showWealth ? (
-          <Link href="/wealth" prefetch className="inline-flex min-h-10 w-fit shrink-0 items-center rounded-lg bg-[var(--accent)] px-4 text-sm font-semibold text-[#071018] transition-colors hover:bg-[var(--accent-strong)]">
+          <Link href="/wealth" prefetch className="inline-flex min-h-10 w-fit shrink-0 items-center rounded-lg bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--on-accent)] transition-colors hover:bg-[var(--accent-strong)]">
             Review in Wealth
           </Link>
         ) : action ? (
-          <button type="button" onClick={() => onComplete(action)} className="inline-flex min-h-10 w-fit shrink-0 items-center rounded-lg bg-[var(--accent)] px-4 text-sm font-semibold text-[#071018] transition-colors hover:bg-[var(--accent-strong)]">
+          <button type="button" onClick={() => onComplete(action)} className="inline-flex min-h-10 w-fit shrink-0 items-center rounded-lg bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--on-accent)] transition-colors hover:bg-[var(--accent-strong)]">
             Complete
           </button>
         ) : (
-          <button type="button" onClick={onPlan} className="inline-flex min-h-10 w-fit shrink-0 items-center rounded-lg border border-white/[0.10] px-3 text-sm font-medium text-[var(--accent)] transition-colors hover:border-[var(--accent)]/35 hover:text-[var(--accent-strong)]">
+          <button type="button" onClick={onPlan} className="inline-flex min-h-10 w-fit shrink-0 items-center rounded-lg border border-[var(--border-strong)] px-3 text-sm font-medium text-[var(--accent)] transition-colors hover:border-[var(--accent)]/35 hover:text-[var(--accent-strong)]">
             Plan today &rarr;
           </button>
         )}
@@ -607,7 +607,7 @@ function TodayNextronInsight({ attention, status }: { attention: NextronAttentio
 function TodayTaskList({ tasks, contextById, doneCount, totalCount, loading, onToggle }: { tasks: TodayTask[]; contextById: Record<string, { projectTitle?: string; goalContext?: string }>; doneCount: number; totalCount: number; loading: boolean; onToggle: (taskId: string, isDone: boolean) => void }) {
   return (
     <section aria-labelledby="today-tasks-heading" className="min-w-0">
-      <div className="mb-2 flex items-center justify-between gap-3 border-b border-white/[0.08] pb-2">
+      <div className="mb-2 flex items-center justify-between gap-3 border-b border-[var(--border)] pb-2">
         <h2 id="today-tasks-heading" className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">Tasks</h2>
         <span className="text-xs text-[var(--text-muted)]">{doneCount}/{totalCount}</span>
       </div>
@@ -635,7 +635,7 @@ function TodayTaskList({ tasks, contextById, doneCount, totalCount, loading, onT
 function TodayHabitList({ habits, completedCount, totalCount, weeklyProgressMap, loading, onToggle }: { habits: TodayHabit[]; completedCount: number; totalCount: number; weeklyProgressMap: Record<string, { completed: number; target: number } | null>; loading: boolean; onToggle: (habitId: string, isCompleted: boolean) => void }) {
   return (
     <section aria-labelledby="today-habits-heading" className="min-w-0">
-      <div className="mb-2 flex items-center justify-between gap-3 border-b border-white/[0.08] pb-2">
+      <div className="mb-2 flex items-center justify-between gap-3 border-b border-[var(--border)] pb-2">
         <h2 id="today-habits-heading" className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">Habits</h2>
         <span className="text-xs text-[var(--text-muted)]">{completedCount}/{totalCount}</span>
       </div>

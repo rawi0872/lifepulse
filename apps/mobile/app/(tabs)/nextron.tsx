@@ -10,10 +10,25 @@ import {
   Platform,
   ActivityIndicator,
   RefreshControl,
+  Alert,
 } from "react-native";
 import { useAuth } from "../../lib/auth";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { getNextronConversation, listNextronConversations, nextronAsk } from "../../lib/nextron";
+import {
+  getNextronConversation,
+  listNextronConversations,
+  nextronAsk,
+  listNextronActionProposals,
+  approveNextronActionProposal,
+  cancelNextronActionProposal,
+  deleteNextronConversation,
+  listNextronMemory,
+  forgetNextronMemory,
+  listNextronSignals,
+  type NextronActionProposal,
+  type NextronMemoryItem,
+  type NextronSignalItem,
+} from "../../lib/nextron";
 import { loadWealthNextronPermissions, getEffectiveWealthNextronSections } from "../../lib/nextron-wealth-permissions";
 import { loadNextronHealthPermissions, effectiveNextronMetrics } from "../../lib/nextron-health-permissions";
 import { toCalmNextronError, buildNextronContextSummary } from "../../lib/nextron-ui";
@@ -53,6 +68,10 @@ export default function NextronScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [contextSummary, setContextSummary] = useState<string | null>(null);
+  const [proposals, setProposals] = useState<NextronActionProposal[]>([]);
+  const [actingProposalId, setActingProposalId] = useState<string | null>(null);
+  const [memories, setMemories] = useState<NextronMemoryItem[]>([]);
+  const [signals, setSignals] = useState<NextronSignalItem[]>([]);
   const scrollRef = useRef<ScrollView>(null);
 
   const loadConversations = useCallback(async () => {
@@ -119,6 +138,106 @@ export default function NextronScreen() {
     [],
   );
 
+  const loadProposals = useCallback(async () => {
+    if (!user) return;
+    const res = await listNextronActionProposals();
+    if (res.ok) setProposals(res.proposals.filter((p) => p.status === "pending"));
+  }, [user]);
+
+  const loadMemoryAndSignals = useCallback(async () => {
+    if (!user) return;
+    const [mem, sig] = await Promise.all([listNextronMemory(), listNextronSignals()]);
+    if (mem.ok) setMemories(mem.memories);
+    if (sig.ok) setSignals(sig.signals.slice(0, 5));
+  }, [user]);
+
+  useEffect(() => {
+    void loadProposals();
+    void loadMemoryAndSignals();
+  }, [loadProposals, loadMemoryAndSignals]);
+
+  const approveProposal = useCallback(
+    async (id: string) => {
+      setActingProposalId(id);
+      const res = await approveNextronActionProposal(id);
+      setActingProposalId(null);
+      if (!res.ok) {
+        Alert.alert("Could not approve", res.error);
+        return;
+      }
+      const status = res.proposal.status;
+      if (status === "completed" || status === "partially_failed") {
+        Alert.alert("Done", status === "completed" ? "Action completed." : "Action partially completed — check the result.");
+      } else {
+        Alert.alert("Not applied", `Proposal is ${status}. Nothing ran twice.`);
+      }
+      void loadProposals();
+    },
+    [loadProposals],
+  );
+
+  const rejectProposal = useCallback(
+    async (id: string) => {
+      setActingProposalId(id);
+      const res = await cancelNextronActionProposal(id);
+      setActingProposalId(null);
+      if (!res.ok) {
+        Alert.alert("Could not reject", res.error);
+        return;
+      }
+      void loadProposals();
+    },
+    [loadProposals],
+  );
+
+  const confirmDeleteConversation = useCallback(
+    (id: string, title: string) => {
+      Alert.alert("Delete conversation?", `"${title || "Conversation"}" will be removed.`, [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => {
+            void (async () => {
+              const res = await deleteNextronConversation(id);
+              if (!res.ok) {
+                Alert.alert("Could not delete", res.error);
+                return;
+              }
+              if (conversationId === id) {
+                setConversationId(null);
+                setMessages([]);
+              }
+              const list = await listNextronConversations();
+              if (list.ok) setConversations(list.conversations as Array<{ id: string; title: string }>);
+            })();
+          },
+        },
+      ]);
+    },
+    [conversationId],
+  );
+
+  const forgetMemory = useCallback((id: string, content: string) => {
+    Alert.alert("Forget this?", `"${content.slice(0, 80)}"`, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Forget",
+        style: "destructive",
+        onPress: () => {
+          void (async () => {
+            const res = await forgetNextronMemory(id);
+            if (!res.ok) {
+              Alert.alert("Could not forget", res.error);
+              return;
+            }
+            setMemories((prev) => prev.filter((m) => m.id !== id));
+          })();
+        },
+      },
+    ]);
+  }, []);
+
   const handleSend = useCallback(
     async (overridePrompt?: string) => {
       const text = (overridePrompt ?? prompt).trim();
@@ -160,9 +279,10 @@ export default function NextronScreen() {
       const list = await listNextronConversations();
       if (list.ok) setConversations(list.conversations as Array<{ id: string; title: string }>);
       setSending(false);
+      void loadProposals();
       setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
     },
-    [prompt, sending, user, conversationId],
+    [prompt, sending, user, conversationId, loadProposals],
   );
 
   const startNew = useCallback(() => {
@@ -198,7 +318,7 @@ export default function NextronScreen() {
         </View>
       </View>
 
-      {/* Recents strip - compact */}
+      {/* Recents strip - compact (long-press deletes) */}
       {conversations.length > 1 && (
         <View style={styles.recentStrip}>
           <View style={styles.recentContent}>
@@ -210,6 +330,9 @@ export default function NextronScreen() {
                   setConversationId(c.id);
                   await refreshConversation(c.id);
                 }}
+                onLongPress={() => confirmDeleteConversation(c.id, c.title)}
+                delayLongPress={500}
+                accessibilityHint="Long press to delete this conversation"
               >
                 <Text style={styles.recentChipText} numberOfLines={1}>
                   {c.title || "Conversation"}
@@ -217,6 +340,48 @@ export default function NextronScreen() {
               </TouchableOpacity>
             ))}
           </View>
+        </View>
+      )}
+
+      {/* Pending action proposals — explicit approve or reject, same server contract as web */}
+      {proposals.length > 0 && (
+        <View style={styles.proposalSection}>
+          <Text style={styles.proposalSectionTitle}>WAITING FOR APPROVAL · {proposals.length}</Text>
+          {proposals.map((p) => {
+            const busy = actingProposalId === p.id;
+            return (
+              <View key={p.id} style={styles.proposalRow}>
+                <Text style={styles.proposalRowTitle} numberOfLines={2}>
+                  {p.title || p.action_type}
+                </Text>
+                {p.description ? (
+                  <Text style={styles.proposalRowSub} numberOfLines={3}>
+                    {p.description}
+                  </Text>
+                ) : null}
+                <View style={styles.proposalRowActions}>
+                  <TouchableOpacity
+                    style={[styles.proposalReject, busy && styles.proposalBusy]}
+                    onPress={() => void rejectProposal(p.id)}
+                    disabled={busy}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Reject ${p.title || "proposal"}`}
+                  >
+                    <Text style={styles.proposalRejectText}>{busy ? "…" : "Reject"}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.proposalApprove, busy && styles.proposalBusy]}
+                    onPress={() => void approveProposal(p.id)}
+                    disabled={busy}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Approve ${p.title || "proposal"}`}
+                  >
+                    <Text style={styles.proposalApproveText}>{busy ? "…" : "Approve"}</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            );
+          })}
         </View>
       )}
 
@@ -263,7 +428,7 @@ export default function NextronScreen() {
                   {hasProposal && (
                     <View style={styles.proposalCard}>
                       <Text style={styles.proposalLabel}>Suggested action · needs approval</Text>
-                      <Text style={styles.proposalHint}>Nothing has run yet — review and approve on web.</Text>
+                      <Text style={styles.proposalHint}>Nothing has run yet — approve or reject above.</Text>
                     </View>
                   )}
                 </View>
@@ -279,6 +444,44 @@ export default function NextronScreen() {
           </View>
         )}
         {error && messages.length > 0 ? <Text style={styles.errorText}>{error}</Text> : null}
+
+        {/* Remembered preferences + live signals (same server data as web) */}
+        {(memories.length > 0 || signals.length > 0) && (
+          <View style={styles.contextBlock}>
+            {memories.length > 0 && (
+              <View style={styles.contextGroup}>
+                <Text style={styles.contextHeading}>NEXTRON REMEMBERS · {memories.length}</Text>
+                {memories.map((m) => (
+                  <View key={m.id} style={styles.contextRow}>
+                    <Text style={styles.contextItemText} numberOfLines={2}>
+                      {m.content}
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => forgetMemory(m.id, m.content)}
+                      accessibilityRole="button"
+                      accessibilityLabel="Forget this memory"
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <Text style={styles.contextForget}>Forget</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+            )}
+            {signals.length > 0 && (
+              <View style={styles.contextGroup}>
+                <Text style={styles.contextHeading}>TODAY&apos;S SIGNALS · {signals.length}</Text>
+                {signals.map((s, i) => (
+                  <View key={s.id ?? `${s.title}-${i}`} style={styles.contextRowStatic}>
+                    <Text style={styles.contextItemText} numberOfLines={2}>
+                      {s.severity ? `${s.severity}: ` : ""}{s.title}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+        )}
       </ScrollView>
 
       {/* Composer */}
@@ -358,6 +561,65 @@ function makeStyles(colors: ThemeColors) {
   },
   recentChipActive: { backgroundColor: colors.accentSoft, borderColor: colors.accentBorder },
   recentChipText: { color: colors.textPrimary, fontSize: 11, fontWeight: "500" },
+
+  proposalSection: {
+    marginHorizontal: spacing.xl,
+    marginTop: spacing.md,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.warningBorder,
+    borderRadius: radii.lg,
+    padding: spacing.md,
+    gap: spacing.sm,
+  },
+  proposalSectionTitle: { ...type.caption, color: colors.warning, fontWeight: "700", letterSpacing: 1.2 },
+  proposalRow: {
+    backgroundColor: colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.md,
+    padding: spacing.md,
+    gap: spacing.xs,
+  },
+  proposalRowTitle: { ...type.item, color: colors.textPrimary, fontSize: 14 },
+  proposalRowSub: { ...type.meta, color: colors.textSecondary },
+  proposalRowActions: { flexDirection: "row", gap: spacing.sm, marginTop: spacing.sm },
+  proposalApprove: {
+    flex: 1,
+    backgroundColor: colors.accent,
+    borderRadius: radii.md,
+    minHeight: 44,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  proposalApproveText: { ...type.item, color: colors.onAccent, fontWeight: "700", fontSize: 14 },
+  proposalReject: {
+    flex: 1,
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.md,
+    minHeight: 44,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  proposalRejectText: { ...type.item, color: colors.textSecondary, fontWeight: "600", fontSize: 14 },
+  proposalBusy: { opacity: 0.6 },
+
+  contextBlock: { gap: spacing.md, marginTop: spacing.sm },
+  contextGroup: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.lg,
+    padding: spacing.md,
+    gap: spacing.sm,
+  },
+  contextHeading: { ...type.caption, color: colors.textMuted, fontWeight: "700", letterSpacing: 1.2 },
+  contextRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  contextRowStatic: { flexDirection: "row", alignItems: "center" },
+  contextItemText: { ...type.body, color: colors.textSecondary, flex: 1 },
+  contextForget: { ...type.caption, color: colors.danger, fontWeight: "700" },
 
   messages: { flex: 1 },
   messagesContent: { paddingHorizontal: spacing.xl, paddingVertical: spacing.lg, gap: spacing.md },

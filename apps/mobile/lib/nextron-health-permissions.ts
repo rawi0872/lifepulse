@@ -5,6 +5,7 @@
 
 import { supabase } from "./supabase";
 import type { HealthMetricType } from "@lifepulse/domain";
+import { effectiveNextronMetrics as sharedEffectiveNextronMetrics } from "@lifepulse/domain";
 
 export async function loadNextronHealthPermissions(): Promise<{ allowed: HealthMetricType[]; nextronAllowed: HealthMetricType[]; schemaAvailable: boolean }> {
   const { data: { user } } = await supabase.auth.getUser();
@@ -47,6 +48,6 @@ export async function setNextronHealthMetricPermission(metric: HealthMetricType,
 }
 
 export function effectiveNextronMetrics(allowed: HealthMetricType[], nextronAllowed: HealthMetricType[]): HealthMetricType[] {
-  const allowedSet = new Set(allowed);
-  return nextronAllowed.filter((m) => allowedSet.has(m));
+  // Shared fail-closed intersection (domain-owned semantics).
+  return sharedEffectiveNextronMetrics(allowed, nextronAllowed) as HealthMetricType[];
 }

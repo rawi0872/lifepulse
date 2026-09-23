@@ -14,7 +14,7 @@ interface TransactionListProps {
 }
 
 export function TransactionList({ transactions, onEdit, onDelete, onAddNew }: TransactionListProps) {
-  const [filter, setFilter] = useState<"all" | "income" | "expense">("all");
+  const [filter, setFilter] = useState<"all" | "income" | "expense" | "transfer" | "adjustment">("all");
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
   const filtered =
@@ -26,6 +26,8 @@ export function TransactionList({ transactions, onEdit, onDelete, onAddNew }: Tr
     { key: "all", label: "All" },
     { key: "income", label: "Income" },
     { key: "expense", label: "Expense" },
+    { key: "transfer", label: "Transfers" },
+    { key: "adjustment", label: "Adjustments" },
   ] as const;
 
   if (transactions.length === 0) {
@@ -63,7 +65,9 @@ export function TransactionList({ transactions, onEdit, onDelete, onAddNew }: Tr
       <div className="space-y-1.5">
         {filtered.map((tx) => {
           const isExpense = tx.type === "expense";
-          const catName = tx.finance_categories?.name ?? "Uncategorized";
+          const isTransfer = tx.type === "transfer";
+          const isAdjustment = tx.type === "adjustment";
+          const catName = tx.finance_categories?.name ?? (isTransfer || isAdjustment ? "—" : "Uncategorized");
           const acctName = tx.finance_accounts?.name;
 
           return (
@@ -74,6 +78,11 @@ export function TransactionList({ transactions, onEdit, onDelete, onAddNew }: Tr
               <div className="flex-1 min-w-0">
                 <div className="flex min-w-0 flex-wrap items-center gap-2">
                   <p className="min-w-0 break-words text-sm font-medium text-[var(--text)]">{tx.title}</p>
+                  {(isTransfer || isAdjustment) && (
+                    <span className="shrink-0 rounded bg-[var(--accent-soft)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--accent)]">
+                      {isTransfer ? "Transfer" : "Adjustment"}
+                    </span>
+                  )}
                   <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium ${
                     isExpense
                       ? "bg-[var(--danger-soft)] text-[var(--danger)]"
@@ -96,9 +105,9 @@ export function TransactionList({ transactions, onEdit, onDelete, onAddNew }: Tr
                 </p>
               </div>
               <p className={`self-start whitespace-nowrap text-sm font-semibold tabular-nums sm:self-auto ${
-                isExpense ? "text-[var(--danger)]" : "text-[var(--success)]"
+                isExpense ? "text-[var(--danger)]" : isTransfer || isAdjustment ? "text-[var(--text-secondary)]" : "text-[var(--success)]"
               }`}>
-                {isExpense ? "-" : "+"}{formatCurrency(Number(tx.amount))}
+                {isExpense ? "-" : isTransfer || isAdjustment ? "" : "+"}{formatCurrency(Number(tx.amount), tx.finance_accounts?.currency ?? undefined)}
               </p>
               <div className="flex shrink-0 flex-wrap gap-1">
                 <button

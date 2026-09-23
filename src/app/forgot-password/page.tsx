@@ -64,7 +64,7 @@ export default function ForgotPasswordPage() {
             </div>
             <Link
               href="/login"
-              className="w-full rounded-lg bg-[var(--accent)] px-4 py-2.5 text-center text-sm font-medium text-white transition-all hover:bg-[var(--accent)]"
+              className="w-full rounded-lg bg-[var(--accent)] px-4 py-2.5 text-center text-sm font-medium text-[var(--on-accent)] transition-all hover:bg-[var(--accent)]"
             >
               Back to login
             </Link>
@@ -93,7 +93,7 @@ export default function ForgotPasswordPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-lg bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-[var(--accent)] disabled:opacity-50"
+              className="w-full rounded-lg bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-[var(--on-accent)] transition-all hover:bg-[var(--accent)] disabled:opacity-50"
             >
               {loading ? "Sending..." : "Send reset link"}
             </button>

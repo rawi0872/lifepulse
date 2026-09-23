@@ -22,7 +22,7 @@ export default function PrivacyPage() {
             </Link>
             <Link
               href="/signup"
-              className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition-all hover:bg-[var(--accent-strong)]"
+              className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-[var(--on-accent)] transition-all hover:bg-[var(--accent-strong)]"
             >
               Get started
             </Link>

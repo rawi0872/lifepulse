@@ -12,6 +12,8 @@ interface AccountSummaryProps {
   onCancelDelete: () => void;
   confirmingDeleteId: string | null;
   onAddNew: () => void;
+  onEdit: (accountId: string) => void;
+  onToggleArchive: (accountId: string, archived: boolean) => void;
 }
 
 const accountTypeIcons: Record<string, string> = {
@@ -23,7 +25,7 @@ const accountTypeIcons: Record<string, string> = {
   other: "Other",
 };
 
-export function AccountSummary({ accountBalances, hasMixedCurrencies, onDelete, onRequestDelete, onCancelDelete, confirmingDeleteId, onAddNew }: AccountSummaryProps) {
+export function AccountSummary({ accountBalances, hasMixedCurrencies, onDelete, onRequestDelete, onCancelDelete, confirmingDeleteId, onAddNew, onEdit, onToggleArchive }: AccountSummaryProps) {
   if (accountBalances.length === 0) {
     return (
       <Card variant="subtle" className="p-6 text-center">
@@ -84,9 +86,8 @@ export function AccountSummary({ accountBalances, hasMixedCurrencies, onDelete, 
                   )}
                 </div>
                 <p className="break-words text-xs text-[var(--text-muted)]">
-                  Start {formatCurrency(a.startingBalance, a.currency)}
-                  {a.incomeTotal > 0 && <> &middot; In {formatCurrency(a.incomeTotal, a.currency)}</>}
-                  {a.expenseTotal > 0 && <> &middot; Out {formatCurrency(a.expenseTotal, a.currency)}</>}
+                  Manual balance {formatCurrency(a.startingBalance, a.currency)}
+                  {a.transactionCount > 0 && <> &middot; {a.transactionCount} linked txns (do not change it)</>}
                 </p>
                 {share !== null && (
                   <p className="text-xs text-[var(--text-muted)]">{share}% of total</p>
@@ -98,6 +99,20 @@ export function AccountSummary({ accountBalances, hasMixedCurrencies, onDelete, 
                 {formatCurrency(a.currentBalance, a.currency)}
               </p>
               <span className="text-xs text-[var(--text-muted)] sm:inline">{a.currency}</span>
+              <button
+                type="button"
+                onClick={() => onEdit(a.accountId)}
+                className="min-h-10 shrink-0 rounded-md px-2 py-1 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface)] hover:text-[var(--text)] sm:min-h-0"
+              >
+                Edit
+              </button>
+              <button
+                type="button"
+                onClick={() => onToggleArchive(a.accountId, true)}
+                className="min-h-10 shrink-0 rounded-md px-2 py-1 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface)] hover:text-[var(--text)] sm:min-h-0"
+              >
+                Archive
+              </button>
               <button
                 type="button"
                 onClick={() => onRequestDelete(a.accountId)}

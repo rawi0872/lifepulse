@@ -215,7 +215,7 @@ export function ProjectCard({
                     }`}
                   >
                     {isDone && (
-                      <svg className="h-2.5 w-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                      <svg className="h-2.5 w-2.5 text-[var(--on-accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                       </svg>
                     )}
@@ -258,7 +258,7 @@ export function ProjectCard({
                   type="date"
                   value={newTaskDue}
                   onChange={(e) => onNewTaskDueChange(e.target.value)}
-                  className="min-w-0 flex-1 rounded-lg border border-[var(--border-strong)] bg-[var(--surface-soft)] px-3 py-2 text-xs text-[var(--text)] transition-all focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none [color-scheme:dark] sm:py-1.5"
+                  className="min-w-0 flex-1 rounded-lg border border-[var(--border-strong)] bg-[var(--surface-soft)] px-3 py-2 text-xs text-[var(--text)] transition-all focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none [color-scheme:light_dark] sm:py-1.5"
                 />
                 <SelectPicker
                   options={[

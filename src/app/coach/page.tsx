@@ -806,13 +806,13 @@ function NextronContent() {
   return (
     <div className="nextron-shell relative min-h-screen overflow-x-hidden animate-fade-in">
       <div className="nextron-shell-grid pointer-events-none absolute inset-0 opacity-45" aria-hidden="true" />
-<header className="relative border-b border-white/[0.08] px-4 py-5 sm:px-8 sm:py-7 xl:px-10">
+<header className="relative border-b border-[var(--border)] px-4 py-5 sm:px-8 sm:py-7 xl:px-10">
         <div className="flex max-w-5xl min-w-0 items-center justify-between gap-3">
           <div className="min-w-0">
             <h1 className="break-words text-3xl font-semibold tracking-[-0.055em] text-[var(--text)] sm:text-4xl">NEXTRON</h1>
             <p className="mt-1 text-xs text-[var(--text-muted)]">{loading || !packet ? "Preparing context" : "Ready"}</p>
           </div>
-          <button type="button" onClick={() => setContextOpen(true)} className="inline-flex min-h-10 items-center rounded-lg border border-white/[0.10] px-3 text-xs font-semibold text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/35 hover:text-[var(--accent-strong)]">Context</button>
+          <button type="button" onClick={() => setContextOpen(true)} className="inline-flex min-h-10 items-center rounded-lg border border-[var(--border-strong)] px-3 text-xs font-semibold text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/35 hover:text-[var(--accent-strong)]">Context</button>
         </div>
       </header>
 
@@ -821,7 +821,7 @@ function NextronContent() {
           <h2 id="nextron-answer" className="sr-only">Conversation</h2>
           {loading && (
             <div className="mx-auto flex min-h-[38vh] max-w-2xl flex-col items-center justify-center py-6 text-center">
-              <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-full border border-white/[0.10] bg-white/[0.025]">
+              <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-full border border-[var(--border-strong)] bg-[var(--surface-active)]">
                 <span className="h-2 w-2 rounded-full bg-[var(--accent)]" />
               </div>
               <p className="text-xl font-semibold tracking-[-0.04em] text-[var(--text)]">Preparing context.</p>
@@ -833,14 +833,14 @@ function NextronContent() {
             <div className="space-y-5">
               {messages.length === 0 ? (
                 <div className="mx-auto flex min-h-[38vh] max-w-2xl flex-col items-center justify-center py-6 text-center">
-                  <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full border border-white/[0.10] bg-white/[0.025]">
+                  <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full border border-[var(--border-strong)] bg-[var(--surface-active)]">
                     <span className="h-2 w-2 rounded-full bg-[var(--accent)]" />
                   </div>
                   <p className="text-2xl font-semibold tracking-[-0.04em] text-[var(--text)] sm:text-3xl">Good afternoon.</p>
                   <p className="mt-2 text-xl tracking-[-0.03em] text-[var(--text-secondary)] sm:text-2xl">What&apos;s on your mind?</p>
                   <div className="mt-6 flex w-full flex-col gap-2 sm:flex-row sm:justify-center">
                     {quickPrompts.map((prompt) => (
-                      <button key={prompt} type="button" disabled={askStatus === "asking" || !packet} onClick={() => { setAskPrompt(prompt); void askNextron(prompt); }} className="min-h-10 rounded-lg border border-white/[0.09] px-3 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/30 hover:bg-white/[0.025] hover:text-[var(--text)] disabled:cursor-not-allowed disabled:opacity-50">
+                      <button key={prompt} type="button" disabled={askStatus === "asking" || !packet} onClick={() => { setAskPrompt(prompt); void askNextron(prompt); }} className="min-h-10 rounded-lg border border-[var(--border-strong)] px-3 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/30 hover:bg-[var(--surface-active)] hover:text-[var(--text)] disabled:cursor-not-allowed disabled:opacity-50">
                         {prompt}
                       </button>
                     ))}
@@ -858,11 +858,11 @@ function NextronContent() {
           <h2 id="ask-nextron" className="sr-only">Ask NEXTRON</h2>
           <form className="space-y-2" onSubmit={(event) => { event.preventDefault(); void askNextron(); }}>
             <label htmlFor="nextron-question" className="sr-only">Ask NEXTRON</label>
-            <div className="rounded-2xl border border-white/[0.10] bg-[rgba(13,17,24,0.92)] p-2 shadow-xl shadow-black/24 backdrop-blur-md transition-colors duration-200 focus-within:border-[var(--accent)]/45">
+            <div className="rounded-2xl border border-[var(--border-strong)] bg-[var(--surface-overlay)] p-2 shadow-xl shadow-black/24 backdrop-blur-md transition-colors duration-200 focus-within:border-[var(--accent)]/45">
               <textarea ref={composerRef} id="nextron-question" value={askPrompt} onChange={(event) => { setAskPrompt(event.target.value.slice(0, NEXTRON_REQUEST_MAX_LENGTH)); setAskError(null); setAskFailureCode(null); if (askStatus === "error") setAskStatus("idle"); }} onKeyDown={(event) => { if (event.nativeEvent.isComposing) return; if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); if (!askDisabled) void askNextron(); } }} maxLength={NEXTRON_REQUEST_MAX_LENGTH} rows={1} aria-describedby="nextron-question-help nextron-question-status" placeholder="Ask NEXTRON..." className="max-h-36 min-h-11 w-full resize-none rounded-xl border-0 bg-transparent px-3 py-2.5 text-base leading-relaxed text-[var(--text)] outline-none placeholder:text-[var(--text-muted)]" />
-              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/[0.07] px-2 pt-2">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--border)] px-2 pt-2">
                 <p id="nextron-question-help" className="text-xs text-[var(--text-muted)]">Enter sends<span className="hidden sm:inline">; Shift+Enter adds a line</span>.</p>
-                <button type="submit" aria-label="Send to NEXTRON" disabled={askDisabled} className="inline-flex min-h-10 items-center rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-[#071018] transition-colors hover:bg-[var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-45">
+                <button type="submit" aria-label="Send to NEXTRON" disabled={askDisabled} className="inline-flex min-h-10 items-center rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-[var(--on-accent)] transition-colors hover:bg-[var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-45">
                   {askStatus === "asking" ? "Sending..." : "Send"}
                 </button>
               </div>
@@ -885,15 +885,15 @@ function NextronContent() {
 
         {contextOpen && (
           <div className="fixed inset-0 z-[70]">
-            <div className="absolute inset-0 bg-black/55 backdrop-blur-sm" onClick={() => setContextOpen(false)} />
-            <section id="nextron-context-panel" aria-labelledby="nextron-context-heading" className="absolute right-0 top-0 h-full w-full max-w-2xl overflow-y-auto border-l border-white/[0.10] bg-[linear-gradient(180deg,rgba(13,17,24,0.99),rgba(8,11,16,0.99))] p-4 shadow-2xl shadow-black/45 sm:p-6">
+            <div className="absolute inset-0 bg-[var(--backdrop)] backdrop-blur-sm" onClick={() => setContextOpen(false)} />
+            <section id="nextron-context-panel" aria-labelledby="nextron-context-heading" className="absolute right-0 top-0 h-full w-full max-w-2xl overflow-y-auto border-l border-[var(--border-strong)] bg-[var(--surface-overlay)] p-4 shadow-2xl shadow-black/45 sm:p-6">
               <div className="mb-5 flex items-start justify-between gap-4">
                 <div>
                   <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">Setup / inspection</p>
                   <h2 id="nextron-context-heading" className="mt-1 text-2xl font-semibold tracking-[-0.04em] text-[var(--text)]">Context</h2>
                   <p className="mt-2 text-sm leading-relaxed text-[var(--text-muted)]">Sources, permissions, brief, actions, and diagnostics.</p>
                 </div>
-                <button type="button" onClick={() => setContextOpen(false)} className="rounded-lg border border-white/[0.10] px-3 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text)]">Close</button>
+                <button type="button" onClick={() => setContextOpen(false)} className="rounded-lg border border-[var(--border-strong)] px-3 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text)]">Close</button>
               </div>
               <div className="grid gap-4 lg:grid-cols-2">
             <div className="lg:col-span-2">
@@ -914,14 +914,14 @@ function NextronContent() {
             </div>
             <NextronPanel title="Conversations" eyebrow="Thread history">
             <div className="space-y-3">
-              <button type="button" onClick={() => void startNewConversation()} disabled={threadStatus === "saving"} className="min-h-11 w-full rounded-xl border border-white/[0.10] bg-white/[0.025] px-3 py-2 text-left text-xs font-semibold text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/35 hover:text-[var(--accent-strong)] disabled:opacity-50">New conversation</button>
+              <button type="button" onClick={() => void startNewConversation()} disabled={threadStatus === "saving"} className="min-h-11 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--surface-active)] px-3 py-2 text-left text-xs font-semibold text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/35 hover:text-[var(--accent-strong)] disabled:opacity-50">New conversation</button>
               <p className="text-[10px] leading-relaxed text-[var(--text-muted)]">Conversations are saved privately to your Life Pulse account. Memory still requires explicit remember commands.</p>
               {threadError && <div className="rounded-lg border border-[var(--warning)]/25 bg-[var(--warning-soft)] px-2 py-1.5"><p className="text-[10px] text-[var(--warning)]">{threadError}</p><button type="button" onClick={() => void loadConversations(currentConversation?.id ?? null)} className="mt-1 text-[10px] font-semibold text-[var(--warning)] underline underline-offset-2">Retry history</button></div>}
               <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
                 {threadStatus === "loading" && <p className="text-xs text-[var(--text-muted)]">Loading conversations...</p>}
                 {conversations.length === 0 && <p className="text-xs text-[var(--text-muted)]">No saved conversations yet.</p>}
                 {conversations.map((conversation) => (
-                  <div key={conversation.id} className={`relative overflow-hidden rounded-xl border px-2 py-2 transition-colors duration-150 ${currentConversation?.id === conversation.id ? "border-cyan-300/40 bg-cyan-300/10 shadow-[inset_2px_0_0_rgba(103,232,249,0.55)]" : "border-cyan-300/10 bg-black/15 hover:border-cyan-300/22"}`}>
+                  <div key={conversation.id} className={`relative overflow-hidden rounded-xl border px-2 py-2 transition-colors duration-150 ${currentConversation?.id === conversation.id ? "border-[var(--attention)]/40 bg-[var(--attention)]/10 shadow-[inset_2px_0_0_rgba(103,232,249,0.55)]" : "border-[var(--attention)]/15 bg-[var(--muted-soft)] hover:border-[var(--attention)]/25"}`}>
                     <button type="button" onClick={() => void openConversation(conversation.id)} className="block w-full truncate text-left text-xs font-medium text-[var(--text)]">{conversation.title}</button>
                     <div className="mt-1 flex items-center justify-between gap-2">
                       <span className="text-[10px] text-[var(--text-muted)]">{conversation.updated_at.slice(0, 10)}</span>
@@ -1004,7 +1004,7 @@ function NextronContent() {
                   <PermissionGroup title="Private text context" permissions={privateTextPermissions} draftPermissions={draftPermissions} savedPermissions={savedPermissions} onChange={setPermission} />
                   <div className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-3">
                     <p className="text-xs leading-relaxed text-[var(--text-muted)]">{permissionLoading ? "Loading saved permissions..." : !permissionsAvailable ? "Saved permissions are currently unavailable, so safe defaults are active." : hasUnsavedChanges ? "You have unsaved local permission changes. Evidence will not broaden until saving succeeds." : saveStatus === "saved" ? "Context permissions saved and NEXTRON refreshed." : saveStatus === "error" ? "Context permissions were not saved. Try again when ready." : "Saved permissions are active."}</p>
-                    <button type="button" onClick={() => void savePermissions()} disabled={!permissionsAvailable || !hasUnsavedChanges || saveStatus === "saving" || !userId} className="mt-3 inline-flex min-h-11 items-center rounded-xl bg-cyan-300 px-3 py-2 text-sm font-semibold text-slate-950 transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-45">{saveStatus === "saving" ? "Saving..." : "Save access"}</button>
+                    <button type="button" onClick={() => void savePermissions()} disabled={!permissionsAvailable || !hasUnsavedChanges || saveStatus === "saving" || !userId} className="mt-3 inline-flex min-h-11 items-center rounded-xl bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-[var(--on-accent)] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-45">{saveStatus === "saving" ? "Saving..." : "Save access"}</button>
                   </div>
                 </div>
               </details>
@@ -1339,7 +1339,7 @@ function CompactAttentionView({ attention, status, error, onAsk }: { attention: 
       {items.length > 0 && (
         <div className="mt-4 grid gap-3 md:grid-cols-3">
           {items.map((item) => (
-            <article key={item.id} className="rounded-xl border border-white/[0.08] bg-black/12 p-3">
+            <article key={item.id} className="rounded-xl border border-[var(--border)] bg-[var(--muted-soft)] p-3">
               <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">{formatDomainLabel(item.domain)} · {item.severity}</p>
               <h3 className="mt-1 break-words text-sm font-semibold text-[var(--text)]">{item.title}</h3>
               <p className="mt-1 break-words text-xs leading-relaxed text-[var(--text-secondary)]">{item.explanation}</p>
@@ -1367,7 +1367,7 @@ function DailyBriefView({ brief, meta, status, error, disabled, onGenerate, onRe
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[var(--text-muted)]">A short brief from what NEXTRON can use. It updates only when you ask.</p>
         </div>
         <div className="flex shrink-0 flex-wrap gap-2">
-          <button type="button" onClick={brief ? onRefresh : onGenerate} disabled={disabled || generating} className="inline-flex min-h-11 items-center rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-[#071018] transition-colors hover:bg-[var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-45">
+          <button type="button" onClick={brief ? onRefresh : onGenerate} disabled={disabled || generating} className="inline-flex min-h-11 items-center rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-[var(--on-accent)] transition-colors hover:bg-[var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-45">
             {generating ? "Generating..." : brief ? "Refresh brief" : "Generate brief"}
           </button>
         </div>
@@ -1375,24 +1375,24 @@ function DailyBriefView({ brief, meta, status, error, disabled, onGenerate, onRe
 
       <div className="relative mt-4">
         {!brief && status !== "generating" && (
-          <div className="rounded-xl border border-white/[0.08] bg-black/12 p-4">
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--muted-soft)] p-4">
             <p className="text-sm font-semibold text-[var(--text)]">NEXTRON can prepare today&apos;s brief.</p>
             <p className="mt-2 text-sm leading-relaxed text-[var(--text-muted)]">Use this when you want a compact read on today.</p>
             {error && <p className="mt-2 text-xs text-[var(--warning)]">{error}</p>}
           </div>
         )}
 
-        {generating && <p className="rounded-xl border border-white/[0.08] bg-white/[0.025] p-4 text-sm text-[var(--text-secondary)]">Reviewing Today, Tasks, Projects, Calendar, and other allowed context...</p>}
+        {generating && <p className="rounded-xl border border-[var(--border)] bg-[var(--surface-active)] p-4 text-sm text-[var(--text-secondary)]">Reviewing Today, Tasks, Projects, Calendar, and other allowed context...</p>}
 
         {brief && (
           <div className="space-y-4">
-            <div className="rounded-xl border border-white/[0.08] bg-black/12 p-4">
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--muted-soft)] p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
                   <h3 className="break-words text-lg font-semibold tracking-[-0.02em] text-[var(--text)]">{brief.headline}</h3>
                   <p className="mt-2 break-words text-sm leading-relaxed text-[var(--text-secondary)]">{brief.summary}</p>
                 </div>
-                <span className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] ${brief.source === "ai" ? "border-white/[0.10] bg-white/[0.03] text-[var(--text-secondary)]" : "border-[var(--warning)]/25 bg-[var(--warning-soft)] text-[var(--warning)]"}`}>{brief.source === "ai" ? "AI brief" : "Fallback"}</span>
+                <span className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] ${brief.source === "ai" ? "border-[var(--border-strong)] bg-[var(--surface-active)] text-[var(--text-secondary)]" : "border-[var(--warning)]/25 bg-[var(--warning-soft)] text-[var(--warning)]"}`}>{brief.source === "ai" ? "AI brief" : "Fallback"}</span>
               </div>
               <p className="mt-3 text-[10px] text-[var(--text-muted)]">Updated {formatTime(brief.generatedAt)}. Cached only in this page session; live panels remain current truth.</p>
             </div>
@@ -1402,7 +1402,7 @@ function DailyBriefView({ brief, meta, status, error, disabled, onGenerate, onRe
                 <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">What matters</p>
                 <div className="mt-2 grid gap-2 md:grid-cols-3">
                   {brief.priorities.slice(0, 3).map((priority, index) => (
-                    <div key={`${priority.title}-${index}`} data-nextron-daily-brief-priority="true" className="rounded-xl border border-white/[0.08] bg-black/12 p-3">
+                    <div key={`${priority.title}-${index}`} data-nextron-daily-brief-priority="true" className="rounded-xl border border-[var(--border)] bg-[var(--muted-soft)] p-3">
                       <p className="text-[10px] font-semibold text-[var(--accent)]">0{index + 1}</p>
                       <p className="mt-1 break-words text-sm font-semibold text-[var(--text)]">{priority.title}</p>
                       <p className="mt-1 break-words text-xs leading-relaxed text-[var(--text-muted)]">{priority.reason}</p>
@@ -1421,11 +1421,11 @@ function DailyBriefView({ brief, meta, status, error, disabled, onGenerate, onRe
 
             <DailyBriefMiniBlock title="Recommended approach" text={brief.recommendedApproach} />
 
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/[0.08] bg-black/12 p-3">
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--muted-soft)] p-3">
               <div className="min-w-0">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">Sources used</p>
                 <div className="mt-2 flex flex-wrap gap-2">
-                  {brief.sources.map((source) => <span key={source} className="rounded-full border border-white/[0.10] bg-white/[0.025] px-2.5 py-1 text-[10px] font-medium text-[var(--text-secondary)]">{source}</span>)}
+                  {brief.sources.map((source) => <span key={source} className="rounded-full border border-[var(--border-strong)] bg-[var(--surface-active)] px-2.5 py-1 text-[10px] font-medium text-[var(--text-secondary)]">{source}</span>)}
                 </div>
                 {meta && <details className="mt-2"><summary className="cursor-pointer text-[10px] text-[var(--text-muted)]">Diagnostics</summary><p className="mt-1 text-[10px] text-[var(--text-muted)]">Model calls this load: {meta.modelCalls}. State: {meta.persisted ? "Saved" : "Session only"}.</p></details>}
               </div>
@@ -1439,7 +1439,7 @@ function DailyBriefView({ brief, meta, status, error, disabled, onGenerate, onRe
 }
 
 function DailyBriefMiniBlock({ title, text }: { title: string; text: string }) {
-  return <div className="rounded-xl border border-white/[0.08] bg-black/12 p-3"><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--accent)]">{title}</p><p className="mt-2 break-words text-sm leading-relaxed text-[var(--text-secondary)]">{text}</p></div>;
+  return <div className="rounded-xl border border-[var(--border)] bg-[var(--muted-soft)] p-3"><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--accent)]">{title}</p><p className="mt-2 break-words text-sm leading-relaxed text-[var(--text-secondary)]">{text}</p></div>;
 }
 
 function NextronAttentionView({ attention, status, error, onRefresh, onAsk }: { attention: NextronAttentionSummary | null; status: SignalStatus; error: string | null; onRefresh: () => void; onAsk: (prompt: string) => void }) {
@@ -1455,11 +1455,11 @@ function NextronAttentionView({ attention, status, error, onRefresh, onAsk }: { 
           <h2 id="nextron-attention-heading" className="mt-1 text-xl font-semibold tracking-[-0.03em] text-[var(--text)]">What deserves attention right now</h2>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[var(--text-muted)]">Current items worth noticing. No notifications or autonomous action.</p>
         </div>
-        <button type="button" onClick={onRefresh} disabled={status === "loading"} className="inline-flex min-h-10 shrink-0 items-center rounded-lg border border-white/[0.10] px-3 py-2 text-xs font-semibold text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/35 hover:text-[var(--accent-strong)] disabled:opacity-50">{status === "loading" ? "Checking..." : "Refresh"}</button>
+        <button type="button" onClick={onRefresh} disabled={status === "loading"} className="inline-flex min-h-10 shrink-0 items-center rounded-lg border border-[var(--border-strong)] px-3 py-2 text-xs font-semibold text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/35 hover:text-[var(--accent-strong)] disabled:opacity-50">{status === "loading" ? "Checking..." : "Refresh"}</button>
       </div>
 
       <div className="mt-4 space-y-3">
-        {loading && <div className="rounded-xl border border-white/[0.08] bg-black/12 p-4 text-sm text-[var(--text-muted)]">Checking what matters right now...</div>}
+        {loading && <div className="rounded-xl border border-[var(--border)] bg-[var(--muted-soft)] p-4 text-sm text-[var(--text-muted)]">Checking what matters right now...</div>}
         {status === "error" && <div className="rounded-2xl border border-[var(--warning)]/25 bg-[var(--warning-soft)] p-4 text-sm text-[var(--warning)]">{error ?? "NEXTRON attention is partially unavailable right now."}</div>}
         {!loading && !active && attention && <AttentionCalmState attention={attention} onAsk={onAsk} />}
         {primary && <AttentionPrimaryCard item={primary} onAsk={onAsk} />}
@@ -1475,11 +1475,11 @@ function NextronAttentionView({ attention, status, error, onRefresh, onAsk }: { 
 }
 
 function AttentionCalmState({ attention, onAsk }: { attention: NextronAttentionSummary; onAsk: (prompt: string) => void }) {
-  return <div className="rounded-xl border border-white/[0.08] bg-black/12 p-4"><p className="text-sm font-semibold text-[var(--text)]">{attention.calmMessage}</p>{attention.currentFocus && <p className="mt-2 text-sm leading-relaxed text-[var(--text-secondary)]">Next meaningful item: {attention.currentFocus.title}. {attention.currentFocus.detail}</p>}{attention.currentFocus && <div className="mt-3 flex flex-wrap gap-2"><PanelLink href={attention.currentFocus.route}>Open</PanelLink><PanelButton onClick={() => onAsk(attention.currentFocus!.bridgePrompt)}>Ask NEXTRON</PanelButton></div>}</div>;
+  return <div className="rounded-xl border border-[var(--border)] bg-[var(--muted-soft)] p-4"><p className="text-sm font-semibold text-[var(--text)]">{attention.calmMessage}</p>{attention.currentFocus && <p className="mt-2 text-sm leading-relaxed text-[var(--text-secondary)]">Next meaningful item: {attention.currentFocus.title}. {attention.currentFocus.detail}</p>}{attention.currentFocus && <div className="mt-3 flex flex-wrap gap-2"><PanelLink href={attention.currentFocus.route}>Open</PanelLink><PanelButton onClick={() => onAsk(attention.currentFocus!.bridgePrompt)}>Ask NEXTRON</PanelButton></div>}</div>;
 }
 
 function AttentionPrimaryCard({ item, onAsk }: { item: NextronAttentionItem; onAsk: (prompt: string) => void }) {
-  const tone = item.severity === "important" ? "border-[var(--warning)]/35 bg-[var(--warning-soft)]" : "border-white/[0.10] bg-white/[0.025]";
+  const tone = item.severity === "important" ? "border-[var(--warning)]/35 bg-[var(--warning-soft)]" : "border-[var(--border-strong)] bg-[var(--surface-active)]";
   return (
     <article data-nextron-attention-primary="true" className={`rounded-2xl border p-4 ${tone}`}>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -1497,11 +1497,11 @@ function AttentionPrimaryCard({ item, onAsk }: { item: NextronAttentionItem; onA
 }
 
 function AttentionMiniCard({ item, onAsk }: { item: NextronAttentionItem; onAsk: (prompt: string) => void }) {
-  return <article data-nextron-attention-secondary="true" className="rounded-xl border border-white/[0.08] bg-black/12 p-3"><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">{formatDomainLabel(item.domain)}</p><h3 className="mt-1 break-words text-sm font-semibold text-[var(--text)]">{item.title}</h3><p className="mt-1 break-words text-xs leading-relaxed text-[var(--text-secondary)]">{item.explanation}</p><AttentionEvidence item={item} compact /><div className="mt-2 flex flex-wrap gap-2"><PanelLink href={item.route}>Open</PanelLink><PanelButton onClick={() => onAsk(item.bridgePrompt)}>Ask</PanelButton></div></article>;
+  return <article data-nextron-attention-secondary="true" className="rounded-xl border border-[var(--border)] bg-[var(--muted-soft)] p-3"><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">{formatDomainLabel(item.domain)}</p><h3 className="mt-1 break-words text-sm font-semibold text-[var(--text)]">{item.title}</h3><p className="mt-1 break-words text-xs leading-relaxed text-[var(--text-secondary)]">{item.explanation}</p><AttentionEvidence item={item} compact /><div className="mt-2 flex flex-wrap gap-2"><PanelLink href={item.route}>Open</PanelLink><PanelButton onClick={() => onAsk(item.bridgePrompt)}>Ask</PanelButton></div></article>;
 }
 
 function AttentionEvidence({ item, compact = false }: { item: NextronAttentionItem; compact?: boolean }) {
-  return <details className={`mt-3 rounded-lg border border-white/[0.08] bg-black/10 p-2 ${compact ? "text-xs" : ""}`}><summary className="cursor-pointer text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">Why this surfaced</summary><ul className="mt-2 space-y-1.5">{item.evidence.slice(0, 3).map((fact, index) => <li key={`${item.id}-${index}`} className="break-words text-xs leading-relaxed text-[var(--text-secondary)]">{fact}</li>)}</ul></details>;
+  return <details className={`mt-3 rounded-lg border border-[var(--border)] bg-[var(--muted-soft)] p-2 ${compact ? "text-xs" : ""}`}><summary className="cursor-pointer text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">Why this surfaced</summary><ul className="mt-2 space-y-1.5">{item.evidence.slice(0, 3).map((fact, index) => <li key={`${item.id}-${index}`} className="break-words text-xs leading-relaxed text-[var(--text-secondary)]">{fact}</li>)}</ul></details>;
 }
 
 function NextronSignalsView({ signals, meta, status, error, onRefresh, onAsk }: { signals: NextronSignal[]; meta: NextronSignalMeta | null; status: SignalStatus; error: string | null; onRefresh: () => void; onAsk: (prompt: string) => void }) {
@@ -1514,15 +1514,15 @@ function NextronSignalsView({ signals, meta, status, error, onRefresh, onAsk }: 
           <h2 id="nextron-signals-heading" className="mt-1 text-lg font-semibold tracking-[-0.03em] text-[var(--text)]">What changed or deserves attention</h2>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[var(--text-muted)]">Items NEXTRON noticed from allowed Life Pulse context.</p>
         </div>
-        <button type="button" onClick={onRefresh} disabled={loading} className="inline-flex min-h-10 shrink-0 items-center rounded-lg border border-white/[0.10] px-3 py-2 text-xs font-semibold text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/35 hover:text-[var(--accent-strong)] disabled:opacity-50">
+        <button type="button" onClick={onRefresh} disabled={loading} className="inline-flex min-h-10 shrink-0 items-center rounded-lg border border-[var(--border-strong)] px-3 py-2 text-xs font-semibold text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/35 hover:text-[var(--accent-strong)] disabled:opacity-50">
           {loading ? "Refreshing..." : "Refresh"}
         </button>
       </div>
 
       <div className="mt-4 space-y-3">
-        {loading && signals.length === 0 && <p className="rounded-xl border border-white/[0.08] bg-black/12 p-3 text-sm text-[var(--text-muted)]">Checking current patterns...</p>}
+        {loading && signals.length === 0 && <p className="rounded-xl border border-[var(--border)] bg-[var(--muted-soft)] p-3 text-sm text-[var(--text-muted)]">Checking current patterns...</p>}
         {status === "error" && <p className="rounded-2xl border border-[var(--warning)]/25 bg-[var(--warning-soft)] p-3 text-sm text-[var(--warning)]">{error ?? "Patterns are unavailable right now."}</p>}
-        {status !== "loading" && status !== "error" && signals.length === 0 && <p className="rounded-xl border border-white/[0.08] bg-black/12 p-3 text-sm text-[var(--text-muted)]">Nothing meaningful to surface right now.</p>}
+        {status !== "loading" && status !== "error" && signals.length === 0 && <p className="rounded-xl border border-[var(--border)] bg-[var(--muted-soft)] p-3 text-sm text-[var(--text-muted)]">Nothing meaningful to surface right now.</p>}
         {signals.length > 0 && (
           <div className="grid gap-2">
             {signals.slice(0, 5).map((signal) => <SignalCard key={signal.id} signal={signal} onAsk={onAsk} />)}
@@ -1535,7 +1535,7 @@ function NextronSignalsView({ signals, meta, status, error, onRefresh, onAsk }: 
 }
 
 function SignalCard({ signal, onAsk }: { signal: NextronSignal; onAsk: (prompt: string) => void }) {
-  const tone = signal.severity === "important" ? "border-[var(--warning)]/30 bg-[var(--warning-soft)]" : signal.severity === "attention" ? "border-white/[0.10] bg-white/[0.025]" : "border-white/[0.08] bg-black/12";
+  const tone = signal.severity === "important" ? "border-[var(--warning)]/30 bg-[var(--warning-soft)]" : signal.severity === "attention" ? "border-[var(--border-strong)] bg-[var(--surface-active)]" : "border-[var(--border)] bg-[var(--muted-soft)]";
   const marker = signal.severity === "important" ? "Important" : signal.severity === "attention" ? "Attention" : "Info";
   return (
     <article data-nextron-signal="true" className={`rounded-xl border p-3 ${tone}`}>
@@ -1545,15 +1545,15 @@ function SignalCard({ signal, onAsk }: { signal: NextronSignal; onAsk: (prompt: 
           <h3 className="mt-1 break-words text-sm font-semibold text-[var(--text)]">{signal.title}</h3>
           <p className="mt-1 break-words text-sm leading-relaxed text-[var(--text-secondary)]">{signal.summary}</p>
         </div>
-        <Link href={signal.route} className="inline-flex min-h-9 shrink-0 items-center rounded-lg border border-white/[0.10] bg-black/12 px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/35 hover:text-[var(--accent-strong)]">Open</Link>
+        <Link href={signal.route} className="inline-flex min-h-9 shrink-0 items-center rounded-lg border border-[var(--border-strong)] bg-[var(--muted-soft)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/35 hover:text-[var(--accent-strong)]">Open</Link>
       </div>
-      <details className="mt-3 rounded-lg border border-white/[0.08] bg-black/10 p-2">
+      <details className="mt-3 rounded-lg border border-[var(--border)] bg-[var(--muted-soft)] p-2">
         <summary className="cursor-pointer text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">Why this matters</summary>
         <ul className="mt-2 space-y-1.5">
           {signal.evidence.slice(0, 3).map((item, index) => <li key={`${signal.id}-${index}`} className="break-words text-xs leading-relaxed text-[var(--text-secondary)]">{item}</li>)}
         </ul>
         <div className="mt-2 flex flex-wrap gap-2">
-          {signal.sourceTypes.map((source) => <span key={source} className="rounded-full border border-white/[0.10] bg-white/[0.025] px-2 py-0.5 text-[10px] text-[var(--text-secondary)]">{source}</span>)}
+          {signal.sourceTypes.map((source) => <span key={source} className="rounded-full border border-[var(--border-strong)] bg-[var(--surface-active)] px-2 py-0.5 text-[10px] text-[var(--text-secondary)]">{source}</span>)}
         </div>
       </details>
       <div className="mt-3 flex flex-wrap gap-2">
@@ -1574,11 +1574,11 @@ function NextronActionProposalsView({ proposals, status, error, onRefresh, onApp
           <h2 id="nextron-actions-heading" className="mt-1 text-lg font-semibold tracking-[-0.03em] text-[var(--text)]">Approval framework</h2>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[var(--text-muted)]">NEXTRON can prepare approved Goals, Habits, Projects, and Tasks. Write permission and exact proposal approval are separate; neither allows autonomous changes.</p>
         </div>
-        <button type="button" onClick={onRefresh} disabled={loading || status === "saving"} className="inline-flex min-h-10 shrink-0 items-center rounded-lg border border-white/[0.10] px-3 py-2 text-xs font-semibold text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/35 hover:text-[var(--accent-strong)] disabled:opacity-50">{loading ? "Loading..." : "Refresh proposals"}</button>
+        <button type="button" onClick={onRefresh} disabled={loading || status === "saving"} className="inline-flex min-h-10 shrink-0 items-center rounded-lg border border-[var(--border-strong)] px-3 py-2 text-xs font-semibold text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/35 hover:text-[var(--accent-strong)] disabled:opacity-50">{loading ? "Loading..." : "Refresh proposals"}</button>
       </div>
       {error && <p className="mt-3 rounded-xl border border-[var(--warning)]/25 bg-[var(--warning-soft)] px-3 py-2 text-xs text-[var(--warning)]">{error}</p>}
       <div className="mt-4 space-y-3">
-        {proposals.length === 0 ? <p className="rounded-xl border border-white/[0.08] bg-black/12 p-3 text-sm text-[var(--text-muted)]">No pending action proposals. Try: Create a habit for reading before bed, or connect a project to an exact goal.</p> : proposals.map((proposal) => <ActionProposalCard key={proposal.id} proposal={proposal} busy={status === "saving"} onApprove={onApprove} onCancel={onCancel} onChange={onChange} />)}
+        {proposals.length === 0 ? <p className="rounded-xl border border-[var(--border)] bg-[var(--muted-soft)] p-3 text-sm text-[var(--text-muted)]">No pending action proposals. Try: Create a habit for reading before bed, or connect a project to an exact goal.</p> : proposals.map((proposal) => <ActionProposalCard key={proposal.id} proposal={proposal} busy={status === "saving"} onApprove={onApprove} onCancel={onCancel} onChange={onChange} />)}
       </div>
     </section>
   );
@@ -1588,24 +1588,24 @@ function ActionProposalCard({ proposal, busy, onApprove, onCancel, onChange }: {
   const pending = proposal.status === "pending";
   const statusCopy = proposal.status === "completed" ? "Approved and completed. Life Pulse was updated and verified by the server." : proposal.status === "partially_failed" ? "Most changes completed, but at least one needs attention. Successful changes will not be repeated." : proposal.status === "failed" ? "No changes were applied. Check permissions or regenerate the proposal." : proposal.status === "stale" ? "This changed since NEXTRON prepared the preview. Regenerate it before applying." : proposal.status === "approved_execution_disabled" ? "Approval recorded. Execution is not enabled for this action type." : proposal.status === "canceled" ? "Canceled. This proposal can no longer be approved." : proposal.status === "expired" ? "Expired. Regenerate the proposal to approve it." : proposal.status === "invalidated" ? "Invalidated because its conversation or source context changed." : `Requires explicit approval. Expires ${formatTime(proposal.expiresAt)}.`;
   return (
-    <article data-nextron-action-proposal="true" className="rounded-xl border border-white/[0.10] bg-black/12 p-4">
+    <article data-nextron-action-proposal="true" className="rounded-xl border border-[var(--border-strong)] bg-[var(--muted-soft)] p-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">Operation ready · Requires approval</p>
           <h3 className="mt-1 break-words text-base font-semibold text-[var(--text)]">{proposal.preview.heading}</h3>
           <p className="mt-1 break-words text-sm text-[var(--text-secondary)]">{proposal.preview.subheading}</p>
         </div>
-        <span className="w-fit rounded-full border border-white/[0.10] bg-white/[0.025] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-secondary)]">{proposal.riskLevel} risk</span>
+        <span className="w-fit rounded-full border border-[var(--border-strong)] bg-[var(--surface-active)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-secondary)]">{proposal.riskLevel} risk</span>
       </div>
       <div className="mt-3 grid gap-2 sm:grid-cols-2">
-        {proposal.preview.fields.map((field) => <div key={field.label} className="rounded-lg border border-white/[0.08] bg-black/10 p-3"><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">{field.label}</p>{field.before && <p className="mt-1 text-xs text-[var(--text-muted)]">Before: {field.before}</p>}<p className="mt-1 break-words text-sm text-[var(--text)]">{field.after}</p></div>)}
+        {proposal.preview.fields.map((field) => <div key={field.label} className="rounded-lg border border-[var(--border)] bg-[var(--muted-soft)] p-3"><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">{field.label}</p>{field.before && <p className="mt-1 text-xs text-[var(--text-muted)]">Before: {field.before}</p>}<p className="mt-1 break-words text-sm text-[var(--text)]">{field.after}</p></div>)}
       </div>
       <p className="mt-3 text-xs leading-relaxed text-[var(--text-muted)]">{statusCopy}</p>
       <div className="mt-3 flex flex-wrap gap-2">
-        <button type="button" disabled={!pending || busy} onClick={() => onApprove(proposal.id)} className="inline-flex min-h-11 items-center rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-[#071018] transition-colors hover:bg-[var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-45">{proposal.preview.approvalLabel}</button>
-        <button type="button" disabled={!pending || busy} onClick={() => { onChange(`Change this action proposal: ${proposal.preview.subheading}`); }} className="inline-flex min-h-11 items-center rounded-lg border border-white/[0.10] px-4 py-2 text-sm font-semibold text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/35 hover:text-[var(--accent-strong)] disabled:opacity-45">Change</button>
+        <button type="button" disabled={!pending || busy} onClick={() => onApprove(proposal.id)} className="inline-flex min-h-11 items-center rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-[var(--on-accent)] transition-colors hover:bg-[var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-45">{proposal.preview.approvalLabel}</button>
+        <button type="button" disabled={!pending || busy} onClick={() => { onChange(`Change this action proposal: ${proposal.preview.subheading}`); }} className="inline-flex min-h-11 items-center rounded-lg border border-[var(--border-strong)] px-4 py-2 text-sm font-semibold text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/35 hover:text-[var(--accent-strong)] disabled:opacity-45">Change</button>
         <button type="button" disabled={!pending || busy} onClick={() => onCancel(proposal.id)} className="inline-flex min-h-11 items-center rounded-xl border border-[var(--danger)]/25 bg-[var(--danger-soft)] px-4 py-2 text-sm font-semibold text-[var(--danger)] transition-all hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-45">Cancel</button>
-        {proposal.status === "completed" && <Link href="/nextron" className="inline-flex min-h-11 items-center rounded-lg border border-white/[0.10] bg-black/12 px-4 py-2 text-sm font-semibold text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/35 hover:text-[var(--accent-strong)]">Review in NEXTRON</Link>}
+        {proposal.status === "completed" && <Link href="/nextron" className="inline-flex min-h-11 items-center rounded-lg border border-[var(--border-strong)] bg-[var(--muted-soft)] px-4 py-2 text-sm font-semibold text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/35 hover:text-[var(--accent-strong)]">Review in NEXTRON</Link>}
       </div>
     </article>
   );
@@ -1623,7 +1623,7 @@ function NextronPanel({ eyebrow, title, children }: { eyebrow: string; title: st
 
 function ContextStat({ label, value, detail }: { label: string; value: number; detail: string }) {
   return (
-    <div className="rounded-xl border border-white/[0.08] bg-black/12 px-3 py-2">
+    <div className="rounded-xl border border-[var(--border)] bg-[var(--muted-soft)] px-3 py-2">
       <p className="text-[10px] font-medium text-[var(--text-muted)]">{label}</p>
       <p className="mt-1 text-xl font-semibold tabular-nums text-[var(--text)]">{value}</p>
       <p className="text-[10px] text-[var(--text-muted)]">{detail}</p>
@@ -1639,9 +1639,9 @@ function IntelligenceCore({ status, systems, activeSources }: { status: Intellig
   return (
     <div className="relative flex w-full shrink-0 items-center justify-center gap-3 sm:w-auto" aria-label={`NEXTRON core ${statusLabel.toLowerCase()}, ${activeCount} systems available`}>
       <div className="relative flex h-28 w-28 items-center justify-center sm:h-36 sm:w-36">
-        <div className={`absolute inset-0 rounded-full border ${status === "error" ? "border-[var(--warning)]/40 bg-[var(--warning-soft)]" : "border-cyan-300/25 bg-cyan-300/5"} shadow-[0_0_54px_rgba(34,211,238,0.16)] ${coreMotion}`} />
-        <div className={`nextron-orbit-slow absolute inset-2 rounded-full border border-dashed ${status === "thinking" ? "border-cyan-100/50" : "border-cyan-200/20"}`} />
-        <div className="nextron-counter-orbit absolute inset-5 rounded-full border border-cyan-300/10" />
+        <div className={`absolute inset-0 rounded-full border ${status === "error" ? "border-[var(--warning)]/40 bg-[var(--warning-soft)]" : "border-[var(--attention)]/25 bg-[var(--attention)]/10"} shadow-[0_0_54px_rgba(34,211,238,0.16)] ${coreMotion}`} />
+        <div className={`nextron-orbit-slow absolute inset-2 rounded-full border border-dashed ${status === "thinking" ? "border-cyan-100/50" : "border-[var(--attention-strong)]"}`} />
+        <div className="nextron-counter-orbit absolute inset-5 rounded-full border border-[var(--attention)]/15" />
         <div className={`absolute inset-8 rounded-2xl border ${status === "error" ? "border-[var(--warning)]/40" : "border-cyan-300/30"} bg-[radial-gradient(circle,rgba(125,211,252,0.30),rgba(8,18,32,0.50)_62%)] rotate-45 ${status === "thinking" ? "nextron-orbit-fast" : ""}`} />
         <div className="absolute h-3 w-3 rounded-full bg-cyan-100 shadow-[0_0_28px_rgba(103,232,249,0.95)]" />
         {systems.slice(0, 8).map((system, index) => {
@@ -1650,21 +1650,21 @@ function IntelligenceCore({ status, systems, activeSources }: { status: Intellig
           const y = Math.sin(angle) * 48;
           const active = system.status === "available";
           const sourceActive = activeSourceSet.has(system.domain.toLowerCase()) || activeSourceSet.has(formatDomainLabel(system.domain).toLowerCase());
-          return <span key={system.domain} className={`absolute h-2.5 w-2.5 rounded-full border ${sourceActive ? "border-cyan-100 bg-cyan-200 shadow-[0_0_14px_rgba(103,232,249,0.85)]" : active ? "border-cyan-300/50 bg-cyan-300/40" : "border-slate-500/30 bg-slate-600/25"}`} style={{ transform: `translate(${x}px, ${y}px)` }} title={`${formatDomainLabel(system.domain)} ${statusText(system.status)}`} aria-hidden="true" />;
+          return <span key={system.domain} className={`absolute h-2.5 w-2.5 rounded-full border ${sourceActive ? "border-cyan-100 bg-cyan-200 shadow-[0_0_14px_rgba(103,232,249,0.85)]" : active ? "border-cyan-300/50 bg-[var(--attention)]/25" : "border-[var(--border)] bg-[var(--muted-soft)]"}`} style={{ transform: `translate(${x}px, ${y}px)` }} title={`${formatDomainLabel(system.domain)} ${statusText(system.status)}`} aria-hidden="true" />;
         })}
       </div>
       <div className="hidden min-w-24 text-left sm:block">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-100/75">Core</p>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--attention-strong)]">Core</p>
         <p className="mt-1 text-sm font-semibold text-cyan-50">{statusLabel}</p>
-        <p className="mt-1 text-[10px] text-cyan-100/50">{activeCount} systems ready</p>
-        {activeSources.length > 0 && <p className="mt-2 text-[10px] text-cyan-100/70">Used: {activeSources.slice(0, 2).join(" + ")}</p>}
+        <p className="mt-1 text-[10px] text-[var(--attention-strong)]">{activeCount} systems ready</p>
+        {activeSources.length > 0 && <p className="mt-2 text-[10px] text-[var(--attention-strong)]">Used: {activeSources.slice(0, 2).join(" + ")}</p>}
       </div>
     </div>
   );
 }
 
 function SignalRow({ label, value, detail, tone }: { label: string; value: string; detail: string; tone: "active" | "attention" | "stable" | "muted" }) {
-  const toneClass = tone === "attention" ? "border-[var(--warning)]/25 bg-[var(--warning-soft)]" : tone === "active" ? "border-cyan-300/20 bg-cyan-300/10" : "border-cyan-300/10 bg-black/15";
+  const toneClass = tone === "attention" ? "border-[var(--warning)]/25 bg-[var(--warning-soft)]" : tone === "active" ? "border-[var(--attention)]/25 bg-[var(--attention)]/10" : "border-[var(--attention)]/15 bg-[var(--muted-soft)]";
   return (
     <div className={`rounded-xl border px-3 py-2 ${toneClass}`}>
       <div className="flex items-center justify-between gap-3">
@@ -1708,12 +1708,12 @@ function CalendarPanel({ panels, onAsk }: { panels: LiveContextPanels | null; on
   return (
     <div className="space-y-3">
       {nextEvent ? (
-        <div className="rounded-xl border border-cyan-300/15 bg-cyan-300/10 p-3">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-200/70">Next</p>
+        <div className="rounded-xl border border-[var(--attention)]/20 bg-[var(--attention)]/10 p-3">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--attention-strong)]">Next</p>
           <p className="mt-1 break-words text-sm font-semibold text-[var(--text)]">{nextEvent.title}</p>
           <p className="mt-1 text-xs text-[var(--text-muted)]">{formatCalendarEventTime(nextEvent)}</p>
         </div>
-      ) : <p className="rounded-xl border border-cyan-300/10 bg-black/15 px-3 py-2 text-sm text-[var(--text-muted)]">No more events today.</p>}
+      ) : <p className="rounded-xl border border-[var(--attention)]/15 bg-[var(--muted-soft)] px-3 py-2 text-sm text-[var(--text-muted)]">No more events today.</p>}
       {rest.length > 0 && <p className="text-xs text-[var(--text-muted)]">{rest.length + calendar.moreTodayCount} more today</p>}
       <div className="flex flex-wrap gap-2">
         <PanelLink href="/settings">Calendar settings</PanelLink>
@@ -1729,13 +1729,13 @@ function ProjectsPanel({ panels, onAsk }: { panels: LiveContextPanels | null; on
   if (projects.status === "permission_denied") return <LockedState label="Projects permission is off." href="/nextron" />;
   return (
     <div className="space-y-3">
-      <div className="flex items-baseline justify-between gap-3 rounded-xl border border-cyan-300/10 bg-black/15 px-3 py-2">
+      <div className="flex items-baseline justify-between gap-3 rounded-xl border border-[var(--attention)]/15 bg-[var(--muted-soft)] px-3 py-2">
         <p className="text-xs text-[var(--text-muted)]">Active projects</p>
         <p className="text-2xl font-semibold text-[var(--text)]">{projects.activeCount}</p>
       </div>
       <div className="space-y-2">
         {projects.items.length === 0 ? <p className="text-sm text-[var(--text-muted)]">No active projects.</p> : projects.items.map((project, index) => (
-          <div key={`${project.title}-${index}`} className="flex items-center justify-between gap-3 rounded-xl border border-cyan-300/10 bg-black/15 px-3 py-2">
+          <div key={`${project.title}-${index}`} className="flex items-center justify-between gap-3 rounded-xl border border-[var(--attention)]/15 bg-[var(--muted-soft)] px-3 py-2">
             <p className="min-w-0 truncate text-xs font-medium text-[var(--text)]">{project.title}</p>
             <p className="shrink-0 text-[10px] text-[var(--text-muted)]">{project.openTaskCount} open</p>
           </div>
@@ -1765,27 +1765,27 @@ function SourceContextPanel({ panels, systems }: { panels: LiveContextPanels | n
 }
 
 function PanelNumber({ label, value, tone }: { label: string; value: number; tone: "active" | "attention" | "stable" }) {
-  const toneClass = tone === "attention" ? "border-[var(--warning)]/30 bg-[var(--warning-soft)]" : tone === "active" ? "border-cyan-300/25 bg-cyan-300/10" : "border-cyan-300/10 bg-black/15";
+  const toneClass = tone === "attention" ? "border-[var(--warning)]/30 bg-[var(--warning-soft)]" : tone === "active" ? "border-[var(--attention)]/25 bg-[var(--attention)]/10" : "border-[var(--attention)]/15 bg-[var(--muted-soft)]";
   return <div className={`rounded-xl border px-2 py-2 shadow-inner shadow-cyan-950/10 transition-colors duration-200 ${toneClass}`}><p className="text-[10px] text-[var(--text-muted)]">{label}</p><p className="mt-1 text-xl font-semibold tabular-nums text-[var(--text)]">{value}</p></div>;
 }
 
 function PanelLink({ href, children }: { href: string; children: ReactNode }) {
-  return <Link href={href} className="inline-flex min-h-9 items-center rounded-lg border border-cyan-300/15 bg-cyan-300/10 px-2.5 py-1 text-xs font-medium text-cyan-50/85 transition-all duration-150 hover:-translate-y-0.5 hover:border-cyan-200/35 hover:bg-cyan-300/15">{children}</Link>;
+  return <Link href={href} className="inline-flex min-h-9 items-center rounded-lg border border-[var(--attention)]/20 bg-[var(--attention)]/10 px-2.5 py-1 text-xs font-medium text-[var(--attention-strong)] transition-all duration-150 hover:-translate-y-0.5 hover:border-[var(--attention-strong)] hover:bg-[var(--attention)]/15">{children}</Link>;
 }
 
 function PanelButton({ onClick, children }: { onClick: () => void; children: ReactNode }) {
-  return <button type="button" onClick={onClick} className="inline-flex min-h-9 items-center rounded-lg border border-cyan-300/15 bg-black/15 px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)] transition-all duration-150 hover:-translate-y-0.5 hover:border-cyan-200/30 hover:bg-cyan-300/10">{children}</button>;
+  return <button type="button" onClick={onClick} className="inline-flex min-h-9 items-center rounded-lg border border-[var(--attention)]/20 bg-[var(--muted-soft)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)] transition-all duration-150 hover:-translate-y-0.5 hover:border-[var(--attention-strong)] hover:bg-[var(--attention)]/10">{children}</button>;
 }
 
 function LockedState({ label, href }: { label: string; href: string }) {
-  return <div className="space-y-3"><p className="rounded-xl border border-cyan-300/10 bg-black/15 px-3 py-2 text-sm text-[var(--text-muted)]">{label}</p><PanelLink href={href}>Manage access</PanelLink></div>;
+  return <div className="space-y-3"><p className="rounded-xl border border-[var(--attention)]/15 bg-[var(--muted-soft)] px-3 py-2 text-sm text-[var(--text-muted)]">{label}</p><PanelLink href={href}>Manage access</PanelLink></div>;
 }
 
 function SourceStatus({ label, status, detail }: { label: string; status: string; detail: string }) {
   const active = status === "available";
   const denied = status === "permission_denied";
   return (
-    <div className="flex items-center justify-between gap-3 rounded-xl border border-cyan-300/10 bg-black/15 px-3 py-2">
+    <div className="flex items-center justify-between gap-3 rounded-xl border border-[var(--attention)]/15 bg-[var(--muted-soft)] px-3 py-2">
       <div className="min-w-0">
         <p className="truncate text-xs font-medium text-[var(--text)]">{label}</p>
         <p className="text-[10px] text-[var(--text-muted)]">{detail}</p>
@@ -1821,19 +1821,19 @@ function ConversationTurn({ message }: { message: ConversationMessage }) {
   const response = isAssistant && message.response ? message.response : null;
   const richResponse = response && isNextronRichResponse(response.richResponse) ? response.richResponse : null;
   return (
-    <article className={`relative max-w-3xl ${isAssistant ? "mr-auto" : "ml-auto rounded-2xl bg-cyan-300/8 px-4 py-3"}`}>
-      <p className={`text-[10px] font-semibold uppercase tracking-[0.14em] ${isAssistant ? "text-cyan-200/75" : "text-[var(--text-muted)]"}`}>{isAssistant ? "NEXTRON" : "You"}</p>
+    <article className={`relative max-w-3xl ${isAssistant ? "mr-auto" : "ml-auto rounded-2xl bg-[var(--attention)]/10 px-4 py-3"}`}>
+      <p className={`text-[10px] font-semibold uppercase tracking-[0.14em] ${isAssistant ? "text-[var(--attention-strong)]" : "text-[var(--text-muted)]"}`}>{isAssistant ? "NEXTRON" : "You"}</p>
       {response ? (
         <div className="mt-2">
           <p className="break-words text-base leading-7 text-[var(--text)]">{response.interpretation}</p>
           {richResponse && <RichResponseView richResponse={richResponse} compact />}
           {response.sources && response.sources.length > 0 && (
             <ul className="mt-3 flex flex-wrap gap-2">
-              {response.sources.map((source) => <li key={source} className="break-words rounded-full border border-cyan-300/25 bg-cyan-300/10 px-2.5 py-1 text-[10px] font-medium text-cyan-50/85 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">{source}</li>)}
+              {response.sources.map((source) => <li key={source} className="break-words rounded-full border border-[var(--attention)]/25 bg-[var(--attention)]/10 px-2.5 py-1 text-[10px] font-medium text-[var(--attention-strong)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">{source}</li>)}
             </ul>
           )}
           {response.supportingEvidence.length > 0 && (
-            <details className="mt-3 rounded-xl border border-[var(--border)] bg-black/15 p-2">
+            <details className="mt-3 rounded-xl border border-[var(--border)] bg-[var(--muted-soft)] p-2">
               <summary className="cursor-pointer text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">Evidence used</summary>
               <ul className="mt-2 space-y-1.5">
                 {response.supportingEvidence.slice(0, 3).map((item, index) => <li key={`${item}-${index}`} className="break-words text-xs leading-relaxed text-[var(--text-secondary)]">{item}</li>)}
@@ -1849,10 +1849,10 @@ function ConversationTurn({ message }: { message: ConversationMessage }) {
 function PendingConversationTurn({ role, content, pending = false }: { role: "user" | "assistant"; content: string; pending?: boolean }) {
   const isAssistant = role === "assistant";
   return (
-    <article data-nextron-pending-turn={pending ? "true" : undefined} className={`relative max-w-3xl ${isAssistant ? "mr-auto" : "ml-auto rounded-2xl bg-cyan-300/8 px-4 py-3"}`}>
-      <p className={`text-[10px] font-semibold uppercase tracking-[0.14em] ${isAssistant ? "text-cyan-200/75" : "text-[var(--text-muted)]"}`}>{isAssistant ? "NEXTRON" : "You"}</p>
+    <article data-nextron-pending-turn={pending ? "true" : undefined} className={`relative max-w-3xl ${isAssistant ? "mr-auto" : "ml-auto rounded-2xl bg-[var(--attention)]/10 px-4 py-3"}`}>
+      <p className={`text-[10px] font-semibold uppercase tracking-[0.14em] ${isAssistant ? "text-[var(--attention-strong)]" : "text-[var(--text-muted)]"}`}>{isAssistant ? "NEXTRON" : "You"}</p>
       <p className="mt-2 break-words text-sm leading-relaxed text-[var(--text-secondary)]">{content}</p>
-      {pending && <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-cyan-100/70" aria-live="polite">Sending...</p>}
+      {pending && <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--attention-strong)]" aria-live="polite">Sending...</p>}
     </article>
   );
 }
@@ -1863,7 +1863,7 @@ function AskFailureNotice({ message, code, canRetry, onRetry }: { message: strin
       <p className="text-sm font-semibold text-[var(--warning)]">NEXTRON did not finish that answer.</p>
       <p className="mt-2 text-sm leading-relaxed text-[var(--text-secondary)]">{message}</p>
       <div className="mt-3 flex flex-wrap items-center gap-3">
-        {canRetry && <button type="button" onClick={onRetry} className="inline-flex min-h-10 items-center rounded-xl border border-[var(--warning)]/35 bg-black/15 px-3 py-2 text-xs font-semibold text-[var(--warning)] transition-colors hover:bg-[var(--warning-soft)]">Try again</button>}
+        {canRetry && <button type="button" onClick={onRetry} className="inline-flex min-h-10 items-center rounded-xl border border-[var(--warning)]/35 bg-[var(--muted-soft)] px-3 py-2 text-xs font-semibold text-[var(--warning)] transition-colors hover:bg-[var(--warning-soft)]">Try again</button>}
         {code && <span className="text-[10px] uppercase tracking-[0.12em] text-[var(--text-muted)]">Status: {code}</span>}
       </div>
     </div>
@@ -1874,8 +1874,8 @@ function RichResponseView({ richResponse, compact = false }: { richResponse: Non
   return (
     <div data-nextron-rich-response="true" className={`${compact ? "mt-3" : ""} space-y-3`}>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-cyan-200/70">Generated UI</p>
-        <span className="rounded-full border border-cyan-300/15 bg-cyan-300/8 px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.1em] text-cyan-100/65">Grounded view</span>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--attention-strong)]">Generated UI</p>
+        <span className="rounded-full border border-[var(--attention)]/20 bg-[var(--attention)]/10 px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.1em] text-[var(--attention-strong)]">Grounded view</span>
       </div>
       <div className={`grid gap-3 ${compact ? "" : "lg:grid-cols-2"}`}>
         {richResponse.blocks.map((block, index) => <RichBlockView key={`${block.type}-${index}`} block={block} compact={compact} />)}
@@ -1887,7 +1887,7 @@ function RichResponseView({ richResponse, compact = false }: { richResponse: Non
 function RichBlockView({ block, compact }: { block: NextronRichBlock; compact: boolean }) {
   if (block.type === "metric_strip") {
     return (
-      <div className="rounded-2xl border border-cyan-300/14 bg-black/15 p-3">
+      <div className="rounded-2xl border border-[var(--attention)]/20 bg-[var(--muted-soft)] p-3">
         <p className="text-xs font-semibold text-[var(--text)]">{block.title}</p>
         <div className={`mt-3 grid gap-2 ${compact ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-3"}`}>
           {block.metrics.map((metricValue) => <RichMetricView key={`${metricValue.label}-${metricValue.value}`} metric={metricValue} />)}
@@ -1898,7 +1898,7 @@ function RichBlockView({ block, compact }: { block: NextronRichBlock; compact: b
 
   if (block.type === "empty_state") {
     return (
-      <div className="rounded-2xl border border-cyan-300/14 bg-black/15 p-3">
+      <div className="rounded-2xl border border-[var(--attention)]/20 bg-[var(--muted-soft)] p-3">
         <p className="text-xs font-semibold text-[var(--text)]">{block.title}</p>
         <p className="mt-2 text-xs leading-relaxed text-[var(--text-secondary)]">{block.message}</p>
         {block.href && block.actionLabel && <PanelLink href={block.href}>{block.actionLabel}</PanelLink>}
@@ -1907,7 +1907,7 @@ function RichBlockView({ block, compact }: { block: NextronRichBlock; compact: b
   }
 
   return (
-    <div className="rounded-2xl border border-cyan-300/14 bg-black/15 p-3">
+    <div className="rounded-2xl border border-[var(--attention)]/20 bg-[var(--muted-soft)] p-3">
       <p className="text-xs font-semibold text-[var(--text)]">{block.title}</p>
       <ul className="mt-3 space-y-2">
         {block.items.map((entry, index) => <RichListItemView key={`${entry.source}-${entry.title}-${index}`} item={entry} />)}
@@ -1917,14 +1917,14 @@ function RichBlockView({ block, compact }: { block: NextronRichBlock; compact: b
 }
 
 function RichMetricView({ metric }: { metric: NextronRichMetric }) {
-  const toneClass = metric.tone === "attention" ? "border-[var(--warning)]/30 bg-[var(--warning-soft)]" : metric.tone === "positive" ? "border-emerald-300/25 bg-emerald-400/10" : "border-cyan-300/10 bg-cyan-950/12";
+  const toneClass = metric.tone === "attention" ? "border-[var(--warning)]/30 bg-[var(--warning-soft)]" : metric.tone === "positive" ? "border-[var(--success)]/30 bg-[var(--success-soft)]" : "border-[var(--attention)]/15 bg-[var(--muted-soft)]";
   return <div className={`rounded-xl border px-2.5 py-2 ${toneClass}`}><p className="text-[10px] text-[var(--text-muted)]">{metric.label}</p><p className="mt-1 text-lg font-semibold tabular-nums text-[var(--text)]">{metric.value}</p>{metric.detail && <p className="text-[10px] text-[var(--text-muted)]">{metric.detail}</p>}</div>;
 }
 
 function RichListItemView({ item }: { item: NextronRichListItem }) {
-  const markerClass = item.tone === "attention" ? "bg-[var(--warning)]" : item.tone === "positive" ? "bg-emerald-300" : "bg-cyan-300/65";
-  const content = <><span className={`mt-1 h-2 w-2 shrink-0 rounded-full ${markerClass}`} aria-hidden="true" /><span className="min-w-0"><span className="block break-words text-xs font-medium text-[var(--text)]">{item.title}</span>{item.detail && <span className="mt-0.5 block break-words text-[10px] leading-relaxed text-[var(--text-muted)]">{item.detail}</span>}<span className="mt-0.5 block text-[9px] uppercase tracking-[0.1em] text-cyan-100/45">{formatDomainLabel(item.source)}</span></span></>;
-  return <li>{item.href ? <Link href={item.href} className="flex gap-2 rounded-xl border border-transparent p-2 transition-colors hover:border-cyan-300/16 hover:bg-cyan-300/8">{content}</Link> : <div className="flex gap-2 p-2">{content}</div>}</li>;
+  const markerClass = item.tone === "attention" ? "bg-[var(--warning)]" : item.tone === "positive" ? "bg-[var(--success)]" : "bg-cyan-300/65";
+  const content = <><span className={`mt-1 h-2 w-2 shrink-0 rounded-full ${markerClass}`} aria-hidden="true" /><span className="min-w-0"><span className="block break-words text-xs font-medium text-[var(--text)]">{item.title}</span>{item.detail && <span className="mt-0.5 block break-words text-[10px] leading-relaxed text-[var(--text-muted)]">{item.detail}</span>}<span className="mt-0.5 block text-[9px] uppercase tracking-[0.1em] text-[var(--attention-strong)]">{formatDomainLabel(item.source)}</span></span></>;
+  return <li>{item.href ? <Link href={item.href} className="flex gap-2 rounded-xl border border-transparent p-2 transition-colors hover:border-[var(--attention)]/25 hover:bg-[var(--attention)]/10">{content}</Link> : <div className="flex gap-2 p-2">{content}</div>}</li>;
 }
 
 function PermissionGroup({

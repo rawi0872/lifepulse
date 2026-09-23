@@ -11,7 +11,13 @@ import type {
 } from "./types";
 import { formatMoney, getAppCurrency } from "@/lib/config";
 
-type BalanceTransaction = Pick<FinanceTransaction, "account_id" | "amount" | "type">;
+type BalanceTransaction = Pick<FinanceTransaction, "account_id" | "amount" | "type"> & {
+  finance_accounts?: { currency?: string | null } | null;
+};
+
+function txCurrency(tx: { finance_accounts?: { currency?: string | null } | null }): string | null {
+  return tx.finance_accounts?.currency ?? null;
+}
 
 export function formatCurrency(amount: number, currency = getAppCurrency()): string {
   return formatMoney(amount, 2, currency);
@@ -85,18 +91,29 @@ export function computeAnalytics({
   budgets,
   accounts,
   currentMonth,
+  baseCurrency,
 }: {
   transactions: FinanceTransaction[];
   balanceTransactions?: BalanceTransaction[];
   budgets: FinanceBudget[];
   accounts: FinanceAccount[];
   currentMonth: Date;
+  /** Canonical currency gate: only base-currency rows feed sums; the rest are counted honestly. */
+  baseCurrency: string;
 }): FinanceAnalytics {
   const monthRange = getMonthRange(currentMonth);
   const prevRange = getPreviousMonthRange(currentMonth);
 
+  // Unknown-currency rows (legacy NULL account currency) never join sums.
+  const unknownCurrencyCount = transactions.filter((tx) => txCurrency(tx) === null).length;
+  const inBase = (tx: FinanceTransaction) => txCurrency(tx) === baseCurrency;
+  const excludedForeignCount = transactions.filter((tx) => {
+    const cur = txCurrency(tx);
+    return cur !== null && cur !== baseCurrency;
+  }).length;
+
   const currentMonthTxs = transactions.filter(
-    (tx) => tx.transaction_date >= monthRange.start && tx.transaction_date <= monthRange.end
+    (tx) => tx.transaction_date >= monthRange.start && tx.transaction_date <= monthRange.end && inBase(tx)
   );
 
   const currentMonthIncome = currentMonthTxs
@@ -110,7 +127,7 @@ export function computeAnalytics({
   const currentMonthNet = currentMonthIncome - currentMonthExpenses;
 
   const prevMonthTxs = transactions.filter(
-    (tx) => tx.transaction_date >= prevRange.start && tx.transaction_date <= prevRange.end
+    (tx) => tx.transaction_date >= prevRange.start && tx.transaction_date <= prevRange.end && inBase(tx)
   );
 
   const previousMonthIncome = prevMonthTxs
@@ -173,6 +190,7 @@ export function computeAnalytics({
         budgetAmount: Number(b.amount),
         percentage: pct,
         status,
+        currency: b.currency ?? null,
       };
     })
     .sort((a, b) => {
@@ -208,7 +226,7 @@ export function computeAnalytics({
   const monthlyTrendLast6Months: MonthlyTrend[] = last6Months.map((m) => {
     const range = getMonthRange(m);
     const monthTxs = transactions.filter(
-      (tx) => tx.transaction_date >= range.start && tx.transaction_date <= range.end
+      (tx) => tx.transaction_date >= range.start && tx.transaction_date <= range.end && inBase(tx)
     );
     const income = monthTxs
       .filter((tx) => tx.type === "income")
@@ -235,7 +253,9 @@ export function computeAnalytics({
     const expenseTotal = accountTxs
       .filter((tx) => tx.type === "expense")
       .reduce((sum, tx) => sum + Number(tx.amount), 0);
-    const currentBalance = Number(account.starting_balance) + incomeTotal - expenseTotal;
+    // Canonical invariant: the stored starting balance IS the balance.
+    // Transactions never silently mutate it; linked flow stays informational.
+    const currentBalance = Number(account.starting_balance);
     return {
       accountId: account.id,
       accountName: account.name,
@@ -276,6 +296,9 @@ export function computeAnalytics({
     totalAccountBalance,
     accountBalances,
     hasMixedCurrencies,
+    baseCurrency,
+    unknownCurrencyCount,
+    excludedForeignCount,
   };
 }
 

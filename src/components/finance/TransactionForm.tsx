@@ -4,15 +4,19 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SimpleSelect } from "./SimpleSelect";
 
+export type WealthTxType = "income" | "expense" | "transfer" | "adjustment";
+
 interface TransactionFormProps {
   show: boolean;
   saving: boolean;
   editingTxId: string | null;
+  editingLocked: boolean;
   txTitle: string;
   txAmount: string;
-  txType: "income" | "expense";
+  txType: WealthTxType;
   txCategoryId: string;
   txAccountId: string;
+  txToAccountId: string;
   txDate: string;
   txNote: string;
   expenseOptions: { value: string; label: string }[];
@@ -20,9 +24,10 @@ interface TransactionFormProps {
   accountOptions: { value: string; label: string }[];
   onTitleChange: (v: string) => void;
   onAmountChange: (v: string) => void;
-  onTypeChange: (v: "income" | "expense") => void;
+  onTypeChange: (v: WealthTxType) => void;
   onCategoryChange: (v: string) => void;
   onAccountChange: (v: string) => void;
+  onToAccountChange: (v: string) => void;
   onDateChange: (v: string) => void;
   onNoteChange: (v: string) => void;
   onSave: (e: React.FormEvent) => void;
@@ -32,6 +37,8 @@ interface TransactionFormProps {
 const TRANSACTION_TYPES = [
   { value: "expense", label: "Expense" },
   { value: "income", label: "Income" },
+  { value: "transfer", label: "Transfer" },
+  { value: "adjustment", label: "Adjustment" },
 ];
 
 const STARTER_EXAMPLES = [
@@ -46,11 +53,13 @@ export function TransactionForm({
   show,
   saving,
   editingTxId,
+  editingLocked,
   txTitle,
   txAmount,
   txType,
   txCategoryId,
   txAccountId,
+  txToAccountId,
   txDate,
   txNote,
   expenseOptions,
@@ -61,11 +70,13 @@ export function TransactionForm({
   onTypeChange,
   onCategoryChange,
   onAccountChange,
+  onToAccountChange,
   onDateChange,
   onNoteChange,
   onSave,
 }: TransactionFormProps) {
   if (!show) return null;
+  const isTransfer = txType === "transfer";
 
   function applyExample(example: (typeof STARTER_EXAMPLES)[number]) {
     const options = example.type === "income" ? incomeOptions : expenseOptions;
@@ -126,18 +137,20 @@ export function TransactionForm({
         </div>
         <div>
           <p className="mb-1.5 text-xs font-medium text-[var(--text-secondary)]">Entry type</p>
-          <p className="mb-2 text-[10px] leading-relaxed text-[var(--text-muted)]">Income is money in. Expense is money out.</p>
-        <div className="flex min-w-0 gap-2">
+          <p className="mb-2 text-[10px] leading-relaxed text-[var(--text-muted)]">Income is money in. Expense is money out. Transfer moves money between your accounts. Adjustment corrects a record without touching cash flow.</p>
+        <div className="flex min-w-0 flex-wrap gap-2">
           {TRANSACTION_TYPES.map((t) => (
             <button
               key={t.value}
               type="button"
-              onClick={() => { onTypeChange(t.value as "income" | "expense"); onCategoryChange(""); }}
+              onClick={() => { onTypeChange(t.value as WealthTxType); onCategoryChange(""); }}
               className={`min-h-11 flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-all sm:min-h-0 ${
                 txType === t.value
                   ? t.value === "income"
                     ? "bg-[var(--success-soft)] text-[var(--success)] ring-1 ring-[var(--success)]/30"
-                    : "bg-[var(--danger-soft)] text-[var(--danger)] ring-1 ring-[var(--danger)]/30"
+                    : t.value === "expense"
+                      ? "bg-[var(--danger-soft)] text-[var(--danger)] ring-1 ring-[var(--danger)]/30"
+                      : "bg-[var(--accent-soft)] text-[var(--accent)] ring-1 ring-[var(--accent)]/30"
                   : "bg-[var(--surface-soft)] text-[var(--text-muted)] hover:text-[var(--text)]"
               }`}
             >
@@ -146,7 +159,13 @@ export function TransactionForm({
           ))}
         </div>
         </div>
+        {editingLocked && (
+          <p className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2 text-[11px] leading-relaxed text-[var(--text-muted)]">
+            Paired transfer row: only the name, date, and note can change. Amount and accounts stay linked.
+          </p>
+        )}
         <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
+          {!isTransfer && (
           <SimpleSelect
             label={txType === "income" ? "Income category" : "Expense category"}
             options={txType === "income" ? incomeOptions : expenseOptions}
@@ -154,14 +173,28 @@ export function TransactionForm({
             onChange={onCategoryChange}
             placeholder="Select category"
           />
+          )}
           <SimpleSelect
-            label="Account (optional)"
+            label={isTransfer ? "From account" : "Account (required)"}
             options={accountOptions}
             value={txAccountId}
             onChange={onAccountChange}
-            placeholder="No account"
+            placeholder="Select account"
           />
-          <p className="-mt-2 text-[10px] leading-relaxed text-[var(--text-muted)] sm:col-span-2">Accounts are optional labels only. Life Pulse does not connect to banks.</p>
+          {isTransfer && (
+          <SimpleSelect
+            label="To account"
+            options={accountOptions}
+            value={txToAccountId}
+            onChange={onToAccountChange}
+            placeholder="Select account"
+          />
+          )}
+          <p className="-mt-2 text-[10px] leading-relaxed text-[var(--text-muted)] sm:col-span-2">
+            {isTransfer
+              ? "Both accounts must use the same currency. Transfers never touch income, expenses, or cash flow."
+              : "An account is required. Life Pulse does not connect to banks."}
+          </p>
         </div>
         <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
           <div className="min-w-0">

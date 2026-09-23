@@ -20,13 +20,13 @@ export function Button({
         size === "md" && "min-h-11 px-4 py-2 text-sm sm:min-h-0",
         size === "lg" && "min-h-12 px-6 py-3 text-base sm:min-h-0",
         variant === "primary" &&
-          "text-white bg-[var(--accent)] hover:bg-[var(--accent-strong)] shadow-sm shadow-[var(--accent)]/10",
+          "text-[var(--on-accent)] bg-[var(--accent)] hover:bg-[var(--accent-strong)] shadow-sm shadow-[var(--accent)]/10",
         variant === "secondary" &&
           "border border-[var(--border-strong)] bg-[var(--surface-raised)] text-[var(--text)] hover:bg-[var(--surface-active)] hover:border-[var(--accent)]/30",
         variant === "ghost" &&
           "text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--accent-ghost)]",
         variant === "danger" &&
-          "text-white bg-[var(--danger)] hover:opacity-90 shadow-sm shadow-[var(--danger)]/10",
+          "text-[var(--on-danger)] bg-[var(--danger)] hover:opacity-90 shadow-sm shadow-[var(--danger)]/10",
         className,
       )}
       {...props}

@@ -135,6 +135,20 @@ this file records architecture, evidence, and drift with file pointers.
 - `getDueDateLabel` (web) retained: it is presentation copy, correctly
   layered over `hasInvalidTaskDueDate` — not duplication.
 
+## 5. Prompt 2/3 closure notes (appendix — history above preserved)
+
+- **Wealth**: web now implements accounts (edit/archive/canonical types/institution), manual-first balances, transfer/adjustment flows with paired-leg cleanup, per-base-currency cash flow with unknown/foreign honesty, budget currency (+unknown display), recurring CRUD + advance, truthful goals, base-currency preference, master + section NEXTRON toggles, and bounded `deriveWealthInsights` (max 5). No `wealth_*` tables; `finance_*` only.
+- **Body**: web Synced tab reads `health_records` (60d display-only) + `health_preferences`/`health_sources` visibility, 7D/30D `getBodyMetricTrend` cards, quantitative goals with `getBodyGoalProgress`, consent shown read-only. No browser ingestion; no device-read claims.
+- **NEXTRON permissions**: single domain module (`nextron-permissions.ts`) consumed by mobile helpers and web evidence builder. Action routes (propose/list/approve/cancel) + signals route accept Bearer via `resolveNextronAuth` (same contract as ask). Mobile approves/rejects through the same RPCs (exact-once, owner-isolated, expiring). No BLOCKED items remain.
+- **Conversations**: mobile deletes (long-press + confirm), views/forgets memory, reads signals. Same server enforcement.
+- **Today**: web focus/visibility revalidate + bounded queries (500). Habit logs: both 365d/5000; canonical `weekly` honors N (shared streak fix, friction test updated to correct semantics).
+- **Auth**: mobile reset redirect derived from web origin; remembered email on both (same key); birth validation messages aligned.
+- **Life-map**: real route, added to proxy guards.
+- **Terminology**: core surfaces say Wealth/Body/NEXTRON; knowledge content tags and legacy realm-title keys intentionally kept (persisted user data).
+- **Body AI evidence**: explicitly wired when allowed — metric names + one summary line only, never raw records.
+- **Visual**: theme vars applied across nav, cards, dialogs, forms, errors, coach, onboarding, today/town surfaces; NEXTRON keeps attention-cyan brand + orbit art as deliberate identity (like realm colors); `on-accent`/`on-danger` text tokens.
+- **Remaining for Prompt 3**: physical/browser acceptance only. No known defects, no pending migrations, no BLOCKED items.
+
 ## 4. Migration / RLS posture
 - No new migrations in Prompt 1/3. Realm bootstrap (habits) and
   `finance_preferences` upsert (wealth toggle) reuse existing tables

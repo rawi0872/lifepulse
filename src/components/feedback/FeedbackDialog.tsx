@@ -65,7 +65,7 @@ export function FeedbackDialog({ open, onClose }: { open: boolean; onClose: () =
 
   return (
     <div className="fixed inset-0 z-[60] flex items-end justify-center sm:items-center">
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="fixed inset-0 bg-[var(--backdrop)] backdrop-blur-sm" onClick={onClose} />
       <div className="relative z-10 w-full max-w-md rounded-t-2xl border border-[var(--border)] bg-[var(--bg-elevated)] p-6 shadow-2xl sm:rounded-2xl animate-slide-up">
         <div className="mb-6 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-[var(--text)]">Private beta feedback</h2>
@@ -159,7 +159,7 @@ export function FeedbackDialog({ open, onClose }: { open: boolean; onClose: () =
             <button
               type="submit"
               disabled={sending || !message.trim()}
-              className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition-all hover:bg-[var(--accent)] disabled:opacity-50"
+              className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-[var(--on-accent)] transition-all hover:bg-[var(--accent)] disabled:opacity-50"
             >
               {sending ? "Sending..." : "Send feedback"}
             </button>

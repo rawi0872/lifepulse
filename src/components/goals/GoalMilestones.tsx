@@ -54,7 +54,7 @@ export function GoalMilestones({ milestones, saving, onAdd, onToggle, onDelete }
                     onClick={() => onToggle(m.id, !done)}
                     className={`flex h-6 w-6 shrink-0 items-center justify-center rounded border transition-colors sm:h-4 sm:w-4 ${
                       done
-                        ? "border-[var(--success)] bg-[var(--success)] text-white"
+                        ? "border-[var(--success)] bg-[var(--success)] text-[var(--on-accent)]"
                         : "border-[var(--border)] hover:border-[var(--accent)]"
                     }`}
                   >
@@ -98,7 +98,7 @@ export function GoalMilestones({ milestones, saving, onAdd, onToggle, onDelete }
         <button
           onClick={handleAdd}
           disabled={saving || !newTitle.trim()}
-          className="shrink-0 rounded-lg bg-[var(--accent)] px-3 py-2 text-[10px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50 sm:py-1.5"
+          className="shrink-0 rounded-lg bg-[var(--accent)] px-3 py-2 text-[10px] font-semibold text-[var(--on-accent)] transition-opacity hover:opacity-90 disabled:opacity-50 sm:py-1.5"
         >
           Add
         </button>

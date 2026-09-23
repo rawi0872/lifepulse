@@ -15,9 +15,9 @@ const TYPE_LABELS: Record<LifeMapNodeType, string> = {
 
 const TYPE_COLORS: Record<LifeMapNodeType, string> = {
   goal: "border-amber-300/30 bg-amber-300/10 text-amber-100",
-  project: "border-cyan-300/25 bg-cyan-300/10 text-cyan-100",
+  project: "border-[var(--attention)]/25 bg-[var(--attention)]/10 text-cyan-100",
   task: "border-violet-300/25 bg-violet-300/10 text-violet-100",
-  habit: "border-emerald-300/25 bg-emerald-300/10 text-emerald-100",
+  habit: "border-[var(--success)]/30 bg-[var(--success-soft)] text-emerald-100",
 };
 
 const COLUMN_META: Array<{ type: LifeMapNodeType; title: string; subtitle: string }> = [
@@ -112,16 +112,16 @@ export default function LifeMapPage() {
   return (
     <DashboardNav>
       <main className="mx-auto max-w-7xl px-4 py-6 animate-fade-in sm:px-6 sm:py-8">
-        <header className="mb-6 overflow-hidden rounded-3xl border border-white/[0.08] bg-[radial-gradient(circle_at_top_left,rgba(103,232,249,0.16),transparent_34%),linear-gradient(135deg,rgba(244,247,251,0.045),rgba(244,247,251,0.012))] p-5 shadow-2xl shadow-black/20 sm:p-6">
+        <header className="mb-6 overflow-hidden rounded-3xl border border-[var(--border)] bg-[radial-gradient(circle_at_top_left,rgba(103,232,249,0.16),transparent_34%),linear-gradient(135deg,rgba(244,247,251,0.045),rgba(244,247,251,0.012))] p-5 shadow-2xl shadow-black/20 sm:p-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-cyan-100/70">Life Map</p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--attention-strong)]">Life Map</p>
               <h1 className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-[var(--text)] sm:text-4xl">Your explicit operating graph.</h1>
               <p className="mt-3 text-sm leading-relaxed text-[var(--text-muted)]">This map only uses relationships you created: goal links and project task assignments. No AI, embeddings, or inferred connections are used to render it.</p>
             </div>
             <div className="flex flex-wrap gap-2 text-[10px] text-[var(--text-muted)]">
-              <span className="rounded-full border border-cyan-200/20 bg-cyan-300/10 px-3 py-1.5 text-cyan-50/80">No background AI</span>
-              <span className="rounded-full border border-white/[0.08] bg-[var(--surface-soft)] px-3 py-1.5">Explicit links only</span>
+              <span className="rounded-full border border-[var(--attention-strong)] bg-[var(--attention)]/10 px-3 py-1.5 text-[var(--attention-strong)]">No background AI</span>
+              <span className="rounded-full border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-1.5">Explicit links only</span>
               <Link href="/goals" className="rounded-full border border-[var(--accent)]/25 px-3 py-1.5 font-semibold text-[var(--accent)] hover:border-[var(--accent)]/40">Manage links</Link>
             </div>
           </div>
@@ -138,7 +138,7 @@ export default function LifeMapPage() {
             <p className="text-sm font-semibold text-[var(--text)]">No map yet.</p>
             <p className="mx-auto mt-2 max-w-xl text-sm leading-relaxed text-[var(--text-muted)]">Create a goal, project, task, or habit. Then link goals from the Goals page when a relationship is real.</p>
             <div className="mt-4 flex flex-col justify-center gap-2 sm:flex-row">
-              <Link href="/goals" className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white">Open Goals</Link>
+              <Link href="/goals" className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-[var(--on-accent)]">Open Goals</Link>
               <Link href="/projects" className="rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-semibold text-[var(--text-muted)]">Open Projects</Link>
             </div>
           </section>
@@ -158,7 +158,7 @@ export default function LifeMapPage() {
 
             <section className="hidden gap-3 lg:grid lg:grid-cols-4" aria-label="Desktop Life Map columns">
               {COLUMN_META.map((meta) => (
-                <div key={meta.type} className="min-w-0 rounded-3xl border border-white/[0.08] bg-[var(--surface-soft)]/80 p-3">
+                <div key={meta.type} className="min-w-0 rounded-3xl border border-[var(--border)] bg-[var(--surface-soft)]/80 p-3">
                   <div className="mb-3 px-1">
                     <h2 className="text-sm font-semibold text-[var(--text)]">{meta.title}</h2>
                     <p className="mt-0.5 text-[10px] text-[var(--text-muted)]">{meta.subtitle}</p>
@@ -192,7 +192,7 @@ export default function LifeMapPage() {
               ))}
             </section>
 
-            <section className="mt-4 rounded-3xl border border-white/[0.08] bg-[var(--surface-soft)] p-4" aria-live="polite">
+            <section className="mt-4 rounded-3xl border border-[var(--border)] bg-[var(--surface-soft)] p-4" aria-live="polite">
               {selectedNode ? (
                 <div>
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -243,7 +243,7 @@ function RelationshipPaths({ graph, nodesById, onFocus }: { graph: LifeMapGraph;
   if (goalNodes.length === 0) return null;
 
   return (
-    <section className="mb-4 rounded-3xl border border-white/[0.08] bg-[linear-gradient(180deg,rgba(244,247,251,0.036),rgba(244,247,251,0.012))] p-3 sm:p-4" aria-label="Canonical relationship paths">
+    <section className="mb-4 rounded-3xl border border-[var(--border)] bg-[linear-gradient(180deg,rgba(244,247,251,0.036),rgba(244,247,251,0.012))] p-3 sm:p-4" aria-label="Canonical relationship paths">
       <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2 className="text-sm font-semibold text-[var(--text)]">Connected Paths</h2>
@@ -274,7 +274,7 @@ function RelationshipPaths({ graph, nodesById, onFocus }: { graph: LifeMapGraph;
                   {linkedProjects.map((project) => {
                     const tasks = projectTaskEdges.filter((edge) => edge.source === project.id).map((edge) => nodesById[edge.target]).filter(Boolean).slice(0, 4);
                     return (
-                      <div key={project.id} className="relative rounded-xl border border-cyan-300/15 bg-cyan-300/[0.045] p-2.5">
+                      <div key={project.id} className="relative rounded-xl border border-[var(--attention)]/20 bg-cyan-300/[0.045] p-2.5">
                         <span className="absolute -left-3 top-5 h-px w-3 bg-cyan-100/25" aria-hidden="true" />
                         <button onClick={() => onFocus(project.id)} className="min-h-9 w-full text-left">
                           <span className="block text-xs font-semibold text-cyan-50">Project: {project.title}</span>
@@ -293,7 +293,7 @@ function RelationshipPaths({ graph, nodesById, onFocus }: { graph: LifeMapGraph;
                     );
                   })}
                   {linkedHabits.map((habit) => (
-                    <button key={habit.id} onClick={() => onFocus(habit.id)} className="relative block min-h-10 w-full rounded-xl border border-emerald-300/15 bg-emerald-300/[0.045] p-2.5 text-left">
+                    <button key={habit.id} onClick={() => onFocus(habit.id)} className="relative block min-h-10 w-full rounded-xl border border-emerald-300/15 bg-[var(--success)]/[0.045] p-2.5 text-left">
                       <span className="absolute -left-3 top-5 h-px w-3 bg-emerald-100/25" aria-hidden="true" />
                       <span className="block text-xs font-semibold text-emerald-50">Habit: {habit.title}</span>
                       <span className="text-[10px] text-emerald-50/55">{nodeDetail(habit) || "Reinforces this goal"}</span>

@@ -143,6 +143,16 @@ export function buildNextronProviderInput(evidence: NextronEvidencePacket, userP
   addSection(input, "memory", evidence.memory.status, evidence.memory.data && {
     preferences: evidence.memory.data.preferences.map((preference) => boundedString(preference, 120)).filter((preference): preference is string => Boolean(preference)).slice(0, 3),
   });
+  // Body: only summarized, never raw records; fail-closed already handled in
+  // the evidence builder (available solely when storage + NEXTRON metrics
+  // are both explicitly allowed). Metric names + one summary line only.
+  const bodySection = evidence.body;
+  if (bodySection.status === "available" && bodySection.data) {
+    addSection(input, "body", bodySection.status, {
+      availableMetrics: bodySection.data.availableMetrics.join(","),
+      todaySummary: boundedString(bodySection.data.todaySummary, 200),
+    });
+  }
   // Wealth: only summarized, never raw transactions; fail-closed already handled in evidence builder
   const wealthData: any = (evidence as any).wealth?.data;
   const wealthStatus: any = (evidence as any).wealth?.status;

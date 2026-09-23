@@ -168,7 +168,7 @@ export default function Home() {
             </Link>
             <Link
               href="/signup"
-              className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition-all hover:bg-[var(--accent-strong)]"
+              className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-[var(--on-accent)] transition-all hover:bg-[var(--accent-strong)]"
             >
               Start beta
             </Link>
@@ -203,13 +203,13 @@ export default function Home() {
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link
               href="/signup"
-              className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-[var(--accent)] px-6 py-2.5 text-sm font-medium text-white transition-all hover:bg-[var(--accent-strong)] sm:w-auto"
+              className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-[var(--accent)] px-6 py-2.5 text-sm font-medium text-[var(--on-accent)] transition-all hover:bg-[var(--accent-strong)] sm:w-auto"
             >
               Start your private beta
             </Link>
             <Link
               href="/login"
-              className="inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-[var(--border-strong)] px-6 py-2.5 text-sm font-medium text-[var(--text)] transition-colors hover:bg-white/[0.03] sm:w-auto"
+              className="inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-[var(--border-strong)] px-6 py-2.5 text-sm font-medium text-[var(--text)] transition-colors hover:bg-[var(--surface-active)] sm:w-auto"
             >
               Sign in
             </Link>
@@ -472,7 +472,7 @@ export default function Home() {
         </p>
         <Link
           href="/signup"
-          className="inline-flex items-center justify-center rounded-lg bg-[var(--accent)] px-8 py-3 text-base font-medium text-white transition-all hover:bg-[var(--accent-strong)]"
+          className="inline-flex items-center justify-center rounded-lg bg-[var(--accent)] px-8 py-3 text-base font-medium text-[var(--on-accent)] transition-all hover:bg-[var(--accent-strong)]"
         >
           Create your Life Pulse
         </Link>

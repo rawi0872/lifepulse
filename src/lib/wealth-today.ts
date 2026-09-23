@@ -10,7 +10,7 @@ import {
   type WealthRecurringItem,
 } from "@lifepulse/domain";
 
-async function findWealthRealmId(supabase: SupabaseClient, userId: string): Promise<string | null> {
+export async function ensureWebWealthRealm(supabase: SupabaseClient, userId: string): Promise<string | null> {
   const { data: existing } = await supabase
     .from("realms")
     .select("id")
@@ -27,6 +27,10 @@ async function findWealthRealmId(supabase: SupabaseClient, userId: string): Prom
     .single();
   if (error || !created) return null;
   return (created as { id: string }).id;
+}
+
+async function findWealthRealmId(supabase: SupabaseClient, userId: string): Promise<string | null> {
+  return ensureWebWealthRealm(supabase, userId);
 }
 
 export async function loadWebWealthTodayCandidate(

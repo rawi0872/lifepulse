@@ -138,8 +138,8 @@ function NavLink({ item, active, onClick }: { item: NavItem; active: boolean; on
       aria-current={active ? "page" : undefined}
       className={`group relative flex min-h-10 min-w-0 items-center gap-2.5 rounded-lg border px-2.5 py-2 text-sm font-medium transition-all duration-200 md:min-h-0 ${
         active
-          ? "border-white/[0.08] bg-[var(--surface)] text-[var(--text)] shadow-sm shadow-black/10"
-          : "border-transparent text-[var(--text-muted)] hover:border-white/[0.04] hover:bg-white/[0.025] hover:text-[var(--text-secondary)]"
+          ? "border-[var(--border)] bg-[var(--surface)] text-[var(--text)] shadow-sm shadow-black/10"
+          : "border-transparent text-[var(--text-muted)] hover:border-[var(--border)] hover:bg-[var(--surface-active)] hover:text-[var(--text-secondary)]"
       }`}
     >
       {active && <span className="absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-full bg-[var(--accent-strong)]" />}
@@ -164,8 +164,8 @@ export function DashboardNav({ children }: { children: React.ReactNode }) {
   return (
     <div className="command-shell min-h-screen overflow-x-hidden">
       <div className="command-shell-grid pointer-events-none fixed inset-0 opacity-50" aria-hidden="true" />
-      <aside className="fixed left-0 top-0 z-40 hidden h-screen w-56 flex-col border-r border-white/[0.07] bg-[linear-gradient(180deg,rgba(244,247,251,0.018),rgba(244,247,251,0.004)),rgba(8,12,18,0.96)] backdrop-blur-xl md:flex">
-        <Link href="/today" className="group mx-4 mt-5 mb-7 flex items-center gap-2.5 rounded-xl px-1 py-1 transition-colors hover:bg-white/[0.02]">
+      <aside className="fixed left-0 top-0 z-40 hidden h-screen w-56 flex-col border-r border-[var(--border)] bg-[var(--nav-surface)] backdrop-blur-xl md:flex">
+        <Link href="/today" className="group mx-4 mt-5 mb-7 flex items-center gap-2.5 rounded-xl px-1 py-1 transition-colors hover:bg-[var(--surface-active)]">
           <div className="relative transition-all duration-200 group-hover:opacity-80">
             <LifePulseLogo variant="mark" size="sm" />
           </div>
@@ -188,7 +188,7 @@ export function DashboardNav({ children }: { children: React.ReactNode }) {
           ))}
         </nav>
 
-        <div className="border-t border-white/[0.06] px-2 pt-2 pb-3">
+        <div className="border-t border-[var(--border)] px-2 pt-2 pb-3">
           <FeedbackButton />
         </div>
       </aside>
@@ -197,7 +197,7 @@ export function DashboardNav({ children }: { children: React.ReactNode }) {
         {children}
       </main>
 
-      <nav className="fixed right-0 bottom-0 left-0 z-50 border-t border-white/[0.08] bg-[rgba(8,12,18,0.98)] px-1.5 pb-[env(safe-area-inset-bottom)] shadow-[0_-18px_48px_rgba(0,0,0,0.28)] backdrop-blur-md md:hidden">
+      <nav className="fixed right-0 bottom-0 left-0 z-50 border-t border-[var(--border)] bg-[var(--nav-surface)] px-1.5 pb-[env(safe-area-inset-bottom)] shadow-[0_-18px_48px_rgba(0,0,0,0.28)] backdrop-blur-md md:hidden">
         <div className="flex items-center justify-around py-1">
           {mobilePrimaryItems.map((item) => {
             const active = isActive(item.href);
@@ -207,7 +207,7 @@ export function DashboardNav({ children }: { children: React.ReactNode }) {
                   href={item.href}
                   prefetch
                   className={`flex min-w-[3.5rem] flex-col items-center gap-0.5 rounded-xl border px-2 py-1.5 text-[10px] font-medium transition-all duration-200 ${
-                  active ? "border-white/[0.08] bg-[var(--surface)] text-[var(--text)]" : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+                  active ? "border-[var(--border)] bg-[var(--surface)] text-[var(--text)]" : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
                 }`}
               >
                 <span className={active ? "text-[var(--accent-strong)]" : "text-[var(--text-muted)]"}>{item.icon}</span>
@@ -220,7 +220,7 @@ export function DashboardNav({ children }: { children: React.ReactNode }) {
             onClick={() => setMoreOpen(true)}
             className={`flex min-w-[3.5rem] flex-col items-center gap-0.5 rounded-xl border px-2 py-1.5 text-[10px] font-medium transition-all duration-200 ${
               moreOpen || mobileMoreItems.some((item) => isActive(item.href))
-                ? "border-white/[0.08] bg-[var(--surface)] text-[var(--text)]"
+                ? "border-[var(--border)] bg-[var(--surface)] text-[var(--text)]"
                 : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
             }`}
           >
@@ -234,8 +234,8 @@ export function DashboardNav({ children }: { children: React.ReactNode }) {
 
       {moreOpen && (
         <div className="fixed inset-0 z-[55] md:hidden">
-          <div className="fixed inset-0 bg-black/55 backdrop-blur-sm" onClick={() => setMoreOpen(false)} />
-          <div className="fixed right-0 bottom-0 left-0 z-10 max-h-[75vh] overflow-y-auto rounded-t-3xl border border-white/[0.08] bg-[linear-gradient(180deg,rgba(244,247,251,0.03),rgba(244,247,251,0)),var(--bg-elevated)] p-4 pb-8 shadow-2xl shadow-black/40 animate-slide-up">
+          <div className="fixed inset-0 bg-[var(--backdrop)] backdrop-blur-sm" onClick={() => setMoreOpen(false)} />
+          <div className="fixed right-0 bottom-0 left-0 z-10 max-h-[75vh] overflow-y-auto rounded-t-3xl border border-[var(--border)] bg-[var(--surface-overlay)] p-4 pb-8 shadow-2xl shadow-black/40 animate-slide-up">
             <div className="mb-3 flex items-center justify-between">
               <div>
                 <h2 className="text-base font-semibold tracking-[-0.02em] text-[var(--text)]">More</h2>

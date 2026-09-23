@@ -263,7 +263,7 @@ export default function OnboardingPage() {
         <aside className="nextron-surface relative overflow-hidden rounded-[2rem] p-4 sm:p-5 xl:sticky xl:top-5 xl:self-start">
           <div className="nextron-precision-edge pointer-events-none absolute inset-x-6 top-0 h-px" aria-hidden="true" />
           <LifePulseLogo />
-          <p className="mt-6 text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-200/70">First session</p>
+          <p className="mt-6 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--attention-strong)]">First session</p>
           <h1 className="mt-2 text-3xl font-bold tracking-[-0.04em] text-[var(--text)] sm:text-4xl">Build Life Pulse around your actual life.</h1>
           <p className="mt-3 text-sm leading-relaxed text-[var(--text-secondary)]">Start by talking to NEXTRON. It will learn what matters, then show you a starting plan before anything is created.</p>
           <div className="mt-5 grid grid-cols-3 gap-2">
@@ -271,32 +271,32 @@ export default function OnboardingPage() {
             <MiniStat label="Learned" value={String(insightCount)} />
             <MiniStat label="Created" value="0" />
           </div>
-          <div className="mt-5 rounded-2xl border border-cyan-300/10 bg-black/15 p-3">
+          <div className="mt-5 rounded-2xl border border-[var(--attention)]/15 bg-[var(--muted-soft)] p-3">
             <p className="text-xs font-semibold text-[var(--text)]">Private by default</p>
             <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">This conversation sets up your account. NEXTRON will not save long-term preferences unless you explicitly ask it to remember something later.</p>
           </div>
-          <label className="mt-3 flex items-start gap-3 rounded-2xl border border-cyan-300/10 bg-black/15 p-3 text-left">
-            <input type="checkbox" checked={allowProductLearning} disabled={savingProductLearning} onChange={(event) => void saveProductLearningPreference(event.target.checked)} className="mt-1 h-4 w-4 rounded border-cyan-300/25 bg-black/20" />
+          <label className="mt-3 flex items-start gap-3 rounded-2xl border border-[var(--attention)]/15 bg-[var(--muted-soft)] p-3 text-left">
+            <input type="checkbox" checked={allowProductLearning} disabled={savingProductLearning} onChange={(event) => void saveProductLearningPreference(event.target.checked)} className="mt-1 h-4 w-4 rounded border-[var(--attention)]/25 bg-[var(--surface-soft)]" />
             <span>
               <span className="block text-xs font-semibold text-[var(--text)]">Help improve Life Pulse</span>
               <span className="mt-1 block text-xs leading-relaxed text-[var(--text-muted)]">Share basic usage events. This never includes NEXTRON conversations, journal entries, task names, or other private content.</span>
             </span>
           </label>
-          <button type="button" onClick={() => void transition("skip")} disabled={transitioning !== null} className="mt-4 inline-flex min-h-10 w-full items-center justify-center rounded-xl border border-cyan-300/15 bg-black/15 px-3 py-2 text-sm font-semibold text-[var(--text-secondary)] transition-colors hover:border-cyan-200/30 hover:bg-cyan-300/10 disabled:opacity-50">
+          <button type="button" onClick={() => void transition("skip")} disabled={transitioning !== null} className="mt-4 inline-flex min-h-10 w-full items-center justify-center rounded-xl border border-[var(--attention)]/20 bg-[var(--muted-soft)] px-3 py-2 text-sm font-semibold text-[var(--text-secondary)] transition-colors hover:border-[var(--attention-strong)] hover:bg-[var(--attention)]/10 disabled:opacity-50">
             {transitioning === "skip" ? "Skipping..." : "Skip for now"}
           </button>
-          {skipped && <button type="button" onClick={() => void transition("resume")} disabled={transitioning !== null} className="mt-2 inline-flex min-h-10 w-full items-center justify-center rounded-xl bg-cyan-300 px-3 py-2 text-sm font-semibold text-slate-950 transition-colors hover:bg-cyan-200 disabled:opacity-50">Resume onboarding</button>}
+          {skipped && <button type="button" onClick={() => void transition("resume")} disabled={transitioning !== null} className="mt-2 inline-flex min-h-10 w-full items-center justify-center rounded-xl bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-[var(--on-accent)] transition-colors hover:bg-[var(--accent-strong)] disabled:opacity-50">Resume onboarding</button>}
         </aside>
 
         <section className="nextron-surface nextron-scanline relative flex min-h-[72vh] flex-col overflow-hidden rounded-[2rem] p-4 sm:p-5">
           {sending && <div className="pointer-events-none absolute inset-y-0 left-0 w-1/2 bg-[linear-gradient(90deg,transparent,rgba(103,232,249,0.10),transparent)] [animation:nextron-scan_1.7s_ease-in-out_infinite]" aria-hidden="true" />}
-          <div className="mb-4 flex flex-col gap-3 border-b border-cyan-300/10 pb-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="mb-4 flex flex-col gap-3 border-b border-[var(--attention)]/15 pb-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-200/70">NEXTRON onboarding</p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--attention-strong)]">NEXTRON onboarding</p>
               <h2 className="mt-1 text-xl font-semibold tracking-[-0.03em] text-[var(--text)]">Tell me what is changing.</h2>
               <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[var(--text-muted)]">Say what you want to improve, what is hard right now, or what your week needs to support.</p>
             </div>
-            <span className="w-fit rounded-full border border-cyan-300/18 bg-cyan-300/8 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-cyan-100/75">{sending ? "Analyzing" : draft ? "Draft ready" : "Listening"}</span>
+            <span className="w-fit rounded-full border border-[var(--attention)]/25 bg-[var(--attention)]/10 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--attention-strong)]">{sending ? "Analyzing" : draft ? "Draft ready" : "Listening"}</span>
           </div>
 
           <div className="flex-1 space-y-3 overflow-y-auto pr-1">
@@ -308,17 +308,17 @@ export default function OnboardingPage() {
 
           {!hasConversation && (
             <div className="mt-4 flex flex-wrap gap-2">
-              {EXAMPLES.map((example) => <button key={example} type="button" onClick={() => { setPrompt(example); composerRef.current?.focus(); }} className="rounded-full border border-cyan-300/15 bg-cyan-300/10 px-3 py-1.5 text-xs text-cyan-50/80 transition-colors hover:border-cyan-200/35">{example}</button>)}
+              {EXAMPLES.map((example) => <button key={example} type="button" onClick={() => { setPrompt(example); composerRef.current?.focus(); }} className="rounded-full border border-[var(--attention)]/20 bg-[var(--attention)]/10 px-3 py-1.5 text-xs text-[var(--attention-strong)] transition-colors hover:border-[var(--attention-strong)]">{example}</button>)}
             </div>
           )}
 
           <form className="mt-4 space-y-3" onSubmit={(event) => { event.preventDefault(); void send(); }}>
             <label htmlFor="nextron-onboarding-composer" className="sr-only">Talk to NEXTRON</label>
-            <div className="rounded-2xl border border-cyan-300/18 bg-[linear-gradient(180deg,rgba(2,6,23,0.44),rgba(2,6,23,0.24))] p-2 shadow-inner shadow-cyan-950/20 transition-all duration-200 focus-within:border-cyan-200/55 focus-within:shadow-[0_0_0_1px_rgba(103,232,249,0.12),0_0_42px_rgba(8,145,178,0.12)]">
+            <div className="rounded-2xl border border-[var(--attention)]/25 bg-[linear-gradient(180deg,rgba(2,6,23,0.44),rgba(2,6,23,0.24))] p-2 shadow-inner shadow-cyan-950/20 transition-all duration-200 focus-within:border-[var(--attention-strong)] focus-within:shadow-[0_0_0_1px_rgba(103,232,249,0.12),0_0_42px_rgba(8,145,178,0.12)]">
               <textarea ref={composerRef} id="nextron-onboarding-composer" value={prompt} onChange={(event) => { setPrompt(event.target.value.slice(0, 1500)); setError(null); }} onKeyDown={(event) => { if (event.nativeEvent.isComposing) return; if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void send(); } }} rows={3} maxLength={1500} placeholder="Tell NEXTRON what is happening right now..." className="min-h-24 w-full resize-y rounded-xl border-0 bg-transparent px-3 py-3 text-base leading-relaxed text-[var(--text)] outline-none placeholder:text-[var(--text-muted)]" />
-              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-cyan-300/10 px-2 pt-2">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--attention)]/15 px-2 pt-2">
                 <p className="text-xs text-[var(--text-muted)]">Enter sends; Shift+Enter adds a line.</p>
-                <button type="submit" disabled={sending || !prompt.trim()} className="inline-flex min-h-11 items-center rounded-xl bg-cyan-300 px-4 py-2 text-sm font-semibold text-slate-950 shadow-lg shadow-cyan-950/30 transition-all hover:-translate-y-0.5 hover:bg-cyan-200 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-45">{sending ? "Analyzing..." : "Send to NEXTRON"}</button>
+                <button type="submit" disabled={sending || !prompt.trim()} className="inline-flex min-h-11 items-center rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-[var(--on-accent)] shadow-lg shadow-cyan-950/30 transition-all hover:-translate-y-0.5 hover:bg-[var(--accent-strong)] disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-45">{sending ? "Analyzing..." : "Send to NEXTRON"}</button>
               </div>
             </div>
             {error && <p className="rounded-xl border border-[var(--warning)]/25 bg-[var(--warning-soft)] px-3 py-2 text-xs text-[var(--warning)]">{error}</p>}
@@ -335,16 +335,16 @@ export default function OnboardingPage() {
 }
 
 function MiniStat({ label, value }: { label: string; value: string }) {
-  return <div className="rounded-2xl border border-cyan-300/12 bg-black/18 px-3 py-2"><p className="text-[10px] text-[var(--text-muted)]">{label}</p><p className="mt-1 truncate text-sm font-semibold text-[var(--text)]">{value}</p></div>;
+  return <div className="rounded-2xl border border-[var(--attention)]/15 bg-[var(--muted-soft)] px-3 py-2"><p className="text-[10px] text-[var(--text-muted)]">{label}</p><p className="mt-1 truncate text-sm font-semibold text-[var(--text)]">{value}</p></div>;
 }
 
 function OnboardingTurn({ role, content, pending }: { role: "user" | "assistant"; content: string; pending?: boolean }) {
   const assistant = role === "assistant";
   return (
-    <article className={`relative overflow-hidden rounded-2xl border p-4 pl-5 ${assistant ? "border-cyan-300/18 bg-[linear-gradient(180deg,rgba(8,18,32,0.78),rgba(4,9,18,0.90))]" : "border-cyan-300/8 bg-black/12"}`}>
+    <article className={`relative overflow-hidden rounded-2xl border p-4 pl-5 ${assistant ? "border-[var(--attention)]/25 bg-[linear-gradient(180deg,rgba(8,18,32,0.78),rgba(4,9,18,0.90))]" : "border-[var(--attention)]/15 bg-[var(--muted-soft)]"}`}>
       <div className={`absolute inset-y-4 left-0 w-px ${assistant ? "bg-gradient-to-b from-cyan-200/20 via-cyan-200/70 to-transparent" : "bg-slate-400/18"}`} aria-hidden="true" />
-      <p className={`text-[10px] font-semibold uppercase tracking-[0.14em] ${assistant ? "text-cyan-200/75" : "text-[var(--text-muted)]"}`}>{assistant ? "NEXTRON" : "You"}</p>
-      <p className={`mt-2 break-words text-sm leading-relaxed ${pending ? "text-cyan-50/75" : assistant ? "text-[var(--text)]" : "text-[var(--text-secondary)]"}`}>{content}</p>
+      <p className={`text-[10px] font-semibold uppercase tracking-[0.14em] ${assistant ? "text-[var(--attention-strong)]" : "text-[var(--text-muted)]"}`}>{assistant ? "NEXTRON" : "You"}</p>
+      <p className={`mt-2 break-words text-sm leading-relaxed ${pending ? "text-[var(--attention-strong)]" : assistant ? "text-[var(--text)]" : "text-[var(--text-secondary)]"}`}>{content}</p>
     </article>
   );
 }
@@ -352,7 +352,7 @@ function OnboardingTurn({ role, content, pending }: { role: "user" | "assistant"
 function UnderstandingPanel({ understanding }: { understanding: Understanding }) {
   return (
     <section className="nextron-surface rounded-[1.5rem] p-4">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-200/60">What I understand</p>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--attention-strong)]">What I understand</p>
       <h2 className="mt-1 text-sm font-semibold text-[var(--text)]">Current picture</h2>
       <div className="mt-4 space-y-3">
         <UnderstandingSection title="Right now" items={understanding.currentSituation} empty="Waiting for your first context." />
@@ -365,11 +365,11 @@ function UnderstandingPanel({ understanding }: { understanding: Understanding })
 }
 
 function UnderstandingSection({ title, items, empty }: { title: string; items: string[]; empty: string }) {
-  return <div><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">{title}</p>{items.length > 0 ? <ul className="mt-2 space-y-1.5">{items.map((item) => <li key={item} className="break-words rounded-xl border border-cyan-300/10 bg-black/15 px-3 py-2 text-xs leading-relaxed text-[var(--text-secondary)]">{item}</li>)}</ul> : <p className="mt-2 rounded-xl border border-cyan-300/10 bg-black/15 px-3 py-2 text-xs text-[var(--text-muted)]">{empty}</p>}</div>;
+  return <div><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">{title}</p>{items.length > 0 ? <ul className="mt-2 space-y-1.5">{items.map((item) => <li key={item} className="break-words rounded-xl border border-[var(--attention)]/15 bg-[var(--muted-soft)] px-3 py-2 text-xs leading-relaxed text-[var(--text-secondary)]">{item}</li>)}</ul> : <p className="mt-2 rounded-xl border border-[var(--attention)]/15 bg-[var(--muted-soft)] px-3 py-2 text-xs text-[var(--text-muted)]">{empty}</p>}</div>;
 }
 
 function DraftWaitingPanel() {
-  return <section className="nextron-surface rounded-[1.5rem] p-4"><p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-200/60">Starting plan</p><h2 className="mt-1 text-sm font-semibold text-[var(--text)]">Not ready yet</h2><p className="mt-3 text-xs leading-relaxed text-[var(--text-muted)]">NEXTRON will suggest a small setup once it understands your priorities and constraints. It will leave out anything that does not seem necessary.</p></section>;
+  return <section className="nextron-surface rounded-[1.5rem] p-4"><p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--attention-strong)]">Starting plan</p><h2 className="mt-1 text-sm font-semibold text-[var(--text)]">Not ready yet</h2><p className="mt-3 text-xs leading-relaxed text-[var(--text-muted)]">NEXTRON will suggest a small setup once it understands your priorities and constraints. It will leave out anything that does not seem necessary.</p></section>;
 }
 
 function DraftPanel({
@@ -399,7 +399,7 @@ function DraftPanel({
   const completed = proposal?.status === "completed" || proposal?.status === "partially_failed";
   return (
     <section className="nextron-surface rounded-[1.5rem] p-4" data-nextron-onboarding-draft="true">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-200/60">Starting plan</p>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--attention-strong)]">Starting plan</p>
       <h2 className="mt-1 text-lg font-semibold tracking-[-0.03em] text-[var(--text)]">Your plan is ready to build.</h2>
       <p className="mt-2 text-xs leading-relaxed text-[var(--text-muted)]">Review this first. Nothing is created until you allow and approve it.</p>
       <div className="mt-4 space-y-4">
@@ -413,29 +413,29 @@ function DraftPanel({
         <DraftCards title="Deliberately left out" items={draft.deliberatelyLeftOut.map((item) => `${item.item} — ${item.reason}`)} muted />
       </div>
       {!proposal && <div className="mt-4 flex flex-col gap-2">
-        <button type="button" onClick={onComplete} disabled={busy} className="inline-flex min-h-11 items-center justify-center rounded-xl border border-cyan-300/20 bg-cyan-300/10 px-4 py-2 text-sm font-semibold text-cyan-50/85 transition-all hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-50">{busy ? "Saving..." : "Looks right"}</button>
-        <button type="button" onClick={onBuildPlan} disabled={proposalStatus === "building"} className="inline-flex min-h-11 items-center justify-center rounded-xl bg-cyan-300 px-4 py-2 text-sm font-semibold text-slate-950 transition-all hover:-translate-y-0.5 hover:bg-cyan-200 disabled:translate-y-0 disabled:opacity-50">{proposalStatus === "building" ? "Preparing preview..." : "Build my Life Pulse"}</button>
+        <button type="button" onClick={onComplete} disabled={busy} className="inline-flex min-h-11 items-center justify-center rounded-xl border border-[var(--attention)]/25 bg-[var(--attention)]/10 px-4 py-2 text-sm font-semibold text-[var(--attention-strong)] transition-all hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-50">{busy ? "Saving..." : "Looks right"}</button>
+        <button type="button" onClick={onBuildPlan} disabled={proposalStatus === "building"} className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-[var(--on-accent)] transition-all hover:-translate-y-0.5 hover:bg-[var(--accent-strong)] disabled:translate-y-0 disabled:opacity-50">{proposalStatus === "building" ? "Preparing preview..." : "Build my Life Pulse"}</button>
       </div>}
-      {proposal && <div className="mt-5 rounded-2xl border border-cyan-300/18 bg-black/18 p-4">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-200/70">Review before creating</p>
+      {proposal && <div className="mt-5 rounded-2xl border border-[var(--attention)]/25 bg-[var(--muted-soft)] p-4">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--attention-strong)]">Review before creating</p>
         <h3 className="mt-1 text-base font-semibold text-[var(--text)]">{proposal.preview.heading}</h3>
         <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">{proposal.description}</p>
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
-          {proposal.preview.fields.map((field) => <div key={field.label} className="rounded-xl border border-cyan-300/10 bg-cyan-300/8 px-3 py-2"><p className="text-[10px] uppercase tracking-[0.12em] text-[var(--text-muted)]">{field.label}</p><p className="mt-1 text-sm font-semibold text-[var(--text)]">{field.after}</p></div>)}
+          {proposal.preview.fields.map((field) => <div key={field.label} className="rounded-xl border border-[var(--attention)]/15 bg-[var(--attention)]/10 px-3 py-2"><p className="text-[10px] uppercase tracking-[0.12em] text-[var(--text-muted)]">{field.label}</p><p className="mt-1 text-sm font-semibold text-[var(--text)]">{field.after}</p></div>)}
         </div>
-        {!completed && <div className="mt-4 rounded-xl border border-cyan-300/12 bg-black/15 p-3">
+        {!completed && <div className="mt-4 rounded-xl border border-[var(--attention)]/15 bg-[var(--muted-soft)] p-3">
           <p className="text-xs font-semibold text-[var(--text)]">Allow NEXTRON to create these items?</p>
           <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">This allows only the Goals, Habits, Projects, and Tasks shown in this review. NEXTRON still cannot change anything without your approval.</p>
-          <button type="button" onClick={onGrantPermissions} disabled={proposalStatus === "granting"} className="mt-3 inline-flex min-h-10 items-center rounded-xl border border-cyan-300/20 bg-cyan-300/10 px-3 py-2 text-xs font-semibold text-cyan-50/85 transition-all hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-50">{proposalStatus === "granting" ? "Saving..." : "Allow setup changes"}</button>
+          <button type="button" onClick={onGrantPermissions} disabled={proposalStatus === "granting"} className="mt-3 inline-flex min-h-10 items-center rounded-xl border border-[var(--attention)]/25 bg-[var(--attention)]/10 px-3 py-2 text-xs font-semibold text-[var(--attention-strong)] transition-all hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-50">{proposalStatus === "granting" ? "Saving..." : "Allow setup changes"}</button>
         </div>}
         <p className="mt-3 text-xs text-[var(--text-muted)]">Status: {proposal.status === "pending" ? "Waiting for your approval" : proposal.status.replace(/_/g, " ")}</p>
         <div className="mt-3 flex flex-wrap gap-2">
-          <button type="button" onClick={onApprovePlan} disabled={!pending || !setupPermissionsGranted || proposalStatus === "approving"} className="inline-flex min-h-11 items-center rounded-xl bg-cyan-300 px-4 py-2 text-sm font-semibold text-slate-950 transition-all hover:-translate-y-0.5 hover:bg-cyan-200 disabled:translate-y-0 disabled:opacity-50">{proposalStatus === "approving" ? "Applying..." : setupPermissionsGranted ? proposal.preview.approvalLabel : "Grant permissions first"}</button>
+          <button type="button" onClick={onApprovePlan} disabled={!pending || !setupPermissionsGranted || proposalStatus === "approving"} className="inline-flex min-h-11 items-center rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-[var(--on-accent)] transition-all hover:-translate-y-0.5 hover:bg-[var(--accent-strong)] disabled:translate-y-0 disabled:opacity-50">{proposalStatus === "approving" ? "Applying..." : setupPermissionsGranted ? proposal.preview.approvalLabel : "Grant permissions first"}</button>
           <button type="button" onClick={onCancelPlan} disabled={!pending || proposalStatus === "cancelling"} className="inline-flex min-h-11 items-center rounded-xl border border-[var(--danger)]/25 bg-[var(--danger-soft)] px-4 py-2 text-sm font-semibold text-[var(--danger)] transition-all hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-50">Cancel</button>
         </div>
         {completed && <div className="mt-4 space-y-3 rounded-xl border border-[var(--success)]/25 bg-[var(--success-soft)] px-3 py-2 text-xs leading-relaxed text-[var(--success)]">
           <p>Your Life Pulse is ready. Enter the app to review the created structure and ask NEXTRON what to do today.</p>
-          <button type="button" onClick={onComplete} disabled={busy} className="inline-flex min-h-10 items-center rounded-xl bg-[var(--success)] px-3 py-2 text-xs font-semibold text-white transition-all hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-50">{busy ? "Entering..." : "Enter Life Pulse"}</button>
+          <button type="button" onClick={onComplete} disabled={busy} className="inline-flex min-h-10 items-center rounded-xl bg-[var(--success)] px-3 py-2 text-xs font-semibold text-[var(--on-accent)] transition-all hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-50">{busy ? "Entering..." : "Enter Life Pulse"}</button>
         </div>}
       </div>}
     </section>
@@ -443,9 +443,9 @@ function DraftPanel({
 }
 
 function DraftList({ title, items }: { title: string; items: string[] }) {
-  return <div><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-cyan-200/65">{title}</p><ol className="mt-2 space-y-1.5">{items.map((item, index) => <li key={`${item}-${index}`} className="break-words rounded-xl border border-cyan-300/10 bg-cyan-300/8 px-3 py-2 text-xs leading-relaxed text-[var(--text)]">{index + 1}. {item}</li>)}</ol></div>;
+  return <div><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--attention-strong)]">{title}</p><ol className="mt-2 space-y-1.5">{items.map((item, index) => <li key={`${item}-${index}`} className="break-words rounded-xl border border-[var(--attention)]/15 bg-[var(--attention)]/10 px-3 py-2 text-xs leading-relaxed text-[var(--text)]">{index + 1}. {item}</li>)}</ol></div>;
 }
 
 function DraftCards({ title, items, muted }: { title: string; items: string[]; muted?: boolean }) {
-  return <div><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-cyan-200/65">{title}</p><div className="mt-2 grid gap-2">{items.map((item) => <div key={item} className={`break-words rounded-xl border px-3 py-2 text-xs leading-relaxed ${muted ? "border-[var(--border)] bg-black/12 text-[var(--text-muted)]" : "border-cyan-300/10 bg-black/15 text-[var(--text-secondary)]"}`}>{item}</div>)}</div></div>;
+  return <div><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--attention-strong)]">{title}</p><div className="mt-2 grid gap-2">{items.map((item) => <div key={item} className={`break-words rounded-xl border px-3 py-2 text-xs leading-relaxed ${muted ? "border-[var(--border)] bg-[var(--muted-soft)] text-[var(--text-muted)]" : "border-[var(--attention)]/15 bg-[var(--muted-soft)] text-[var(--text-secondary)]"}`}>{item}</div>)}</div></div>;
 }

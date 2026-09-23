@@ -8,6 +8,11 @@ import { buildLifeMapGraph, summarizeLifeMapForNextron } from "@/lib/life-map";
 import type { NextronContextDomain, NextronPermissionState } from "@/lib/nextron/context";
 import { isNextronContextAllowed } from "@/lib/nextron/context";
 import { buildWealthNextronEvidence, type WealthNextronEvidence } from "@/lib/nextron/wealth-evidence";
+import {
+  effectiveNextronMetrics,
+  sanitizeWealthNextronSections,
+  type WealthNextronSection,
+} from "@lifepulse/domain";
 
 type EvidenceStatus = "available" | "missing" | "permission_denied" | "error";
 
@@ -203,7 +208,8 @@ export async function buildNextronEvidencePacket(
     const nextronAllowed: string[] = hp?.nextron_allowed_metrics ?? [];
     // schema unavailable → treat as denied (pending 00040)
     if (Array.isArray(allowed) && Array.isArray(nextronAllowed)) {
-      const effective = nextronAllowed.filter((m: string) => allowed.includes(m));
+      // Shared fail-closed intersection (domain-owned semantics).
+      const effective = effectiveNextronMetrics(allowed, nextronAllowed);
       if (effective.length > 0) {
         body = available({ availableMetrics: effective, todaySummary: `Body metrics available: ${effective.join(", ")}` }, "Body metrics are summarized, not raw.");
       } else if (allowed.length > 0) {
@@ -230,8 +236,8 @@ export async function buildNextronEvidencePacket(
     const { data: wp } = await supabase.from("finance_preferences").select("nextron_access_enabled, nextron_allowed_sections").eq("user_id", userId).maybeSingle() as any;
     const master = !!wp?.nextron_access_enabled;
     const sections: string[] = Array.isArray(wp?.nextron_allowed_sections) ? wp.nextron_allowed_sections : [];
-    const valid: string[] = ["balances","cash_flow","transactions_summary","recurring_items","wealth_goals"];
-    const effective = master ? sections.filter((s:string)=> valid.includes(s)) : [];
+    // Shared fail-closed section gate (domain-owned semantics).
+    const effective: WealthNextronSection[] = master ? sanitizeWealthNextronSections(sections) : [];
     if (!master) {
       wealth = denied("Wealth NEXTRON access is OFF — enable in Wealth settings.");
     } else if (effective.length===0) {

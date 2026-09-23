@@ -25,7 +25,7 @@ export function FeedbackButton({ label = "Feedback", description, variant = "nav
         onClick={handleOpen}
         className={variant === "cta"
           ? "flex min-w-0 items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2 text-left text-xs font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-active)] hover:text-[var(--text)] w-full"
-          : "flex items-center gap-2 rounded-md px-2.5 py-2 text-sm font-medium text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-white/[0.03] transition-all duration-200 w-full"
+          : "flex items-center gap-2 rounded-md px-2.5 py-2 text-sm font-medium text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--surface-active)] transition-all duration-200 w-full"
         }
       >
         <svg className="h-[18px] w-[18px] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>

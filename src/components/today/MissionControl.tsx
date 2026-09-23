@@ -50,7 +50,7 @@ export function MissionControl({
   onStarterActionSelect,
   onQuickCapture,
 }: MissionControlProps) {
-  const inputClassName = "min-w-0 flex-1 rounded-xl border border-white/[0.09] bg-[rgba(8,11,15,0.72)] px-3.5 py-3 text-sm text-[var(--text)] placeholder:text-[var(--text-muted)]/80 shadow-inner shadow-black/20 transition-all duration-150 focus:border-[var(--accent-strong)]/50 focus:bg-[rgba(10,14,19,0.9)] focus:ring-2 focus:ring-[var(--accent)]/12 focus:outline-none sm:py-2.5";
+  const inputClassName = "min-w-0 flex-1 rounded-xl border border-[var(--border-strong)] bg-[var(--surface)] px-3.5 py-3 text-sm text-[var(--text)] placeholder:text-[var(--text-muted)]/80 shadow-inner shadow-black/20 transition-all duration-150 focus:border-[var(--accent-strong)]/50 focus:bg-[var(--surface)] focus:ring-2 focus:ring-[var(--accent)]/12 focus:outline-none sm:py-2.5";
   const actionButtonBaseClassName = "inline-flex min-h-[3rem] items-center justify-center rounded-xl border px-4 text-sm font-semibold transition-all duration-150 focus:ring-2 focus:ring-[var(--accent)]/18 focus:outline-none sm:min-h-[2.625rem] sm:w-auto";
   const enabledActionClassName = "shadow-sm shadow-black/25 hover:brightness-105 active:scale-[0.99]";
   const disabledActionClassName = "cursor-not-allowed shadow-none";
@@ -64,7 +64,7 @@ export function MissionControl({
   });
 
   return (
-    <Card className="mb-4 overflow-hidden border-white/[0.09] bg-[linear-gradient(180deg,rgba(244,247,251,0.032),rgba(244,247,251,0.008)),var(--surface)] shadow-lg shadow-black/15 sm:mb-5">
+    <Card className="mb-4 overflow-hidden border-[var(--border-strong)] bg-[linear-gradient(180deg,rgba(244,247,251,0.032),rgba(244,247,251,0.008)),var(--surface)] shadow-lg shadow-black/15 sm:mb-5">
       <div className="border-b border-[var(--border)] px-4 py-4 sm:px-5 sm:py-5">
         <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
@@ -87,7 +87,7 @@ export function MissionControl({
             One priority
           </label>
           {priorities.length === 0 ? (
-            <div className="mt-2 rounded-2xl border border-white/[0.06] bg-black/[0.12] p-2.5 sm:p-3">
+            <div className="mt-2 rounded-2xl border border-[var(--border)] bg-[var(--muted-soft)] p-2.5 sm:p-3">
               <div className="flex min-w-0 flex-col gap-2.5 sm:flex-row">
                 <input
                   value={priorityInput}
@@ -120,7 +120,7 @@ export function MissionControl({
                     }`}
                   >
                     {p.done && (
-                      <svg className="h-2.5 w-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                      <svg className="h-2.5 w-2.5 text-[var(--on-accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                       </svg>
                     )}
@@ -159,7 +159,7 @@ export function MissionControl({
               {priorities.length < 3 && (
                 <div className="mt-1">
                   {addingPriority ? (
-                    <div className="flex min-w-0 flex-col gap-2.5 rounded-2xl border border-white/[0.06] bg-black/[0.12] p-2.5 sm:flex-row sm:p-3">
+                    <div className="flex min-w-0 flex-col gap-2.5 rounded-2xl border border-[var(--border)] bg-[var(--muted-soft)] p-2.5 sm:flex-row sm:p-3">
                       <input
                         autoFocus
                         value={priorityInput}
@@ -202,7 +202,7 @@ export function MissionControl({
           <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
             Need a visible action? Add one small task for today or start a tiny habit here.
           </p>
-          <div className="mt-2 rounded-2xl border border-white/[0.06] bg-black/[0.12] p-2.5 sm:p-3">
+          <div className="mt-2 rounded-2xl border border-[var(--border)] bg-[var(--muted-soft)] p-2.5 sm:p-3">
             <div className="flex min-w-0 flex-col gap-2.5 sm:flex-row">
               <div className="relative min-w-0 flex-1">
                 <input
@@ -216,7 +216,7 @@ export function MissionControl({
                 <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
                   <span className={`rounded-md border px-2 py-0.5 text-[10px] font-medium shadow-sm shadow-black/10 ${
                     quickType === "task"
-                      ? "border-white/[0.07] bg-[var(--surface)] text-[var(--text-secondary)]"
+                      ? "border-[var(--border)] bg-[var(--surface)] text-[var(--text-secondary)]"
                       : quickType === "habit"
                         ? "border-[var(--success)]/20 bg-[var(--success-soft)] text-[var(--success)]"
                         : "border-[var(--accent)]/20 bg-[var(--accent-soft)] text-[var(--accent)]"
@@ -236,7 +236,7 @@ export function MissionControl({
             </div>
           </div>
           {!visibleActionDone && (
-            <div className="mt-3 rounded-lg border border-dashed border-[var(--border)] bg-black/[0.08] px-3 py-2.5">
+            <div className="mt-3 rounded-lg border border-dashed border-[var(--border)] bg-[var(--muted-soft)] px-3 py-2.5">
               <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-[var(--text-muted)]">
                 One-action starters
               </p>

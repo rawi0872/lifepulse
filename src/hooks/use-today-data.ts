@@ -142,13 +142,15 @@ export function useTodayData(supabase: SupabaseClient) {
         supabase
           .from("habits")
           .select("id, title, description, frequency, days_of_week, times_per_week, realms(name, color, icon)")
-          .eq("user_id", user.id),
+          .eq("user_id", user.id)
+          .limit(500),
         supabase
           .from("tasks")
           .select("id, title, description, priority, due_date, status, completed_at, project_id, realms(name, color, icon), projects(title)")
           .eq("user_id", user.id)
           .or(`and(due_date.eq.${date.localDate},status.eq.todo),and(due_date.lt.${date.localDate},status.eq.todo),and(due_date.is.null,status.eq.todo),and(status.eq.done,completed_at.gte.${date.dayStart},completed_at.lte.${date.dayEnd})`)
-          .order("due_date", { ascending: true }),
+          .order("due_date", { ascending: true })
+          .limit(500),
         supabase
           .from("journal_entries")
           .select("id")
@@ -274,6 +276,21 @@ export function useTodayData(supabase: SupabaseClient) {
 
     scheduleRolloverCheck();
     return () => window.clearTimeout(timeoutId);
+  }, [loadTodayData]);
+
+  useEffect(() => {
+    // Focus revalidate (web equivalent of mobile useFocusEffect reload):
+    // returning to the tab never shows stale completions/edits/deletes.
+    const onVisible = () => {
+      if (document.visibilityState === "visible") loadTodayData();
+    };
+    const onFocus = () => loadTodayData();
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onFocus);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onFocus);
+    };
   }, [loadTodayData]);
 
   const actions = useMemo(() => ({

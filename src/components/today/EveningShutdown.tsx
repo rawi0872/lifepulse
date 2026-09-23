@@ -153,7 +153,7 @@ export function EveningShutdown({
 
   return (
     <section id="evening-reflection" className="mb-6 scroll-mt-24" aria-labelledby="evening-shutdown-heading">
-      <Card className={`overflow-hidden ${isEvening ? "border-[var(--accent)]/28 bg-[linear-gradient(135deg,rgba(122,162,199,0.11),rgba(244,247,251,0.032)),var(--surface)] shadow-xl shadow-black/20" : "border-white/[0.08] bg-[linear-gradient(180deg,rgba(244,247,251,0.026),rgba(244,247,251,0.006)),var(--surface)]"}`}>
+      <Card className={`overflow-hidden ${isEvening ? "border-[var(--accent)]/28 bg-[linear-gradient(135deg,rgba(122,162,199,0.11),rgba(244,247,251,0.032)),var(--surface)] shadow-xl shadow-black/20" : "border-[var(--border)] bg-[linear-gradient(180deg,rgba(244,247,251,0.026),rgba(244,247,251,0.006)),var(--surface)]"}`}>
         <div className="border-b border-[var(--border)] px-4 py-4 sm:px-5">
           <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
@@ -196,7 +196,7 @@ export function EveningShutdown({
                   ))}
                 </ul>
               ) : (
-                <p className="mt-3 rounded-lg border border-dashed border-[var(--border)] bg-black/[0.08] px-3 py-3 text-xs text-[var(--text-muted)]">
+                <p className="mt-3 rounded-lg border border-dashed border-[var(--border)] bg-[var(--muted-soft)] px-3 py-3 text-xs text-[var(--text-muted)]">
                   No completed tasks or habits are logged for today yet.
                 </p>
               )}
@@ -217,7 +217,7 @@ export function EveningShutdown({
                   ))}
                 </ul>
               ) : (
-                <p className="mt-3 rounded-lg border border-dashed border-[var(--border)] bg-black/[0.08] px-3 py-3 text-xs text-[var(--text-muted)]">
+                <p className="mt-3 rounded-lg border border-dashed border-[var(--border)] bg-[var(--muted-soft)] px-3 py-3 text-xs text-[var(--text-muted)]">
                   No open items need attention.
                 </p>
               )}

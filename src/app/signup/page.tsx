@@ -53,9 +53,9 @@ export default function SignupPage() {
     if (!email.trim()) return "Email is required.";
     if (!email.includes("@") || !email.includes(".")) return "Enter a valid email address.";
     if (!password || password.length < 6) return "Password must be at least 6 characters.";
-    if (!birthDate) return "Birth date is required.";
+    if (!birthDate) return "Birth date is required (YYYY-MM-DD).";
     const bd = new Date(birthDate);
-    if (isNaN(bd.getTime())) return "Enter a valid birth date.";
+    if (isNaN(bd.getTime())) return "Enter a valid birth date (YYYY-MM-DD).";
     if (bd > new Date()) return "Birth date cannot be in the future.";
     const age = new Date().getFullYear() - bd.getFullYear();
     if (age > 120) return "Please enter a valid birth date.";
@@ -137,7 +137,7 @@ export default function SignupPage() {
           <div className="flex flex-col gap-3">
             <Link
               href="/login"
-              className="inline-flex w-full items-center justify-center rounded-lg bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-[var(--accent)]"
+              className="inline-flex w-full items-center justify-center rounded-lg bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-[var(--on-accent)] transition-all hover:bg-[var(--accent)]"
             >
               Go to sign in
             </Link>
@@ -210,7 +210,7 @@ export default function SignupPage() {
               onChange={(e) => setBirthDate(e.target.value)}
               disabled={loading}
               required
-              className="mt-1.5 w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface-soft)] px-3 py-2.5 text-sm text-[var(--text)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none [color-scheme:dark]"
+              className="mt-1.5 w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface-soft)] px-3 py-2.5 text-sm text-[var(--text)] transition-all duration-150 focus:border-[var(--accent)]/50 focus:ring-2 focus:ring-[var(--accent-soft)] focus:outline-none [color-scheme:light_dark]"
             />
             <p className="mt-1.5 text-xs leading-relaxed text-[var(--text-muted)]">
               Used to personalize your Life Pulse setup. It is not shown publicly and can be refined later in Settings.

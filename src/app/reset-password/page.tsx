@@ -173,7 +173,7 @@ export default function ResetPasswordPage() {
           <div className="flex flex-col gap-3">
             <Link
               href="/forgot-password"
-              className="block w-full rounded-lg bg-[var(--accent)] px-4 py-2.5 text-center text-sm font-medium text-white transition-all hover:bg-[var(--accent)]"
+              className="block w-full rounded-lg bg-[var(--accent)] px-4 py-2.5 text-center text-sm font-medium text-[var(--on-accent)] transition-all hover:bg-[var(--accent)]"
             >
               Request a new reset link
             </Link>
@@ -204,7 +204,7 @@ export default function ResetPasswordPage() {
           </div>
           <Link
             href="/login"
-            className="block w-full rounded-lg bg-[var(--accent)] px-4 py-2.5 text-center text-sm font-medium text-white transition-all hover:bg-[var(--accent)]"
+            className="block w-full rounded-lg bg-[var(--accent)] px-4 py-2.5 text-center text-sm font-medium text-[var(--on-accent)] transition-all hover:bg-[var(--accent)]"
           >
             Sign in with your new password
           </Link>
@@ -273,7 +273,7 @@ export default function ResetPasswordPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-lg bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-[var(--accent)] disabled:opacity-50"
+            className="w-full rounded-lg bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-[var(--on-accent)] transition-all hover:bg-[var(--accent)] disabled:opacity-50"
           >
             {loading ? "Updating..." : "Update password"}
           </button>

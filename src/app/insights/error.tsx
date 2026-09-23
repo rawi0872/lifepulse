@@ -18,7 +18,7 @@ export default function InsightsError({
         <p className="mb-4 text-sm text-[var(--text-muted)]">Something went wrong loading your insights.</p>
         <button
           onClick={reset}
-          className="rounded-lg bg-[var(--accent)] px-3 py-1.5 text-sm font-medium text-white transition-all hover:bg-[var(--accent-strong)]"
+          className="rounded-lg bg-[var(--accent)] px-3 py-1.5 text-sm font-medium text-[var(--on-accent)] transition-all hover:bg-[var(--accent-strong)]"
         >
           Try again
         </button>

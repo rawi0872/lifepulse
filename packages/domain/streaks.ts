@@ -79,8 +79,12 @@ export function getTimesPerWeekTarget(timesPerWeek: number | string | null | und
 }
 
 function targetForFlexibleWeek(schedule: HabitSchedule): number | null {
-  if (schedule.frequency === "times_per_week") return getTimesPerWeekTarget(schedule.times_per_week);
-  if (schedule.frequency === "weekly") return 1;
+  // Canonical "weekly" stores its N target in times_per_week (see
+  // normalizeHabitSchedule); legacy "times_per_week" rows carry it too.
+  // Missing targets fall back to 1 so old rows stay due, never stranded.
+  if (schedule.frequency === "weekly" || schedule.frequency === "times_per_week") {
+    return getTimesPerWeekTarget(schedule.times_per_week) ?? 1;
+  }
   return null;
 }
 

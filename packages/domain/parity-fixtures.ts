@@ -45,3 +45,14 @@ export const EXPECTED_NORMALIZED_SCHEDULES: Record<string, { frequency: string; 
   weekdays: { frequency: "weekdays", days_of_week: [1, 3, 5], times_per_week: null },
   weekly: { frequency: "weekly", days_of_week: [], times_per_week: 3 },
 };
+
+// Habit log-window boundaries (same inputs both clients must use).
+export const LOG_WINDOW_FIXTURES = {
+  // 2026-09-22 is a Tuesday; week starts Monday 2026-09-21 on both clients.
+  tuesday: "2026-09-22",
+  mondayWeekStart: "2026-09-21",
+  sunday: "2026-09-27",
+  nextMonday: "2026-09-28",
+  historyFloorDays: 365,
+  historyLimit: 5000,
+};

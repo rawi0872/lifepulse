@@ -26,7 +26,25 @@ import {
   REALM_NAMES,
   THEME_LABELS,
   APPEARANCE_STORAGE_KEY,
+  getWeekStartForDate,
+  getLocalTodayDateString,
+  getCurrentStreak,
+  getWeeklyProgress,
+  normalizeCompletedDates,
+  isHabitDueOnDate,
+  parseWealthAmount,
+  getWealthBudgetStatuses,
+  getWealthGoalProgress,
+  getEffectiveWealthNextronSections,
+  sanitizeWealthNextronSections,
+  effectiveNextronMetrics,
+  WEALTH_NEXTRON_SECTIONS,
+  getBodyMetricTrend,
+  formatBodyMetricValue,
+  isValidPosition,
+  MAX_PRIORITIES_PER_DAY,
 } from "../packages/domain/index.ts";
+import { getTodayDateString, getWeekStartDate } from "../src/lib/utils.ts";
 import {
   fixtureTasks,
   fixtureHabits,
@@ -34,6 +52,7 @@ import {
   EXPECTED_TASK_GROUPS,
   EXPECTED_RANKING_WINNER,
   EXPECTED_NORMALIZED_SCHEDULES,
+  LOG_WINDOW_FIXTURES,
 } from "../packages/domain/parity-fixtures.ts";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -379,6 +398,268 @@ describe("terminology is converged", () => {
       .filter(Boolean)
       .filter((l) => !allowed(l));
     assert.deepEqual(offenders, [], `Finance display strings remain:\n${offenders.join("\n")}`);
+  });
+
+  it("theme labels name both premium identities", () => {
+    assert.equal(THEME_LABELS.darkHint, "Signature Pulse");
+    assert.equal(THEME_LABELS.lightHint, "Warm Human");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Habit log-window alignment (same inputs, same boundaries, both clients)
+// ---------------------------------------------------------------------------
+describe("habit log windows are aligned", () => {
+  it("weeks start Monday on both date helpers", () => {
+    assert.equal(getWeekStartForDate(LOG_WINDOW_FIXTURES.tuesday), LOG_WINDOW_FIXTURES.mondayWeekStart);
+    assert.equal(getWeekStartDate(), getWeekStartForDate(getTodayDateString()));
+  });
+
+  it("local-day strings share the canonical shape", () => {
+    assert.match(getTodayDateString(), /^\d{4}-\d{2}-\d{2}$/);
+    assert.match(getLocalTodayDateString(), /^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  it("weekday boundaries agree: Mon-Fri due, weekend not", () => {
+    const habit = { frequency: "weekdays", days_of_week: [1, 2, 3, 4, 5] };
+    assert.equal(isHabitDueOnDate(habit, LOG_WINDOW_FIXTURES.tuesday, []), true);
+    assert.equal(isHabitDueOnDate(habit, LOG_WINDOW_FIXTURES.sunday, []), false);
+    assert.equal(isHabitDueOnDate(habit, LOG_WINDOW_FIXTURES.nextMonday, []), true);
+  });
+
+  it("times-per-week counts within the same Monday week", () => {
+    const dates = normalizeCompletedDates(["2026-09-21", "2026-09-22", "2026-09-28"]);
+    const progress = getWeeklyProgress(dates, "weekly", 3, LOG_WINDOW_FIXTURES.mondayWeekStart, [], { asOfDate: "2026-09-28" });
+    assert.equal(progress.completed, 2);
+    assert.equal(progress.target, 3);
+  });
+
+  it("completion logs normalize identically (drop future + invalid + dupes)", () => {
+    const clean = normalizeCompletedDates(["2026-09-22", "2026-09-22", "nope", "2999-01-01"]);
+    assert.ok(!clean.includes("nope") && !clean.includes("2999-01-01"));
+    assert.equal(new Set(clean).size, clean.length);
+  });
+
+  it("consecutive-day streaks match on shared inputs", () => {
+    assert.equal(getCurrentStreak(["2026-09-20", "2026-09-21", "2026-09-22"], "daily", []), 3);
+  });
+
+  it("both clients bound history to 365 days / 5000 rows", () => {
+    assert.equal(LOG_WINDOW_FIXTURES.historyFloorDays, 365);
+    const web = read("src/app/habits/page.tsx");
+    const mobile = read("apps/mobile/app/(tabs)/habits.tsx");
+    assert.ok(web.includes(".limit(5000)"), "web habits unbounded");
+    assert.ok(mobile.includes(".limit(5000)"), "mobile habits unbounded");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Canonical write shapes (cross-client data contract)
+// ---------------------------------------------------------------------------
+describe("canonical write shapes match across clients", () => {
+  it("task writes carry the same definition columns", () => {
+    const built = buildTaskUpdatePayload(
+      { title: "T", priority: "medium", due_date: null },
+      { title: " T2 ", priority: "high", dueDate: "2026-09-23" },
+    );
+    assert.equal(built.ok, true);
+    assert.deepEqual(built.ok && Object.keys(built.payload).sort(), ["due_date", "priority", "title"]);
+    assert.deepEqual(built.ok && built.payload, { title: "T2", priority: "high", due_date: "2026-09-23" });
+  });
+
+  it("habit writes carry definition columns only (history preserved)", () => {
+    const built = buildHabitUpdatePayload(
+      { title: "H", frequency: "daily", days_of_week: [], times_per_week: null },
+      { title: "H2", frequency: "weekly", daysOfWeek: [], timesPerWeek: 3 },
+    );
+    assert.equal(built.ok, true);
+    assert.deepEqual(built.ok && Object.keys(built.payload).sort(), ["days_of_week", "frequency", "times_per_week", "title"]);
+  });
+
+  it("priority rows obey position 1-3 and the daily cap", () => {
+    assert.equal(MAX_PRIORITIES_PER_DAY, 3);
+    assert.equal(isValidPosition(1) && isValidPosition(3) && !isValidPosition(4), true);
+  });
+
+  it("wealth goals store the quantitative contract columns", () => {
+    const src = read("src/lib/wealth.ts");
+    for (const column of ["goal_type", "target_metric", "target_value", "target_unit", "baseline_value", "target_date"]) {
+      assert.ok(src.includes(column), `web wealth goal missing ${column}`);
+    }
+  });
+
+  it("permission rows use the same tables and columns", () => {
+    for (const file of ["apps/mobile/lib/nextron-wealth-permissions.ts", "src/lib/nextron/evidence.ts"]) {
+      const src = read(file);
+      assert.ok(src.includes("finance_preferences"), `${file} missing finance_preferences`);
+      assert.ok(src.includes("nextron_allowed_sections"), `${file} missing sections column`);
+    }
+    assert.ok(read("apps/mobile/lib/nextron-health-permissions.ts").includes("health_preferences"));
+    assert.ok(read("src/lib/nextron/evidence.ts").includes("health_preferences"));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Wealth invariants (behavioral, shared engine)
+// ---------------------------------------------------------------------------
+describe("wealth invariants hold", () => {
+  it("amount parsing rejects negatives, NaN, and non-numbers", () => {
+    assert.equal(parseWealthAmount("100"), 100);
+    assert.equal(parseWealthAmount("-5"), null);
+    assert.equal(parseWealthAmount("NaN"), null);
+    assert.equal(parseWealthAmount(""), null);
+  });
+
+  it("legacy NULL budget currency means unknown (never compared)", () => {
+    const statuses = getWealthBudgetStatuses(
+      [{ id: "b", category_id: "c", month: "2026-09-01", amount: 100, currency: null }],
+      [{ id: "c", name: "Food" }],
+      [{ categoryId: "c", categoryName: "Food", amount: 200, share: 1, count: 2, currency: "ILS" }],
+      "ILS",
+    );
+    assert.equal(statuses[0].status, "currency_unknown");
+    assert.equal(statuses[0].percentUsed, null);
+  });
+
+  it("investment contributions stay insufficient without evidence", () => {
+    const progress = getWealthGoalProgress(
+      [{ id: "g", title: "Invest", goal_type: "investment_contribution", target_value: 1000, baseline_value: 0, target_metric: "investment_balance", target_unit: "ILS" }],
+      [],
+    );
+    assert.equal(progress[0].status, "insufficient");
+  });
+
+  it("shared wealth sections are a closed set", () => {
+    assert.deepEqual([...WEALTH_NEXTRON_SECTIONS].sort(), ["balances", "cash_flow", "recurring_items", "transactions_summary", "wealth_goals"].sort());
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Shared permission semantics (behavioral)
+// ---------------------------------------------------------------------------
+describe("shared permission semantics", () => {
+  it("wealth sections require the master switch", () => {
+    assert.deepEqual(getEffectiveWealthNextronSections({ master: false, sections: ["balances"] }), []);
+    assert.deepEqual(getEffectiveWealthNextronSections({ master: true, sections: ["balances", "nope"] }), ["balances"]);
+    assert.deepEqual(getEffectiveWealthNextronSections(null), []);
+  });
+
+  it("body evidence needs both storage and NEXTRON consent", () => {
+    assert.deepEqual(effectiveNextronMetrics(["steps"], ["steps", "weight"]), ["steps"]);
+    assert.deepEqual(effectiveNextronMetrics([], ["steps"]), []);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Body display contracts (behavioral)
+// ---------------------------------------------------------------------------
+describe("body display contracts", () => {
+  it("trends report insufficient without coverage", () => {
+    const trend = getBodyMetricTrend([], "steps", 7);
+    assert.equal(trend.direction, "insufficient");
+  });
+
+  it("metric values format deterministically", () => {
+    assert.equal(formatBodyMetricValue("steps", 7500), "7,500 steps");
+  });
+
+  it("web synced tab reads normalized records with consent visibility", () => {
+    const src = read("src/app/body/page.tsx");
+    assert.ok(src.includes("health_records"), "web body never reads synced records");
+    assert.ok(src.includes("health_preferences"), "web body never shows consent state");
+    assert.ok(src.includes("getBodyMetricTrend"), "web body lacks trend engine");
+    assert.ok(src.includes("getBodyGoalProgress"), "web body lacks goal progress");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Action approval availability contract (same server, both clients)
+// ---------------------------------------------------------------------------
+describe("action approval is available on both clients", () => {
+  it("mobile can list, approve, and reject proposals", () => {
+    const lib = read("apps/mobile/lib/nextron.ts");
+    assert.ok(lib.includes("listNextronActionProposals"), "mobile cannot list proposals");
+    assert.ok(lib.includes("approveNextronActionProposal"), "mobile cannot approve");
+    assert.ok(lib.includes("cancelNextronActionProposal"), "mobile cannot reject");
+  });
+
+  it("mobile renders explicit approve/reject controls", () => {
+    const screen = read("apps/mobile/app/(tabs)/nextron.tsx");
+    assert.ok(screen.includes("Approve") && screen.includes("Reject"), "mobile has no approval controls");
+  });
+
+  it("action routes accept mobile Bearer auth (same contract as ask)", () => {
+    for (const route of [
+      "src/app/api/nextron/actions/route.ts",
+      "src/app/api/nextron/actions/propose/route.ts",
+      "src/app/api/nextron/actions/[id]/approve/route.ts",
+      "src/app/api/nextron/actions/[id]/cancel/route.ts",
+      "src/app/api/nextron/signals/route.ts",
+    ]) {
+      assert.ok(read(route).includes("resolveNextronAuth"), `${route} rejects Bearer clients`);
+    }
+  });
+
+  it("server enforces exact-once, owner isolation, and expiry", () => {
+    const migration = read("supabase/migrations/00033_nextron_cross_domain_actions.sql");
+    assert.ok(migration.includes("status = 'pending'"), "no pending-row guard");
+    assert.ok(migration.includes("for update"), "no row lock");
+    assert.ok(migration.includes("user_id = v_user_id") || migration.includes("user_id=v_user_id"), "no owner isolation");
+    assert.ok(migration.includes("expires_at"), "no expiry");
+  });
+
+  it("mobile conversation and memory management exist", () => {
+    const lib = read("apps/mobile/lib/nextron.ts");
+    assert.ok(lib.includes("deleteNextronConversation"), "mobile cannot delete conversations");
+    assert.ok(lib.includes("listNextronMemory") && lib.includes("forgetNextronMemory"), "mobile has no memory controls");
+    assert.ok(lib.includes("listNextronSignals"), "mobile has no signals read");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Auth destinations + theme across routes + guards
+// ---------------------------------------------------------------------------
+describe("auth, theme, and guard parity", () => {
+  it("sign-in lands on Today on both clients", () => {
+    assert.ok(read("src/app/login/page.tsx").includes('router.push("/today")'), "web login destination drifted");
+    assert.ok(read("apps/mobile/app/login.tsx").includes("/(tabs)/today"), "mobile login destination drifted");
+  });
+
+  it("password reset uses the same web destination", () => {
+    assert.ok(read("apps/mobile/lib/links.ts").includes("/reset-password"), "mobile reset link drifted");
+    assert.ok(read("src/app/forgot-password/page.tsx").includes("/reset-password"), "web reset link drifted");
+  });
+
+  it("remembered email exists on both clients with the same contract", () => {
+    assert.ok(read("src/lib/remembered-email.ts").includes("lifepulse.remembered_email"));
+    assert.ok(read("apps/mobile/lib/remembered-email.ts").includes("lifepulse.remembered_email"));
+    assert.ok(read("src/app/login/page.tsx").includes("getRememberedEmail"), "web login ignores remembered email");
+  });
+
+  it("core web routes carry no hardcoded dark fills", () => {
+    for (const file of [
+      "src/app/today/page.tsx",
+      "src/app/tasks/page.tsx",
+      "src/app/habits/page.tsx",
+      "src/app/realms/page.tsx",
+      "src/app/wealth/page.tsx",
+      "src/app/body/page.tsx",
+      "src/app/settings/page.tsx",
+      "src/app/login/page.tsx",
+    ]) {
+      const src = read(file);
+      assert.ok(!src.includes("bg-black/"), `${file} has hardcoded dark fills`);
+      assert.ok(!src.includes("text-white"), `${file} has hardcoded white text`);
+      assert.ok(!src.includes("text-[#071018]"), `${file} has hardcoded on-accent`);
+      assert.ok(!src.includes("border-white/"), `${file} has hardcoded hairlines`);
+    }
+  });
+
+  it("proxy guards every core route", () => {
+    const proxy = read("src/proxy.ts");
+    for (const route of ["/today", "/tasks", "/habits", "/nextron", "/realms", "/wealth", "/body", "/settings", "/account", "/life-map", "/finance"]) {
+      assert.ok(proxy.includes(`"${route}"`), `proxy missing ${route}`);
+    }
   });
 
   it("theme labels name both premium identities", () => {

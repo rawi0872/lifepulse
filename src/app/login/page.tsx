@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { LifePulseLogo } from "@/components/LifePulseLogo";
+import { getRememberedEmail, setRememberedEmail } from "@/lib/remembered-email";
 
 function friendlyAuthError(error: { message: string; status?: number }): string {
   const msg = error.message?.toLowerCase() ?? "";
@@ -49,6 +50,12 @@ export default function LoginPage() {
   const router = useRouter();
   const supabase = createClient();
 
+  // Prefill the email from the last successful sign-in (never the password).
+  useEffect(() => {
+    const saved = getRememberedEmail();
+    if (saved) setEmail(saved);
+  }, []);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -69,6 +76,7 @@ export default function LoginPage() {
         return;
       }
 
+      setRememberedEmail(email);
       router.push("/today");
       router.refresh();
     } catch (err) {
@@ -154,7 +162,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-lg bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-[var(--accent)] disabled:opacity-50"
+            className="w-full rounded-lg bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-[var(--on-accent)] transition-all hover:bg-[var(--accent)] disabled:opacity-50"
           >
             {loading ? "Opening your command center..." : "Sign in"}
           </button>

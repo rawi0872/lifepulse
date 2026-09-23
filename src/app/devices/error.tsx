@@ -10,7 +10,7 @@ export default function DevicesError({ reset }: { error: Error & { digest?: stri
       </svg>
       <p className="text-sm text-[var(--text-muted)]">Something went wrong loading Device Pulse.</p>
       <div className="flex gap-2">
-        <button onClick={reset} className="rounded-lg bg-[var(--accent)] px-3 py-1.5 text-[10px] font-medium text-white transition-opacity hover:opacity-90">Try again</button>
+        <button onClick={reset} className="rounded-lg bg-[var(--accent)] px-3 py-1.5 text-[10px] font-medium text-[var(--on-accent)] transition-opacity hover:opacity-90">Try again</button>
         <Link href="/today" className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-[10px] font-medium text-[var(--text-muted)] transition-colors hover:text-[var(--text)]">Back to Today</Link>
       </div>
     </div>

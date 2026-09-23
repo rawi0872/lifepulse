@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { Link } from "expo-router";
 import { supabase } from "../lib/supabase";
+import { getPasswordResetRedirect } from "../lib/links";
 import { spacing, radii, type } from "../lib/theme";
 import type { ThemeColors } from "../lib/theme";
 import { useLifePulseTheme } from "../lib/theme-provider";
@@ -32,7 +33,7 @@ export default function ForgotPasswordScreen() {
     setLoading(true);
     try {
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: "https://lifepulse-sand.vercel.app/reset-password",
+        redirectTo: getPasswordResetRedirect(),
       });
       if (resetError) {
         setSent(true);
