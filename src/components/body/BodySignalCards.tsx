@@ -34,7 +34,7 @@ export function BodySignalCards({ habitStreak, completionRate, totalXp }: BodySi
         active={completionRate >= 50}
       />
       <MetricCard
-        label="Total XP"
+        label="Total XP (all areas)"
         value={totalXp}
         icon={
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>

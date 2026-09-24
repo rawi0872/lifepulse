@@ -3,6 +3,7 @@ import { View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity, A
 import { Link, useFocusEffect } from "expo-router";
 import { supabase } from "../../lib/supabase";
 import { useAuth } from "../../lib/auth";
+import { awardHabitXp, awardTaskXp } from "../../lib/xp";
 import { spacing, radii, type } from "../../lib/theme";
 import type { ThemeColors, ThemeShadow } from "../../lib/theme";
 import { useLifePulseTheme } from "../../lib/theme-provider";
@@ -154,6 +155,19 @@ export default function TodayScreen() {
       Alert.alert("Error", "Could not complete task.");
       return;
     }
+    // Same +25 XP the other clients award (dup-checked).
+    const xp = await awardTaskXp(user.id, taskId);
+    if (!xp.ok) {
+      await supabase
+        .from("tasks")
+        .update({ status: "todo", completed_at: null })
+        .eq("id", taskId)
+        .eq("user_id", user.id)
+        .eq("status", "done");
+      Alert.alert("Error", "Could not complete task.");
+      void loadData();
+      return;
+    }
     void loadData();
   };
 
@@ -168,14 +182,20 @@ export default function TodayScreen() {
       .eq("completed_date", today)
       .maybeSingle();
     if (existing) return;
-    const { error } = await supabase.from("habit_logs").insert({
+    const { data: log, error } = await supabase.from("habit_logs").insert({
       user_id: user.id,
       habit_id: habitId,
       completed_date: today,
-    });
-    if (error) {
+    }).select("id").single();
+    if (error || !log) {
       Alert.alert("Error", "Could not log habit.");
       return;
+    }
+    // Same +10 XP the other clients award (log removed on rollback).
+    const xp = await awardHabitXp(user.id, (log as { id: string }).id);
+    if (!xp.ok) {
+      await supabase.from("habit_logs").delete().eq("id", (log as { id: string }).id).eq("user_id", user.id);
+      Alert.alert("Error", "Could not log habit.");
     }
     void loadData();
   };

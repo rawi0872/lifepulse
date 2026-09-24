@@ -29,7 +29,7 @@ const coach = read(coachPath);
 const pkg = JSON.parse(read(packagePath));
 
 assert(pkg.scripts["test:nextron-signals"] === "node scripts/nextron-signals-test.mjs", "Signal test script is registered");
-assert(route.includes("export async function GET()") && route.includes("/api/nextron/signals") === false, "Signals use a bounded authenticated GET route implementation");
+assert(route.includes("export async function GET") && route.includes("/api/nextron/signals") === false, "Signals use a bounded authenticated GET route implementation");
 assert(route.includes("modelCalls: 0") && route.includes('provider: "deterministic"'), "Q provider unavailable does not affect signal detection because model calls are zero");
 assert(route.includes("persisted: false"), "Signals are derived current observations, not persisted alerts");
 

@@ -52,7 +52,7 @@ export async function loadBodyDailySummary(date = getLocalTodayDateString()): Pr
 
   const { data: records } = await supabase
     .from("health_records")
-    .select("metric, value, recorded_at, source")
+    .select("metric_type, numeric_value, recorded_at")
     .eq("user_id", user.id)
     .gte("recorded_at", dayStart)
     .lte("recorded_at", dayEnd);
@@ -75,8 +75,9 @@ export async function loadBodyDailySummary(date = getLocalTodayDateString()): Pr
     : undefined;
 
   return getBodyDailySummary({
+    // Map canonical storage columns to the domain row contract at the boundary.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    date, healthRecords: (records ?? []) as any, manualBodyMetrics: manual, allowedMetrics: allowed as any,
+    date, healthRecords: ((records ?? []) as any[]).map((r) => ({ metric: r.metric_type, value: Number(r.numeric_value), recorded_at: r.recorded_at })) as any, manualBodyMetrics: manual, allowedMetrics: allowed as any,
   });
 }
 
@@ -87,13 +88,13 @@ export async function loadBodyMetricHistory(metric: string, days: number = 30) {
   since.setDate(since.getDate() - days);
   const { data } = await supabase
     .from("health_records")
-    .select("value, recorded_at")
+    .select("numeric_value, recorded_at")
     .eq("user_id", user.id)
-    .eq("metric", metric)
+    .eq("metric_type", metric)
     .gte("recorded_at", since.toISOString())
     .order("recorded_at", { ascending: true });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (data ?? []).map((r: any) => ({ date: r.recorded_at.slice(0, 10), value: Number(r.value) }));
+  return ((data ?? []) as any[]).map((r) => ({ date: r.recorded_at.slice(0, 10), value: Number(r.numeric_value) }));
 }
 
 // ── Overview ──

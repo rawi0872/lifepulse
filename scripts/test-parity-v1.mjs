@@ -441,7 +441,7 @@ describe("habit log windows are aligned", () => {
   });
 
   it("consecutive-day streaks match on shared inputs", () => {
-    assert.equal(getCurrentStreak(["2026-09-20", "2026-09-21", "2026-09-22"], "daily", []), 3);
+    assert.equal(getCurrentStreak(["2026-09-20", "2026-09-21", "2026-09-22"], "daily", [], { asOfDate: "2026-09-22" }), 3);
   });
 
   it("both clients bound history to 365 days / 5000 rows", () => {

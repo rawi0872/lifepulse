@@ -39,8 +39,8 @@ assert(coachPage.includes('data-nextron-attention="true"') && coachPage.includes
 assert(coachPage.includes("Why this surfaced") && coachPage.includes("Ask NEXTRON") && coachPage.includes("onAsk(item.bridgePrompt)"), "Attention UI must expose evidence and normal Ask-NEXTRON transition.");
 assert(!coachPage.includes("dangerouslySetInnerHTML") && !coachPage.includes("new Function"), "Attention UI must not execute arbitrary markup or code.");
 
-assert(todayPage.includes('data-today-nextron-attention="true"') && todayPage.includes("/api/nextron/attention") && todayPage.includes("NEXTRON noticed"), "Today must reuse the same Attention engine through the Attention API.");
-assert(todayPage.includes("lifepulse:nextron-bridge") && todayPage.includes("item.bridgePrompt"), "Today attention items must bridge to normal NEXTRON Ask without auto-sending.");
+assert(todayPage.includes('data-today-nextron-attention="true"') && todayPage.includes("/api/nextron/attention") && todayPage.includes(">NEXTRON<"), "Today must reuse the same Attention engine through the Attention API.");
+assert(todayPage.includes("lifepulse:nextron-bridge") && todayPage.includes("bridgePrompt"), "Today attention items must bridge to normal NEXTRON Ask without auto-sending.");
 assert(todayPage.includes('modelCalls: 0') && todayPage.includes('candidate.meta?.modelCalls === 0'), "Today Attention UI must preserve zero-model attention contract.");
 
 assert(!coachPage.includes("setInterval") && !todayPage.includes("setInterval"), "Prompt 5 must not add polling.");

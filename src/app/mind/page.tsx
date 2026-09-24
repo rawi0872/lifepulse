@@ -72,7 +72,7 @@ function MindContent() {
         supabase.from("journal_entries").select("id, mood, energy, content, reflection_prompt, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(30),
         supabase.from("habits").select("id, title, realms!inner(name)").eq("user_id", user.id).eq("realms.name", MIND_REALM),
         supabase.from("tasks").select("id, title, status, realms!inner(name)").eq("user_id", user.id).neq("status", "done").eq("realms.name", MIND_REALM),
-        supabase.from("xp_events").select("amount").eq("user_id", user.id).eq("realm", MIND_REALM),
+        supabase.from("xp_events").select("amount").eq("user_id", user.id),
         supabase.from("mind_metrics").select("id, user_id, entry_date, mood, stress, focus, clarity, motivation, reflection, tags, created_at, updated_at").eq("user_id", user.id).order("entry_date", { ascending: false }).limit(14),
       ]);
 
@@ -200,7 +200,7 @@ function MindContent() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
             </svg>
           } trend={mindTaskCount > 0 ? "neutral" : "down"} active={mindTaskCount === 0} />
-          <MetricCard label="Mind XP" value={mindXp} icon={
+          <MetricCard label="Total XP (all areas)" value={mindXp} icon={
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>

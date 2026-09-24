@@ -4,6 +4,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "expo-router";
 import { supabase } from "../../lib/supabase";
 import { useAuth } from "../../lib/auth";
+import { awardTaskXp, revokeTaskXp } from "../../lib/xp";
 import { spacing, radii, type } from "../../lib/theme";
 import type { ThemeColors } from "../../lib/theme";
 import { useLifePulseTheme } from "../../lib/theme-provider";
@@ -102,9 +103,23 @@ export default function TasksScreen() {
       .eq("id", taskId)
       .eq("user_id", user.id)
       .eq("status", "todo");
-    if (mountedRef.current) markCompleting(taskId, false);
     if (error) {
+      if (mountedRef.current) markCompleting(taskId, false);
       Alert.alert("Error", "Could not complete task.");
+      return;
+    }
+    // Same +25 XP the web client awards (dup-checked; rollback on failure).
+    const xp = await awardTaskXp(user.id, taskId);
+    if (mountedRef.current) markCompleting(taskId, false);
+    if (!xp.ok) {
+      await supabase
+        .from("tasks")
+        .update({ status: "todo", completed_at: null })
+        .eq("id", taskId)
+        .eq("user_id", user.id)
+        .eq("status", "done");
+      Alert.alert("Error", "Could not complete task.");
+      void loadTasks();
       return;
     }
     void loadTasks();
@@ -119,11 +134,14 @@ export default function TasksScreen() {
       .eq("id", taskId)
       .eq("user_id", user.id)
       .eq("status", "done");
-    if (mountedRef.current) markCompleting(taskId, false);
     if (error) {
+      if (mountedRef.current) markCompleting(taskId, false);
       Alert.alert("Error", "Could not reopen task.");
       return;
     }
+    // Revoke the completion XP so totals agree across clients.
+    await revokeTaskXp(user.id, taskId);
+    if (mountedRef.current) markCompleting(taskId, false);
     void loadTasks();
   };
 
@@ -238,6 +256,8 @@ export default function TasksScreen() {
         Alert.alert("Error", "Could not delete task. Try again.");
         return;
       }
+      // Clean up completion XP this client (or web) may have created.
+      await revokeTaskXp(user.id, target.id);
       if (mountedRef.current) setDeleteTask(null);
       void loadTasks();
     });

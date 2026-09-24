@@ -25,8 +25,8 @@ Statuses: `PARITY` · `PARTIAL` · `MISSING_WEB` · `MISSING_MOBILE` ·
 |---|---|---|---|---|---|---|
 | Sign in | Supabase Auth (shared backend) | `app/login.tsx` + `lib/auth.tsx`, remembered email | `src/app/login/page.tsx` (SSR browser client) | — | PARITY | Same flows/fields; mobile adds remembered-email nudge |
 | Sign up | Supabase Auth | `app/signup.tsx` | `src/app/signup/page.tsx` | — | PARITY | Same metadata (first/last/birth/display name) |
-| Forgot password | Supabase Auth | `app/forgot-password.tsx` (redirect via shared `lib/links.ts`) | `src/app/forgot-password/page.tsx` (dynamic origin) | — | PARITY | Same destination; both derive from the web origin |
-| Reset password UI | Supabase Auth | — (relies on web link) | `src/app/reset-password/page.tsx` | Mobile defers to web link (intentional) | PLATFORM_SPECIFIC | Documented deferral, not a gap |
+| Forgot password | Supabase Auth | `app/forgot-password.tsx` (redirect via shared `lib/links.ts`) | `src/app/forgot-password/page.tsx` (dynamic origin) | Same destination; entry widgets differ (platform) | DOCUMENTED_INTERACTION_VARIATION | Mobile entry → web completion is the supported flow |
+| Reset password UI | Supabase Auth | — (relies on web link) | `src/app/reset-password/page.tsx` | Same capability, different entry surface (not a platform limitation) | DOCUMENTED_INTERACTION_VARIATION | Mobile users complete via the emailed web link |
 | Sign out | Supabase Auth | `lib/auth.tsx` signOut | Settings sign-out card | — | PARITY | — |
 | Route protection | — | `Tabs/_layout` redirect | `src/proxy.ts` protectedRoutes + onboarding gate | — | PARITY | `/life-map` added in Prompt 2 |
 | Remembered email | Shared key `lifepulse.remembered_email` | `lib/remembered-email.ts` + login prefill | `src/lib/remembered-email.ts` + login prefill | Storage medium differs (platform) | PARITY | Same contract |
@@ -53,7 +53,7 @@ Statuses: `PARITY` · `PARTIAL` · `MISSING_WEB` · `MISSING_MOBILE` ·
 |---|---|---|---|---|---|---|
 | List/grouping | `groupTasksByDate` | Uses it | Uses it | — | PARITY | — |
 | Create | `normalizeItemTitle`, `MAX_ITEM_TITLE_LENGTH` (120) | Uses them | Uses them (convergence 1/3) | — | PARITY | Web quick-capture also length-capped |
-| Complete/uncomplete | Status flip + `completed_at` | Direct update | `src/lib/taskCompletion.ts` (+25 XP, rollback) | XP is web-surface gamification; mobile has none | PARTIAL | Same core semantics; XP web-only by design (documented) |
+| Complete/uncomplete | Status flip + `completed_at` | Direct update + shared XP award/revoke (`lib/xp.ts`: +25 task, dup-checked, rollback) | `src/lib/taskCompletion.ts` (+25 XP, rollback) | Amounts/timing identical; display of XP differs (web toasts/levels) | PARITY | Same server state for the same action |
 | Edit | `buildTaskUpdatePayload` (title/priority/date validation, no-change skip) | Uses it | Uses it (convergence 1/3) | — | PARITY | Same mutation semantics |
 | Delete + confirmation | `removeDeletedById`, cascade | `ConfirmDeleteDialog` + optimistic removal | Inline confirm panel + optimistic removal | — | PARITY | Desktop uses inline panel, not long-press |
 | Loading/error/empty | — | Skeletons, ErrorBanner+retry, empties | Skeletons, route boundary + inline load error + retry, empties | — | PARITY | Closed in convergence 1/3 |
@@ -67,7 +67,7 @@ Statuses: `PARITY` · `PARTIAL` · `MISSING_WEB` · `MISSING_MOBILE` ·
 |---|---|---|---|---|---|---|
 | Canonical schedule model | `normalizeHabitSchedule`: `daily`/`weekdays`/`weekly` (+`WEEKDAY_DAYS` fallback, 1–7 clamp) | Uses it | Uses it (convergence 1/3; web writes canonical `weekly`, legacy `times_per_week` coerced on edit) | — | PARITY | No separate web rules |
 | Create | `normalizeItemTitle`, `MAX_ITEM_TITLE_LENGTH` | Uses them + realm bootstrap | Uses them + realm bootstrap (convergence 1/3) | — | PARITY | Realm-less users no longer fail on web |
-| Complete/log + undo | Existence check + `habit_logs` row | Direct insert/delete | Same + XP with rollback (`+10`) | XP web-only by design (documented) | PARTIAL | Same core semantics |
+| Complete/log + undo | Existence check + `habit_logs` row | Existence check + shared XP award/revoke (`lib/xp.ts`: +10 on log id, rollback) | Same + XP with rollback (`+10`) | Amounts/timing identical | PARITY | Same server state for the same action |
 | Edit (history-preserving) | `buildHabitUpdatePayload` (definition columns only) | Uses it | Uses it (convergence 1/3) | — | PARITY | Logs/streaks stay valid on both |
 | Delete + confirmation | `removeDeletedById` | `ConfirmDeleteDialog` + cascade delete | Inline confirm panel + explicit log/XP cleanup | — | PARITY | Same destructive meaning; web also cleans XP it created |
 | Daily / weekdays / weekly | Domain due/streak fns | All three | All three (canonical) | `weekends` legacy read-only on both | PARITY | — |

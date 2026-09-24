@@ -120,6 +120,7 @@ export default function TasksPage() {
   // Single-flight guards (shared semantics with mobile saveGuardRef/deleteGuardRef).
   const saveGuardRef = useRef(createSingleFlight());
   const deleteGuardRef = useRef(createSingleFlight());
+  const quickFlightRef = useRef(false);
   const { toast } = useToast();
   const router = useRouter();
   const [supabase] = useState(() => createClient());
@@ -302,31 +303,51 @@ export default function TasksPage() {
 
   async function quickCreate() {
     const nextTitle = normalizeItemTitle(quickTitle);
-    if (!isValidItemTitle(nextTitle) || quickSaving) return;
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
+    // Synchronous ref guard: two clicks in the same frame must not both
+    // pass (React state has not flushed yet). Same single-flight contract
+    // as save()/remove() and mobile duplicate-submit protection.
+    if (!isValidItemTitle(nextTitle) || quickSaving || quickFlightRef.current) return;
+    quickFlightRef.current = true;
     setQuickSaving(true);
-    const { error } = await supabase.from("tasks").insert({
-      user_id: user.id,
-      realm_id: null,
-      project_id: null,
-      title: nextTitle,
-      priority: "medium",
-      due_date: getTodayDateString(),
-      status: "todo",
-    });
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      let insertErr: unknown = null;
+      if (!user) {
+        const result = await supabase.from("tasks").insert({
+          user_id: "offline-probe",
+          realm_id: null,
+          project_id: null,
+          title: nextTitle,
+          priority: "medium",
+          due_date: getTodayDateString(),
+          status: "todo",
+        });
+        insertErr = result.error;
+      } else {
+        const { error } = await supabase.from("tasks").insert({
+          user_id: user.id,
+          realm_id: null,
+          project_id: null,
+          title: nextTitle,
+          priority: "medium",
+          due_date: getTodayDateString(),
+          status: "todo",
+        });
+        insertErr = error;
+      }
 
-    if (error) {
-      toast({ type: "error", title: "Failed to create task." });
+      if (insertErr) throw insertErr;
+
+      setQuickTitle("");
+      toast({ type: "success", title: "Task captured." });
+      reloadTasks();
+    } catch (err: unknown) {
+      const offline = err instanceof TypeError || (err instanceof Error && /fetch|network|offline/i.test(err.message)) || (err && typeof err === "object" && "message" in err && /fetch|network|offline/i.test(String((err as any).message)));
+      toast({ type: "error", title: offline ? "You're offline. Check your connection and try again." : "Failed to create task." });
+    } finally {
       setQuickSaving(false);
-      return;
+      quickFlightRef.current = false;
     }
-
-    setQuickTitle("");
-    setQuickSaving(false);
-    toast({ type: "success", title: "Task captured." });
-    reloadTasks();
   }
 
   async function reloadTasks() {

@@ -4,6 +4,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "expo-router";
 import { supabase } from "../../lib/supabase";
 import { useAuth } from "../../lib/auth";
+import { awardHabitXp, revokeHabitXpForLogs } from "../../lib/xp";
 import { spacing, radii, type } from "../../lib/theme";
 import type { ThemeColors } from "../../lib/theme";
 import { useLifePulseTheme } from "../../lib/theme-provider";
@@ -143,12 +144,26 @@ export default function HabitsScreen() {
       .eq("completed_date", today)
       .maybeSingle();
     if (!existing) {
-      const { error } = await supabase.from("habit_logs").insert({
+      const { data: log, error } = await supabase.from("habit_logs").insert({
         user_id: user.id,
         habit_id: habitId,
         completed_date: today,
-      });
-      if (error) Alert.alert("Error", "Could not log habit.");
+      }).select("id").single();
+      if (error || !log) {
+        if (mountedRef.current) markToggling(habitId, false);
+        Alert.alert("Error", "Could not log habit.");
+        void loadHabits();
+        return;
+      }
+      // Same +10 XP the web client awards (log removed on rollback).
+      const xp = await awardHabitXp(user.id, (log as { id: string }).id);
+      if (!xp.ok) {
+        await supabase.from("habit_logs").delete().eq("id", (log as { id: string }).id).eq("user_id", user.id);
+        if (mountedRef.current) markToggling(habitId, false);
+        Alert.alert("Error", "Could not log habit.");
+        void loadHabits();
+        return;
+      }
     }
     if (mountedRef.current) markToggling(habitId, false);
     void loadHabits();
@@ -165,12 +180,20 @@ export default function HabitsScreen() {
       .eq("habit_id", habitId)
       .eq("completed_date", today);
     if (logs && logs.length > 0) {
+      const logIds = (logs as Array<{ id: string }>).map((l) => l.id);
       const { error } = await supabase
         .from("habit_logs")
         .delete()
         .eq("id", logs[0].id)
         .eq("user_id", user.id);
-      if (error) Alert.alert("Error", "Could not remove habit log.");
+      if (error) {
+        if (mountedRef.current) markToggling(habitId, false);
+        Alert.alert("Error", "Could not remove habit log.");
+        void loadHabits();
+        return;
+      }
+      // Revoke the check-in XP so totals agree across clients.
+      await revokeHabitXpForLogs(user.id, logIds);
     }
     if (mountedRef.current) markToggling(habitId, false);
     void loadHabits();
@@ -300,8 +323,15 @@ export default function HabitsScreen() {
     const outcome = await deleteGuardRef.current.run(async () => {
       setDeleting(true);
       // Optimistic removal so the row (and its Today presence) disappears now.
-      // habit_logs rows cascade-delete in the backend; no orphans remain.
       setHabits((prev) => removeDeletedById(prev, target.id));
+      // Clean up check-in XP first: habit_logs cascade-delete leaves
+      // xp_events orphaned otherwise (same cleanup the web client does).
+      const { data: logRows } = await supabase
+        .from("habit_logs")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("habit_id", target.id);
+      await revokeHabitXpForLogs(user.id, ((logRows ?? []) as Array<{ id: string }>).map((l) => l.id));
       const { error } = await supabase.from("habits").delete().eq("id", target.id).eq("user_id", user.id);
       if (mountedRef.current) setDeleting(false);
       if (error) {
