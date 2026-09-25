@@ -15,24 +15,24 @@ export function TodayHeroArt() {
   const art = useMemo(() => {
     if (dark) {
       return (
-        <Svg width="100%" height="100%" viewBox="0 0 400 180" preserveAspectRatio="xMidYMax slice">
-          <Ellipse cx="310" cy="42" rx="90" ry="46" fill={colors.heroGlow} opacity={0.7} />
-          <Circle cx="310" cy="42" r="20" fill="#DCE9F7" opacity={0.9} />
-          <Circle cx="303" cy="36" r="20" fill={colors.heroSky} opacity={0.55} />
-          <Path d="M0 130 L70 84 L130 122 L200 78 L270 124 L330 92 L400 128 L400 180 L0 180 Z" fill={colors.heroRidge} opacity={0.95} />
-          <Path d="M0 150 L90 118 L170 148 L260 116 L340 146 L400 132 L400 180 L0 180 Z" fill="#0E2138" opacity={0.9} />
+        <Svg width="100%" height="100%" viewBox="0 0 400 120" preserveAspectRatio="xMidYMax slice">
+          <Ellipse cx="310" cy="24" rx="70" ry="30" fill={colors.heroGlow} opacity={0.55} />
+          <Circle cx="310" cy="24" r="13" fill="#DCE9F7" opacity={0.8} />
+          <Circle cx="305" cy="21" r="12" fill={colors.heroSky} opacity={0.4} />
+          <Path d="M0 95 L50 65 L100 88 L150 58 L220 88 L270 70 L400 95 L400 120 L0 120 Z" fill={colors.heroRidge} opacity={0.85} />
+          <Path d="M0 108 L65 90 L120 105 L180 85 L240 102 L400 95 L400 120 L0 120 Z" fill="#0E2138" opacity={0.75} />
         </Svg>
       );
     }
     return (
-      <Svg width="100%" height="100%" viewBox="0 0 400 180" preserveAspectRatio="xMidYMax slice">
-        <Ellipse cx="200" cy="60" rx="150" ry="60" fill={colors.heroGlow} opacity={0.8} />
-        <Circle cx="200" cy="62" r="24" fill="#F5B96B" opacity={0.9} />
-        <Circle cx="200" cy="62" r="34" fill="#F5B96B" opacity={0.18} />
-        <Path d="M0 128 L80 88 L150 120 L220 84 L300 122 L360 100 L400 118 L400 180 L0 180 Z" fill={colors.heroRidge} opacity={0.9} />
-        <Path d="M0 150 L100 124 L190 150 L280 126 L360 148 L400 140 L400 180 L0 180 Z" fill="#DCCBAE" opacity={0.65} />
-        <Path d="M40 160 q6 -18 16 -24 q-2 14 -6 20 q8 -6 14 -6 q-8 10 -24 10 Z" fill="#9DB98A" opacity={0.7} />
-        <Path d="M350 162 q-6 -16 -16 -22 q2 12 6 18 q-8 -5 -13 -5 q8 9 23 9 Z" fill="#9DB98A" opacity={0.6} />
+      <Svg width="100%" height="100%" viewBox="0 0 400 120" preserveAspectRatio="xMidYMax slice">
+        <Ellipse cx="200" cy="38" rx="120" ry="42" fill={colors.heroGlow} opacity={0.65} />
+        <Circle cx="200" cy="40" r="16" fill="#F5B96B" opacity={0.8} />
+        <Circle cx="200" cy="40" r="22" fill="#F5B96B" opacity={0.12} />
+        <Path d="M0 92 L60 68 L115 90 L170 65 L230 88 L290 76 L400 90 L400 120 L0 120 Z" fill={colors.heroRidge} opacity={0.8} />
+        <Path d="M0 110 L75 92 L140 112 L210 94 L280 110 L400 102 L400 120 L0 120 Z" fill="#DCCBAE" opacity={0.55} />
+        <Path d="M30 115 q4 -10 11 -14 q-1 7 -4 12 q6 -4 10 -4 q-6 6 -17 6 Z" fill="#9DB98A" opacity={0.6} />
+        <Path d="M370 117 q-4 -10 -11 -14 q2 8 4 14 q-6 -3 -10 -3 q6 6 18 6 Z" fill="#9DB98A" opacity={0.5} />
       </Svg>
     );
   }, [dark, colors]);
@@ -45,8 +45,9 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    height: 210,
+    height: 140,
     opacity: 1,
     overflow: "hidden",
+    zIndex: -1,
   },
 });

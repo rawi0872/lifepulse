@@ -10,6 +10,7 @@ import {
 import { getCurrentStreak, normalizeCompletedDates, toLocalPriority, type TodayPriority } from "@lifepulse/domain";
 import { toggleTaskCompletion } from "@/lib/taskCompletion";
 import { DashboardNav } from "@/components/DashboardNav";
+import { TodayHeroArt } from "@/components/TodayHeroArt";
 import { useToast } from "@/hooks/use-toast";
 import { EveningShutdown } from "@/components/today/EveningShutdown";
 import { useTodayData } from "@/hooks/use-today-data";
@@ -361,7 +362,8 @@ function TodayContent() {
   const openingToday = loading && !todayModel;
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-6 animate-fade-in sm:px-6 sm:py-9">
+    <div className="mx-auto max-w-6xl px-4 py-6 animate-fade-in sm:px-6 sm:py-9 relative">
+      <TodayHeroArt />
       <header className="mb-8 flex min-w-0 flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
           <h1 className="text-4xl font-semibold tracking-[-0.055em] text-[var(--text)] sm:text-5xl">Today</h1>
