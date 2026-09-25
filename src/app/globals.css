@@ -53,6 +53,10 @@
   --realm-wealth: #38bdf8;
   --realm-wealth-soft: rgba(56,189,248,0.12);
   --realm-wealth-border: rgba(56,189,248,0.22);
+  /* Hero / illustration atmosphere tokens */
+  --hero-glow: rgba(105,183,255,0.16);
+  --hero-ridge: #0B1D33;
+  --hero-sky: #06121F;
 }
 
 /*
@@ -106,6 +110,10 @@
   --realm-wealth: #0284c7;
   --realm-wealth-soft: rgba(2,132,199,0.10);
   --realm-wealth-border: rgba(2,132,199,0.22);
+  /* Hero / illustration atmosphere tokens */
+  --hero-glow: rgba(118,183,239,0.20);
+  --hero-ridge: #EADDC8;
+  --hero-sky: #F6EDDD;
 }
 
 html {

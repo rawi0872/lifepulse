@@ -15,24 +15,31 @@ export function TodayHeroArt() {
   const art = useMemo(() => {
     if (dark) {
       return (
-        <Svg width="100%" height="100%" viewBox="0 0 400 120" preserveAspectRatio="xMidYMax slice">
-          <Ellipse cx="310" cy="24" rx="70" ry="30" fill={colors.heroGlow} opacity={0.55} />
-          <Circle cx="310" cy="24" r="13" fill="#DCE9F7" opacity={0.8} />
-          <Circle cx="305" cy="21" r="12" fill={colors.heroSky} opacity={0.4} />
-          <Path d="M0 95 L50 65 L100 88 L150 58 L220 88 L270 70 L400 95 L400 120 L0 120 Z" fill={colors.heroRidge} opacity={0.85} />
-          <Path d="M0 108 L65 90 L120 105 L180 85 L240 102 L400 95 L400 120 L0 120 Z" fill="#0E2138" opacity={0.75} />
+        <Svg width="100%" height="100%" viewBox="0 0 400 140" preserveAspectRatio="xMidYMax slice">
+          {/* Moon glow - positioned top-right, subtle */}
+          <Ellipse cx="340" cy="30" rx="80" ry="40" fill={colors.heroGlow} opacity={0.45} />
+          {/* Moon - smaller, positioned to not clash with greeting */}
+          <Circle cx="340" cy="30" r="14" fill="#DCE9F7" opacity={0.75} />
+          <Circle cx="335" cy="26" r="11" fill={colors.heroSky} opacity={0.35} />
+          {/* Mountain ridge - lower, integrates with content */}
+          <Path d="M0 105 L60 80 L110 100 L160 75 L220 100 L280 85 L340 105 L400 95 L400 140 L0 140 Z" fill={colors.heroRidge} opacity={0.9} />
+          <Path d="M0 118 L70 100 L130 115 L190 95 L250 112 L310 105 L370 118 L400 110 L400 140 L0 140 Z" fill="#0E2138" opacity={0.65} />
         </Svg>
       );
     }
     return (
-      <Svg width="100%" height="100%" viewBox="0 0 400 120" preserveAspectRatio="xMidYMax slice">
-        <Ellipse cx="200" cy="38" rx="120" ry="42" fill={colors.heroGlow} opacity={0.65} />
-        <Circle cx="200" cy="40" r="16" fill="#F5B96B" opacity={0.8} />
-        <Circle cx="200" cy="40" r="22" fill="#F5B96B" opacity={0.12} />
-        <Path d="M0 92 L60 68 L115 90 L170 65 L230 88 L290 76 L400 90 L400 120 L0 120 Z" fill={colors.heroRidge} opacity={0.8} />
-        <Path d="M0 110 L75 92 L140 112 L210 94 L280 110 L400 102 L400 120 L0 120 Z" fill="#DCCBAE" opacity={0.55} />
-        <Path d="M30 115 q4 -10 11 -14 q-1 7 -4 12 q6 -4 10 -4 q-6 6 -17 6 Z" fill="#9DB98A" opacity={0.6} />
-        <Path d="M370 117 q-4 -10 -11 -14 q2 8 4 14 q-6 -3 -10 -3 q6 6 18 6 Z" fill="#9DB98A" opacity={0.5} />
+      <Svg width="100%" height="100%" viewBox="0 0 400 140" preserveAspectRatio="xMidYMax slice">
+        {/* Sun glow - warm, centered */}
+        <Ellipse cx="200" cy="45" rx="140" ry="50" fill={colors.heroGlow} opacity={0.55} />
+        {/* Sun - centered, not floating */}
+        <Circle cx="200" cy="50" r="18" fill="#F5B96B" opacity={0.75} />
+        <Circle cx="200" cy="50" r="24" fill="#F5B96B" opacity={0.1} />
+        {/* Mountain ridge - lower, anchors the composition */}
+        <Path d="M0 105 L65 82 L125 100 L185 78 L245 100 L305 85 L365 102 L400 98 L400 140 L0 140 Z" fill={colors.heroRidge} opacity={0.8} />
+        <Path d="M0 120 L80 102 L150 118 L220 98 L290 115 L350 110 L400 118 L400 140 L0 140 Z" fill="#DCCBAE" opacity={0.5} />
+        {/* Botanical accents - subtle, anchored at base */}
+        <Path d="M30 125 q5 -12 14 -16 q-2 9 -5 14 q7 -5 12 -5 q-7 8 -19 8 Z" fill="#9DB98A" opacity={0.5} />
+        <Path d="M370 127 q-5 -12 -14 -16 q2 8 5 14 q-7 -4 -12 -4 q7 7 20 7 Z" fill="#9DB98A" opacity={0.4} />
       </Svg>
     );
   }, [dark, colors]);
