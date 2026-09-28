@@ -364,10 +364,10 @@ function TodayContent() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 animate-fade-in sm:px-6 sm:py-9 relative">
       <TodayHeroArt />
-      <header className="mb-8 flex min-w-0 flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <header className="relative z-10 mb-6 flex min-w-0 flex-col gap-4 sm:flex-row sm:items-end sm:justify-between pt-8">
         <div className="min-w-0">
-          <h1 className="text-4xl font-semibold tracking-[-0.055em] text-[var(--text)] sm:text-5xl">Today</h1>
-          <p className="mt-1 text-sm text-[var(--text-muted)]">{formattedDate}</p>
+          <p className="text-sm text-[var(--text-muted)]">{formattedDate}</p>
+          <h1 className="mt-1 text-4xl font-semibold tracking-[-0.055em] text-[var(--text)] sm:text-5xl">Today</h1>
         </div>
         <div className="flex flex-wrap gap-2">
           <button type="button" onClick={() => setPlanningOpen(true)} className="inline-flex min-h-10 items-center rounded-full border border-[var(--border-strong)] px-3 py-2 text-xs font-semibold text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/30 hover:text-[var(--accent)]">
@@ -386,17 +386,19 @@ function TodayContent() {
       )}
 
       <main className="grid gap-8 xl:grid-cols-[minmax(0,1.85fr)_minmax(18rem,0.95fr)] xl:items-start">
-        <section id="daily-execution" className="min-w-0 space-y-8" aria-labelledby="up-next-heading">
-          <UpNextAction
-            action={nextAction}
-            wealth={heroWealth}
-            loading={openingToday}
-            hasTodayPlan={priorities.length > 0}
-            completedTodayCount={doneTaskCount + completedHabitCount}
-            streakMap={streakMap}
-            onPlan={() => setPlanningOpen(true)}
-            onComplete={(action) => action.type === "task" ? void toggleTask(action.id, true) : void toggleHabit(action.id, true)}
-          />
+        <section id="daily-execution" className="min-w-0 space-y-6" aria-labelledby="up-next-heading">
+<div className="relative -mt-4">
+            <UpNextAction
+              action={nextAction}
+              wealth={heroWealth}
+              loading={openingToday}
+              hasTodayPlan={priorities.length > 0}
+              completedTodayCount={doneTaskCount + completedHabitCount}
+              streakMap={streakMap}
+              onPlan={() => setPlanningOpen(true)}
+              onComplete={(action) => action.type === "task" ? void toggleTask(action.id, true) : void toggleHabit(action.id, true)}
+            />
+          </div>
 
           <section id="daily-focus" className="min-w-0 border-b border-[var(--border)] pb-6" aria-labelledby="today-focus-heading">
             <div className="flex items-baseline justify-between gap-3">

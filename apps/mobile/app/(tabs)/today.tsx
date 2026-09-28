@@ -295,7 +295,7 @@ export default function TodayScreen() {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />}
     >
       <TodayHeroArt />
-      {/* Header — compact */}
+      {/* Header — compact, moved up closer to status bar */}
       <View style={styles.header}>
         <Link href="/realms" asChild>
           <TouchableOpacity style={styles.brandRow} activeOpacity={0.7}>
@@ -523,9 +523,9 @@ function CompactEmpty({ icon, text }: { icon: React.ReactNode; text: string }) {
 function makeStyles(colors: ThemeColors, shadow: ThemeShadow) {
   return StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
-  content: { paddingHorizontal: spacing.xl, paddingTop: 56, paddingBottom: 24 },
+  content: { paddingHorizontal: spacing.xl, paddingTop: 40, paddingBottom: 24 },
 
-  header: { marginBottom: spacing.lg, paddingTop: spacing.sm },
+  header: { marginBottom: spacing.lg, paddingTop: 0 },
   brandRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm, marginBottom: spacing.md },
   brandMark: {
     width: 28,
