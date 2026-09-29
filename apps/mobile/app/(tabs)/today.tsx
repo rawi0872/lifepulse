@@ -22,6 +22,7 @@ import {
   deriveBodySignals,
   selectTodayPrimaryCandidate,
 } from "@lifepulse/domain";
+import { getDailyQuote } from "../../lib/daily-quote";
 import type {
   TodayModel,
   TodayDataSnapshot,
@@ -285,6 +286,11 @@ export default function TodayScreen() {
     return "Good evening";
   }, []);
 
+  const dailyQuote = useMemo(() => {
+    const localDate = getLocalTodayDateString();
+    return getDailyQuote(localDate);
+  }, []);
+
   const focusRemaining = MAX_PRIORITIES_PER_DAY - priorities.length;
   const donePriorities = priorities.filter((p) => p.done).length;
 
@@ -307,6 +313,7 @@ export default function TodayScreen() {
         </Link>
         <Text style={styles.greeting}>{greeting}</Text>
         <Text style={styles.date}>{model?.date.displayDate ?? "Today"}</Text>
+        <Text style={styles.dailyQuote}>{dailyQuote}</Text>
       </View>
 
       {/* Up Next — single primary candidate via shared deterministic ranking */}
@@ -538,8 +545,9 @@ function makeStyles(colors: ThemeColors, shadow: ThemeShadow) {
   brandName: { ...type.caption, color: colors.textSecondary, fontWeight: "700", letterSpacing: 2 },
   greeting: { ...type.hero, color: colors.textPrimary },
   date: { ...type.meta, color: colors.textSecondary, marginTop: spacing.xs },
+  dailyQuote: { ...type.meta, color: colors.textMuted, marginTop: spacing.sm, fontStyle: "italic" },
 
-  upNextSection: { marginTop: 180, marginBottom: spacing.lg },
+  upNextSection: { marginTop: spacing.xl, marginBottom: spacing.lg },
   sectionLabel: { flexDirection: "row", alignItems: "center", gap: spacing.sm, marginBottom: spacing.md },
   sectionLabelRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   sectionLabelText: { ...type.caption, color: colors.accent, fontWeight: "700", letterSpacing: 1.4 },
