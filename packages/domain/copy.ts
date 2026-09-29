@@ -42,13 +42,15 @@ export const THEME_LABELS = {
   lightHint: "Warm Human",
   dark: "Dark",
   darkHint: "Signature Pulse",
+  dayCycle: "Day Cycle",
+  dayCycleHint: "Changes with time of day",
 } as const;
 
-export type ThemePreference = "system" | "light" | "dark";
+export type ThemePreference = "system" | "light" | "dark" | "day_cycle";
 
 /** localStorage (web) / AsyncStorage (mobile) key — same contract. */
 export const APPEARANCE_STORAGE_KEY = "lifepulse:appearance";
 
 export function isThemePreference(value: unknown): value is ThemePreference {
-  return value === "system" || value === "light" || value === "dark";
+  return value === "system" || value === "light" || value === "dark" || value === "day_cycle";
 }

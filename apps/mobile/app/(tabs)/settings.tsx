@@ -12,6 +12,7 @@ const APPEARANCE_OPTIONS: Array<{ value: ThemeMode; label: string; hint: string 
   { value: "system", label: "System", hint: "Follows device" },
   { value: "light", label: "Light", hint: "Warm Human" },
   { value: "dark", label: "Dark", hint: "Signature Pulse" },
+  { value: "day_cycle", label: "Day Cycle", hint: "Changes with time of day" },
 ];
 
 /**
@@ -20,7 +21,7 @@ const APPEARANCE_OPTIONS: Array<{ value: ThemeMode; label: string; hint: string 
  * Reached from the More hub; not a permanent tab.
  */
 export default function SettingsScreen() {
-  const { colors, mode, resolvedMode, setMode } = useLifePulseTheme();
+  const { colors, mode, resolvedMode, dayCyclePhase, setMode } = useLifePulseTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const router = useRouter();
   const version = (Constants.expoConfig?.version as string) ?? "0.1.7";
@@ -47,7 +48,15 @@ export default function SettingsScreen() {
           <View style={styles.appearanceTitles}>
             <Text style={styles.appearanceTitle}>Appearance</Text>
             <Text style={styles.appearanceMeta}>
-              {mode === "system" ? `System · now ${resolvedMode}` : mode === "light" ? "Light · Warm Human" : "Dark · Signature Pulse"}
+              {mode === "system"
+                ? `System · now ${resolvedMode}`
+                : mode === "light"
+                  ? "Light · Warm Human"
+                  : mode === "dark"
+                    ? "Dark · Signature Pulse"
+                    : dayCyclePhase
+                      ? `Day Cycle · ${dayCyclePhase.charAt(0).toUpperCase()}${dayCyclePhase.slice(1)}`
+                      : "Day Cycle"}
             </Text>
           </View>
         </View>
@@ -116,9 +125,10 @@ function makeStyles(colors: ThemeColors) {
     appearanceTitles: { flex: 1 },
     appearanceTitle: { ...type.item, color: colors.textPrimary },
     appearanceMeta: { ...type.meta, color: colors.textMuted, marginTop: 2 },
-    segment: { flexDirection: "row", gap: spacing.sm },
+    segment: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
     option: {
-      flex: 1,
+      flexBasis: "48%",
+      flexGrow: 1,
       flexDirection: "row",
       alignItems: "center",
       gap: spacing.sm,

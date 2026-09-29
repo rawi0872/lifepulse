@@ -31,8 +31,8 @@ function RootLayoutInner() {
 }
 
 function ThemedStatusBar() {
-  const { resolvedMode } = useLifePulseTheme();
-  return <StatusBar style={resolvedMode === "light" ? "dark" : "light"} />;
+  const { colors } = useLifePulseTheme();
+  return <StatusBar style={colors.statusBar} />;
 }
 
 export default function RootLayout() {

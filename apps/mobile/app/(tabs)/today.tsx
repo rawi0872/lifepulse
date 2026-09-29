@@ -551,7 +551,7 @@ function makeStyles(colors: ThemeColors, shadow: ThemeShadow) {
   sectionLabel: { flexDirection: "row", alignItems: "center", gap: spacing.sm, marginBottom: spacing.md },
   sectionLabelRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   sectionLabelText: { ...type.caption, color: colors.accent, fontWeight: "700", letterSpacing: 1.4 },
-  sectionLabelTextAlt: { ...type.caption, color: colors.textSecondary, fontWeight: "700", letterSpacing: 1.4, marginBottom: spacing.md },
+  sectionLabelTextAlt: { ...type.caption, color: colors.textSecondary, fontWeight: "700", letterSpacing: 1.4, marginBottom: spacing.lg },
   heroCard: {
     backgroundColor: colors.surfaceElevated,
     borderWidth: 1,

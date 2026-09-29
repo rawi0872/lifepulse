@@ -5,8 +5,9 @@
 // lib/theme.ts stays free of react-native imports so node tests can import
 // the pure helpers (resolveThemeMode, themeFor, completeness checks).
 
-export type ThemeMode = "system" | "light" | "dark";
+export type ThemeMode = "system" | "light" | "dark" | "day_cycle";
 export type ResolvedMode = "light" | "dark";
+export type DayCyclePhase = "morning" | "afternoon" | "evening" | "night";
 
 export interface ThemeColors {
   // Backgrounds (tonal depth)
@@ -223,14 +224,27 @@ export const THEME_COLOR_KEYS = [
 export const THEME_STORAGE_KEY = "lifepulse:appearance";
 
 export function isValidThemeMode(value: unknown): value is ThemeMode {
-  return value === "system" || value === "light" || value === "dark";
+  return value === "system" || value === "light" || value === "dark" || value === "day_cycle";
 }
 
 /** Resolve user choice + OS scheme into a concrete light/dark theme. */
-export function resolveThemeMode(mode: ThemeMode, systemScheme: string | null | undefined): ResolvedMode {
+export function resolveThemeMode(mode: ThemeMode, systemScheme: string | null | undefined, now: Date = new Date()): ResolvedMode {
   if (mode === "light") return "light";
   if (mode === "dark") return "dark";
+  if (mode === "day_cycle") {
+    const phase = resolveDayCyclePhase(now);
+    return phase === "night" ? "dark" : "light";
+  }
   return systemScheme === "light" ? "light" : "dark";
+}
+
+/** Resolve the day cycle phase from the current local time. */
+export function resolveDayCyclePhase(date: Date): DayCyclePhase {
+  const hour = date.getHours();
+  if (hour >= 5 && hour < 12) return "morning";
+  if (hour >= 12 && hour < 17) return "afternoon";
+  if (hour >= 17 && hour < 21) return "evening";
+  return "night";
 }
 
 export function themeFor(resolved: ResolvedMode): ThemeColors {
@@ -324,6 +338,173 @@ export function shadowFor(resolved: ResolvedMode): ThemeShadow {
       elevation: 12,
     },
   };
+}
+
+// --- Day Cycle theme variants --------------------------------------------------
+
+// MORNING — soft sunrise, warm ivory, gentle gold/blue
+export const morningColors: ThemeColors = {
+  bg: "#FAF6F0",
+  surface: "#FFFDF6",
+  surfaceElevated: "#FFFFFF",
+  surfaceOverlay: "#FEF9F0",
+  navSurface: "#FFF8ED",
+
+  border: "rgba(180, 150, 90, 0.12)",
+  borderStrong: "rgba(180, 150, 90, 0.22)",
+
+  textPrimary: "#1A1620",
+  textSecondary: "#5D5548",
+  textMuted: "#8A8272",
+  textFaint: "#C8C0AC",
+
+  accent: "#D4A53A",
+  accentStrong: "#C4962E",
+  accentSoft: "rgba(212, 165, 58, 0.12)",
+  accentBorder: "rgba(212, 165, 58, 0.30)",
+
+  success: "#0E9F6E",
+  successSoft: "rgba(14, 159, 110, 0.12)",
+  danger: "#DC2626",
+  dangerSoft: "rgba(220, 38, 38, 0.08)",
+  dangerBorder: "rgba(220, 38, 38, 0.25)",
+  warning: "#D97706",
+  warningSoft: "rgba(217, 119, 6, 0.10)",
+  warningBorder: "rgba(217, 119, 6, 0.28)",
+
+  realmBody: "#DC2626",
+  realmBodySoft: "rgba(220, 38, 38, 0.08)",
+  realmBodyBorder: "rgba(220, 38, 38, 0.22)",
+  realmWealth: "#0284C7",
+  realmWealthSoft: "rgba(2, 132, 199, 0.10)",
+  realmWealthBorder: "rgba(2, 132, 199, 0.22)",
+
+  mutedSoft: "rgba(180, 150, 90, 0.10)",
+
+  backdrop: "rgba(26, 22, 32, 0.45)",
+
+  onAccent: "#1A1620",
+  onDanger: "#FFFFFF",
+
+  heroGlow: "rgba(212, 165, 58, 0.18)",
+  heroRidge: "#F0E6D0",
+  heroSky: "#FDF6E8",
+
+  statusBar: "dark",
+};
+
+// AFTERNOON — brighter warm daylight, clearer blue/gold, still calm
+export const afternoonColors: ThemeColors = {
+  bg: "#F8F5EE",
+  surface: "#FFFDF5",
+  surfaceElevated: "#FFFFFF",
+  surfaceOverlay: "#FEFBF0",
+  navSurface: "#FFF8E8",
+
+  border: "rgba(140, 130, 80, 0.12)",
+  borderStrong: "rgba(140, 130, 80, 0.22)",
+
+  textPrimary: "#0F1A2A",
+  textSecondary: "#4A4538",
+  textMuted: "#7A7468",
+  textFaint: "#B8B0A0",
+
+  accent: "#3D8BC7",
+  accentStrong: "#2E75A8",
+  accentSoft: "rgba(61, 139, 199, 0.12)",
+  accentBorder: "rgba(61, 139, 199, 0.28)",
+
+  success: "#0E9F6E",
+  successSoft: "rgba(14, 159, 110, 0.12)",
+  danger: "#DC2626",
+  dangerSoft: "rgba(220, 38, 38, 0.08)",
+  dangerBorder: "rgba(220, 38, 38, 0.25)",
+  warning: "#D97706",
+  warningSoft: "rgba(217, 119, 6, 0.10)",
+  warningBorder: "rgba(217, 119, 6, 0.28)",
+
+  realmBody: "#DC2626",
+  realmBodySoft: "rgba(220, 38, 38, 0.08)",
+  realmBodyBorder: "rgba(220, 38, 38, 0.22)",
+  realmWealth: "#0284C7",
+  realmWealthSoft: "rgba(2, 132, 199, 0.10)",
+  realmWealthBorder: "rgba(2, 132, 199, 0.22)",
+
+  mutedSoft: "rgba(140, 130, 80, 0.10)",
+
+  backdrop: "rgba(15, 20, 30, 0.45)",
+
+  onAccent: "#FFFFFF",
+  onDanger: "#FFFFFF",
+
+  heroGlow: "rgba(61, 139, 199, 0.18)",
+  heroRidge: "#E8E0D0",
+  heroSky: "#F0E8D8",
+
+  statusBar: "dark",
+};
+
+// EVENING — warm amber/dusk blue, sunset feeling
+export const eveningColors: ThemeColors = {
+  bg: "#F0EDE8",
+  surface: "#FAF8F3",
+  surfaceElevated: "#FFFFFF",
+  surfaceOverlay: "#F5F0E8",
+  navSurface: "#F0EDE8",
+
+  border: "rgba(160, 120, 90, 0.14)",
+  borderStrong: "rgba(160, 120, 90, 0.24)",
+
+  textPrimary: "#1A1220",
+  textSecondary: "#5A4A38",
+  textMuted: "#8A7A68",
+  textFaint: "#B8A898",
+
+  accent: "#E88D2E",
+  accentStrong: "#D47A1E",
+  accentSoft: "rgba(232, 141, 46, 0.14)",
+  accentBorder: "rgba(232, 141, 46, 0.32)",
+
+  success: "#0E9F6E",
+  successSoft: "rgba(14, 159, 110, 0.12)",
+  danger: "#DC2626",
+  dangerSoft: "rgba(220, 38, 38, 0.08)",
+  dangerBorder: "rgba(220, 38, 38, 0.25)",
+  warning: "#D97706",
+  warningSoft: "rgba(217, 119, 6, 0.10)",
+  warningBorder: "rgba(217, 119, 6, 0.28)",
+
+  realmBody: "#DC2626",
+  realmBodySoft: "rgba(220, 38, 38, 0.08)",
+  realmBodyBorder: "rgba(220, 38, 38, 0.22)",
+  realmWealth: "#0284C7",
+  realmWealthSoft: "rgba(2, 132, 199, 0.10)",
+  realmWealthBorder: "rgba(2, 132, 199, 0.22)",
+
+  mutedSoft: "rgba(160, 120, 90, 0.12)",
+
+  backdrop: "rgba(26, 18, 32, 0.50)",
+
+  onAccent: "#1A1220",
+  onDanger: "#FFFFFF",
+
+  heroGlow: "rgba(232, 141, 46, 0.20)",
+  heroRidge: "#E8DDCC",
+  heroSky: "#F5E8D8",
+
+  statusBar: "dark",
+};
+
+// NIGHT — same as darkColors (Signature Pulse)
+export const nightColors: ThemeColors = darkColors;
+
+export function themeForDayCycle(phase: DayCyclePhase): ThemeColors {
+  switch (phase) {
+    case "morning": return morningColors;
+    case "afternoon": return afternoonColors;
+    case "evening": return eveningColors;
+    case "night": return nightColors;
+  }
 }
 
 // Legacy default kept for any not-yet-migrated import; new code must use

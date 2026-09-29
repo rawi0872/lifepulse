@@ -14,9 +14,15 @@ import {
   THEME_COLOR_KEYS,
   darkColors,
   lightColors,
+  morningColors,
+  afternoonColors,
+  eveningColors,
+  nightColors,
   isValidThemeMode,
   resolveThemeMode,
+  resolveDayCyclePhase,
   themeFor,
+  themeForDayCycle,
   statusBarFor,
   shadowFor,
 } from "../lib/theme.ts";
@@ -65,10 +71,11 @@ describe("theme mode resolution (system/light/dark)", () => {
     assert.equal(resolveThemeMode("system", undefined), "dark");
   });
 
-  it("only system/light/dark persist as valid preferences", () => {
+  it("only system/light/dark/day_cycle persist as valid preferences", () => {
     assert.ok(isValidThemeMode("system"));
     assert.ok(isValidThemeMode("light"));
     assert.ok(isValidThemeMode("dark"));
+    assert.ok(isValidThemeMode("day_cycle"));
     assert.ok(!isValidThemeMode("auto"));
     assert.ok(!isValidThemeMode(""));
     assert.ok(!isValidThemeMode(null));
@@ -156,7 +163,7 @@ describe("theme provider wiring", () => {
     const layout = read("app/_layout.tsx");
     assert.ok(layout.includes("ThemeProvider"), "provider not mounted");
     assert.ok(!layout.includes('style="light"'), "status bar still hardcoded to light");
-    assert.ok(layout.includes("resolvedMode"), "status bar not driven by resolved mode");
+    assert.ok(layout.includes("colors.statusBar"), "status bar not driven by theme tokens");
   });
 });
 
@@ -200,14 +207,91 @@ describe("theme-aware sheets, dialogs, modals", () => {
   });
 });
 
+describe("day cycle appearance", () => {
+  const atHour = (h) => {
+    const d = new Date(2026, 8, 29);
+    d.setHours(h, 30, 0, 0);
+    return d;
+  };
+
+  it("phase boundaries match the contract", () => {
+    assert.equal(resolveDayCyclePhase(atHour(4)), "night");
+    assert.equal(resolveDayCyclePhase(atHour(5)), "morning");
+    assert.equal(resolveDayCyclePhase(atHour(11)), "morning");
+    assert.equal(resolveDayCyclePhase(atHour(12)), "afternoon");
+    assert.equal(resolveDayCyclePhase(atHour(16)), "afternoon");
+    assert.equal(resolveDayCyclePhase(atHour(17)), "evening");
+    assert.equal(resolveDayCyclePhase(atHour(20)), "evening");
+    assert.equal(resolveDayCyclePhase(atHour(21)), "night");
+    assert.equal(resolveDayCyclePhase(atHour(0)), "night");
+  });
+
+  it("day_cycle resolves by time, never by device scheme", () => {
+    const afternoon = new Date(2026, 8, 29, 13, 0, 0, 0);
+    const night = new Date(2026, 8, 29, 23, 0, 0, 0);
+    // Phone dark at 13:00 → day_cycle still resolves light (afternoon)
+    assert.equal(resolveThemeMode("day_cycle", "dark", afternoon), "light");
+    assert.equal(resolveThemeMode("day_cycle", "light", afternoon), "light");
+    assert.equal(resolveThemeMode("day_cycle", "dark", night), "dark");
+    // System follows the device scheme in the same situation
+    assert.equal(resolveThemeMode("system", "dark", afternoon), "dark");
+    assert.equal(resolveThemeMode("system", "light", afternoon), "light");
+  });
+
+  it("every phase palette exposes every required color key", () => {
+    for (const [name, palette] of [["morning", morningColors], ["afternoon", afternoonColors], ["evening", eveningColors], ["night", nightColors]]) {
+      for (const key of THEME_COLOR_KEYS) {
+        assert.ok(key in palette, `${name} missing ${key}`);
+      }
+    }
+  });
+
+  it("night reuses Signature Pulse; day phases stay light with dark status foreground", () => {
+    assert.equal(nightColors.bg, darkColors.bg);
+    for (const palette of [morningColors, afternoonColors, eveningColors]) {
+      assert.equal(palette.statusBar, "dark");
+      assert.ok(!Object.values(palette).includes("#000000"));
+      assert.ok(!Object.values(palette).includes("#000"));
+    }
+  });
+
+  it("themeForDayCycle maps each phase to its palette", () => {
+    assert.equal(themeForDayCycle("morning"), morningColors);
+    assert.equal(themeForDayCycle("afternoon"), afternoonColors);
+    assert.equal(themeForDayCycle("evening"), eveningColors);
+    assert.equal(themeForDayCycle("night"), nightColors);
+  });
+
+  it("provider paints the Android nav strip and never touches device settings", () => {
+    const provider = read("lib/theme-provider.tsx");
+    assert.ok(provider.includes("expo-navigation-bar"), "provider never imports the nav-bar API");
+    assert.ok(provider.includes("setBackgroundColorAsync"), "provider never sets the nav background");
+    assert.ok(provider.includes("setButtonStyleAsync"), "provider never sets the nav icon style");
+    assert.ok(!provider.includes("cmd uimode"), "provider must not shell out to device settings");
+    assert.ok(!provider.includes("Settings.Global"), "provider must not write global settings");
+  });
+
+  it("provider re-resolves on foreground resume and phase boundaries", () => {
+    const provider = read("lib/theme-provider.tsx");
+    assert.ok(provider.includes("AppState"), "provider never listens for foreground resume");
+    assert.ok(provider.includes("getNextDayCycleBoundary") || provider.includes("setTimeout"), "provider never schedules boundary refresh");
+  });
+});
+
 describe("appearance selector", () => {
   const settings = read("app/(tabs)/settings.tsx");
 
-  it("offers System / Light / Dark and applies immediately", () => {
+  it("offers System / Light / Dark / Day Cycle and applies immediately", () => {
     assert.ok(settings.includes('"system"'), "system option missing");
     assert.ok(settings.includes('"light"'), "light option missing");
     assert.ok(settings.includes('"dark"'), "dark option missing");
+    assert.ok(settings.includes('"day_cycle"'), "day_cycle option missing");
     assert.ok(settings.includes("setMode"), "selector never applies the choice");
+  });
+
+  it("shows the resolved day-cycle phase when Day Cycle is active", () => {
+    assert.ok(settings.includes("dayCyclePhase"), "settings never reads the resolved phase");
+    assert.ok(settings.includes("Day Cycle ·"), "settings never labels the active phase");
   });
 
   it("no new permanent navigation item was added", () => {
@@ -229,6 +313,14 @@ describe("today hero atmosphere", () => {
   it("no text is baked into the illustration", () => {
     const art = read("src/components/TodayHeroArt.tsx");
     assert.ok(!art.includes("<Text"), "hero art bakes in text");
+  });
+
+  it("renders a distinct variant per day-cycle phase", () => {
+    const art = read("src/components/TodayHeroArt.tsx");
+    for (const phase of ["morning", "afternoon", "evening", "night"]) {
+      assert.ok(art.includes(`"${phase}"`) || art.includes(`'${phase}'`), `hero art has no ${phase} variant`);
+    }
+    assert.ok(art.includes("dayCyclePhase"), "hero art never reads the resolved phase");
   });
 });
 
