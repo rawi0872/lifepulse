@@ -539,7 +539,7 @@ function makeStyles(colors: ThemeColors, shadow: ThemeShadow) {
   greeting: { ...type.hero, color: colors.textPrimary },
   date: { ...type.meta, color: colors.textSecondary, marginTop: spacing.xs },
 
-  upNextSection: { marginBottom: spacing.lg },
+  upNextSection: { marginTop: 180, marginBottom: spacing.lg },
   sectionLabel: { flexDirection: "row", alignItems: "center", gap: spacing.sm, marginBottom: spacing.md },
   sectionLabelRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   sectionLabelText: { ...type.caption, color: colors.accent, fontWeight: "700", letterSpacing: 1.4 },
