@@ -116,6 +116,172 @@
   --hero-sky: #F6EDDD;
 }
 
+/*
+ * Day Cycle Phase Variants (only applied when data-day-phase is set via ThemeProvider)
+ * These override the base light theme for day_cycle mode phases.
+ */
+
+/* MORNING — soft sunrise, warm ivory, gentle gold/blue */
+:root[data-theme="light"][data-day-phase="morning"] {
+  --bg: #FAF6F0;
+  --bg-elevated: #FFFDF6;
+  --surface: #FFFDF6;
+  --surface-soft: #FEF9F0;
+  --surface-raised: #FFFFFF;
+  --surface-active: #FEFBF0;
+  --border: rgba(180, 150, 90, 0.12);
+  --border-strong: rgba(180, 150, 90, 0.22);
+  --text: #1A1620;
+  --text-secondary: #5D5548;
+  --text-muted: #8A8272;
+  --text-faint: #C8C0AC;
+  --accent: #D4A53A;
+  --accent-strong: #C4962E;
+  --accent-soft: rgba(212, 165, 58, 0.12);
+  --accent-border: rgba(212, 165, 58, 0.30);
+  --accent-ghost: rgba(212, 165, 58, 0.07);
+  --success: #0E9F6E;
+  --success-soft: rgba(14, 159, 110, 0.12);
+  --warning: #D97706;
+  --warning-soft: rgba(217, 119, 6, 0.10);
+  --attention: #0284C7;
+  --attention-strong: #0369A1;
+  --attention-soft: rgba(2, 132, 199, 0.10);
+  --danger: #DC2626;
+  --danger-soft: rgba(220, 38, 38, 0.08);
+  --glow: rgba(212, 165, 58, 0.18);
+  --focus-ring: rgba(212, 165, 58, 0.55);
+  --text-faint: #C8C0AC;
+  --accent-ghost: rgba(212, 165, 58, 0.07);
+  --danger-border: rgba(220, 38, 38, 0.25);
+  --warning-border: rgba(217, 119, 6, 0.28);
+  --muted-soft: rgba(180, 150, 90, 0.10);
+  --backdrop: rgba(26, 22, 32, 0.45);
+  --on-accent: #1A1620;
+  --on-danger: #FFFFFF;
+  --surface-overlay: #FEF9F0;
+  --nav-surface: #FFF8ED;
+  --realm-body: #DC2626;
+  --realm-body-soft: rgba(220, 38, 38, 0.08);
+  --realm-body-border: rgba(220, 38, 38, 0.22);
+  --realm-wealth: #0284C7;
+  --realm-wealth-soft: rgba(2, 132, 199, 0.10);
+  --realm-wealth-border: rgba(2, 132, 199, 0.22);
+  /* Hero / illustration atmosphere tokens */
+  --hero-glow: rgba(212, 165, 58, 0.18);
+  --hero-ridge: #F0E6D0;
+  --hero-sky: #FDF6E8;
+}
+
+/* AFTERNOON — brighter warm daylight, clearer blue/gold, still calm */
+:root[data-theme="light"][data-day-phase="afternoon"] {
+  --bg: #F8F5EE;
+  --bg-elevated: #FFFDF5;
+  --surface: #FFFDF5;
+  --surface-soft: #FEFBF0;
+  --surface-raised: #FFFFFF;
+  --surface-active: #FEFBF0;
+  --border: rgba(140, 130, 80, 0.12);
+  --border-strong: rgba(140, 130, 80, 0.22);
+  --text: #0F1A2A;
+  --text-secondary: #4A4538;
+  --text-muted: #7A7468;
+  --text-faint: #B8B0A0;
+  --accent: #3D8BC7;
+  --accent-strong: #2E75A8;
+  --accent-soft: rgba(61, 139, 199, 0.12);
+  --accent-border: rgba(61, 139, 199, 0.28);
+  --accent-ghost: rgba(61, 139, 199, 0.07);
+  --success: #0E9F6E;
+  --success-soft: rgba(14, 159, 110, 0.12);
+  --warning: #D97706;
+  --warning-soft: rgba(217, 119, 6, 0.10);
+  --attention: #0284C7;
+  --attention-strong: #0369A1;
+  --attention-soft: rgba(2, 132, 199, 0.10);
+  --danger: #DC2626;
+  --danger-soft: rgba(220, 38, 38, 0.08);
+  --glow: rgba(61, 139, 199, 0.18);
+  --focus-ring: rgba(61, 139, 199, 0.55);
+  --text-faint: #B8B0A0;
+  --accent-ghost: rgba(61, 139, 199, 0.07);
+  --danger-border: rgba(220, 38, 38, 0.25);
+  --warning-border: rgba(217, 119, 6, 0.28);
+  --muted-soft: rgba(140, 130, 80, 0.10);
+  --backdrop: rgba(15, 20, 30, 0.45);
+  --on-accent: #FFFFFF;
+  --on-danger: #FFFFFF;
+  --surface-overlay: #FEFBF0;
+  --nav-surface: #FFF8E8;
+  --realm-body: #DC2626;
+  --realm-body-soft: rgba(220, 38, 38, 0.08);
+  --realm-body-border: rgba(220, 38, 38, 0.22);
+  --realm-wealth: #0284C7;
+  --realm-wealth-soft: rgba(2, 132, 199, 0.10);
+  --realm-wealth-border: rgba(2, 132, 199, 0.22);
+  /* Hero / illustration atmosphere tokens */
+  --hero-glow: rgba(61, 139, 199, 0.18);
+  --hero-ridge: #E8E0D0;
+  --hero-sky: #F0E8D8;
+}
+
+/* EVENING — warm amber/dusk blue, sunset feeling */
+:root[data-theme="light"][data-day-phase="evening"] {
+  --bg: #F0EDE8;
+  --bg-elevated: #FAF8F3;
+  --surface: #FAF8F3;
+  --surface-soft: #F5F0E8;
+  --surface-raised: #FFFFFF;
+  --surface-active: #F5F0E8;
+  --border: rgba(160, 120, 90, 0.14);
+  --border-strong: rgba(160, 120, 90, 0.24);
+  --text: #1A1220;
+  --text-secondary: #5A4A38;
+  --text-muted: #8A7A68;
+  --text-faint: #B8A898;
+  --accent: #E88D2E;
+  --accent-strong: #D47A1E;
+  --accent-soft: rgba(232, 141, 46, 0.14);
+  --accent-border: rgba(232, 141, 46, 0.32);
+  --accent-ghost: rgba(232, 141, 46, 0.08);
+  --success: #0E9F6E;
+  --success-soft: rgba(14, 159, 110, 0.12);
+  --warning: #D97706;
+  --warning-soft: rgba(217, 119, 6, 0.10);
+  --attention: #0284C7;
+  --attention-strong: #0369A1;
+  --attention-soft: rgba(2, 132, 199, 0.10);
+  --danger: #DC2626;
+  --danger-soft: rgba(220, 38, 38, 0.08);
+  --glow: rgba(232, 141, 46, 0.20);
+  --focus-ring: rgba(232, 141, 46, 0.60);
+  --text-faint: #B8A898;
+  --accent-ghost: rgba(232, 141, 46, 0.08);
+  --danger-border: rgba(220, 38, 38, 0.25);
+  --warning-border: rgba(217, 119, 6, 0.28);
+  --muted-soft: rgba(160, 120, 90, 0.12);
+  --backdrop: rgba(26, 18, 32, 0.50);
+  --on-accent: #1A1220;
+  --on-danger: #FFFFFF;
+  --surface-overlay: #F5F0E8;
+  --nav-surface: #F0EDE8;
+  --realm-body: #DC2626;
+  --realm-body-soft: rgba(220, 38, 38, 0.08);
+  --realm-body-border: rgba(220, 38, 38, 0.22);
+  --realm-wealth: #0284C7;
+  --realm-wealth-soft: rgba(2, 132, 199, 0.10);
+  --realm-wealth-border: rgba(2, 132, 199, 0.22);
+  /* Hero / illustration atmosphere tokens */
+  --hero-glow: rgba(232, 141, 46, 0.20);
+  --hero-ridge: #E8DDCC;
+  --hero-sky: #F5E8D8;
+}
+
+/* NIGHT — uses the base dark theme (Signature Pulse) */
+:root[data-theme="dark"][data-day-phase="night"] {
+  /* Night phase uses the existing dark theme values - no overrides needed */
+}
+
 html {
   scroll-behavior: smooth;
   background: var(--bg);

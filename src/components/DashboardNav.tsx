@@ -159,7 +159,7 @@ export function DashboardNav({ children }: { children: React.ReactNode }) {
 
   const isActive = (href: string) => pathname === href || (href !== "/" && pathname.startsWith(`${href}/`));
   return (
-    <div className="command-shell min-h-screen overflow-x-hidden">
+    <div className="min-h-screen overflow-x-hidden bg-[var(--bg)]">
       <div className="command-shell-grid pointer-events-none fixed inset-0 opacity-50" aria-hidden="true" />
       <aside className="fixed left-0 top-0 z-40 hidden h-screen w-56 flex-col border-r border-[var(--border)] bg-[var(--nav-surface)] backdrop-blur-xl md:flex">
         <Link href="/today" className="group mx-4 mt-5 mb-7 flex items-center gap-2.5 rounded-xl px-1 py-1 transition-colors hover:bg-[var(--surface-active)]">
@@ -190,7 +190,7 @@ export function DashboardNav({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <main className="relative min-h-screen pb-20 md:ml-56 md:pb-0">
+      <main className="relative min-h-screen pb-20 md:ml-56 md:pb-0 bg-[var(--bg)]">
         {children}
       </main>
 
