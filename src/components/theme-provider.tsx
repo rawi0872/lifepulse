@@ -22,6 +22,13 @@ function systemResolved(): ResolvedTheme {
   return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
 }
 
+function dayCycleResolved(): ResolvedTheme {
+  if (typeof window === "undefined") return "light";
+  const hour = new Date().getHours();
+  // night: 21-5, morning: 5-12, afternoon: 12-17, evening: 17-21
+  return (hour >= 21 || hour < 5) ? "dark" : "light";
+}
+
 function applyAttribute(resolved: ResolvedTheme) {
   document.documentElement.dataset.theme = resolved;
 }
@@ -36,6 +43,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
   });
   const [system, setSystem] = useState<ResolvedTheme>(() => systemResolved());
+  const [dayCycle, setDayCycle] = useState<ResolvedTheme>(() => dayCycleResolved());
 
   useEffect(() => {
     const query = window.matchMedia("(prefers-color-scheme: light)");
@@ -46,7 +54,28 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     return () => query.removeEventListener("change", onChange);
   }, []);
 
-  const resolved: ResolvedTheme = mode === "system" ? system : mode;
+  useEffect(() => {
+    if (mode !== "day_cycle") return;
+    const update = () => setDayCycle(dayCycleResolved());
+    update();
+    const interval = window.setInterval(update, 60_000);
+    return () => window.clearInterval(interval);
+  }, [mode]);
+
+  useEffect(() => {
+    // Re-resolve day cycle on visibility change (tab wake)
+    if (mode !== "day_cycle") return;
+    const onVisible = () => {
+      if (document.visibilityState === "visible") setDayCycle(dayCycleResolved());
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [mode]);
+
+  const resolved: ResolvedTheme =
+    mode === "system" ? system :
+    mode === "day_cycle" ? dayCycle :
+    mode;
 
   useEffect(() => {
     applyAttribute(resolved);
