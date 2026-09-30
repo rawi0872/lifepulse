@@ -90,7 +90,7 @@ export default function SettingsPage() {
   const [wealthNextronLoading, setWealthNextronLoading] = useState(true);
   const [wealthNextronSaving, setWealthNextronSaving] = useState(false);
   const { toast } = useToast();
-  const { mode: appearanceMode, setMode: setAppearanceMode } = useLifePulseWebTheme();
+  const { mode: appearanceMode, dayCyclePhase, setMode: setAppearanceMode } = useLifePulseWebTheme();
 
   const calendarReconnectRequired = calendarStatus?.status === "revoked" || calendarStatus?.lastErrorCode === "RECONNECT_REQUIRED";
   const driveReconnectRequired = driveStatus?.status === "revoked" || driveStatus?.lastErrorCode === "RECONNECT_REQUIRED";
@@ -712,7 +712,7 @@ export default function SettingsPage() {
           </div>
         </Card>
 
-        {/* Appearance — System / Light / Dark (parity with mobile Settings) */}
+        {/* Appearance — System / Light / Dark / Day Cycle (parity with mobile Settings) */}
         <Card id="settings-appearance" className="mb-4 scroll-mt-24 border-[var(--border-strong)]">
           <div className="p-5">
             <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Preferences</p>
@@ -722,14 +722,16 @@ export default function SettingsPage() {
                 ? "Following your device."
                 : appearanceMode === "light"
                   ? "Light · Warm Human."
-                  : "Dark · Signature Pulse."}{" "}
+                  : appearanceMode === "dark"
+                    ? "Dark · Signature Pulse."
+                    : `Day Cycle · ${dayCyclePhase ? dayCyclePhase.charAt(0).toUpperCase() + dayCyclePhase.slice(1) : "Today"}.`}{" "}
               Applies immediately and is remembered on this device.
             </p>
-            <div role="radiogroup" aria-label="Appearance" className="grid grid-cols-3 gap-2">
-              {(["system", "light", "dark"] as ThemePreference[]).map((option) => {
+            <div role="radiogroup" aria-label="Appearance" className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {(["system", "light", "dark", "day_cycle"] as ThemePreference[]).map((option) => {
                 const selected = appearanceMode === option;
-                const label = option === "system" ? THEME_LABELS.system : option === "light" ? THEME_LABELS.light : THEME_LABELS.dark;
-                const hint = option === "system" ? THEME_LABELS.systemHint : option === "light" ? THEME_LABELS.lightHint : THEME_LABELS.darkHint;
+                const label = option === "system" ? THEME_LABELS.system : option === "light" ? THEME_LABELS.light : option === "dark" ? THEME_LABELS.dark : THEME_LABELS.dayCycle;
+                const hint = option === "system" ? THEME_LABELS.systemHint : option === "light" ? THEME_LABELS.lightHint : option === "dark" ? THEME_LABELS.darkHint : THEME_LABELS.dayCycleHint;
                 return (
                   <button
                     key={option}

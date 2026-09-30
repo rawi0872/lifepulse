@@ -26,6 +26,14 @@ import {
   REALM_NAMES,
   THEME_LABELS,
   APPEARANCE_STORAGE_KEY,
+  isThemePreference,
+  canonicalDarkPalette,
+  canonicalLightPalette,
+  canonicalMorningPalette,
+  canonicalAfternoonPalette,
+  canonicalEveningPalette,
+  canonicalNightPalette,
+  phaseForHour,
   getWeekStartForDate,
   getLocalTodayDateString,
   getCurrentStreak,
@@ -406,9 +414,6 @@ describe("terminology is converged", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// Habit log-window alignment (same inputs, same boundaries, both clients)
-// ---------------------------------------------------------------------------
 describe("habit log windows are aligned", () => {
   it("weeks start Monday on both date helpers", () => {
     assert.equal(getWeekStartForDate(LOG_WINDOW_FIXTURES.tuesday), LOG_WINDOW_FIXTURES.mondayWeekStart);
@@ -665,5 +670,132 @@ describe("auth, theme, and guard parity", () => {
   it("theme labels name both premium identities", () => {
     assert.equal(THEME_LABELS.darkHint, "Signature Pulse");
     assert.equal(THEME_LABELS.lightHint, "Warm Human");
+    assert.equal(THEME_LABELS.dayCycle, "Day Cycle");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 18. Appearance parity — one canonical palette, four web options
+// ---------------------------------------------------------------------------
+describe("appearance parity — one canonical palette", () => {
+  const norm = (s) => s.replace(/\s+/g, "").toLowerCase();
+  const css = read("src/app/globals.css");
+
+  function cssBlock(startMarker) {
+    const start = css.indexOf(startMarker);
+    assert.ok(start >= 0, `css block missing: ${startMarker}`);
+    const open = css.indexOf("{", start);
+    const close = css.indexOf("}", open);
+    assert.ok(open >= 0 && close > open, `css block malformed: ${startMarker}`);
+    return css.slice(open + 1, close);
+  }
+
+  // Core semantic tokens every palette must expose on web CSS.
+  function assertPaletteCss(block, palette, label) {
+    const entries = [
+      ["--bg", palette.bg],
+      ["--surface", palette.surface],
+      ["--surface-overlay", palette.surfaceOverlay],
+      ["--nav-surface", palette.navSurface],
+      ["--text", palette.textPrimary],
+      ["--text-secondary", palette.textSecondary],
+      ["--text-muted", palette.textMuted],
+      ["--text-faint", palette.textFaint],
+      ["--accent", palette.accent],
+      ["--accent-strong", palette.accentStrong],
+      ["--accent-soft", palette.accentSoft],
+      ["--border", palette.border],
+      ["--danger", palette.danger],
+      ["--success", palette.success],
+      ["--realm-body", palette.realmBody],
+      ["--realm-wealth", palette.realmWealth],
+      ["--hero-glow", palette.heroGlow],
+      ["--hero-ridge", palette.heroRidge],
+      ["--hero-sky", palette.heroSky],
+    ];
+    for (const [cssVar, value] of entries) {
+      assert.ok(
+        norm(block).includes(norm(`${cssVar}:${value}`)),
+        `${label} css missing ${cssVar}: ${value}`,
+      );
+    }
+  }
+
+  it("storage contract supports all four appearance options", () => {
+    for (const option of ["system", "light", "dark", "day_cycle"]) {
+      assert.ok(isThemePreference(option), `${option} rejected by storage contract`);
+    }
+    assert.equal(THEME_LABELS.dayCycle, "Day Cycle");
+    assert.equal(THEME_LABELS.dayCycleHint, "Changes with time of day");
+  });
+
+  it("web Settings renders System / Light / Dark / Day Cycle", () => {
+    const settings = read("src/app/settings/page.tsx");
+    assert.ok(
+      settings.includes('(["system", "light", "dark", "day_cycle"]'),
+      "settings options array missing day_cycle",
+    );
+    assert.ok(settings.includes("THEME_LABELS.dayCycle"), "settings never labels Day Cycle");
+    assert.ok(settings.includes("THEME_LABELS.dayCycleHint"), "settings never hints Day Cycle");
+    assert.ok(settings.includes("dayCyclePhase"), "settings never shows the resolved phase");
+    assert.ok(settings.includes("sm:grid-cols-4"), "settings options do not lay out 2x2 → 4-up");
+  });
+
+  it("mobile consumes the canonical palettes (no forked copy)", () => {
+    const mobileTheme = read("apps/mobile/lib/theme.ts");
+    assert.ok(mobileTheme.includes('from "@lifepulse/domain"'), "mobile theme never imports the canonical module");
+    for (const [name, canon] of [
+      ["darkColors", "canonicalDarkPalette"],
+      ["lightColors", "canonicalLightPalette"],
+      ["morningColors", "canonicalMorningPalette"],
+      ["afternoonColors", "canonicalAfternoonPalette"],
+      ["eveningColors", "canonicalEveningPalette"],
+    ]) {
+      assert.ok(mobileTheme.includes(`${name}: ThemeColors = ${canon}`), `mobile ${name} not sourced from ${canon}`);
+    }
+    assert.ok(!mobileTheme.includes('"#030A13"'), "mobile theme still carries a forked dark literal");
+    assert.ok(!mobileTheme.includes('"#FAF6F0"'), "mobile theme still carries a forked morning literal");
+  });
+
+  it("night reuses Signature Pulse in the canonical module", () => {
+    assert.equal(canonicalNightPalette, canonicalDarkPalette);
+  });
+
+  it("web dark CSS matches canonical Signature Pulse exactly", () => {
+    const block = cssBlock(":root {");
+    assertPaletteCss(block, canonicalDarkPalette, "dark");
+    assert.ok(norm(block).includes(norm(`--surface-raised:${canonicalDarkPalette.surfaceElevated}`)), "dark surface-raised drifted");
+    assert.ok(norm(block).includes(norm(`--bg-elevated:${canonicalDarkPalette.surfaceElevated}`)), "dark bg-elevated drifted");
+  });
+
+  it("web light CSS matches canonical Warm Human Premium exactly", () => {
+    assertPaletteCss(cssBlock(':root[data-theme="light"] {'), canonicalLightPalette, "light");
+  });
+
+  it("web day-cycle phases match canonical mobile palettes exactly", () => {
+    assertPaletteCss(cssBlock('[data-day-phase="morning"]'), canonicalMorningPalette, "morning");
+    assertPaletteCss(cssBlock('[data-day-phase="afternoon"]'), canonicalAfternoonPalette, "afternoon");
+    assertPaletteCss(cssBlock('[data-day-phase="evening"]'), canonicalEveningPalette, "evening");
+  });
+
+  it("day_cycle never leaks as a raw CSS theme", () => {
+    const provider = read("src/components/theme-provider.tsx");
+    assert.ok(provider.includes("dataset.dayPhase"), "provider never sets the phase attribute");
+    assert.ok(!css.includes('[data-theme="day_cycle"]'), "css styles day_cycle as a raw theme");
+    assert.ok(!css.includes(".day_cycle"), "css styles a day_cycle class");
+    assert.ok(!provider.includes("dataset.theme = mode"), "provider assigns the raw preference as theme");
+  });
+
+  it("phase boundaries match the shared contract", () => {
+    assert.equal(phaseForHour(0), "night");
+    assert.equal(phaseForHour(4), "night");
+    assert.equal(phaseForHour(5), "morning");
+    assert.equal(phaseForHour(11), "morning");
+    assert.equal(phaseForHour(12), "afternoon");
+    assert.equal(phaseForHour(16), "afternoon");
+    assert.equal(phaseForHour(17), "evening");
+    assert.equal(phaseForHour(20), "evening");
+    assert.equal(phaseForHour(21), "night");
+    assert.equal(phaseForHour(23), "night");
   });
 });

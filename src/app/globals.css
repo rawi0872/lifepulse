@@ -5,54 +5,58 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* Dark default = Signature Pulse (canonical: packages/domain/theme-palette.ts).
+ * Core tokens below mirror canonicalDarkPalette exactly. Web-only interaction
+ * tokens (surface-soft/active, accent-ghost, critical, glow, focus-ring,
+ * attention) stay web-specific. */
 :root {
-  --bg: #070a0f;
-  --bg-elevated: #0d1118;
-  --surface: #121821;
+  --bg: #030A13;
+  --bg-elevated: #0E1E33;
+  --surface: #0A1626;
   --surface-soft: #0f141c;
-  --surface-raised: #19212b;
-  --surface-active: #202a36;
-  --border: rgba(148,163,184,0.13);
-  --border-strong: rgba(148,163,184,0.25);
-  --text: #f4f7fb;
-  --text-secondary: #a8b0bb;
-  --text-muted: #6f7884;
-  --accent: #7aa2c7;
-  --accent-soft: rgba(122,162,199,0.14);
-  --accent-strong: #9bc3e6;
-  --accent-ghost: rgba(122,162,199,0.07);
-  --success: #7fb394;
-  --success-soft: rgba(127,179,148,0.14);
-  --warning: #d2a85f;
-  --warning-soft: rgba(210,168,95,0.14);
+  --surface-raised: #0E1E33;
+  --surface-active: #152A45;
+  --border: rgba(148, 184, 220, 0.12);
+  --border-strong: rgba(148, 184, 220, 0.22);
+  --text: #F2F7FD;
+  --text-secondary: #A9BCD2;
+  --text-muted: #6B7E96;
+  --accent: #69B7FF;
+  --accent-soft: rgba(105, 183, 255, 0.12);
+  --accent-strong: #8FC2FF;
+  --accent-ghost: rgba(105, 183, 255, 0.07);
+  --success: #34d399;
+  --success-soft: rgba(52, 211, 153, 0.12);
+  --warning: #f59e0b;
+  --warning-soft: rgba(245, 158, 11, 0.12);
   --attention: #67d4e8;
   --attention-strong: #8fe3f5;
   --attention-soft: rgba(103,212,232,0.13);
-  --danger: #e06f6f;
-  --danger-soft: rgba(224,111,111,0.14);
+  --danger: #ef4444;
+  --danger-soft: rgba(239, 68, 68, 0.12);
   --critical: #f08b8b;
   --critical-soft: rgba(240,139,139,0.14);
-  --glow: rgba(122,162,199,0.08);
-  --focus-ring: rgba(155,195,230,0.72);
+  --glow: rgba(105, 183, 255, 0.08);
+  --focus-ring: rgba(143,194,255,0.72);
   --radius-surface: 1.5rem;
   --ease-premium: cubic-bezier(0.16, 1, 0.3, 1);
   /* Shared semantic tokens (converged with mobile theme.ts) */
-  --text-faint: #3a4656;
-  --accent-border: rgba(122,162,199,0.28);
-  --danger-border: rgba(224,111,111,0.25);
-  --warning-border: rgba(210,168,95,0.3);
-  --muted-soft: rgba(148,163,184,0.12);
-  --backdrop: rgba(0,0,0,0.6);
-  --on-accent: #071018;
-  --on-danger: #ffffff;
-  --surface-overlay: #171d2b;
-  --nav-surface: #0a0e15;
+  --text-faint: #3A4A5E;
+  --accent-border: rgba(105, 183, 255, 0.34);
+  --danger-border: rgba(239, 68, 68, 0.28);
+  --warning-border: rgba(245, 158, 11, 0.3);
+  --muted-soft: rgba(148, 184, 220, 0.12);
+  --backdrop: rgba(0, 0, 0, 0.6);
+  --on-accent: #04101F;
+  --on-danger: #FFFFFF;
+  --surface-overlay: #152A45;
+  --nav-surface: #071120;
   --realm-body: #ef4444;
-  --realm-body-soft: rgba(239,68,68,0.12);
-  --realm-body-border: rgba(239,68,68,0.22);
+  --realm-body-soft: rgba(239, 68, 68, 0.12);
+  --realm-body-border: rgba(239, 68, 68, 0.25);
   --realm-wealth: #38bdf8;
-  --realm-wealth-soft: rgba(56,189,248,0.12);
-  --realm-wealth-border: rgba(56,189,248,0.22);
+  --realm-wealth-soft: rgba(56, 189, 248, 0.12);
+  --realm-wealth-border: rgba(56, 189, 248, 0.25);
   /* Hero / illustration atmosphere tokens */
   --hero-glow: rgba(105,183,255,0.16);
   --hero-ridge: #0B1D33;
@@ -151,8 +155,6 @@
   --danger-soft: rgba(220, 38, 38, 0.08);
   --glow: rgba(212, 165, 58, 0.18);
   --focus-ring: rgba(212, 165, 58, 0.55);
-  --text-faint: #C8C0AC;
-  --accent-ghost: rgba(212, 165, 58, 0.07);
   --danger-border: rgba(220, 38, 38, 0.25);
   --warning-border: rgba(217, 119, 6, 0.28);
   --muted-soft: rgba(180, 150, 90, 0.10);
@@ -203,8 +205,6 @@
   --danger-soft: rgba(220, 38, 38, 0.08);
   --glow: rgba(61, 139, 199, 0.18);
   --focus-ring: rgba(61, 139, 199, 0.55);
-  --text-faint: #B8B0A0;
-  --accent-ghost: rgba(61, 139, 199, 0.07);
   --danger-border: rgba(220, 38, 38, 0.25);
   --warning-border: rgba(217, 119, 6, 0.28);
   --muted-soft: rgba(140, 130, 80, 0.10);
@@ -255,8 +255,6 @@
   --danger-soft: rgba(220, 38, 38, 0.08);
   --glow: rgba(232, 141, 46, 0.20);
   --focus-ring: rgba(232, 141, 46, 0.60);
-  --text-faint: #B8A898;
-  --accent-ghost: rgba(232, 141, 46, 0.08);
   --danger-border: rgba(220, 38, 38, 0.25);
   --warning-border: rgba(217, 119, 6, 0.28);
   --muted-soft: rgba(160, 120, 90, 0.12);

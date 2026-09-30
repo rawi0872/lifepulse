@@ -121,6 +121,19 @@ export {
 } from "./copy.ts";
 export type { CanonicalRealmKey, ThemePreference } from "./copy.ts";
 export {
+  canonicalDarkPalette,
+  canonicalLightPalette,
+  canonicalMorningPalette,
+  canonicalAfternoonPalette,
+  canonicalEveningPalette,
+  canonicalNightPalette,
+  canonicalPalettes,
+  paletteForDayCyclePhase,
+  phaseForHour,
+  phaseForDate,
+} from "./theme-palette.ts";
+export type { CanonicalStatusBar, CanonicalThemePalette, DayCyclePhase } from "./theme-palette.ts";
+export {
   DEFAULT_WEALTH_NEXTRON_PERMISSIONS,
   WEALTH_NEXTRON_SECTIONS,
   getEffectiveWealthNextronSections,
