@@ -246,7 +246,7 @@ export default function OnboardingPage() {
   }
 
   if (loading) {
-    return <div className="command-shell flex min-h-screen items-center justify-center"><div className="flex flex-col items-center gap-4"><LifePulseLogo /><p className="text-sm text-[var(--text-muted)]">Opening NEXTRON onboarding...</p></div></div>;
+    return <div className="flex min-h-screen items-center justify-center bg-[var(--bg)]"><div className="flex flex-col items-center gap-4"><LifePulseLogo /><p className="text-sm text-[var(--text-muted)]">Opening NEXTRON onboarding...</p></div></div>;
   }
 
   const understanding = state?.understanding ?? EMPTY_UNDERSTANDING;

@@ -1640,22 +1640,22 @@ function IntelligenceCore({ status, systems, activeSources }: { status: Intellig
     <div className="relative flex w-full shrink-0 items-center justify-center gap-3 sm:w-auto" aria-label={`NEXTRON core ${statusLabel.toLowerCase()}, ${activeCount} systems available`}>
       <div className="relative flex h-28 w-28 items-center justify-center sm:h-36 sm:w-36">
         <div className={`absolute inset-0 rounded-full border ${status === "error" ? "border-[var(--warning)]/40 bg-[var(--warning-soft)]" : "border-[var(--attention)]/25 bg-[var(--attention)]/10"} shadow-[0_0_54px_rgba(34,211,238,0.16)] ${coreMotion}`} />
-        <div className={`nextron-orbit-slow absolute inset-2 rounded-full border border-dashed ${status === "thinking" ? "border-cyan-100/50" : "border-[var(--attention-strong)]"}`} />
+        <div className={`nextron-orbit-slow absolute inset-2 rounded-full border border-dashed ${status === "thinking" ? "border-[var(--attention-strong)]" : "border-[var(--attention)]/60"}`} />
         <div className="nextron-counter-orbit absolute inset-5 rounded-full border border-[var(--attention)]/15" />
-        <div className={`absolute inset-8 rounded-2xl border ${status === "error" ? "border-[var(--warning)]/40" : "border-cyan-300/30"} bg-[radial-gradient(circle,rgba(125,211,252,0.30),rgba(8,18,32,0.50)_62%)] rotate-45 ${status === "thinking" ? "nextron-orbit-fast" : ""}`} />
-        <div className="absolute h-3 w-3 rounded-full bg-cyan-100 shadow-[0_0_28px_rgba(103,232,249,0.95)]" />
+        <div className={`absolute inset-8 rounded-2xl border ${status === "error" ? "border-[var(--warning)]/40" : "border-[var(--attention)]/30"} bg-[radial-gradient(circle,var(--attention-soft),transparent_70%)] rotate-45 ${status === "thinking" ? "nextron-orbit-fast" : ""}`} />
+        <div className="absolute h-3 w-3 rounded-full bg-[var(--attention-strong)] shadow-[0_0_28px_var(--attention)]" />
         {systems.slice(0, 8).map((system, index) => {
           const angle = (index / Math.max(1, Math.min(8, systems.length))) * Math.PI * 2 - Math.PI / 2;
           const x = Math.cos(angle) * 48;
           const y = Math.sin(angle) * 48;
           const active = system.status === "available";
           const sourceActive = activeSourceSet.has(system.domain.toLowerCase()) || activeSourceSet.has(formatDomainLabel(system.domain).toLowerCase());
-          return <span key={system.domain} className={`absolute h-2.5 w-2.5 rounded-full border ${sourceActive ? "border-cyan-100 bg-cyan-200 shadow-[0_0_14px_rgba(103,232,249,0.85)]" : active ? "border-cyan-300/50 bg-[var(--attention)]/25" : "border-[var(--border)] bg-[var(--muted-soft)]"}`} style={{ transform: `translate(${x}px, ${y}px)` }} title={`${formatDomainLabel(system.domain)} ${statusText(system.status)}`} aria-hidden="true" />;
+          return <span key={system.domain} className={`absolute h-2.5 w-2.5 rounded-full border ${sourceActive ? "border-[var(--attention-strong)] bg-[var(--attention)] shadow-[0_0_14px_var(--attention)]" : active ? "border-[var(--attention)]/50 bg-[var(--attention)]/25" : "border-[var(--border)] bg-[var(--muted-soft)]"}`} style={{ transform: `translate(${x}px, ${y}px)` }} title={`${formatDomainLabel(system.domain)} ${statusText(system.status)}`} aria-hidden="true" />;
         })}
       </div>
       <div className="hidden min-w-24 text-left sm:block">
         <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--attention-strong)]">Core</p>
-        <p className="mt-1 text-sm font-semibold text-cyan-50">{statusLabel}</p>
+        <p className="mt-1 text-sm font-semibold text-[var(--text)]">{statusLabel}</p>
         <p className="mt-1 text-[10px] text-[var(--attention-strong)]">{activeCount} systems ready</p>
         {activeSources.length > 0 && <p className="mt-2 text-[10px] text-[var(--attention-strong)]">Used: {activeSources.slice(0, 2).join(" + ")}</p>}
       </div>
@@ -1922,7 +1922,7 @@ function RichMetricView({ metric }: { metric: NextronRichMetric }) {
 }
 
 function RichListItemView({ item }: { item: NextronRichListItem }) {
-  const markerClass = item.tone === "attention" ? "bg-[var(--warning)]" : item.tone === "positive" ? "bg-[var(--success)]" : "bg-cyan-300/65";
+  const markerClass = item.tone === "attention" ? "bg-[var(--warning)]" : item.tone === "positive" ? "bg-[var(--success)]" : "bg-[var(--attention)]/65";
   const content = <><span className={`mt-1 h-2 w-2 shrink-0 rounded-full ${markerClass}`} aria-hidden="true" /><span className="min-w-0"><span className="block break-words text-xs font-medium text-[var(--text)]">{item.title}</span>{item.detail && <span className="mt-0.5 block break-words text-[10px] leading-relaxed text-[var(--text-muted)]">{item.detail}</span>}<span className="mt-0.5 block text-[9px] uppercase tracking-[0.1em] text-[var(--attention-strong)]">{formatDomainLabel(item.source)}</span></span></>;
   return <li>{item.href ? <Link href={item.href} className="flex gap-2 rounded-xl border border-transparent p-2 transition-colors hover:border-[var(--attention)]/25 hover:bg-[var(--attention)]/10">{content}</Link> : <div className="flex gap-2 p-2">{content}</div>}</li>;
 }

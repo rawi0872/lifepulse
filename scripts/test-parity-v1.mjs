@@ -690,11 +690,13 @@ describe("appearance parity — one canonical palette", () => {
     return css.slice(open + 1, close);
   }
 
-  // Core semantic tokens every palette must expose on web CSS.
+  // Every canonical semantic token must resolve on web CSS.
   function assertPaletteCss(block, palette, label) {
     const entries = [
       ["--bg", palette.bg],
       ["--surface", palette.surface],
+      ["--surface-raised", palette.surfaceElevated],
+      ["--bg-elevated", palette.surfaceElevated],
       ["--surface-overlay", palette.surfaceOverlay],
       ["--nav-surface", palette.navSurface],
       ["--text", palette.textPrimary],
@@ -704,11 +706,27 @@ describe("appearance parity — one canonical palette", () => {
       ["--accent", palette.accent],
       ["--accent-strong", palette.accentStrong],
       ["--accent-soft", palette.accentSoft],
+      ["--accent-border", palette.accentBorder],
       ["--border", palette.border],
+      ["--border-strong", palette.borderStrong],
       ["--danger", palette.danger],
+      ["--danger-soft", palette.dangerSoft],
+      ["--danger-border", palette.dangerBorder],
       ["--success", palette.success],
+      ["--success-soft", palette.successSoft],
+      ["--warning", palette.warning],
+      ["--warning-soft", palette.warningSoft],
+      ["--warning-border", palette.warningBorder],
       ["--realm-body", palette.realmBody],
+      ["--realm-body-soft", palette.realmBodySoft],
+      ["--realm-body-border", palette.realmBodyBorder],
       ["--realm-wealth", palette.realmWealth],
+      ["--realm-wealth-soft", palette.realmWealthSoft],
+      ["--realm-wealth-border", palette.realmWealthBorder],
+      ["--muted-soft", palette.mutedSoft],
+      ["--backdrop", palette.backdrop],
+      ["--on-accent", palette.onAccent],
+      ["--on-danger", palette.onDanger],
       ["--hero-glow", palette.heroGlow],
       ["--hero-ridge", palette.heroRidge],
       ["--hero-sky", palette.heroSky],
@@ -797,5 +815,72 @@ describe("appearance parity — one canonical palette", () => {
     assert.equal(phaseForHour(20), "evening");
     assert.equal(phaseForHour(21), "night");
     assert.equal(phaseForHour(23), "night");
+  });
+});
+
+describe("nextron theme drift guards", () => {
+  const coach = read("src/app/coach/page.tsx");
+  const css = read("src/app/globals.css");
+
+  it("nextron root canvas is theme-aware, never a fixed dark shell", () => {
+    assert.ok(
+      coach.includes("nextron-shell relative min-h-screen"),
+      "coach root lost its shell class",
+    );
+    assert.ok(
+      css.includes(".nextron-shell") && css.includes("background: var(--bg)"),
+      "nextron-shell utility is not theme-aware",
+    );
+    assert.ok(
+      !css.includes("rgba(8, 11, 16, 1)"),
+      "hardcoded dark canvas gradient remains in css",
+    );
+  });
+
+  it("nextron panels resolve from theme surfaces", () => {
+    assert.ok(
+      css.includes(".nextron-surface") && css.includes("var(--surface)"),
+      "nextron-surface utility ignores the theme surface",
+    );
+  });
+
+  it("nextron orb and markers use attention tokens, not fixed cyans", () => {
+    for (const literal of [
+      "text-cyan-50",
+      "bg-cyan-100",
+      "bg-cyan-200",
+      "border-cyan-100",
+      "border-cyan-300",
+      "bg-cyan-300",
+      "rgba(8,18,32",
+    ]) {
+      assert.ok(!coach.includes(literal), `coach still hardcodes ${literal}`);
+    }
+    assert.ok(coach.includes("bg-[var(--attention-strong)]"), "orb core lost its accent");
+    assert.ok(coach.includes("text-[var(--text)]"), "orb status lost theme text");
+  });
+
+  it("nextron composer and conversation surfaces use semantic tokens", () => {
+    assert.ok(coach.includes("bg-[var(--surface-overlay)]"), "composer lost its theme surface");
+    assert.ok(!coach.includes("bg-black"), "coach has a black surface");
+    assert.ok(!coach.includes("text-white"), "coach has hardcoded white text");
+  });
+});
+
+describe("hero color parity � same identity as mobile", () => {
+  it("web and mobile hero illustrations share accent fills", () => {
+    const webArt = read("src/components/TodayHeroArt.tsx");
+    const mobileArt = read("apps/mobile/src/components/TodayHeroArt.tsx");
+    for (const fill of ["#F5B96B", "#E8913A", "#DCE9F7", "#9DB98A", "#DCCBAE", "#0E2138"]) {
+      assert.ok(webArt.includes(fill), `web hero missing shared fill ${fill}`);
+      assert.ok(mobileArt.includes(fill), `mobile hero missing shared fill ${fill}`);
+    }
+  });
+
+  it("web hero ridges resolve from canonical tokens", () => {
+    const webArt = read("src/components/TodayHeroArt.tsx");
+    assert.ok(webArt.includes("var(--hero-ridge)"), "web hero ridge ignores the token");
+    assert.ok(webArt.includes("var(--hero-glow)"), "web hero glow ignores the token");
+    assert.ok(webArt.includes("var(--hero-sky)"), "web hero sky ignores the token");
   });
 });
