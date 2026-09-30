@@ -867,7 +867,7 @@ describe("nextron theme drift guards", () => {
   });
 });
 
-describe("hero color parity — same identity as mobile", () => {
+describe("hero color parity ï¿½ same identity as mobile", () => {
   it("web and mobile hero illustrations share accent fills", () => {
     const webArt = read("src/components/TodayHeroArt.tsx");
     const mobileArt = read("apps/mobile/src/components/TodayHeroArt.tsx");
@@ -882,5 +882,41 @@ describe("hero color parity — same identity as mobile", () => {
     assert.ok(webArt.includes("var(--hero-ridge)"), "web hero ridge ignores the token");
     assert.ok(webArt.includes("var(--hero-glow)"), "web hero glow ignores the token");
     assert.ok(webArt.includes("var(--hero-sky)"), "web hero sky ignores the token");
+  });
+});
+
+describe("day cycle hero rendering guards", () => {
+  const art = read("src/components/TodayHeroArt.tsx");
+  const shell = read("src/components/DashboardNav.tsx");
+  const layout = read("src/app/layout.tsx");
+
+  it("TodayHeroArt is driven by the resolved phase, not just light/dark", () => {
+    assert.ok(art.includes("dayCyclePhase"), "hero never reads the resolved phase");
+    assert.ok(
+      art.includes("dayCyclePhase ??"),
+      "phase does not take precedence over the binary fallback",
+    );
+    for (const phase of ["morning", "afternoon", "evening", "night"]) {
+      assert.ok(
+        art.includes(`variant === "${phase}"`),
+        `hero has no ${phase} branch (silent fallback to generic art)`,
+      );
+    }
+  });
+
+  it("page atmosphere is never buried under an opaque shell background", () => {
+    // Negative-z-index atmosphere paints below ancestor block backgrounds;
+    // the shell wrapper and main must stay transparent so the hero is visible.
+    assert.ok(!shell.includes("command-shell "), "shell still uses the fixed dark canvas");
+    const mainClass = shell.match(/<main className="([^"]*)"/);
+    assert.ok(mainClass, "shell main element missing");
+    assert.ok(!mainClass[1].includes("bg-["), "shell main has an opaque background burying the hero");
+    const wrapperClass = shell.match(/<div className="min-h-screen ([^"]*)"/);
+    assert.ok(wrapperClass, "shell wrapper missing");
+    assert.ok(!wrapperClass[1].includes("bg-["), "shell wrapper has an opaque background burying the hero");
+    assert.ok(
+      layout.includes("bg-[var(--bg)]"),
+      "body no longer provides the theme background",
+    );
   });
 });
