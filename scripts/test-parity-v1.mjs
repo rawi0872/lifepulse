@@ -940,6 +940,16 @@ describe("day cycle hero rendering guards", () => {
     assert.ok(!art.includes("zIndex: -1"), "hero still relies on negative z-index stacking");
     assert.ok(art.includes("absolute inset-0"), "hero no longer fills its section");
   });
+
+  it("Today hero blends into the page, never a bordered card", () => {
+    const today = read("src/app/today/page.tsx");
+    const sectionTag = today.match(/<section aria-label="Today atmosphere" className="([^"]*)"/);
+    assert.ok(sectionTag, "hero section missing");
+    assert.ok(!sectionTag[1].includes("rounded-"), "hero reads as a boxed panel (rounded)");
+    assert.ok(!sectionTag[1].includes("border"), "hero reads as a boxed panel (outline)");
+    assert.ok(!sectionTag[1].includes("shadow"), "hero reads as a boxed panel (shadow)");
+    assert.ok(today.includes("from-[var(--bg)]"), "hero has no bottom melt into the page");
+  });
 });
 
 describe("themed brand mark guards", () => {

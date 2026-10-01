@@ -365,9 +365,9 @@ function TodayContent() {
   return (
     <div className="animate-fade-in">
       <div className="mx-auto max-w-6xl px-4 pt-4 sm:px-6 sm:pt-6">
-        <section aria-label="Today atmosphere" className="relative h-[200px] overflow-hidden rounded-2xl border border-[var(--border)] sm:h-[220px]">
+        <section aria-label="Today atmosphere" className="relative h-[200px] overflow-hidden sm:h-[220px]">
           <TodayHeroArt />
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[var(--bg)] to-transparent" aria-hidden="true" />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-[var(--bg)] via-[var(--bg)]/30 to-transparent" aria-hidden="true" />
           <div className="absolute inset-x-0 bottom-0 z-10 flex items-end px-4 pb-5 sm:px-6">
             <LifePulseLogo />
           </div>
