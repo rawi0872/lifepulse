@@ -61,6 +61,15 @@
   --hero-glow: rgba(105,183,255,0.16);
   --hero-ridge: #0B1D33;
   --hero-sky: #06121F;
+  /* Brand mark tokens (LifePulseLogo tile + pulse) */
+  --brand-tile-from: #101317;
+  --brand-tile-to: #0a0a0b;
+  --brand-tile-border: rgba(148,163,184,0.20);
+  --brand-pulse-1: #7fb394;
+  --brand-pulse-2: #9bc3e6;
+  --brand-pulse-3: #7aa2c7;
+  --brand-ring: rgba(148,163,184,0.14);
+  --brand-dot: #f4f7fb;
 }
 
 /*
@@ -118,6 +127,15 @@
   --hero-glow: rgba(118,183,239,0.20);
   --hero-ridge: #EADDC8;
   --hero-sky: #F6EDDD;
+  /* Brand mark tokens (LifePulseLogo tile + pulse) */
+  --brand-tile-from: #FFFFFF;
+  --brand-tile-to: #F1EADD;
+  --brand-tile-border: rgba(75,100,140,0.30);
+  --brand-pulse-1: #4F83B8;
+  --brand-pulse-2: #3A6A99;
+  --brand-pulse-3: #7AA2C7;
+  --brand-ring: rgba(75,100,140,0.22);
+  --brand-dot: #FFFFFF;
 }
 
 /*
@@ -173,6 +191,15 @@
   --hero-glow: rgba(212, 165, 58, 0.18);
   --hero-ridge: #F0E6D0;
   --hero-sky: #FDF6E8;
+  /* Brand mark tokens (LifePulseLogo tile + pulse) */
+  --brand-tile-from: #FFFDF6;
+  --brand-tile-to: #F3E9D2;
+  --brand-tile-border: rgba(180,150,90,0.32);
+  --brand-pulse-1: #7AA2C7;
+  --brand-pulse-2: #9BC3E6;
+  --brand-pulse-3: #D4A53A;
+  --brand-ring: rgba(180,150,90,0.22);
+  --brand-dot: #FFFFFF;
 }
 
 /* AFTERNOON — brighter warm daylight, clearer blue/gold, still calm */
@@ -223,6 +250,15 @@
   --hero-glow: rgba(61, 139, 199, 0.18);
   --hero-ridge: #E8E0D0;
   --hero-sky: #F0E8D8;
+  /* Brand mark tokens (LifePulseLogo tile + pulse) */
+  --brand-tile-from: #FFFDF5;
+  --brand-tile-to: #EFE6D2;
+  --brand-tile-border: rgba(140,130,80,0.32);
+  --brand-pulse-1: #2E75A8;
+  --brand-pulse-2: #69B7FF;
+  --brand-pulse-3: #3D8BC7;
+  --brand-ring: rgba(140,130,80,0.22);
+  --brand-dot: #FFFFFF;
 }
 
 /* EVENING — warm amber/dusk blue, sunset feeling */
@@ -273,6 +309,15 @@
   --hero-glow: rgba(232, 141, 46, 0.20);
   --hero-ridge: #E8DDCC;
   --hero-sky: #F5E8D8;
+  /* Brand mark tokens (LifePulseLogo tile + pulse) */
+  --brand-tile-from: #FAF8F3;
+  --brand-tile-to: #EDDFC8;
+  --brand-tile-border: rgba(160,120,90,0.34);
+  --brand-pulse-1: #3A6A99;
+  --brand-pulse-2: #7AA2C7;
+  --brand-pulse-3: #E88D2E;
+  --brand-ring: rgba(160,120,90,0.24);
+  --brand-dot: #FFFFFF;
 }
 
 /* NIGHT — uses the base dark theme (Signature Pulse) */

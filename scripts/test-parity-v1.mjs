@@ -886,9 +886,11 @@ describe("hero color parity � same identity as mobile", () => {
 
   it("web hero uses desktop landscape geometry (no portrait crop of sun/moon)", () => {
     const webArt = read("src/components/TodayHeroArt.tsx");
+    const today = read("src/app/today/page.tsx");
     assert.ok(webArt.includes('viewBox="0 0 1200 220"'), "web hero lost its landscape viewBox");
     assert.ok(!webArt.includes('viewBox="0 0 400 180"'), "web hero still uses the cropping portrait viewBox");
-    assert.ok(webArt.includes("h-[200px]"), "web hero lost its bounded height");
+    assert.ok(webArt.includes("absolute inset-0"), "web hero no longer fills its section");
+    assert.ok(today.includes("h-[200px]"), "hero section lost its bounded height");
   });
 });
 
@@ -912,18 +914,71 @@ describe("day cycle hero rendering guards", () => {
   });
 
   it("page atmosphere is never buried under an opaque shell background", () => {
-    // Negative-z-index atmosphere paints below ancestor block backgrounds;
-    // the shell wrapper and main must stay transparent so the hero is visible.
+    // The shell stays unopinionated: theme background comes from <body>,
+    // pages own their atmosphere sections.
     assert.ok(!shell.includes("command-shell "), "shell still uses the fixed dark canvas");
     const mainClass = shell.match(/<main className="([^"]*)"/);
     assert.ok(mainClass, "shell main element missing");
-    assert.ok(!mainClass[1].includes("bg-["), "shell main has an opaque background burying the hero");
+    assert.ok(!mainClass[1].includes("bg-["), "shell main carries an opaque background");
     const wrapperClass = shell.match(/<div className="min-h-screen ([^"]*)"/);
     assert.ok(wrapperClass, "shell wrapper missing");
-    assert.ok(!wrapperClass[1].includes("bg-["), "shell wrapper has an opaque background burying the hero");
+    assert.ok(!wrapperClass[1].includes("bg-["), "shell wrapper carries an opaque background");
     assert.ok(
       layout.includes("bg-[var(--bg)]"),
       "body no longer provides the theme background",
     );
+  });
+
+  it("Today hero is a dedicated section above content, not a behind-grid overlay", () => {
+    const today = read("src/app/today/page.tsx");
+    assert.ok(today.includes("<TodayHeroArt />"), "today never renders the hero art");
+    assert.ok(today.includes('aria-label="Today atmosphere"'), "today has no dedicated hero section");
+    assert.ok(today.includes("h-[200px]"), "hero lost its bounded height");
+    const heroIndex = today.indexOf('aria-label="Today atmosphere"');
+    const contentIndex = today.indexOf("Today</h1>");
+    assert.ok(heroIndex >= 0 && contentIndex > heroIndex, "hero section is not above the Today content");
+    assert.ok(!art.includes("zIndex: -1"), "hero still relies on negative z-index stacking");
+    assert.ok(art.includes("absolute inset-0"), "hero no longer fills its section");
+  });
+});
+
+describe("themed brand mark guards", () => {
+  const css = read("src/app/globals.css");
+  const logo = read("src/components/LifePulseLogo.tsx");
+  const shell = read("src/components/DashboardNav.tsx");
+  const today = read("src/app/today/page.tsx");
+
+  it("brand tokens exist for every theme and phase", () => {
+    for (const token of [
+      "--brand-tile-from",
+      "--brand-tile-to",
+      "--brand-tile-border",
+      "--brand-pulse-1",
+      "--brand-pulse-2",
+      "--brand-pulse-3",
+      "--brand-ring",
+      "--brand-dot",
+    ]) {
+      assert.ok(css.includes(token), `brand token missing: ${token}`);
+    }
+    for (const block of [
+      '[data-day-phase="morning"]',
+      '[data-day-phase="afternoon"]',
+      '[data-day-phase="evening"]',
+    ]) {
+      assert.ok(css.includes(block), `phase block missing: ${block}`);
+    }
+  });
+
+  it("logo geometry is theme-driven, not a static image", () => {
+    assert.ok(logo.includes("var(--brand-tile-from)"), "logo tile ignores the theme");
+    assert.ok(logo.includes("var(--brand-pulse-1)"), "logo pulse ignores the theme");
+    assert.ok(!logo.includes("no-img-element"), "logo still renders the static raster asset");
+    assert.ok(!logo.includes('src="/icon.svg"'), "logo still renders the static raster asset");
+  });
+
+  it("hero and sidebar share the same themed brand", () => {
+    assert.ok(today.includes("LifePulseLogo"), "today hero has no brand mark");
+    assert.ok(shell.includes("LifePulseLogo"), "sidebar lost its brand mark");
   });
 });

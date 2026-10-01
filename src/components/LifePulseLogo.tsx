@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { cn } from "@/lib/utils";
 
 interface LifePulseLogoProps {
@@ -14,16 +15,31 @@ const sizeMap = {
 };
 
 function PulseMark({ className }: { className?: string }) {
-  // Single source of truth: official Life Pulse logo asset (public/icon.svg)
+  // Same geometry as the official Life Pulse mark (public/icon.svg), drawn
+  // inline so tile + pulse follow the active theme via --brand-* tokens.
+  const uid = useId().replace(/:/g, "");
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src="/icon.svg"
-      alt=""
+    <svg
+      viewBox="0 0 512 512"
       aria-hidden="true"
-      className={cn("h-full w-full object-contain", className)}
-      draggable={false}
-    />
+      className={cn("h-full w-full", className)}
+    >
+      <defs>
+        <linearGradient id={`${uid}-tile`} x1="92" y1="72" x2="420" y2="440" gradientUnits="userSpaceOnUse">
+          <stop stopColor="var(--brand-tile-from)" />
+          <stop offset="1" stopColor="var(--brand-tile-to)" />
+        </linearGradient>
+        <linearGradient id={`${uid}-pulse`} x1="104" y1="258" x2="408" y2="258" gradientUnits="userSpaceOnUse">
+          <stop stopColor="var(--brand-pulse-1)" />
+          <stop offset="0.52" stopColor="var(--brand-pulse-2)" />
+          <stop offset="1" stopColor="var(--brand-pulse-3)" />
+        </linearGradient>
+      </defs>
+      <rect width="512" height="512" rx="112" fill={`url(#${uid}-tile)`} stroke="var(--brand-tile-border)" strokeWidth="10" />
+      <circle cx="256" cy="256" r="178" fill="none" stroke="var(--brand-ring)" strokeWidth="24" />
+      <path d="M104 266h64l34-78 62 150 48-104 26 32h70" fill="none" stroke={`url(#${uid}-pulse)`} strokeWidth="34" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="256" cy="256" r="18" fill="var(--brand-dot)" fillOpacity="0.9" />
+    </svg>
   );
 }
 

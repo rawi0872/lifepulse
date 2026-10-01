@@ -215,14 +215,15 @@ export function TodayHeroArt({ className = "" }: HeroArtProps) {
     );
   }, [variant, mounted]);
 
+  // Fills the dedicated hero section (parent is relative + bounded height).
+  // No negative z-index: art paints first, overlay content follows in order.
   if (!mounted) {
-    return <div className={`pointer-events-none overflow-hidden absolute inset-x-0 top-0 h-[200px] ${className}`} style={{ zIndex: -1 }} aria-hidden="true" />;
+    return <div className={`pointer-events-none absolute inset-0 overflow-hidden ${className}`} aria-hidden="true" />;
   }
 
   return (
     <div
-      className={`pointer-events-none overflow-hidden absolute inset-x-0 top-0 h-[200px] ${className}`}
-      style={{ zIndex: -1 }}
+      className={`pointer-events-none absolute inset-0 overflow-hidden ${className}`}
       aria-hidden="true"
     >
       {art}

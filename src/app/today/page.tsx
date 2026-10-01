@@ -11,6 +11,7 @@ import { getCurrentStreak, normalizeCompletedDates, toLocalPriority, type TodayP
 import { toggleTaskCompletion } from "@/lib/taskCompletion";
 import { DashboardNav } from "@/components/DashboardNav";
 import { TodayHeroArt } from "@/components/TodayHeroArt";
+import { LifePulseLogo } from "@/components/LifePulseLogo";
 import { useToast } from "@/hooks/use-toast";
 import { EveningShutdown } from "@/components/today/EveningShutdown";
 import { useTodayData } from "@/hooks/use-today-data";
@@ -362,9 +363,18 @@ function TodayContent() {
   const openingToday = loading && !todayModel;
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-6 animate-fade-in sm:px-6 sm:py-9 relative">
-      <TodayHeroArt />
-      <header className="relative z-10 mb-6 flex min-w-0 flex-col gap-4 sm:flex-row sm:items-end sm:justify-between pt-8">
+    <div className="animate-fade-in">
+      <div className="mx-auto max-w-6xl px-4 pt-4 sm:px-6 sm:pt-6">
+        <section aria-label="Today atmosphere" className="relative h-[200px] overflow-hidden rounded-2xl border border-[var(--border)] sm:h-[220px]">
+          <TodayHeroArt />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[var(--bg)] to-transparent" aria-hidden="true" />
+          <div className="absolute inset-x-0 bottom-0 z-10 flex items-end px-4 pb-5 sm:px-6">
+            <LifePulseLogo />
+          </div>
+        </section>
+      </div>
+      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-9 relative">
+      <header className="mb-6 flex min-w-0 flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
           <p className="text-sm text-[var(--text-muted)]">{formattedDate}</p>
           <h1 className="mt-1 text-4xl font-semibold tracking-[-0.055em] text-[var(--text)] sm:text-5xl">Today</h1>
@@ -490,6 +500,7 @@ function TodayContent() {
         />
       )}
 
+      </div>
     </div>
   );
 }

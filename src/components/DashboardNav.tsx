@@ -160,9 +160,8 @@ export function DashboardNav({ children }: { children: React.ReactNode }) {
   const isActive = (href: string) => pathname === href || (href !== "/" && pathname.startsWith(`${href}/`));
   return (
     <div className="min-h-screen overflow-x-hidden">
-      {/* No opaque background on this wrapper or on main: page atmosphere
-          (e.g. Today hero, z-index -1) must paint above the canvas.
-          The theme background comes from <body>. */}
+      {/* Shell stays unopinionated: the theme background comes from <body>,
+          pages own their atmosphere sections. */}
       <div className="command-shell-grid pointer-events-none fixed inset-0 opacity-50" aria-hidden="true" />
       <aside className="fixed left-0 top-0 z-40 hidden h-screen w-56 flex-col border-r border-[var(--border)] bg-[var(--nav-surface)] backdrop-blur-xl md:flex">
         <Link href="/today" className="group mx-4 mt-5 mb-7 flex items-center gap-2.5 rounded-xl px-1 py-1 transition-colors hover:bg-[var(--surface-active)]">
