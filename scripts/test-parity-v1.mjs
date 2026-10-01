@@ -883,6 +883,13 @@ describe("hero color parity � same identity as mobile", () => {
     assert.ok(webArt.includes("var(--hero-glow)"), "web hero glow ignores the token");
     assert.ok(webArt.includes("var(--hero-sky)"), "web hero sky ignores the token");
   });
+
+  it("web hero uses desktop landscape geometry (no portrait crop of sun/moon)", () => {
+    const webArt = read("src/components/TodayHeroArt.tsx");
+    assert.ok(webArt.includes('viewBox="0 0 1200 220"'), "web hero lost its landscape viewBox");
+    assert.ok(!webArt.includes('viewBox="0 0 400 180"'), "web hero still uses the cropping portrait viewBox");
+    assert.ok(webArt.includes("h-[200px]"), "web hero lost its bounded height");
+  });
 });
 
 describe("day cycle hero rendering guards", () => {

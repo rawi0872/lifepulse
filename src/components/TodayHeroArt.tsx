@@ -9,9 +9,13 @@ type HeroArtProps = {
 
 /**
  * Web Today hero atmosphere — parity with mobile TodayHeroArt.
- * Four phases: morning, afternoon, evening, night
+ * Four phases: morning, afternoon, evening, night.
  * Decorative only: no text, pointer-events none, scales safely.
- * Desktop: bounded hero region ~180-200px tall, landscape orientation.
+ *
+ * Desktop-native geometry: wide 1200x220 landscape viewBox so the
+ * composition (sun/moon, glow, ridges, botanicals) survives the
+ * horizontal `slice` crop on desktop widths. Same fills, opacities,
+ * and y-language as mobile — only extended horizontally.
  */
 export function TodayHeroArt({ className = "" }: HeroArtProps) {
   const { resolved, dayCyclePhase } = useLifePulseWebTheme();
@@ -29,70 +33,70 @@ export function TodayHeroArt({ className = "" }: HeroArtProps) {
       return null;
     }
 
-    // Night / Dark variant
+    // Night / Dark variant — Signature Pulse moon + ridge
     if (variant === "night") {
       return (
         <svg
           width="100%"
           height="100%"
-          viewBox="0 0 400 180"
+          viewBox="0 0 1200 220"
           preserveAspectRatio="xMidYMax slice"
           aria-hidden="true"
         >
-          {/* Moon glow - positioned top-right, subtle */}
-          <ellipse cx="340" cy="25" rx="85" ry="38" fill="var(--hero-glow)" opacity="0.4" />
-          {/* Moon - smaller, positioned to not clash with greeting */}
-          <circle cx="340" cy="23" r="12" fill="#DCE9F7" opacity="0.7" />
-          <circle cx="335" cy="19" r="8" fill="var(--hero-sky)" opacity="0.3" />
-          {/* Mountain ridge - lower, integrates with UP NEXT area */}
+          {/* Moon glow - top-right, subtle */}
+          <ellipse cx="960" cy="32" rx="260" ry="42" fill="var(--hero-glow)" opacity="0.4" />
+          {/* Moon - positioned to not clash with greeting */}
+          <circle cx="960" cy="28" r="14" fill="#DCE9F7" opacity={0.7} />
+          <circle cx="954" cy="24" r="9" fill="var(--hero-sky)" opacity={0.3} />
+          {/* Mountain ridge layers - span the full width */}
           <path
-            d="M0 115 L45 95 L95 110 L140 90 L190 105 L240 95 L285 103 L340 98 L400 105 L400 180 L0 180 Z"
+            d="M0 140 L120 112 L240 132 L360 108 L480 128 L600 112 L720 126 L840 112 L960 124 L1080 114 L1200 122 L1200 220 L0 220 Z"
             fill="var(--hero-ridge)"
-            opacity="0.9"
+            opacity={0.9}
           />
           <path
-            d="M0 125 L55 110 L110 122 L165 105 L220 118 L275 113 L335 120 L400 115 L400 180 L0 180 Z"
+            d="M0 158 L140 136 L280 150 L420 128 L560 144 L700 136 L840 146 L980 138 L1120 144 L1200 140 L1200 220 L0 220 Z"
             fill="#0E2138"
-            opacity="0.6"
+            opacity={0.6}
           />
         </svg>
       );
     }
 
-    // Morning variant - soft sunrise
+    // Morning variant - soft sunrise rising from the ridge
     if (variant === "morning") {
       return (
         <svg
           width="100%"
           height="100%"
-          viewBox="0 0 400 180"
+          viewBox="0 0 1200 220"
           preserveAspectRatio="xMidYMax slice"
           aria-hidden="true"
         >
           {/* Sunrise glow - low, warm, rising from the ridge */}
-          <ellipse cx="200" cy="85" rx="150" ry="50" fill="var(--hero-glow)" opacity="0.55" />
+          <ellipse cx="600" cy="95" rx="460" ry="58" fill="var(--hero-glow)" opacity={0.55} />
           {/* Rising sun - sits just above the ridge line */}
-          <circle cx="200" cy="90" r="16" fill="#F5B96B" opacity={0.8} />
-          <circle cx="200" cy="90" r="24" fill="#F5B96B" opacity={0.12} />
+          <circle cx="600" cy="100" r="19" fill="#F5B96B" opacity={0.8} />
+          <circle cx="600" cy="100" r="28" fill="#F5B96B" opacity={0.12} />
           {/* Layered ridges */}
           <path
-            d="M0 120 L55 102 L105 115 L155 98 L210 112 L265 103 L320 110 L400 105 L400 180 L0 180 Z"
+            d="M0 148 L140 124 L280 142 L420 120 L560 140 L700 128 L840 140 L980 130 L1120 140 L1200 134 L1200 220 L0 220 Z"
             fill="var(--hero-ridge)"
             opacity={0.85}
           />
           <path
-            d="M0 135 L65 118 L130 130 L195 115 L260 125 L325 120 L400 118 L400 180 L0 180 Z"
+            d="M0 168 L170 146 L330 162 L500 142 L660 156 L830 148 L1000 154 L1200 150 L1200 220 L0 220 Z"
             fill="var(--hero-ridge)"
             opacity={0.45}
           />
           {/* Botanical accents - subtle, anchored at base */}
           <path
-            d="M25 155 q5 -12 14 -15 q-2 10 -5 14 q7 -5 12 -5 q-7 9 -18 9 Z"
+            d="M60 188 q6 -14 16 -18 q-2 11 -6 16 q8 -6 14 -6 q-8 10 -22 10 Z"
             fill="#9DB98A"
             opacity={0.5}
           />
           <path
-            d="M375 157 q-5 -12 -14 -15 q2 9 5 14 q-7 -4 -11 -4 q7 7 19 7 Z"
+            d="M1140 190 q-6 -14 -16 -18 q2 9 6 16 q-8 -5 -14 -5 q8 8 23 8 Z"
             fill="#9DB98A"
             opacity={0.4}
           />
@@ -106,34 +110,34 @@ export function TodayHeroArt({ className = "" }: HeroArtProps) {
         <svg
           width="100%"
           height="100%"
-          viewBox="0 0 400 180"
+          viewBox="0 0 1200 220"
           preserveAspectRatio="xMidYMax slice"
           aria-hidden="true"
         >
           {/* Bright noon glow - centered, crisp */}
-          <ellipse cx="200" cy="40" rx="130" ry="48" fill="var(--hero-glow)" opacity="0.45" />
+          <ellipse cx="600" cy="55" rx="430" ry="60" fill="var(--hero-glow)" opacity={0.5} />
           {/* High sun - centered, bright */}
-          <circle cx="200" cy="45" r="15" fill="#F5B96B" opacity={0.9} />
-          <circle cx="200" cy="45" r="22" fill="#F5B96B" opacity={0.06} />
+          <circle cx="600" cy="60" r="20" fill="#F5B96B" opacity={0.7} />
+          <circle cx="600" cy="60" r="28" fill="#F5B96B" opacity={0.08} />
           {/* Sharp, warm ridges */}
           <path
-            d="M0 118 L50 98 L100 112 L150 95 L205 110 L260 100 L315 108 L400 102 L400 180 L0 180 Z"
+            d="M0 145 L140 120 L280 138 L420 116 L560 136 L700 124 L840 136 L980 126 L1120 136 L1200 130 L1200 220 L0 220 Z"
             fill="var(--hero-ridge)"
-            opacity={0.9}
+            opacity={0.8}
           />
           <path
-            d="M0 132 L60 112 L120 125 L180 108 L240 120 L300 112 L365 115 L400 112 L400 180 L0 180 Z"
+            d="M0 165 L170 142 L330 158 L500 138 L660 152 L830 144 L1000 148 L1200 146 L1200 220 L0 220 Z"
             fill="#DCCBAE"
-            opacity={0.4}
+            opacity={0.5}
           />
           {/* Botanical accents - subtle, anchored at base */}
           <path
-            d="M25 152 q5 -12 14 -15 q-2 10 -5 14 q7 -5 12 -5 q-7 9 -18 9 Z"
+            d="M60 188 q6 -14 16 -18 q-2 11 -6 16 q8 -6 14 -6 q-8 10 -22 10 Z"
             fill="#9DB98A"
             opacity={0.5}
           />
           <path
-            d="M375 155 q-5 -12 -14 -15 q2 9 5 14 q-7 -4 -11 -4 q7 7 19 7 Z"
+            d="M1140 190 q-6 -14 -16 -18 q2 9 6 16 q-8 -5 -14 -5 q8 8 23 8 Z"
             fill="#9DB98A"
             opacity={0.4}
           />
@@ -147,23 +151,23 @@ export function TodayHeroArt({ className = "" }: HeroArtProps) {
         <svg
           width="100%"
           height="100%"
-          viewBox="0 0 400 180"
+          viewBox="0 0 1200 220"
           preserveAspectRatio="xMidYMax slice"
           aria-hidden="true"
         >
           {/* Dusk glow - low amber wash */}
-          <ellipse cx="200" cy="80" rx="155" ry="52" fill="var(--hero-glow)" opacity="0.6" />
+          <ellipse cx="600" cy="90" rx="480" ry="58" fill="var(--hero-glow)" opacity={0.6} />
           {/* Setting sun - low and warm */}
-          <circle cx="200" cy="88" r="18" fill="#E8913A" opacity={0.85} />
-          <circle cx="200" cy="88" r="26" fill="#E8913A" opacity={0.12} />
+          <circle cx="600" cy="98" r="21" fill="#E8913A" opacity={0.85} />
+          <circle cx="600" cy="98" r="32" fill="#E8913A" opacity={0.12} />
           {/* Deeper dusk ridges */}
           <path
-            d="M0 115 L50 95 L105 110 L155 90 L210 108 L265 98 L325 108 L400 102 L400 180 L0 180 Z"
+            d="M0 142 L140 116 L280 136 L420 110 L560 132 L700 118 L840 132 L980 122 L1120 132 L1200 126 L1200 220 L0 220 Z"
             fill="var(--hero-ridge)"
             opacity={0.85}
           />
           <path
-            d="M0 130 L60 110 L120 122 L180 102 L245 115 L310 108 L370 112 L400 108 L400 180 L0 180 Z"
+            d="M0 162 L170 138 L330 154 L500 132 L660 146 L830 140 L1000 144 L1200 142 L1200 220 L0 220 Z"
             fill="var(--hero-ridge)"
             opacity={0.5}
           />
@@ -176,34 +180,34 @@ export function TodayHeroArt({ className = "" }: HeroArtProps) {
       <svg
         width="100%"
         height="100%"
-        viewBox="0 0 400 180"
+        viewBox="0 0 1200 220"
         preserveAspectRatio="xMidYMax slice"
         aria-hidden="true"
       >
         {/* Sun glow - warm, centered, larger */}
-        <ellipse cx="200" cy="45" rx="140" ry="52" fill="var(--hero-glow)" opacity="0.5" />
+        <ellipse cx="600" cy="60" rx="440" ry="62" fill="var(--hero-glow)" opacity={0.5} />
         {/* Sun - centered, not floating */}
-        <circle cx="200" cy="50" r="17" fill="#F5B96B" opacity={0.7} />
-        <circle cx="200" cy="50" r="24" fill="#F5B96B" opacity={0.08} />
-        {/* Mountain ridge - lower, anchors the composition, extends to UP NEXT area */}
+        <circle cx="600" cy="64" r="20" fill="#F5B96B" opacity={0.7} />
+        <circle cx="600" cy="64" r="28" fill="#F5B96B" opacity={0.08} />
+        {/* Mountain ridge - lower, anchors the composition */}
         <path
-          d="M0 118 L50 98 L100 112 L150 95 L205 110 L260 100 L315 108 L400 102 L400 180 L0 180 Z"
+          d="M0 145 L140 120 L280 138 L420 116 L560 136 L700 124 L840 136 L980 126 L1120 136 L1200 130 L1200 220 L0 220 Z"
           fill="var(--hero-ridge)"
           opacity={0.8}
         />
         <path
-          d="M0 132 L60 112 L120 125 L180 108 L240 120 L300 112 L365 115 L400 112 L400 180 L0 180 Z"
+          d="M0 165 L170 142 L330 158 L500 138 L660 152 L830 144 L1000 148 L1200 146 L1200 220 L0 220 Z"
           fill="#DCCBAE"
           opacity={0.5}
         />
         {/* Botanical accents - subtle, anchored at base */}
         <path
-          d="M25 152 q5 -12 14 -15 q-2 10 -5 14 q7 -5 12 -5 q-7 9 -18 9 Z"
+          d="M60 188 q6 -14 16 -18 q-2 11 -6 16 q8 -6 14 -6 q-8 10 -22 10 Z"
           fill="#9DB98A"
           opacity={0.5}
         />
         <path
-          d="M375 155 q-5 -12 -14 -15 q2 9 5 14 q-7 -4 -11 -4 q7 7 19 7 Z"
+          d="M1140 190 q-6 -14 -16 -18 q2 9 6 16 q-8 -5 -14 -5 q8 8 23 8 Z"
           fill="#9DB98A"
           opacity={0.4}
         />
@@ -212,12 +216,12 @@ export function TodayHeroArt({ className = "" }: HeroArtProps) {
   }, [variant, mounted]);
 
   if (!mounted) {
-    return <div className={`pointer-events-none overflow-hidden absolute inset-x-0 top-0 h-[180px] ${className}`} style={{ zIndex: -1 }} aria-hidden="true" />;
+    return <div className={`pointer-events-none overflow-hidden absolute inset-x-0 top-0 h-[200px] ${className}`} style={{ zIndex: -1 }} aria-hidden="true" />;
   }
 
   return (
     <div
-      className={`pointer-events-none overflow-hidden absolute inset-x-0 top-0 h-[180px] ${className}`}
+      className={`pointer-events-none overflow-hidden absolute inset-x-0 top-0 h-[200px] ${className}`}
       style={{ zIndex: -1 }}
       aria-hidden="true"
     >
