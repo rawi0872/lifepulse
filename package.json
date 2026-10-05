@@ -7,6 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
+    "db:migrations:status": "supabase migration list --linked",
+    "db:migrations:dry-run": "supabase db push --dry-run --linked",
+    "db:migrations:push": "supabase db push --linked",
     "test:parity-v1": "node --test scripts/test-parity-v1.mjs",
     "test:rls": "node scripts/rls-smoke-test.mjs",
     "test:prod": "node scripts/prod-smoke-test.mjs",
@@ -76,6 +79,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
     "promptfoo": "^0.121.19",
+    "supabase": "^2.119.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
