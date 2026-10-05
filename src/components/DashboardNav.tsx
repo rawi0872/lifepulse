@@ -45,6 +45,7 @@ const icons = {
   coach: <NavIcon><path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" /></NavIcon>,
   devices: <NavIcon><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" /></NavIcon>,
   settings: <NavIcon><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0" /></NavIcon>,
+  plan: <NavIcon><path strokeLinecap="round" strokeLinejoin="round" d="M5 21V4m0 1h11l-2.5 3.5L16 12H5" /></NavIcon>,
 };
 
 const navGroups: NavGroup[] = [
@@ -66,6 +67,7 @@ const navGroups: NavGroup[] = [
   {
     label: "Plan",
     items: [
+      { label: "Plan", href: "/plan", icon: icons.plan },
       { label: "Goals", href: "/goals", icon: icons.goals },
       { label: "Projects", href: "/projects", icon: icons.projects },
     ],
@@ -89,6 +91,7 @@ const mobileMoreGroups: NavGroup[] = [
   {
     label: "Plan",
     items: [
+      { label: "Plan", href: "/plan", icon: icons.plan },
       { label: "Goals", href: "/goals", icon: icons.goals },
       { label: "Projects", href: "/projects", icon: icons.projects },
     ],

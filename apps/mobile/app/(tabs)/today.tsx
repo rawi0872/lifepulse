@@ -16,6 +16,7 @@ import {
   selectMorningPlanFirstAction,
   getLocalTodayDateString,
   getWeekStartForDate,
+  getPlanWeekStart,
   resolveIntendedUse,
   toLocalPriority,
   MAX_PRIORITIES_PER_DAY,
@@ -23,6 +24,7 @@ import {
   selectTodayPrimaryCandidate,
 } from "@lifepulse/domain";
 import { getDailyQuote } from "../../lib/daily-quote";
+import { loadTodayPlanBridge } from "../../lib/plan-service";
 import type {
   TodayModel,
   TodayDataSnapshot,
@@ -37,6 +39,7 @@ export default function TodayScreen() {
   const { user } = useAuth();
   const [model, setModel] = useState<TodayModel | null>(null);
   const [priorities, setPriorities] = useState<TodayPriority[]>([]);
+  const [planBridge, setPlanBridge] = useState<{ hasPlan: boolean; mustWin: string | null } | null>(null);
   const [priorityInput, setPriorityInput] = useState("");
   const [showPriorityInput, setShowPriorityInput] = useState(false);
   const [addingPriority, setAddingPriority] = useState(false);
@@ -121,6 +124,11 @@ export default function TodayScreen() {
 
     if (mountedRef.current) {
       setPriorities((priorityData ?? []) as TodayPriority[]);
+    }
+
+    const bridge = await loadTodayPlanBridge(supabase, user.id, getPlanWeekStart(date.localDate));
+    if (mountedRef.current) {
+      setPlanBridge(bridge);
     }
 
     setLoading(false);
@@ -357,6 +365,20 @@ export default function TodayScreen() {
           </TouchableOpacity>
         </Link>
       </View>
+
+      {planBridge && (
+        <Link href="/(tabs)/plan" asChild>
+          <TouchableOpacity style={styles.planBridge} activeOpacity={0.85} accessibilityRole="button" accessibilityLabel="Open weekly plan">
+            <View style={styles.planBridgeBody}>
+              <Text style={styles.planBridgeEyebrow}>THIS WEEK</Text>
+              <Text style={styles.planBridgeText} numberOfLines={2}>
+                {planBridge.mustWin ? `Must Win · ${planBridge.mustWin}` : planBridge.hasPlan ? "Review your weekly plan" : "Plan your week"}
+              </Text>
+            </View>
+            <ChevronRight size={18} color={colors.textMuted} />
+          </TouchableOpacity>
+        </Link>
+      )}
 
       {/* Today's Focus — compact, actionable */}
       <View style={styles.section}>
@@ -596,6 +618,21 @@ function makeStyles(colors: ThemeColors, shadow: ThemeShadow) {
     marginTop: spacing.sm,
   },
   askNextronText: { color: colors.accentStrong, fontSize: 13, fontWeight: "600" },
+  planBridge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.lg,
+    minHeight: 56,
+  },
+  planBridgeBody: { flex: 1 },
+  planBridgeEyebrow: { ...type.caption, color: colors.accent, fontWeight: "700", letterSpacing: 1.4 },
+  planBridgeText: { ...type.item, color: colors.textPrimary, marginTop: 2 },
   heroEmpty: {
     backgroundColor: colors.surface,
     borderWidth: 1,

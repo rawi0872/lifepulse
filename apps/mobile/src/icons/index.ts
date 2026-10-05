@@ -17,6 +17,7 @@ export { Settings } from "./Settings";
 export { BellIcon } from "./BellIcon";
 export { MoonIcon } from "./MoonIcon";
 export { HealthIcon } from "./HealthIcon";
+export { PlanIcon } from "./PlanIcon";
 
 // Legacy aliases — keep Pulse/Tasks compatible during transition
 export { Pulse as TasksPulse } from "./Pulse";

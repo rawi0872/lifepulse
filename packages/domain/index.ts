@@ -143,3 +143,36 @@ export {
   hasNextronBodyAccess,
 } from "./nextron-permissions.ts";
 export type { WealthNextronSection, WealthNextronPermissions } from "./nextron-permissions.ts";
+
+export {
+  MAX_WEEKLY_OUTCOMES,
+  MAX_WEEKLY_OUTCOME_LENGTH,
+  getPlanWeekRange,
+  getCurrentPlanWeekRange,
+  getPlanWeekStart,
+  isPlanWeekStart,
+  nextOutcomePosition,
+  orderOutcomes,
+  isValidOutcomeText,
+  normalizeOutcomeText,
+  applyMustWin,
+  validateWeeklyPlanSnapshot,
+  buildWeeklyPlanInsert,
+  buildWeeklyOutcomeInsert,
+  buildWeeklyOutcomeUpdate,
+  summarizePlanEvidence,
+  toPlanDateString,
+} from "./plan.ts";
+export type {
+  WeeklyPlan,
+  WeeklyOutcome,
+  WeeklyPlanLink,
+  WeeklyPlanLinkType,
+  WeeklyPlanSnapshot,
+  WeeklyPlanInsert,
+  WeeklyOutcomeInsert,
+  WeeklyOutcomeEdits,
+  WeeklyPlanEvidence,
+  EvidenceTask,
+  EvidenceHabitLog,
+} from "./plan.ts";

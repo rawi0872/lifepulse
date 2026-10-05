@@ -16,7 +16,8 @@ import { useToast } from "@/hooks/use-toast";
 import { EveningShutdown } from "@/components/today/EveningShutdown";
 import { useTodayData } from "@/hooks/use-today-data";
 import { recordProductLearningEvent } from "@/lib/product-learning/client";
-import { selectMorningPlanFirstAction, selectTodayPrimaryCandidate, type MorningPlanFirstAction, type WealthSignalV2 } from "@lifepulse/domain";
+import { selectMorningPlanFirstAction, selectTodayPrimaryCandidate, getPlanWeekStart, type MorningPlanFirstAction, type WealthSignalV2 } from "@lifepulse/domain";
+import { loadTodayPlanBridge } from "@/lib/plan";
 import { loadPriorities, addPriority, togglePriority, deletePriority } from "@/lib/priorities";
 import { executePriorityMigration } from "@/lib/priority-migration";
 import { loadWebWealthTodayCandidate } from "@/lib/wealth-today";
@@ -102,6 +103,18 @@ function TodayContent() {
   const error = todayData.error;
   const todayUserId = todayData.userId;
   const taskExecutionContextById = todayModel?.tasks.contextById ?? {};
+
+  const [planBridge, setPlanBridge] = useState<{ hasPlan: boolean; mustWin: string | null } | null>(null);
+
+  useEffect(() => {
+    if (!todayUserId) return;
+    let cancelled = false;
+    void loadTodayPlanBridge(supabase, todayUserId, getPlanWeekStart(today)).then((bridge) => {
+      if (!cancelled) setPlanBridge(bridge);
+    });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [todayUserId, today]);
 
   async function loadNextronAttention() {
     setAttentionStatus("loading");
@@ -409,6 +422,22 @@ function TodayContent() {
               onComplete={(action) => action.type === "task" ? void toggleTask(action.id, true) : void toggleHabit(action.id, true)}
             />
           </div>
+
+          {planBridge && (
+            <Link
+              href="/plan"
+              prefetch
+              className="flex min-w-0 items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 transition-colors hover:border-[var(--accent)]/30"
+            >
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">This week</p>
+                <p className="mt-0.5 truncate text-sm font-medium text-[var(--text)]">
+                  {planBridge.mustWin ? `Must Win · ${planBridge.mustWin}` : planBridge.hasPlan ? "Review your weekly plan" : "Plan your week"}
+                </p>
+              </div>
+              <span aria-hidden="true" className="shrink-0 text-[var(--text-muted)]">&rarr;</span>
+            </Link>
+          )}
 
           <section id="daily-focus" className="min-w-0 border-b border-[var(--border)] pb-6" aria-labelledby="today-focus-heading">
             <div className="flex items-baseline justify-between gap-3">

@@ -129,6 +129,19 @@ Statuses: `PARITY` · `PARTIAL` · `MISSING_WEB` · `MISSING_MOBILE` ·
 | Wealth access | `REALM_NAMES` | Realms hub → `/wealth` | `/realms` hub → `/wealth` | — | PARITY | Same |
 | Terminology | `REALM_NAMES` | "Realms", "Body", "Wealth" | "Realms", "Body", "Wealth" | — | PARITY | — |
 
+## PLAN (Prompt 1/3: Weekly Plan foundation)
+
+| Capability | Shared/domain | Mobile | Web | Platform exception | Status | Notes |
+|---|---|---|---|---|---|---|
+| Weekly plan (one/user/week) | `packages/domain/plan.ts` week range + `weekly_plans` | `(tabs)/plan` via Today + More | `/plan` via nav Plan group | Entry chrome differs | PARITY | Same table, same Monday-week rule |
+| Weekly Outcomes (max 3) | `MAX_WEEKLY_OUTCOMES`, payload builders | Full CRUD + done | Full CRUD + done | — | PARITY | Same constraints both clients |
+| Must Win (max 1) | `applyMustWin` + DB partial unique index | Toggle per outcome | Toggle per outcome | — | PARITY | Same invariant |
+| Goal/Project links | Outcome `goal_id`/`project_id` + ownership RLS | Cycle-link editors | Select editors | Picker UI differs | PARITY | Same columns, same ownership |
+| Task/Habit support links | `weekly_plan_links` (references only) | Toggle lists | Toggle lists | — | PARITY | No copies on either client |
+| Honest progress | `summarizePlanEvidence` (counts only) | Linked counts | Linked counts | — | PARITY | No score anywhere |
+| Today bridge | `loadTodayPlanBridge` | Must Win / Plan-row → Plan | Must Win / Plan-row → Plan | — | PARITY | Read-only teaser |
+| Weekly Review contract | `docs/PLAN_WEEKLY_REVIEW_CONTRACT.md` | Same week key | Same week key | Prompt 3 integration | PARITY | No migration gymnastics |
+
 ## SETTINGS
 
 | Capability | Shared/domain | Mobile | Web | Platform exception | Status | Notes |

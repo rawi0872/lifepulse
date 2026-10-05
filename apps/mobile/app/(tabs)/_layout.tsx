@@ -27,7 +27,7 @@ const TABS: Record<TabKey, { Icon: React.FC<{ size?: number; color?: string }>; 
 const TAB_KEYS = Object.keys(TABS) as TabKey[];
 
 // Hidden routes parented under More — visiting one keeps More highlighted.
-const MORE_CHILD_ROUTES = new Set(["account", "settings"]);
+const MORE_CHILD_ROUTES = new Set(["account", "settings", "plan"]);
 
 function LifePulseTabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
@@ -90,6 +90,7 @@ export default function TabLayout() {
       {/* More-hub children: reachable, never permanent tabs. */}
       <Tabs.Screen name="account" options={{ href: null }} />
       <Tabs.Screen name="settings" options={{ href: null }} />
+      <Tabs.Screen name="plan" options={{ href: null }} />
     </Tabs>
   );
 }

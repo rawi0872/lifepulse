@@ -6,7 +6,7 @@ import { useAuth } from "../../lib/auth";
 import { spacing } from "../../lib/theme";
 import type { ThemeColors } from "../../lib/theme";
 import { useLifePulseTheme } from "../../lib/theme-provider";
-import { ChevronRight, Settings, Account, Pulse } from "../../src/icons";
+import { ChevronRight, Settings, Account, Pulse, PlanIcon } from "../../src/icons";
 import { ScreenHeader, SectionLabel, MenuRow, FooterNote } from "../../src/components/ui";
 
 /**
@@ -22,6 +22,17 @@ export default function MoreScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <ScreenHeader title="More" sub="Realms, settings, and your account." />
+
+      <SectionLabel>PLAN</SectionLabel>
+      <Link href="/(tabs)/plan" asChild>
+        <MenuRow
+          icon={<PlanIcon size={20} color={colors.accent} />}
+          title="Plan"
+          meta="This week: outcomes and Must Win"
+          chevron={<ChevronRight size={18} color={colors.textMuted} />}
+          accessibilityLabel="Open weekly plan"
+        />
+      </Link>
 
       <SectionLabel>LIFE AREAS</SectionLabel>
       <Link href="/realms" asChild>
