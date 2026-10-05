@@ -229,6 +229,24 @@ describe("plan schema + RLS migration", () => {
   });
 });
 
+describe("plan ownership hardening (00044)", () => {
+  const fix = read("supabase/migrations/00044_weekly_plan_ownership.sql");
+
+  it("defines a plan-ownership helper", () => {
+    assert.ok(fix.includes("weekly_plan_belongs_to_user"), "missing ownership helper");
+  });
+
+  it("outcome and link writes require destination-plan ownership", () => {
+    const count = (fix.match(/weekly_plan_belongs_to_user\(plan_id\)/g) ?? []).length;
+    assert.ok(count >= 4, `plan ownership enforced in only ${count} policy checks (need 4)`);
+  });
+
+  it("never weakens owner isolation or destructive rules", () => {
+    assert.ok(fix.includes("auth.uid() = user_id"), "owner check dropped");
+    assert.ok(!fix.includes("on delete cascade"), "ownership fix must not touch delete behavior");
+  });
+});
+
 describe("plan surfaces exist on both clients", () => {
   it("web /plan page offers outcomes, must win, links, and next step", () => {
     const page = read("src/app/plan/page.tsx");
