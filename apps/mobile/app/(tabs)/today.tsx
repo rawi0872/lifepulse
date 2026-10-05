@@ -18,6 +18,7 @@ import {
   getWeekStartForDate,
   getPlanWeekStart,
   resolveIntendedUse,
+  summarizeDayPlan,
   toLocalPriority,
   MAX_PRIORITIES_PER_DAY,
   deriveBodySignals,
@@ -380,6 +381,10 @@ export default function TodayScreen() {
         </Link>
       )}
 
+      {priorities.length > 0 && (
+        <TodayPlanSummary priorities={priorities} colors={colors} styles={styles} />
+      )}
+
       {/* Today's Focus — compact, actionable */}
       <View style={styles.section}>
         <View style={styles.sectionHead}>
@@ -549,6 +554,34 @@ function CompactEmpty({ icon, text }: { icon: React.ReactNode; text: string }) {
   );
 }
 
+function TodayPlanSummary({ priorities, colors, styles }: { priorities: TodayPriority[]; colors: ThemeColors; styles: ReturnType<typeof makeStyles> }) {
+  const summary = summarizeDayPlan(priorities);
+  const mustWinDone = priorities.find((p) => p.is_must_win)?.done ?? false;
+  return (
+    <View style={styles.dayPlanBox}>
+      <Text style={styles.planBridgeEyebrow}>TODAY&apos;S PLAN</Text>
+      {summary.mustWin && (
+        <Text style={styles.dayPlanMustWin} numberOfLines={2}>
+          <Text style={{ color: colors.accentStrong, fontWeight: "700" }}>Must Win · </Text>
+          {summary.mustWin}
+          {mustWinDone ? <Text style={styles.dayPlanMustWinDone}> (done)</Text> : null}
+        </Text>
+      )}
+      <View style={styles.dayPlanFoot}>
+        <Text style={styles.dayPlanProgress}>
+          {summary.doneCount} of {summary.total} priorities complete
+          {summary.total > 0 && summary.doneCount === summary.total ? " · Today's plan complete." : ""}
+        </Text>
+        <Link href="/(tabs)/plan" asChild>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Adjust today's plan">
+            <Text style={styles.dayPlanAdjust}>Adjust plan</Text>
+          </TouchableOpacity>
+        </Link>
+      </View>
+    </View>
+  );
+}
+
 function makeStyles(colors: ThemeColors, shadow: ThemeShadow) {
   return StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
@@ -633,6 +666,19 @@ function makeStyles(colors: ThemeColors, shadow: ThemeShadow) {
   planBridgeBody: { flex: 1 },
   planBridgeEyebrow: { ...type.caption, color: colors.accent, fontWeight: "700", letterSpacing: 1.4 },
   planBridgeText: { ...type.item, color: colors.textPrimary, marginTop: 2 },
+  dayPlanBox: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.lg,
+  },
+  dayPlanMustWin: { ...type.item, color: colors.textPrimary, marginTop: spacing.sm },
+  dayPlanMustWinDone: { ...type.meta, color: colors.textMuted },
+  dayPlanFoot: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: spacing.sm },
+  dayPlanProgress: { ...type.meta, color: colors.textSecondary },
+  dayPlanAdjust: { color: colors.accent, fontSize: 13, fontWeight: "600", minHeight: 44, textAlignVertical: "center" },
   heroEmpty: {
     backgroundColor: colors.surface,
     borderWidth: 1,

@@ -1,9 +1,13 @@
+// Daily planning service (PLAN V1 — Prompt 2/3).
+// Mirrors web src/lib/priorities.ts additions against the same tables and
+// domain rules. The Supabase client is injected so tests can pass a mock.
+
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { DailyPlanEventType, TodayPriority, TodayPriorityInput } from "@lifepulse/domain";
 import { MAX_PRIORITIES_PER_DAY, buildPlanEventInsert } from "@lifepulse/domain";
 
-/** Load today's priorities from backend */
-export async function loadPriorities(
+/** Load the day's priorities in canonical order. */
+export async function loadDayPriorities(
   supabase: SupabaseClient,
   userId: string,
   localDate: string,
@@ -15,119 +19,36 @@ export async function loadPriorities(
     .eq("local_date", localDate)
     .order("position", { ascending: true })
     .limit(MAX_PRIORITIES_PER_DAY);
-
   if (error) return [];
   return (data ?? []) as TodayPriority[];
 }
 
-/** Load with explicit success surface — lets migration distinguish empty vs network/error */
-export async function loadPrioritiesResult(
+/** Add a priority at the next free position (max 3, one reference max). */
+export async function addDayPriority(
   supabase: SupabaseClient,
   userId: string,
   localDate: string,
-): Promise<{ data: TodayPriority[]; error: unknown | null }> {
-  const { data, error } = await supabase
-    .from("today_priorities")
-    .select("*")
-    .eq("user_id", userId)
-    .eq("local_date", localDate)
-    .order("position", { ascending: true })
-    .limit(MAX_PRIORITIES_PER_DAY);
-
-  if (error) return { data: [], error };
-  return { data: (data ?? []) as TodayPriority[], error: null };
-}
-
-/** Upsert a full set of priorities for a day (replaces all priorities for that day) */
-export async function savePriorities(
-  supabase: SupabaseClient,
-  userId: string,
-  localDate: string,
-  items: TodayPriorityInput[],
-): Promise<boolean> {
-  const truncated = items.slice(0, MAX_PRIORITIES_PER_DAY);
-
-  // Delete existing priorities for this day
-  const { error: deleteErr } = await supabase
-    .from("today_priorities")
-    .delete()
-    .eq("user_id", userId)
-    .eq("local_date", localDate);
-
-  if (deleteErr) return false;
-
-  if (truncated.length === 0) return true;
-
-  // Insert new priorities
-  const rows = truncated.map((item, index) => ({
-    user_id: userId,
-    local_date: localDate,
-    position: index + 1,
-    text: item.text.trim(),
-    task_id: item.task_id ?? null,
-    habit_id: item.habit_id ?? null,
-    outcome_id: item.outcome_id ?? null,
-    done: item.done ?? false,
-  }));
-
-  const { error: insertErr } = await supabase
-    .from("today_priorities")
-    .insert(rows);
-
-  return !insertErr;
-}
-
-/** Toggle done state of a priority */
-export async function togglePriority(
-  supabase: SupabaseClient,
-  userId: string,
-  priorityId: string,
-  done: boolean,
-): Promise<boolean> {
-  const { error } = await supabase
-    .from("today_priorities")
-    .update({ done })
-    .eq("id", priorityId)
-    .eq("user_id", userId);
-
-  return !error;
-}
-
-/** Delete a single priority */
-export async function deletePriority(
-  supabase: SupabaseClient,
-  userId: string,
-  priorityId: string,
-): Promise<boolean> {
-  const { error } = await supabase
-    .from("today_priorities")
-    .delete()
-    .eq("id", priorityId)
-    .eq("user_id", userId);
-
-  return !error;
-}
-
-/** Add a new priority (appends to end, max 3) */
-export async function addPriority(
-  supabase: SupabaseClient,
-  userId: string,
-  localDate: string,
+  existing: TodayPriority[],
   input: TodayPriorityInput,
 ): Promise<TodayPriority | null> {
-  // Get current count
-  const existing = await loadPriorities(supabase, userId, localDate);
-  if (existing.length >= MAX_PRIORITIES_PER_DAY) return null;
-
-  const newPosition = existing.length + 1;
-
+  const taken = new Set(existing.map((p) => p.position));
+  let position: number | null = null;
+  for (let p = 1; p <= MAX_PRIORITIES_PER_DAY; p += 1) {
+    if (!taken.has(p)) {
+      position = p;
+      break;
+    }
+  }
+  if (position === null || !input.text.trim()) return null;
+  const refs = [input.task_id, input.habit_id, input.outcome_id].filter(Boolean);
+  if (refs.length > 1) return null;
   const { data, error } = await supabase
     .from("today_priorities")
     .insert({
       user_id: userId,
       local_date: localDate,
-      position: newPosition,
-      text: input.text.trim(),
+      position,
+      text: input.text.trim().slice(0, 120),
       task_id: input.task_id ?? null,
       habit_id: input.habit_id ?? null,
       outcome_id: input.outcome_id ?? null,
@@ -135,13 +56,12 @@ export async function addPriority(
     })
     .select("*")
     .single();
-
   if (error) return null;
   return data as TodayPriority;
 }
 
 /** Edit a priority's text/done state. Returns false when nothing changes. */
-export async function updatePriorityFields(
+export async function updateDayPriorityFields(
   supabase: SupabaseClient,
   userId: string,
   priorityId: string,

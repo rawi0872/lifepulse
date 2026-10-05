@@ -16,7 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { EveningShutdown } from "@/components/today/EveningShutdown";
 import { useTodayData } from "@/hooks/use-today-data";
 import { recordProductLearningEvent } from "@/lib/product-learning/client";
-import { selectMorningPlanFirstAction, selectTodayPrimaryCandidate, getPlanWeekStart, type MorningPlanFirstAction, type WealthSignalV2 } from "@lifepulse/domain";
+import { selectMorningPlanFirstAction, selectTodayPrimaryCandidate, getPlanWeekStart, summarizeDayPlan, type MorningPlanFirstAction, type WealthSignalV2 } from "@lifepulse/domain";
 import { loadTodayPlanBridge } from "@/lib/plan";
 import { loadPriorities, addPriority, togglePriority, deletePriority } from "@/lib/priorities";
 import { executePriorityMigration } from "@/lib/priority-migration";
@@ -439,6 +439,10 @@ function TodayContent() {
             </Link>
           )}
 
+          {(priorities.length > 0 || planBridge?.hasPlan) && (
+            <TodayPlanBlock priorities={priorities} />
+          )}
+
           <section id="daily-focus" className="min-w-0 border-b border-[var(--border)] pb-6" aria-labelledby="today-focus-heading">
             <div className="flex items-baseline justify-between gap-3">
               <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">Today&apos;s focus</p>
@@ -521,6 +525,7 @@ function TodayContent() {
         <EveningShutdown
           model={todayModel}
           supabase={supabase}
+          priorities={priorities}
           timePeriod={timePeriod}
           onSaved={todayData.refresh}
           onAuthRequired={() => router.push("/login")}
@@ -607,6 +612,30 @@ function UpNextAction({ action, wealth, loading, hasTodayPlan, completedTodayCou
           </button>
         )}
       </div>
+    </section>
+  );
+}
+
+function TodayPlanBlock({ priorities }: { priorities: TodayPriority[] }) {
+  const summary = summarizeDayPlan(priorities);
+  if (priorities.length === 0) return null;
+  return (
+    <section aria-labelledby="today-plan-heading" className="min-w-0 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3">
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 id="today-plan-heading" className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">Today&apos;s plan</h2>
+        <Link href="/plan" prefetch className="text-[11px] font-medium text-[var(--accent)] hover:text-[var(--accent-strong)]">Adjust plan</Link>
+      </div>
+      {summary.mustWin && (
+        <p className="mt-2 break-words text-sm text-[var(--text)]">
+          <span className="font-semibold text-[var(--accent-strong)]">Must Win · </span>
+          {summary.mustWin}
+          {priorities.find((p) => p.is_must_win)?.done ? <span className="text-[var(--text-muted)]"> (done)</span> : null}
+        </p>
+      )}
+      <p className="mt-1 text-xs text-[var(--text-muted)]">
+        {summary.doneCount} of {summary.total} priorities complete
+        {summary.total > 0 && summary.doneCount === summary.total ? " · Today's plan complete." : ""}
+      </p>
     </section>
   );
 }

@@ -46,6 +46,12 @@ Statuses: `PARITY` · `PARTIAL` · `MISSING_WEB` · `MISSING_MOBILE` ·
 | Ask NEXTRON entry | — | Link to NEXTRON tab | Link `/nextron?subject=today` + attention bridge | — | PARITY | Platform-appropriate; same destination |
 | Empty/loading/error | — | RefreshControl, focus reload, Alerts | Skeletons, route error boundary, inline banner | — | PARITY | Same honesty, native patterns |
 | Focus reload on return | — | `useFocusEffect` reload | Visibility + focus revalidate in `use-today-data` | — | PARITY | Same no-stale guarantee, native patterns |
+| Morning Plan (Daily Big 3) | `daily-plan.ts` ranking + payloads | `(tabs)/plan` TODAY picker + candidates | `/plan` TODAY picker + candidates | Picker chrome differs | PARITY | Same max-3, reasons, links |
+| Daily Must Win (max 1) | `applyDailyMustWin` + DB partial unique | Toggle per priority | Toggle per priority | — | PARITY | Same invariant |
+| Today Must Win + progress | `summarizeDayPlan` (counts only) | Must Win card + x-of-3 + Adjust link | Must Win block + x-of-3 + Adjust link | — | PARITY | Factual counts, no scores |
+| Midday Reset (keep/adjust/rebuild) | `daily-plan.ts` events + reset semantics | Plan TODAY reset box | Plan TODAY reset box | — | PARITY | Keep writes nothing; rebuild logs |
+| Plan adjustment history | `daily_plan_events` (append-only) | Logged on confirm/add/remove/replace/must-win/reset | Same | — | PARITY | Same event types |
+| Evening Shutdown plan review | `summarizeDayPlan` | No shutdown UI (platform) | Planned/Completed/Remaining block | Mobile has no Evening Shutdown surface | PARITY | Web-only surface; same helper |
 
 ## TASKS
 

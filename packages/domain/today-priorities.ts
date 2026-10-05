@@ -8,6 +8,9 @@ export interface TodayPriority {
   position: number; // 1-3
   text: string;
   task_id: string | null;
+  habit_id: string | null;
+  outcome_id: string | null;
+  is_must_win: boolean;
   done: boolean;
   created_at: string;
   updated_at: string;
@@ -17,6 +20,8 @@ export interface TodayPriority {
 export interface TodayPriorityInput {
   text: string;
   task_id?: string | null;
+  habit_id?: string | null;
+  outcome_id?: string | null;
   done?: boolean;
 }
 

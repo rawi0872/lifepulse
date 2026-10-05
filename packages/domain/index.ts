@@ -82,6 +82,34 @@ export {
   MAX_PRIORITIES_PER_DAY,
 } from "./today-priorities.ts";
 export type { TodayPriority, TodayPriorityInput } from "./today-priorities.ts";
+export {
+  MAX_DAILY_PRIORITIES,
+  nextPriorityPosition,
+  orderDailyPriorities,
+  priorityReferenceKind,
+  buildPriorityInsert,
+  buildPriorityUpdate,
+  applyDailyMustWin,
+  validateDayPriorities,
+  rankMorningCandidates,
+  summarizeDayPlan,
+  buildPlanEventInsert,
+  getDayPlanDate,
+  DAILY_PLAN_EVENT_TYPES,
+} from "./daily-plan.ts";
+export type {
+  PriorityReferenceKind,
+  DailyPriority,
+  MorningCandidate,
+  DayPlanSummary,
+  DailyPlanEvent,
+  DailyPlanEventType,
+  PriorityDraft,
+  PriorityEdits,
+  CandidateTask,
+  CandidateHabit,
+  CandidateOutcome,
+} from "./daily-plan.ts";
 
 export {
   HEALTH_METRIC_META,

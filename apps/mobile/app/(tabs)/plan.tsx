@@ -16,12 +16,20 @@ import { spacing, radii, type } from "../../lib/theme";
 import type { ThemeColors } from "../../lib/theme";
 import { useLifePulseTheme } from "../../lib/theme-provider";
 import {
+  MAX_DAILY_PRIORITIES,
   MAX_WEEKLY_OUTCOMES,
   getCurrentPlanWeekRange,
   getLocalTodayDateString,
+  isHabitDueOnDate,
   nextOutcomePosition,
+  nextPriorityPosition,
+  orderDailyPriorities,
   orderOutcomes,
+  rankMorningCandidates,
+  summarizeDayPlan,
   summarizePlanEvidence,
+  type MorningCandidate,
+  type TodayPriority,
   type WeeklyOutcome,
   type WeeklyPlanSnapshot,
 } from "@lifepulse/domain";
@@ -38,6 +46,13 @@ import {
   updatePlanIntention,
   updateWeeklyOutcome,
 } from "../../lib/plan-service";
+import {
+  addDayPriority,
+  loadDayPriorities,
+  logPlanEvent,
+  setDailyMustWin,
+} from "../../lib/daily-plan-service";
+import { awardHabitXp, awardTaskXp } from "../../lib/xp";
 import { PlanIcon, ChevronRight, Plus, Check } from "../../src/icons";
 
 function formatWeekRange(weekStart: string, weekEnd: string): string {
@@ -64,6 +79,15 @@ export default function PlanScreen() {
   const [intentionDraft, setIntentionDraft] = useState("");
   const [expandedOutcomeId, setExpandedOutcomeId] = useState<string | null>(null);
   const [showSupport, setShowSupport] = useState(false);
+  const [dayPriorities, setDayPriorities] = useState<TodayPriority[]>([]);
+  const [dayTasks, setDayTasks] = useState<{ id: string; title: string; due_date: string | null; status: string; priority: string }[]>([]);
+  const [dayHabits, setDayHabits] = useState<{ id: string; title: string; frequency: string; days_of_week: number[] | null; times_per_week: number | null }[]>([]);
+  const [candidateInput, setCandidateInput] = useState("");
+  const [adjustingDay, setAdjustingDay] = useState(false);
+  const [resettingDay, setResettingDay] = useState(false);
+  const [dayConfirmed, setDayConfirmed] = useState(false);
+  const [busyPriorityId, setBusyPriorityId] = useState<string | null>(null);
+  const [savingDayInput, setSavingDayInput] = useState(false);
   const mountedRef = useRef(true);
 
   const week = useMemo(() => getCurrentPlanWeekRange(getLocalTodayDateString()), []);
@@ -74,6 +98,18 @@ export default function PlanScreen() {
     const loaded = await loadWeeklyPlan(supabase, user.id, week.weekStart);
     if (!mountedRef.current) return;
     setSnapshot(loaded);
+    const today = getLocalTodayDateString();
+    const [dayPrioritiesLoaded, dayTasksRes, dayHabitsRes, dayEventsRes] = await Promise.all([
+      loadDayPriorities(supabase, user.id, today),
+      supabase.from("tasks").select("id, title, due_date, status, priority").eq("user_id", user.id).eq("status", "todo").order("due_date", { ascending: true }).limit(200),
+      supabase.from("habits").select("id, title, frequency, days_of_week, times_per_week").eq("user_id", user.id).limit(200),
+      supabase.from("daily_plan_events").select("event_type").eq("user_id", user.id).eq("local_date", today).in("event_type", ["morning_plan_confirmed", "midday_reset"]).limit(2),
+    ]);
+    if (!mountedRef.current) return;
+    setDayPriorities(dayPrioritiesLoaded);
+    setDayTasks(((dayTasksRes.data ?? []) as { id: string; title: string; due_date: string | null; status: string; priority: string }[]));
+    setDayHabits(((dayHabitsRes.data ?? []) as { id: string; title: string; frequency: string; days_of_week: number[] | null; times_per_week: number | null }[]));
+    setDayConfirmed(((dayEventsRes.data ?? []) as { event_type: string }[]).length > 0);
     if (loaded) {
       const [opts, tasksRes, logsRes] = await Promise.all([
         loadPlanLinkOptions(supabase, user.id),
@@ -177,6 +213,194 @@ export default function PlanScreen() {
     if (!snapshot || !user) return;
     await updatePlanIntention(supabase, user.id, snapshot.plan.id, intentionDraft);
     setEditingIntention(false);
+    await load();
+  }
+
+  const orderedDay = useMemo(() => orderDailyPriorities(dayPriorities), [dayPriorities]);
+  const daySummary = useMemo(() => summarizeDayPlan(orderedDay), [orderedDay]);
+  const dayMustWin = orderedDay.find((p) => p.is_must_win) ?? null;
+  const dayCandidates: MorningCandidate[] = useMemo(() => {
+    const today = getLocalTodayDateString();
+    const plannedTaskIds = new Set(orderedDay.filter((p) => p.task_id).map((p) => p.task_id as string));
+    const plannedHabitIds = new Set(orderedDay.filter((p) => p.habit_id).map((p) => p.habit_id as string));
+    const plannedOutcomeIds = new Set(orderedDay.filter((p) => p.outcome_id).map((p) => p.outcome_id as string));
+    const habitsDue = dayHabits
+      .filter((h) =>
+        isHabitDueOnDate(
+          { frequency: h.frequency as "daily" | "weekdays" | "weekly", days_of_week: h.days_of_week, times_per_week: h.times_per_week },
+          today,
+        ),
+      )
+      .map((h) => ({ id: h.id, title: h.title }));
+    return rankMorningCandidates({
+      tasks: dayTasks.map((t) => ({ id: t.id, title: t.title, due_date: t.due_date, status: t.status, priority: t.priority })),
+      habitsDue,
+      outcomes: (snapshot?.outcomes ?? []).map((o) => ({ id: o.id, title: o.text, done: o.done })),
+      localDate: today,
+      plannedTaskIds,
+      plannedHabitIds,
+      plannedOutcomeIds,
+    }).slice(0, 8);
+  }, [orderedDay, dayTasks, dayHabits, snapshot]);
+  const canAddDayPriority = nextPriorityPosition(orderedDay) !== null;
+  const weeklyMustWinText = snapshot?.outcomes.find((o) => o.must_win)?.text ?? null;
+  const outcomeTitleById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const o of snapshot?.outcomes ?? []) map.set(o.id, o.text);
+    return map;
+  }, [snapshot]);
+  function supportTextFor(priority: TodayPriority): string | null {
+    if (!priority.outcome_id) return null;
+    return outcomeTitleById.get(priority.outcome_id) ?? null;
+  }
+
+  async function addDayCandidate(candidate: MorningCandidate) {
+    if (!user || !canAddDayPriority) return;
+    const today = getLocalTodayDateString();
+    const created = await addDayPriority(supabase, user.id, today, orderedDay, {
+      text: candidate.title,
+      task_id: candidate.kind === "task" ? candidate.id : null,
+      habit_id: candidate.kind === "habit" ? candidate.id : null,
+      outcome_id: candidate.kind === "outcome" ? candidate.id : null,
+    });
+    if (created) await logPlanEvent(supabase, user.id, today, "priority_added", created.id);
+    await load();
+  }
+
+  async function addDayText() {
+    if (!user || !candidateInput.trim() || !canAddDayPriority || savingDayInput) return;
+    setSavingDayInput(true);
+    const today = getLocalTodayDateString();
+    const created = await addDayPriority(supabase, user.id, today, orderedDay, { text: candidateInput.trim() });
+    if (created) {
+      setCandidateInput("");
+      await logPlanEvent(supabase, user.id, today, "priority_added", created.id);
+    }
+    setSavingDayInput(false);
+    await load();
+  }
+
+  async function toggleDayPriority(priority: TodayPriority) {
+    if (!user) return;
+    setBusyPriorityId(priority.id);
+    const today = getLocalTodayDateString();
+    const makeDone = !priority.done;
+    if (makeDone && priority.task_id) {
+      const { error } = await supabase
+        .from("tasks")
+        .update({ status: "done", completed_at: new Date().toISOString() })
+        .eq("id", priority.task_id)
+        .eq("user_id", user.id)
+        .eq("status", "todo");
+      if (!error) await awardTaskXp(user.id, priority.task_id);
+    } else if (makeDone && priority.habit_id) {
+      const { data: existing } = await supabase
+        .from("habit_logs")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("habit_id", priority.habit_id)
+        .eq("completed_date", today)
+        .maybeSingle();
+      if (!existing) {
+        const { data: log } = await supabase
+          .from("habit_logs")
+          .insert({ user_id: user.id, habit_id: priority.habit_id, completed_date: today })
+          .select("id")
+          .single();
+        if (log) await awardHabitXp(user.id, (log as { id: string }).id);
+      }
+    }
+    await supabase.from("today_priorities").update({ done: makeDone }).eq("id", priority.id).eq("user_id", user.id);
+    setBusyPriorityId(null);
+    await load();
+  }
+
+  async function toggleDayMustWin(priority: TodayPriority) {
+    if (!user) return;
+    const today = getLocalTodayDateString();
+    const next = priority.is_must_win ? null : priority.id;
+    const ok = await setDailyMustWin(supabase, user.id, today, next, orderedDay);
+    if (ok && next) await logPlanEvent(supabase, user.id, today, "must_win_changed", next);
+    await load();
+  }
+
+  async function removeDayPriority(priority: TodayPriority) {
+    if (!user) return;
+    const today = getLocalTodayDateString();
+    await supabase.from("today_priorities").delete().eq("id", priority.id).eq("user_id", user.id);
+    await logPlanEvent(supabase, user.id, today, "priority_removed", null, `removed "${priority.text}"`);
+    await load();
+  }
+
+  async function replaceDayPriority(priority: TodayPriority, candidate: MorningCandidate) {
+    if (!user) return;
+    const today = getLocalTodayDateString();
+    await supabase.from("today_priorities").delete().eq("id", priority.id).eq("user_id", user.id);
+    const created = await addDayPriority(supabase, user.id, today, orderedDay.filter((p) => p.id !== priority.id), {
+      text: candidate.title,
+      task_id: candidate.kind === "task" ? candidate.id : null,
+      habit_id: candidate.kind === "habit" ? candidate.id : null,
+      outcome_id: candidate.kind === "outcome" ? candidate.id : null,
+    });
+    // Keep the original slot when still free.
+    if (created && created.position !== priority.position) {
+      await supabase.from("today_priorities").delete().eq("id", created.id).eq("user_id", user.id);
+      await supabase.from("today_priorities").insert({
+        user_id: user.id,
+        local_date: today,
+        position: priority.position,
+        text: created.text,
+        task_id: created.task_id,
+        habit_id: created.habit_id,
+        outcome_id: created.outcome_id,
+        done: false,
+      });
+    }
+    await logPlanEvent(supabase, user.id, today, "priority_replaced", null, `replaced "${priority.text}" with "${candidate.title}"`);
+    await load();
+  }
+
+  async function moveDayPriority(priority: TodayPriority, direction: -1 | 1) {
+    if (!user) return;
+    const today = getLocalTodayDateString();
+    const target = priority.position + direction;
+    if (target < 1 || target > MAX_DAILY_PRIORITIES) return;
+    const other = orderedDay.find((p) => p.position === target);
+    if (!other) return;
+    const copyOf = (p: TodayPriority, position: number) => ({
+      user_id: user.id,
+      local_date: today,
+      position,
+      text: p.text,
+      task_id: p.task_id,
+      habit_id: p.habit_id,
+      outcome_id: p.outcome_id,
+      done: p.done,
+      is_must_win: p.is_must_win,
+    });
+    await supabase.from("today_priorities").delete().eq("id", priority.id).eq("user_id", user.id);
+    await supabase.from("today_priorities").delete().eq("id", other.id).eq("user_id", user.id);
+    await supabase.from("today_priorities").insert([copyOf(priority, target), copyOf(other, priority.position)]);
+    await load();
+  }
+
+  async function rebuildRemainingDay() {
+    if (!user) return;
+    const today = getLocalTodayDateString();
+    for (const priority of orderedDay.filter((p) => !p.done)) {
+      await supabase.from("today_priorities").delete().eq("id", priority.id).eq("user_id", user.id);
+      await logPlanEvent(supabase, user.id, today, "priority_removed", null, `cleared "${priority.text}"`);
+    }
+    await logPlanEvent(supabase, user.id, today, "midday_reset");
+    setResettingDay(false);
+    setAdjustingDay(true);
+    await load();
+  }
+
+  async function confirmDayPlan() {
+    if (!user) return;
+    const ok = await logPlanEvent(supabase, user.id, getLocalTodayDateString(), "morning_plan_confirmed");
+    if (ok) setDayConfirmed(true);
     await load();
   }
 
@@ -405,6 +629,184 @@ export default function PlanScreen() {
           </View>
         )}
 
+        <Text style={styles.sectionLabel}>TODAY</Text>
+        {weeklyMustWinText !== null && (
+          <View style={styles.weekContext}>
+            <Text style={styles.sectionEyebrow}>THIS WEEK</Text>
+            <Text style={styles.weekMustWin}>{weeklyMustWinText}</Text>
+          </View>
+        )}
+        {dayMustWin && (
+          <View style={styles.mustWinBox}>
+            <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>TODAY&apos;S MUST WIN</Text>
+            <Text style={styles.mustWinText}>{dayMustWin.text}</Text>
+            <Text style={styles.hint}>{dayMustWin.done ? "Done. The day has its win." : "If only one thing gets done today, this is it."}</Text>
+          </View>
+        )}
+        {orderedDay.length > 0 && (
+          <View style={styles.progressRow}>
+            <Text style={styles.hint}>
+              {daySummary.doneCount} of {daySummary.total} priorities complete
+              {daySummary.total > 0 && daySummary.doneCount === daySummary.total ? " · Today's plan complete." : ""}
+            </Text>
+            {!dayConfirmed && (
+              <TouchableOpacity style={styles.primarySmall} onPress={() => void confirmDayPlan()} accessibilityRole="button" accessibilityLabel="Confirm today's plan">
+                <Text style={styles.primaryTextSmall}>Confirm today</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+        {orderedDay.map((priority, index) => (
+          <View key={priority.id} style={styles.card}>
+            <View style={styles.row}>
+              <TouchableOpacity
+                style={[styles.check, priority.done && styles.checkDone]}
+                onPress={() => void toggleDayPriority(priority)}
+                disabled={busyPriorityId === priority.id}
+                accessibilityRole="button"
+                accessibilityLabel={`Toggle daily priority ${index + 1}`}
+              >
+                {priority.done && <Check size={12} color={colors.onAccent} />}
+              </TouchableOpacity>
+              <View style={styles.rowBody}>
+                <Text style={[styles.rowTitle, priority.done && styles.rowTitleDone]}>
+                  <Text style={styles.rowIndex}>{index + 1}. </Text>{priority.text}
+                </Text>
+                {supportTextFor(priority) !== null && (
+                  <Text style={styles.rowMeta} numberOfLines={1}>Supports: {supportTextFor(priority)}</Text>
+                )}
+              </View>
+            </View>
+            {adjustingDay && (
+              <View>
+                <View style={styles.cardActions}>
+                  <TouchableOpacity
+                    style={[styles.chip, priority.is_must_win && styles.chipActive]}
+                    onPress={() => void toggleDayMustWin(priority)}
+                    accessibilityRole="button"
+                    accessibilityLabel={priority.is_must_win ? "Clear daily Must Win" : "Make daily Must Win"}
+                  >
+                    <Text style={[styles.chipText, priority.is_must_win && styles.chipTextActive]}>{priority.is_must_win ? "★ Must Win" : "Must Win"}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.chip, index === 0 && styles.disabled]}
+                    onPress={() => void moveDayPriority(priority, -1)}
+                    disabled={index === 0}
+                    accessibilityRole="button"
+                    accessibilityLabel="Move priority up"
+                  >
+                    <Text style={styles.chipText}>↑</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.chip, index === orderedDay.length - 1 && styles.disabled]}
+                    onPress={() => void moveDayPriority(priority, 1)}
+                    disabled={index === orderedDay.length - 1}
+                    accessibilityRole="button"
+                    accessibilityLabel="Move priority down"
+                  >
+                    <Text style={styles.chipText}>↓</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.chipDanger}
+                    onPress={() => void removeDayPriority(priority)}
+                    accessibilityRole="button"
+                    accessibilityLabel="Remove daily priority"
+                  >
+                    <Text style={styles.chipDangerText}>Remove</Text>
+                  </TouchableOpacity>
+                </View>
+                {dayCandidates.length > 0 && (
+                  <View style={styles.replaceBox}>
+                    <Text style={styles.listLabel}>REPLACE WITH</Text>
+                    {dayCandidates.slice(0, 4).map((candidate) => (
+                      <TouchableOpacity
+                        key={`${candidate.kind}:${candidate.id}`}
+                        style={styles.toggleRow}
+                        onPress={() => void replaceDayPriority(priority, candidate)}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Replace with ${candidate.title}`}
+                      >
+                        <Text style={styles.toggleText} numberOfLines={1}>{candidate.title}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+              </View>
+            )}
+          </View>
+        ))}
+        {canAddDayPriority && (
+          <View style={styles.pickerBox}>
+            <Text style={styles.listLabel}>{orderedDay.length === 0 ? "WHAT MATTERS TODAY? CHOOSE UP TO 3" : "ADD ANOTHER PRIORITY"}</Text>
+            {dayCandidates.map((candidate) => (
+              <TouchableOpacity
+                key={`${candidate.kind}:${candidate.id}`}
+                style={styles.toggleRow}
+                onPress={() => void addDayCandidate(candidate)}
+                accessibilityRole="button"
+                accessibilityLabel={`Add ${candidate.title} as priority`}
+              >
+                <View style={styles.miniCheck}>
+                  <Plus size={10} color={colors.accent} />
+                </View>
+                <View style={styles.rowBody}>
+                  <Text style={styles.toggleText} numberOfLines={1}>{candidate.title}</Text>
+                  <Text style={styles.rowMeta} numberOfLines={1}>{candidate.reason}</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+            {dayCandidates.length === 0 && <Text style={styles.hint}>Nothing due — add your own below.</Text>}
+            <View style={styles.addRow}>
+              <TextInput
+                style={[styles.input, styles.addInput]}
+                value={candidateInput}
+                onChangeText={(t) => setCandidateInput(t.slice(0, 120))}
+                placeholder="Or type your own priority"
+                placeholderTextColor={colors.textMuted}
+                maxLength={120}
+                returnKeyType="done"
+                onSubmitEditing={() => void addDayText()}
+              />
+              <TouchableOpacity
+                style={[styles.primarySmall, (!candidateInput.trim() || savingDayInput) && styles.disabled]}
+                onPress={() => void addDayText()}
+                disabled={!candidateInput.trim() || savingDayInput}
+                accessibilityRole="button"
+                accessibilityLabel="Add typed priority"
+              >
+                <Text style={styles.primaryTextSmall}>Add</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+        {orderedDay.length > 0 && (
+          <View style={styles.resetBox}>
+            <Text style={styles.listLabel}>STILL THE RIGHT PLAN?</Text>
+            {!resettingDay ? (
+              <View style={styles.cardActions}>
+                <TouchableOpacity style={styles.chip} onPress={() => setAdjustingDay(!adjustingDay)} accessibilityRole="button" accessibilityLabel="Toggle adjust mode">
+                  <Text style={styles.chipText}>{adjustingDay ? "Done adjusting" : "Adjust"}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.chip} onPress={() => setResettingDay(true)} accessibilityRole="button" accessibilityLabel="Reset today">
+                  <Text style={styles.chipText}>Reset today</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View>
+                <Text style={styles.hint}>Clearing unfinished priorities keeps what&apos;s done. History stays for Weekly Review.</Text>
+                <View style={styles.cardActions}>
+                  <TouchableOpacity style={styles.primarySmall} onPress={() => void rebuildRemainingDay()} accessibilityRole="button" accessibilityLabel="Rebuild remaining day">
+                    <Text style={styles.primaryTextSmall}>Rebuild remaining day</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.chip} onPress={() => setResettingDay(false)} accessibilityRole="button" accessibilityLabel="Keep plan">
+                    <Text style={styles.chipText}>Keep plan</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+          </View>
+        )}
+
         <Link href="/(tabs)/today" asChild>
           <TouchableOpacity style={styles.back} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel="Back to Today">
             <Text style={styles.backText}>Back to Today</Text>
@@ -467,6 +869,7 @@ function makeStyles(colors: ThemeColors) {
     chipDanger: { borderRadius: radii.md, paddingVertical: 10, paddingHorizontal: spacing.md, minHeight: 44, justifyContent: "center" },
     chipDangerText: { color: colors.textMuted, fontWeight: "600", fontSize: 13 },
     linkBox: { marginTop: spacing.md, gap: spacing.sm },
+    replaceBox: { marginTop: spacing.md, gap: spacing.sm, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: spacing.md },
     linkRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm, backgroundColor: colors.surfaceElevated, borderWidth: 1, borderColor: colors.border, borderRadius: radii.md, padding: spacing.md, minHeight: 48 },
     linkLabel: { ...type.caption, color: colors.textMuted, fontWeight: "700", letterSpacing: 1 },
     linkValue: { ...type.body, color: colors.textPrimary, flex: 1 },
@@ -474,6 +877,11 @@ function makeStyles(colors: ThemeColors) {
     addInput: { flex: 1 },
     hint: { ...type.meta, color: colors.textMuted, marginTop: spacing.md },
     sectionToggle: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: spacing.xl, minHeight: 44 },
+    weekContext: { marginTop: spacing.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radii.lg, padding: spacing.lg },
+    weekMustWin: { ...type.body, color: colors.textPrimary, marginTop: spacing.sm },
+    pickerBox: { marginTop: spacing.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radii.lg, padding: spacing.lg },
+    resetBox: { marginTop: spacing.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radii.lg, padding: spacing.lg },
+    progressRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spacing.md, marginTop: spacing.md },
     evidence: { ...type.meta, color: colors.textSecondary, marginTop: spacing.sm },
     listLabel: { ...type.caption, color: colors.textSecondary, fontWeight: "700", letterSpacing: 1, marginTop: spacing.md },
     toggleRow: { flexDirection: "row", alignItems: "center", gap: spacing.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radii.md, paddingVertical: 12, paddingHorizontal: spacing.md, marginTop: spacing.sm, minHeight: 48 },

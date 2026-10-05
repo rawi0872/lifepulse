@@ -4,19 +4,21 @@ import { useEffect, useId, useRef, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import type { TodayModel } from "@lifepulse/domain";
+import type { TodayModel, TodayPriority } from "@lifepulse/domain";
 import {
   buildEveningShutdownBlock,
   buildEveningShutdownSummary,
   mergeEveningShutdownBlock,
   normalizeEveningShutdownReflection,
   parseEveningShutdownReflection,
+  summarizeDayPlan,
   type EveningShutdownReflection,
 } from "@lifepulse/domain";
 
 interface EveningShutdownProps {
   model: TodayModel;
   supabase: SupabaseClient;
+  priorities?: TodayPriority[];
   timePeriod: "morning" | "day" | "evening";
   onSaved: () => Promise<void> | void;
   onAuthRequired: () => void;
@@ -34,6 +36,7 @@ const EMPTY_REFLECTION: EveningShutdownReflection = {
 export function EveningShutdown({
   model,
   supabase,
+  priorities = [],
   timePeriod,
   onSaved,
   onAuthRequired,
@@ -202,6 +205,10 @@ export function EveningShutdown({
               )}
             </div>
 
+            {priorities.length > 0 && (
+              <PlanReviewBlock priorities={priorities} />
+            )}
+
             <div>
               <div className="flex items-center justify-between gap-3">
                 <h3 className="text-sm font-semibold text-[var(--text)]">Still open</h3>
@@ -258,6 +265,29 @@ export function EveningShutdown({
         </div>
       </Card>
     </section>
+  );
+}
+
+function PlanReviewBlock({ priorities }: { priorities: TodayPriority[] }) {
+  const summary = summarizeDayPlan(priorities);
+  return (
+    <div>
+      <h3 className="text-sm font-semibold text-[var(--text)]">Today&apos;s plan</h3>
+      <div className="mt-3 space-y-2 text-xs">
+        <p className="rounded-lg bg-[var(--surface-soft)] px-3 py-2.5 text-[var(--text-secondary)]">
+          <span className="font-semibold text-[var(--text)]">Planned: </span>
+          {summary.planned.length > 0 ? summary.planned.join(" · ") : "Nothing was planned."}
+        </p>
+        <p className="rounded-lg bg-[var(--surface-soft)] px-3 py-2.5 text-[var(--text-secondary)]">
+          <span className="font-semibold text-[var(--text)]">Completed: </span>
+          {summary.completed.length > 0 ? summary.completed.join(" · ") : "Nothing completed yet."}
+        </p>
+        <p className="rounded-lg bg-[var(--surface-soft)] px-3 py-2.5 text-[var(--text-secondary)]">
+          <span className="font-semibold text-[var(--text)]">Remaining: </span>
+          {summary.remaining.length > 0 ? summary.remaining.join(" · ") : "Nothing remaining."}
+        </p>
+      </div>
+    </div>
   );
 }
 

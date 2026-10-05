@@ -29,6 +29,7 @@ import {
   type PlanOption,
 } from "@/lib/plan";
 import { DashboardNav } from "@/components/DashboardNav";
+import { TodayPlanner } from "@/components/plan/TodayPlanner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -430,6 +431,16 @@ function PlanContent() {
             </Link>
           </Card>
         </div>
+      )}
+
+      {userId && (
+        <section aria-labelledby="today-plan-heading" className="mt-8">
+          <div className="mb-2 flex items-baseline justify-between gap-3">
+            <h2 id="today-plan-heading" className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">Today</h2>
+            <Link href="/today" prefetch className="text-xs font-medium text-[var(--accent)] hover:text-[var(--accent-strong)]">Open Today &rarr;</Link>
+          </div>
+          <TodayPlanner supabase={supabase} userId={userId} localDate={getLocalTodayDateString()} weekStart={week.weekStart} />
+        </section>
       )}
     </div>
   );

@@ -88,7 +88,7 @@ console.log("=== Canonical Up Next — priority-linked wins ===");
   const habit = makeHabit({ id:"habit-1", title:"Morning Run" });
   // Backend-style priority row
   const backendPriority: TodayPriority = {
-    id:"prio-row-1", user_id:"test-user", local_date:TODAY, position:1, text:"Priority Task", task_id:priorityTask.id, done:false, created_at:new Date().toISOString(), updated_at:new Date().toISOString()
+    id:"prio-row-1", user_id:"test-user", local_date:TODAY, position:1, text:"Priority Task", task_id:priorityTask.id, habit_id:null, outcome_id:null, is_must_win:false, done:false, created_at:new Date().toISOString(), updated_at:new Date().toISOString()
   };
   const lps = [backendPriority].map(toLocalPriority);
   // Verify toLocalPriority conversion
@@ -139,7 +139,7 @@ console.log("\n=== Priority done=true ignored ===");
   const priorityTask = makeTask({ id:"task-prio-done", title:"Done Priority Task", priority:"medium", due_date:TODAY, status:"todo" });
   const overdueTask = makeTask({ id:"task-overdue-done", title:"Overdue Fallback", priority:"high", due_date:YESTERDAY, status:"todo" });
   const backendPriorityDone: TodayPriority = {
-    id:"prio-done", user_id:"test-user", local_date:TODAY, position:1, text:"Done Priority Task", task_id:priorityTask.id, done:true, created_at:new Date().toISOString(), updated_at:new Date().toISOString()
+    id:"prio-done", user_id:"test-user", local_date:TODAY, position:1, text:"Done Priority Task", task_id:priorityTask.id, habit_id:null, outcome_id:null, is_must_win:false, done:true, created_at:new Date().toISOString(), updated_at:new Date().toISOString()
   };
   const lps = [backendPriorityDone].map(toLocalPriority);
   const model = makeModel({ active:[priorityTask, overdueTask], overdue:[overdueTask], dueToday:[priorityTask], habits:[] });
