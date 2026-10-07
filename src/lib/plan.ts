@@ -150,12 +150,22 @@ export async function setMustWin(
   outcomeId: string | null,
   outcomes: WeeklyOutcome[],
 ): Promise<boolean> {
-  const clearing = outcomes.filter((o) => o.must_win && o.id !== outcomeId);
-  for (const outcome of clearing) {
+  // Re-read flagged rows: the passed list may be stale after a concurrent
+  // switch, and clearing only stale flags trips the partial unique index.
+  const flaggedIds = new Set(outcomes.filter((o) => o.must_win).map((o) => o.id));
+  const { data: fresh } = await supabase
+    .from("weekly_outcomes")
+    .select("id")
+    .eq("plan_id", planId)
+    .eq("user_id", userId)
+    .eq("must_win", true);
+  for (const row of ((fresh ?? []) as { id: string }[])) flaggedIds.add(row.id);
+  for (const id of flaggedIds) {
+    if (id === outcomeId) continue;
     const { error } = await supabase
       .from("weekly_outcomes")
       .update({ must_win: false })
-      .eq("id", outcome.id)
+      .eq("id", id)
       .eq("user_id", userId);
     if (error) return false;
   }

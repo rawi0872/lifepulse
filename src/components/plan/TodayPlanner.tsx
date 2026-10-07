@@ -23,7 +23,6 @@ import {
   setDailyMustWin,
   togglePriority,
 } from "@/lib/priorities";
-import { loadWeeklyPlan } from "@/lib/plan";
 import { toggleTaskCompletion } from "@/lib/taskCompletion";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -34,7 +33,7 @@ interface TodayPlannerProps {
   supabase: SupabaseClient;
   userId: string;
   localDate: string;
-  weekStart: string;
+  snapshot: WeeklyPlanSnapshot | null;
 }
 
 interface TaskRow {
@@ -110,11 +109,10 @@ async function toggleHabitCanonical(
   return true;
 }
 
-export function TodayPlanner({ supabase, userId, localDate, weekStart }: TodayPlannerProps) {
+export function TodayPlanner({ supabase, userId, localDate, snapshot }: TodayPlannerProps) {
   const { toast } = useToast();
   const requestSeq = useRef(0);
   const [priorities, setPriorities] = useState<TodayPriority[]>([]);
-  const [snapshot, setSnapshot] = useState<WeeklyPlanSnapshot | null>(null);
   const [tasks, setTasks] = useState<TaskRow[]>([]);
   const [habits, setHabits] = useState<HabitRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -126,21 +124,19 @@ export function TodayPlanner({ supabase, userId, localDate, weekStart }: TodayPl
 
   const refresh = useCallback(async () => {
     const seq = ++requestSeq.current;
-    const [loadedPriorities, loadedPlan, tasksRes, habitsRes, eventsRes] = await Promise.all([
+    const [loadedPriorities, tasksRes, habitsRes, eventsRes] = await Promise.all([
       loadPriorities(supabase, userId, localDate),
-      loadWeeklyPlan(supabase, userId, weekStart),
       supabase.from("tasks").select("id, title, due_date, status, priority").eq("user_id", userId).eq("status", "todo").order("due_date", { ascending: true }).limit(200),
       supabase.from("habits").select("id, title, frequency, days_of_week, times_per_week").eq("user_id", userId).limit(200),
       supabase.from("daily_plan_events").select("event_type").eq("user_id", userId).eq("local_date", localDate).in("event_type", ["morning_plan_confirmed", "midday_reset"]).limit(2),
     ]);
     if (seq !== requestSeq.current) return;
     setPriorities(loadedPriorities);
-    setSnapshot(loadedPlan);
     setTasks(((tasksRes.data ?? []) as TaskRow[]));
     setHabits(((habitsRes.data ?? []) as HabitRow[]));
     setConfirmedToday(((eventsRes.data ?? []) as { event_type: string }[]).length > 0);
     setLoading(false);
-  }, [supabase, userId, localDate, weekStart]);
+  }, [supabase, userId, localDate]);
 
   useEffect(() => {
     setLoading(true);

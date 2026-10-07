@@ -439,7 +439,7 @@ function PlanContent() {
             <h2 id="today-plan-heading" className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">Today</h2>
             <Link href="/today" prefetch className="text-xs font-medium text-[var(--accent)] hover:text-[var(--accent-strong)]">Open Today &rarr;</Link>
           </div>
-          <TodayPlanner supabase={supabase} userId={userId} localDate={getLocalTodayDateString()} weekStart={week.weekStart} />
+          <TodayPlanner supabase={supabase} userId={userId} localDate={getLocalTodayDateString()} snapshot={snapshot} />
         </section>
       )}
     </div>

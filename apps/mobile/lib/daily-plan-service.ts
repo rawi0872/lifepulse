@@ -90,12 +90,24 @@ export async function setDailyMustWin(
   priorityId: string | null,
   priorities: TodayPriority[],
 ): Promise<boolean> {
-  for (const priority of priorities) {
-    if (priority.is_must_win && priority.id !== priorityId) {
+  // Re-read flagged rows: the passed list may be stale after a concurrent
+  // switch, and clearing only stale flags trips the partial unique index.
+  const flaggedIds = new Set(
+    priorities.filter((p) => p.is_must_win).map((p) => p.id),
+  );
+  const { data: fresh } = await supabase
+    .from("today_priorities")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("local_date", localDate)
+    .eq("is_must_win", true);
+  for (const row of ((fresh ?? []) as { id: string }[])) flaggedIds.add(row.id);
+  for (const id of flaggedIds) {
+    if (id !== priorityId) {
       const { error } = await supabase
         .from("today_priorities")
         .update({ is_must_win: false })
-        .eq("id", priority.id)
+        .eq("id", id)
         .eq("user_id", userId);
       if (error) return false;
     }
